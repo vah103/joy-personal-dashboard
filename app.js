@@ -3,6 +3,8 @@ const GOOGLE_CLIENT_ID = "711309621878-a4tq37k2bnojpsmtthf37c903ktbupia.apps.goo
 const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
 const GMAIL_API_ROOT = "https://gmail.googleapis.com/gmail/v1/users/me";
 const GMAIL_INBOX_URL = "https://mail.google.com/mail/u/0/#inbox";
+const CLOUD_BACKEND = document.querySelector('meta[name="joy-backend"]')?.content === "cloudflare";
+const GMAIL_AUTO_REFRESH_MS = 60_000;
 
 const seedProjects = [
   {
@@ -36,9 +38,12 @@ const gmail = {
   accessToken: null,
   expiresAt: 0,
   messages: [],
+  hiddenCount: 0,
+  syncedAt: 0,
   error: "",
 };
 let toastTimer;
+let gmailAutoRefreshTimer;
 
 const elements = {
   brief: document.querySelector("#brief-copy"),
@@ -247,7 +252,7 @@ function renderGmailMessage(message) {
 
 function renderEmail() {
   if (gmail.status === "sdk-loading") {
-    renderGmailNotice({ icon: "…", title: "Preparing Gmail", copy: "Joy is loading Google's secure sign-in." });
+    renderGmailNotice({ icon: "…", title: "Loading Gmail", copy: "Joy is checking the secure connection." });
     return;
   }
 
@@ -275,9 +280,11 @@ function renderEmail() {
 
   if (gmail.status !== "connected") {
     renderGmailNotice({
-      title: "Connect your Gmail",
-      copy: "See up to five unread inbox messages here. Google will ask you to approve read-only access.",
-      buttonLabel: "Connect Gmail",
+      title: CLOUD_BACKEND ? "Connect Gmail once" : "Connect your Gmail",
+      copy: CLOUD_BACKEND
+        ? "After one read-only approval, Joy will keep Gmail updated automatically."
+        : "See up to five unread inbox messages here. Google will ask you to approve read-only access.",
+      buttonLabel: CLOUD_BACKEND ? "Connect once" : "Connect Gmail",
       action: "connect-gmail",
     });
     return;
@@ -293,14 +300,16 @@ function renderEmail() {
   dot.setAttribute("aria-hidden", "true");
   const statusCopy = document.createElement("strong");
   statusCopy.textContent = gmail.messages.length
-    ? `${gmail.messages.length} ${gmail.messages.length === 1 ? "message" : "messages"}`
-    : "Inbox is clear";
+    ? `${CLOUD_BACKEND ? "Auto · " : ""}${gmail.messages.length} ${gmail.messages.length === 1 ? "message" : "messages"}`
+    : `${CLOUD_BACKEND ? "Auto · " : ""}Inbox is clear`;
   status.append(dot, statusCopy);
 
   const actions = document.createElement("div");
   actions.className = "gmail-actions";
   actions.append(makeButton("Refresh", "refresh-gmail", "gmail-action"));
-  if (state.gmailDismissedIds.length) actions.append(makeButton("Restore", "restore-dismissed-emails", "gmail-action"));
+  if ((CLOUD_BACKEND ? gmail.hiddenCount : state.gmailDismissedIds.length)) {
+    actions.append(makeButton("Restore", "restore-dismissed-emails", "gmail-action"));
+  }
   actions.append(makeButton("Disconnect", "disconnect-gmail", "gmail-action"));
   toolbar.append(status, actions);
   wrapper.append(toolbar);
@@ -381,6 +390,95 @@ function render() {
   renderSales();
 }
 
+async function backendRequest(path, options = {}) {
+  const headers = new Headers(options.headers || {});
+  if (options.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  const response = await window.fetch(path, {
+    ...options,
+    headers,
+    credentials: "same-origin",
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(payload.error || `Joy server returned ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  return payload;
+}
+
+async function initializeCloudGmail() {
+  gmail.status = "sdk-loading";
+  renderBrief();
+  renderEmail();
+  try {
+    const session = await backendRequest("/api/session");
+    if (!session.connected) {
+      gmail.status = "disconnected";
+      renderBrief();
+      renderEmail();
+      return;
+    }
+    await fetchCloudEmails();
+  } catch {
+    gmail.status = "error";
+    gmail.error = "Joy's secure Gmail service is not ready yet.";
+    renderBrief();
+    renderEmail();
+  }
+}
+
+async function fetchCloudEmails({ silent = false } = {}) {
+  if (!silent) {
+    gmail.status = "loading-messages";
+    renderBrief();
+    renderEmail();
+  }
+
+  try {
+    const payload = await backendRequest("/api/emails");
+    gmail.messages = Array.isArray(payload.messages) ? payload.messages : [];
+    gmail.hiddenCount = Number(payload.hiddenCount || 0);
+    gmail.syncedAt = Number(payload.syncedAt || Date.now());
+    state.gmailPinnedIds = gmail.messages.filter((message) => message.pinned).map((message) => String(message.id));
+    gmail.status = "connected";
+    gmail.error = "";
+    saveState();
+    renderBrief();
+    renderEmail();
+    startGmailAutoRefresh();
+    if (payload.syncError && !gmail.messages.length && !silent) {
+      showToast("Automatic Gmail sync is paused. Try Refresh, then reconnect if needed.");
+    }
+  } catch (error) {
+    if (error.status === 401) {
+      stopGmailAutoRefresh();
+      gmail.status = "disconnected";
+      gmail.error = "";
+    } else if (!silent) {
+      gmail.status = "error";
+      gmail.error = "Joy could not reach the secure Gmail service. Please try again.";
+    }
+    renderBrief();
+    renderEmail();
+  }
+}
+
+function startGmailAutoRefresh() {
+  if (!CLOUD_BACKEND) return;
+  window.clearInterval(gmailAutoRefreshTimer);
+  gmailAutoRefreshTimer = window.setInterval(() => {
+    if (document.visibilityState === "visible" && gmail.status === "connected") {
+      fetchCloudEmails({ silent: true });
+    }
+  }, GMAIL_AUTO_REFRESH_MS);
+}
+
+function stopGmailAutoRefresh() {
+  window.clearInterval(gmailAutoRefreshTimer);
+  gmailAutoRefreshTimer = null;
+}
+
 function gmailErrorMessage(status) {
   if (status === 401) return "Your Google session expired. Connect again to refresh it.";
   if (status === 403) return "Google blocked access. Add this Gmail address as a test user, then try again.";
@@ -420,6 +518,7 @@ async function fetchGmailMessage(id) {
 }
 
 async function fetchGmailMessages() {
+  if (CLOUD_BACKEND) return fetchCloudEmails();
   if (!gmail.accessToken) return;
   gmail.status = "loading-messages";
   gmail.error = "";
@@ -536,6 +635,10 @@ function loadGoogleIdentity() {
 }
 
 function connectGmail() {
+  if (CLOUD_BACKEND) {
+    window.location.assign("/auth/start");
+    return;
+  }
   if (!gmail.tokenClient) {
     gmail.status = "error";
     gmail.error = "Google sign-in is not ready yet. Refresh the page and try again.";
@@ -550,6 +653,10 @@ function connectGmail() {
 }
 
 function refreshGmail() {
+  if (CLOUD_BACKEND) {
+    fetchCloudEmails();
+    return;
+  }
   if (!gmail.accessToken || Date.now() >= gmail.expiresAt - 60_000) {
     connectGmail();
     return;
@@ -557,7 +664,25 @@ function refreshGmail() {
   fetchGmailMessages();
 }
 
-function disconnectGmail() {
+async function disconnectGmail() {
+  if (CLOUD_BACKEND) {
+    try {
+      await backendRequest("/api/disconnect", { method: "POST" });
+      stopGmailAutoRefresh();
+      gmail.accessToken = null;
+      gmail.messages = [];
+      gmail.hiddenCount = 0;
+      gmail.status = "disconnected";
+      state.gmailPinnedIds = [];
+      saveState();
+      renderBrief();
+      renderEmail();
+      showToast("Gmail disconnected");
+    } catch {
+      showToast("Joy could not disconnect Gmail");
+    }
+    return;
+  }
   const token = gmail.accessToken;
   gmail.accessToken = null;
   gmail.expiresAt = 0;
@@ -574,37 +699,73 @@ function disconnectGmail() {
   }
 }
 
-function toggleEmailPin(id) {
+async function toggleEmailPin(id) {
   const emailId = String(id || "");
   if (!emailId) return;
+  const willPin = !isEmailPinned(emailId);
 
-  if (isEmailPinned(emailId)) {
+  if (!willPin) {
     state.gmailPinnedIds = state.gmailPinnedIds.filter((item) => item !== emailId);
-    showToast("Email unpinned");
   } else {
     state.gmailPinnedIds = [emailId, ...state.gmailPinnedIds.filter((item) => item !== emailId)].slice(0, 50);
-    showToast("Email pinned to the top");
   }
 
   gmail.messages = sortGmailMessages(gmail.messages);
   saveState();
   renderEmail();
+  showToast(willPin ? "Email pinned to the top" : "Email unpinned");
+
+  if (CLOUD_BACKEND) {
+    try {
+      await backendRequest("/api/emails/pin", {
+        method: "POST",
+        body: JSON.stringify({ id: emailId, pinned: willPin }),
+      });
+    } catch {
+      showToast("Pin could not be saved");
+      fetchCloudEmails({ silent: true });
+    }
+  }
 }
 
-function dismissEmail(id) {
+async function dismissEmail(id) {
   const emailId = String(id || "");
   if (!emailId) return;
 
   state.gmailDismissedIds = [...state.gmailDismissedIds.filter((item) => item !== emailId), emailId].slice(-200);
   state.gmailPinnedIds = state.gmailPinnedIds.filter((item) => item !== emailId);
   gmail.messages = gmail.messages.filter((message) => String(message.id) !== emailId);
+  if (CLOUD_BACKEND) gmail.hiddenCount += 1;
   saveState();
   renderBrief();
   renderEmail();
   showToast("Email hidden from Joy");
+
+  if (CLOUD_BACKEND) {
+    try {
+      await backendRequest("/api/emails/dismiss", {
+        method: "POST",
+        body: JSON.stringify({ id: emailId }),
+      });
+    } catch {
+      showToast("Read status could not be saved");
+      fetchCloudEmails({ silent: true });
+    }
+  }
 }
 
-function restoreDismissedEmails() {
+async function restoreDismissedEmails() {
+  if (CLOUD_BACKEND) {
+    try {
+      await backendRequest("/api/emails/restore", { method: "POST" });
+      gmail.hiddenCount = 0;
+      showToast("Hidden emails restored");
+      await fetchCloudEmails();
+    } catch {
+      showToast("Joy could not restore hidden emails");
+    }
+    return;
+  }
   state.gmailDismissedIds = [];
   saveState();
   showToast("Hidden emails restored");
@@ -724,4 +885,11 @@ if ("IntersectionObserver" in window) {
 
 renderHeader();
 render();
-loadGoogleIdentity();
+if (CLOUD_BACKEND) initializeCloudGmail();
+else loadGoogleIdentity();
+
+document.addEventListener("visibilitychange", () => {
+  if (CLOUD_BACKEND && document.visibilityState === "visible" && gmail.status === "connected") {
+    fetchCloudEmails({ silent: true });
+  }
+});

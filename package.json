@@ -1,0 +1,16 @@
+{
+  "name": "joy-personal-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy",
+    "db:migrate:local": "wrangler d1 migrations apply joy-dashboard --local",
+    "db:migrate:remote": "wrangler d1 migrations apply joy-dashboard --remote"
+  },
+  "devDependencies": {
+    "wrangler": "^4.113.0"
+  }
+}

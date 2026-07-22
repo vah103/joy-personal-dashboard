@@ -16,3 +16,15 @@ A responsive personal dashboard for Vanh, covering Gmail, sales viewings, active
 The Gmail connection requests only `gmail.readonly`. Its short-lived access token is kept in memory and is never written to GitHub or `localStorage`. Closing or refreshing the tab requires connecting again. Joy cannot send, modify, or delete email. Pin and hidden-message preferences store message IDs only; they do not store message content or change the message inside Gmail.
 
 Sales data is still sample data. Projects and to-do items are local to the current browser.
+
+## Cloudflare architecture
+
+The repository now includes an optional production architecture under `worker/`:
+
+- Cloudflare Workers serves the API and built frontend.
+- D1 stores encrypted OAuth tokens, sessions, cached email metadata, and application data.
+- Gmail is synchronized every minute by a Cron Trigger.
+- The browser polls the same-origin API every minute without storing Google tokens.
+- The original GitHub Pages build continues to use the browser-only Gmail connection as a fallback.
+
+See `CLOUDFLARE_SETUP.md` for the one-time deployment procedure. Do not place OAuth client secrets or refresh tokens in the repository.
