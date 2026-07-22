@@ -47,7 +47,10 @@ In Google Auth Platform > Data Access, keep the scope:
 
 ```text
 https://www.googleapis.com/auth/gmail.readonly
+https://www.googleapis.com/auth/spreadsheets.readonly
 ```
+
+Enable both **Gmail API** and **Google Sheets API** in the same Google Cloud project. The Gmail account in `ALLOWED_EMAIL` must have access to the `Sale phòng | GPTs` spreadsheet.
 
 In Google Auth Platform > Audience, publish the app to **In production**. Testing-mode authorizations that include Gmail access expire after seven days. Joy is still limited to the email stored in `ALLOWED_EMAIL`.
 
@@ -60,7 +63,10 @@ npx wrangler secret put GOOGLE_CLIENT_ID
 npx wrangler secret put GOOGLE_CLIENT_SECRET
 npx wrangler secret put ALLOWED_EMAIL
 npx wrangler secret put TOKEN_ENCRYPTION_SECRET
+npx wrangler secret put SALE_SPREADSHEET_ID
 ```
+
+For `SALE_SPREADSHEET_ID`, enter only the ID from the Sheet URL. It is not a password, but storing it as a Worker secret keeps the private file identifier out of the public repository.
 
 Generate the token encryption secret locally:
 
@@ -83,6 +89,7 @@ Open the Worker URL, choose **Connect once**, select the email in `ALLOWED_EMAIL
 - synchronizes Gmail every minute with a Cron Trigger;
 - refreshes the visible dashboard automatically every minute;
 - stores Pin and Read preferences in D1;
+- reads upcoming appointments from the `Appointments` tab without modifying the Sheet;
 - leaves the original GitHub Pages version untouched as a fallback.
 
 If Google displays an unverified-app warning, continue only after confirming the project name, Worker URL, and requested `gmail.readonly` permission belong to this Joy project.

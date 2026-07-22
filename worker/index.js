@@ -1,9 +1,13 @@
+import { normalizeUpcomingViewings } from "./sales.js";
+
 const SESSION_COOKIE = "__Host-joy_session";
 const OAUTH_STATE_COOKIE = "__Host-joy_oauth_state";
 const PKCE_COOKIE = "__Host-joy_pkce";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 365;
 const OAUTH_COOKIE_MAX_AGE = 10 * 60;
 const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
+const GOOGLE_SHEETS_SCOPE = "https://www.googleapis.com/auth/spreadsheets.readonly";
+const APPOINTMENTS_RANGE = "Appointments!A2:F";
 
 export default {
   async fetch(request, env, ctx) {
@@ -38,6 +42,7 @@ async function routeRequest(request, env) {
     if (request.method !== "GET" && !isSameOrigin(request)) return json({ error: "INVALID_ORIGIN" }, 403);
 
     if (pathname === "/api/emails" && request.method === "GET") return listEmails(session.user_email, env);
+    if (pathname === "/api/sales/viewings" && request.method === "GET") return listUpcomingViewings(session.user_email, env);
     if (pathname === "/api/emails/pin" && request.method === "POST") return updateEmailPin(request, session.user_email, env);
     if (pathname === "/api/emails/dismiss" && request.method === "POST") return dismissEmail(request, session.user_email, env);
     if (pathname === "/api/emails/restore" && request.method === "POST") return restoreEmails(session.user_email, env);
@@ -66,7 +71,7 @@ async function startGoogleAuthorization(request, env) {
     client_id: env.GOOGLE_CLIENT_ID,
     redirect_uri: redirectUri,
     response_type: "code",
-    scope: `openid email ${GMAIL_SCOPE}`,
+    scope: `openid email ${GMAIL_SCOPE} ${GOOGLE_SHEETS_SCOPE}`,
     access_type: "offline",
     prompt: "consent",
     include_granted_scopes: "true",
@@ -233,6 +238,54 @@ async function gmailApi(accessToken, path) {
     throw error;
   }
   return response.json();
+}
+
+async function sheetsApi(accessToken, spreadsheetId, range) {
+  const parameters = new URLSearchParams({
+    majorDimension: "ROWS",
+    valueRenderOption: "FORMATTED_VALUE",
+    dateTimeRenderOption: "FORMATTED_STRING",
+  });
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}/values/${encodeURIComponent(range)}?${parameters}`;
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(`Google Sheets API returned ${response.status}`);
+    error.status = response.status;
+    error.reason = payload.error?.details?.find((detail) => detail.reason)?.reason
+      || payload.error?.status
+      || "";
+    throw error;
+  }
+  return payload;
+}
+
+async function listUpcomingViewings(email, env) {
+  if (!env.SALE_SPREADSHEET_ID) return json({ error: "SALE_SHEET_NOT_CONFIGURED" }, 503);
+
+  try {
+    const accessToken = await getAccessToken(email, env);
+    const sheet = await sheetsApi(accessToken, env.SALE_SPREADSHEET_ID, APPOINTMENTS_RANGE);
+    const viewings = normalizeUpcomingViewings(sheet.values, Date.now());
+    return json({
+      viewings,
+      count: viewings.length,
+      source: "Sale phòng | GPTs / Appointments",
+      timeZone: "Asia/Ho_Chi_Minh",
+      fetchedAt: Date.now(),
+    });
+  } catch (error) {
+    console.error("Sales sync failed", error.status, error.reason);
+    if (error.status === 401 || error.reason === "ACCESS_TOKEN_SCOPE_INSUFFICIENT") {
+      return json({ error: "SHEETS_AUTHORIZATION_REQUIRED" }, 403);
+    }
+    if (error.reason === "SERVICE_DISABLED") return json({ error: "SHEETS_API_DISABLED" }, 503);
+    if (error.status === 403) return json({ error: "SALE_SHEET_ACCESS_DENIED" }, 403);
+    if (error.status === 404) return json({ error: "SALE_SHEET_NOT_FOUND" }, 404);
+    return json({ error: "SALE_SYNC_FAILED" }, 502);
+  }
 }
 
 async function syncGmail(email, env) {

@@ -10,8 +10,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=icons-only">
-    <script src="app.js?v=icons-only" defer></script>
+    <link rel="stylesheet" href="styles.css?v=live-sales">
+    <script src="app.js?v=live-sales" defer></script>
   </head>
   <body>
     <main class="dashboard-shell">
@@ -72,28 +72,17 @@
 
           <section class="panel sales-panel" id="sales" aria-labelledby="sales-title">
             <div class="panel-heading">
-              <div><span class="panel-icon">S</span><h2 id="sales-title">Sales</h2></div>
-              <button class="quiet-link" type="button" data-action="open-sales">Open sales</button>
+              <button class="panel-title-button" type="button" data-action="open-sales" aria-haspopup="dialog">
+                <span class="panel-icon">S</span><h2 id="sales-title">Sales</h2>
+              </button>
+              <button class="quiet-link" type="button" data-action="open-sales" aria-haspopup="dialog">View details</button>
             </div>
             <div class="sales-body">
-              <div class="viewings">
+              <div class="sales-summary">
                 <p class="subheading">Upcoming viewings</p>
-                <article class="viewing-row">
-                  <time>10:30 AM</time>
-                  <div><strong>Linh Nguyen</strong><span>Studio A12 · Nguyen Trai</span></div>
-                  <span class="status confirmed">Confirmed</span>
-                </article>
-                <article class="viewing-row">
-                  <time>3:00 PM</time>
-                  <div><strong>Huy Pham</strong><span>1BR C08 · Tay Son</span></div>
-                  <button class="status status-button pending" id="pending-status" type="button" data-action="toggle-viewing">Pending</button>
-                </article>
+                <span class="count-pill" id="sales-count">Loading</span>
               </div>
-              <div class="room-highlight">
-                <span class="room-badge">Room highlight</span>
-                <div><strong>Sunlit studio · A12</strong><span>7.8M/month · Balcony · Furnished</span></div>
-                <button type="button" aria-label="Open room highlight" data-action="room-highlight">↗</button>
-              </div>
+              <div id="sales-content" aria-live="polite"></div>
             </div>
           </section>
 
@@ -143,6 +132,16 @@
               <button class="primary-button" type="submit">Add project</button>
             </div>
           </form>
+        </section>
+      </div>
+
+      <div class="modal-backdrop" id="sales-modal" role="presentation" hidden>
+        <section class="modal sales-modal" role="dialog" aria-modal="true" aria-labelledby="sales-modal-title">
+          <div class="modal-heading">
+            <div><p class="section-kicker">Sale phòng | GPTs</p><h2 id="sales-modal-title">Upcoming viewings</h2></div>
+            <button type="button" aria-label="Close sales details" data-action="close-sales">×</button>
+          </div>
+          <div id="sales-modal-content"></div>
         </section>
       </div>
 
