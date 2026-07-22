@@ -63,6 +63,8 @@ function loadState() {
   const fallback = {
     tasks: clone(seedTasks),
     projects: clone(seedProjects),
+    gmailDismissedIds: [],
+    gmailPinnedIds: [],
     pendingConfirmed: false,
   };
 
@@ -72,6 +74,8 @@ function loadState() {
     return {
       tasks: Array.isArray(saved.tasks) ? saved.tasks : fallback.tasks,
       projects: Array.isArray(saved.projects) ? saved.projects : fallback.projects,
+      gmailDismissedIds: Array.isArray(saved.gmailDismissedIds) ? saved.gmailDismissedIds.map(String).slice(-200) : [],
+      gmailPinnedIds: Array.isArray(saved.gmailPinnedIds) ? saved.gmailPinnedIds.map(String).slice(-50) : [],
       pendingConfirmed: Boolean(saved.pendingConfirmed),
     };
   } catch {
@@ -105,13 +109,28 @@ function renderHeader() {
   elements.greeting.textContent = `Good ${daypart}, Vanh.`;
 }
 
+function isEmailPinned(id) {
+  return state.gmailPinnedIds.includes(String(id));
+}
+
+function sortGmailMessages(messages) {
+  return [...messages].sort((a, b) => {
+    const aIndex = state.gmailPinnedIds.indexOf(String(a.id));
+    const bIndex = state.gmailPinnedIds.indexOf(String(b.id));
+    if (aIndex >= 0 && bIndex >= 0) return aIndex - bIndex;
+    if (aIndex >= 0) return -1;
+    if (bIndex >= 0) return 1;
+    return 0;
+  });
+}
+
 function renderBrief() {
   const dueCount = state.tasks.filter((task) => !task.done).length;
   const taskLabel = `${dueCount} ${dueCount === 1 ? "task" : "tasks"} due today`;
   let emailLabel = "Gmail not connected";
   if (["authorizing", "loading-messages"].includes(gmail.status)) emailLabel = "checking Gmail";
   if (gmail.status === "connected") {
-    const count = gmail.messages.length;
+    const count = gmail.messages.filter((message) => message.unread).length;
     emailLabel = count ? `${count} unread ${count === 1 ? "email" : "emails"}` : "no unread email";
   }
   elements.brief.innerHTML = `You have <strong>2 customer viewings</strong>, <strong>${taskLabel}</strong>, and <strong>${emailLabel}</strong>.`;
@@ -175,6 +194,7 @@ function formatEmailDate(value) {
 function renderGmailMessage(message) {
   const article = document.createElement("article");
   article.className = "gmail-message";
+  article.classList.toggle("pinned", isEmailPinned(message.id));
 
   const avatar = document.createElement("div");
   avatar.className = "sender-avatar";
@@ -202,9 +222,23 @@ function renderGmailMessage(message) {
   open.href = `https://mail.google.com/mail/u/0/#all/${encodeURIComponent(message.threadId)}`;
   open.target = "_blank";
   open.rel = "noopener noreferrer";
-  open.textContent = "Open in Gmail ↗";
+  open.textContent = "Open ↗";
 
-  copy.append(meta, subject, snippet, open);
+  const messageActions = document.createElement("div");
+  messageActions.className = "gmail-message-actions";
+
+  const pin = makeButton(isEmailPinned(message.id) ? "Pinned" : "Pin", "toggle-email-pin", "gmail-message-button");
+  pin.dataset.emailId = message.id;
+  pin.setAttribute("aria-pressed", String(isEmailPinned(message.id)));
+  pin.title = isEmailPinned(message.id) ? "Remove pin" : "Keep this email at the top";
+
+  const read = makeButton("Read ✓", "dismiss-email", "gmail-message-button gmail-read-button");
+  read.dataset.emailId = message.id;
+  read.title = "Hide this email from Joy";
+
+  messageActions.append(open, pin, read);
+
+  copy.append(meta, subject, snippet, messageActions);
   article.append(avatar, copy);
   return article;
 }
@@ -257,23 +291,22 @@ function renderEmail() {
   dot.setAttribute("aria-hidden", "true");
   const statusCopy = document.createElement("strong");
   statusCopy.textContent = gmail.messages.length
-    ? `${gmail.messages.length} unread ${gmail.messages.length === 1 ? "message" : "messages"}`
+    ? `${gmail.messages.length} ${gmail.messages.length === 1 ? "message" : "messages"}`
     : "Inbox is clear";
   status.append(dot, statusCopy);
 
   const actions = document.createElement("div");
   actions.className = "gmail-actions";
-  actions.append(
-    makeButton("Refresh", "refresh-gmail", "gmail-action"),
-    makeButton("Disconnect", "disconnect-gmail", "gmail-action"),
-  );
+  actions.append(makeButton("Refresh", "refresh-gmail", "gmail-action"));
+  if (state.gmailDismissedIds.length) actions.append(makeButton("Restore", "restore-dismissed-emails", "gmail-action"));
+  actions.append(makeButton("Disconnect", "disconnect-gmail", "gmail-action"));
   toolbar.append(status, actions);
   wrapper.append(toolbar);
 
   if (gmail.messages.length) {
     const list = document.createElement("div");
     list.className = "gmail-list";
-    gmail.messages.forEach((message) => list.append(renderGmailMessage(message)));
+    sortGmailMessages(gmail.messages).forEach((message) => list.append(renderGmailMessage(message)));
     wrapper.append(list);
   } else {
     const empty = document.createElement("div");
@@ -366,7 +399,22 @@ async function gmailApi(path) {
 
 function gmailHeader(message, name) {
   const headers = message.payload?.headers || [];
-  return headers.find((header) => header.name.toLowerCase() === name.toLowerCase())?.value || "";
+  return headers.find((header) => String(header.name).toLowerCase() === name.toLowerCase())?.value || "";
+}
+
+async function fetchGmailMessage(id) {
+  const params = new URLSearchParams({ format: "metadata" });
+  ["From", "Subject", "Date"].forEach((name) => params.append("metadataHeaders", name));
+  const message = await gmailApi(`/messages/${encodeURIComponent(id)}?${params}`);
+  return {
+    id: message.id,
+    threadId: message.threadId || message.id,
+    sender: senderName(gmailHeader(message, "From")),
+    subject: gmailHeader(message, "Subject"),
+    date: gmailHeader(message, "Date"),
+    snippet: message.snippet || "",
+    unread: Array.isArray(message.labelIds) ? message.labelIds.includes("UNREAD") : true,
+  };
 }
 
 async function fetchGmailMessages() {
@@ -377,24 +425,32 @@ async function fetchGmailMessages() {
   renderEmail();
 
   try {
-    const query = new URLSearchParams({ maxResults: "5", q: "is:unread in:inbox" });
+    const query = new URLSearchParams({ maxResults: "25", q: "is:unread in:inbox" });
     const list = await gmailApi(`/messages?${query}`);
     const messageRefs = Array.isArray(list.messages) ? list.messages : [];
-    const messages = await Promise.all(messageRefs.map(async ({ id }) => {
-      const params = new URLSearchParams({ format: "metadata" });
-      ["From", "Subject", "Date"].forEach((name) => params.append("metadataHeaders", name));
-      const message = await gmailApi(`/messages/${encodeURIComponent(id)}?${params}`);
-      return {
-        id: message.id,
-        threadId: message.threadId || message.id,
-        sender: senderName(gmailHeader(message, "From")),
-        subject: gmailHeader(message, "Subject"),
-        date: gmailHeader(message, "Date"),
-        snippet: message.snippet || "",
-      };
-    }));
+    const dismissed = new Set(state.gmailDismissedIds);
+    const unreadIds = messageRefs.map(({ id }) => String(id)).filter((id) => !dismissed.has(id)).slice(0, 5);
+    const pinnedIds = state.gmailPinnedIds.filter((id) => !dismissed.has(id));
+    const ids = [...new Set([...pinnedIds, ...unreadIds])];
+    const missingIds = [];
+    const messages = (await Promise.all(ids.map(async (id) => {
+      try {
+        return await fetchGmailMessage(id);
+      } catch (error) {
+        if (error.status === 404) {
+          missingIds.push(id);
+          return null;
+        }
+        throw error;
+      }
+    }))).filter(Boolean);
 
-    gmail.messages = messages;
+    if (missingIds.length) {
+      state.gmailPinnedIds = state.gmailPinnedIds.filter((id) => !missingIds.includes(id));
+      saveState();
+    }
+
+    gmail.messages = sortGmailMessages(messages);
     gmail.status = "connected";
     renderBrief();
     renderEmail();
@@ -516,6 +572,43 @@ function disconnectGmail() {
   }
 }
 
+function toggleEmailPin(id) {
+  const emailId = String(id || "");
+  if (!emailId) return;
+
+  if (isEmailPinned(emailId)) {
+    state.gmailPinnedIds = state.gmailPinnedIds.filter((item) => item !== emailId);
+    showToast("Email unpinned");
+  } else {
+    state.gmailPinnedIds = [emailId, ...state.gmailPinnedIds.filter((item) => item !== emailId)].slice(0, 50);
+    showToast("Email pinned to the top");
+  }
+
+  gmail.messages = sortGmailMessages(gmail.messages);
+  saveState();
+  renderEmail();
+}
+
+function dismissEmail(id) {
+  const emailId = String(id || "");
+  if (!emailId) return;
+
+  state.gmailDismissedIds = [...state.gmailDismissedIds.filter((item) => item !== emailId), emailId].slice(-200);
+  state.gmailPinnedIds = state.gmailPinnedIds.filter((item) => item !== emailId);
+  gmail.messages = gmail.messages.filter((message) => String(message.id) !== emailId);
+  saveState();
+  renderBrief();
+  renderEmail();
+  showToast("Email hidden from Joy");
+}
+
+function restoreDismissedEmails() {
+  state.gmailDismissedIds = [];
+  saveState();
+  showToast("Hidden emails restored");
+  fetchGmailMessages();
+}
+
 function showToast(message) {
   window.clearTimeout(toastTimer);
   elements.toast.textContent = message;
@@ -583,6 +676,9 @@ document.addEventListener("click", (event) => {
   if (action === "connect-gmail") connectGmail();
   if (action === "refresh-gmail") refreshGmail();
   if (action === "disconnect-gmail") disconnectGmail();
+  if (action === "toggle-email-pin") toggleEmailPin(control.dataset.emailId);
+  if (action === "dismiss-email") dismissEmail(control.dataset.emailId);
+  if (action === "restore-dismissed-emails") restoreDismissedEmails();
   if (action === "toggle-viewing") {
     state.pendingConfirmed = !state.pendingConfirmed;
     saveState();
