@@ -227,13 +227,15 @@ function renderGmailMessage(message) {
   const messageActions = document.createElement("div");
   messageActions.className = "gmail-message-actions";
 
-  const pin = makeButton(isEmailPinned(message.id) ? "Pinned" : "Pin", "toggle-email-pin", "gmail-message-button");
+  const pin = makeButton("", "toggle-email-pin", "gmail-square-button gmail-pin-button");
   pin.dataset.emailId = message.id;
   pin.setAttribute("aria-pressed", String(isEmailPinned(message.id)));
+  pin.setAttribute("aria-label", isEmailPinned(message.id) ? "Unpin email" : "Pin email");
   pin.title = isEmailPinned(message.id) ? "Remove pin" : "Keep this email at the top";
 
-  const read = makeButton("Read ✓", "dismiss-email", "gmail-message-button gmail-read-button");
+  const read = makeButton("", "dismiss-email", "gmail-square-button gmail-read-button");
   read.dataset.emailId = message.id;
+  read.setAttribute("aria-label", "Mark as read in Joy");
   read.title = "Hide this email from Joy";
 
   messageActions.append(open, pin, read);

@@ -126,10 +126,14 @@ h1 { margin: 0; font-size: clamp(30px, 3.1vw, 46px); line-height: 1.08; font-wei
 .gmail-message-actions { display: flex; align-items: center; gap: 4px; margin-top: 6px; }
 .gmail-message-link { display: inline-block; margin-right: auto; color: var(--accent-dark); font-size: 9px; font-weight: 800; }
 .gmail-message-link:hover { text-decoration: underline; }
-.gmail-message-button { min-height: 25px; padding: 0 7px; border: 1px solid var(--border); border-radius: 7px; background: rgba(255, 255, 255, 0.82); color: #59636d; font-size: 8px; font-weight: 800; }
-.gmail-message-button[aria-pressed="true"] { border-color: #bdcbd8; background: var(--accent-soft); color: var(--accent-dark); }
+.gmail-square-button { position: relative; width: 26px; height: 26px; flex: 0 0 26px; padding: 0; border: 1px solid var(--border); border-radius: 7px; background: rgba(255, 255, 255, 0.82); color: #66717b; }
+.gmail-square-button:hover { border-color: var(--border-strong); background: white; }
+.gmail-square-button[aria-pressed="true"] { border-color: #b9c8d5; background: var(--accent-soft); color: var(--accent-dark); }
+.gmail-pin-button::before { content: ""; position: absolute; top: 6px; left: 9px; width: 7px; height: 7px; border: 1.5px solid currentColor; border-radius: 2px; transform: rotate(45deg); }
+.gmail-pin-button::after { content: ""; position: absolute; top: 14px; left: 12px; width: 1.5px; height: 6px; border-radius: 99px; background: currentColor; transform: rotate(45deg); transform-origin: top; }
+.gmail-pin-button[aria-pressed="true"]::before { background: currentColor; box-shadow: inset 0 0 0 2px var(--accent-soft); }
 .gmail-read-button { color: var(--success); }
-.gmail-message-button:hover { border-color: var(--border-strong); background: white; }
+.gmail-read-button::before { content: "✓"; display: grid; place-items: center; height: 100%; font-size: 13px; font-weight: 900; }
 .gmail-empty { min-height: 134px; }
 .button-row { display: flex; gap: 8px; margin-top: 14px; }
 .primary-button, .secondary-button { min-height: 36px; padding: 0 13px; border-radius: 10px; font-size: 12px; font-weight: 800; }
