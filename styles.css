@@ -92,7 +92,23 @@ h1 { margin: 0; font-size: clamp(30px, 3.1vw, 46px); line-height: 1.08; font-wei
 .panel-icon { width: 31px; height: 31px; border-radius: 10px; font-size: 11px; }
 .quiet-link { padding: 7px; font-size: 12px; }
 
-.email-item { display: grid; grid-template-columns: 42px 1fr; gap: 13px; padding: 18px; }
+.gmail-connect { min-height: 224px; padding: 26px 24px; display: grid; justify-items: start; align-content: center; }
+.gmail-brand { width: 42px; height: 42px; display: grid; place-items: center; margin-bottom: 12px; border: 1px solid #d8dde3; border-radius: 13px; background: white; color: #4285f4; box-shadow: 0 7px 18px rgba(37, 44, 53, 0.07); font-size: 18px; font-weight: 900; }
+.gmail-connect h3 { margin: 0; font-size: 16px; }
+.gmail-connect p { max-width: 440px; margin: 6px 0 15px; color: var(--muted); font-size: 12px; line-height: 1.55; }
+.gmail-connect small { margin-top: 10px; color: #858c95; font-size: 10px; font-weight: 700; }
+.gmail-connect-error .gmail-brand { background: var(--danger-soft); color: var(--danger); }
+.gmail-connect-button { min-width: 118px; }
+.gmail-inbox { min-height: 224px; }
+.gmail-toolbar { min-height: 48px; padding: 9px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid #e1e4e8; background: #f4f6f7; }
+.gmail-status { display: flex; align-items: center; gap: 7px; color: #58616b; font-size: 11px; }
+.gmail-status > span { width: 7px; height: 7px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 3px var(--success-soft); }
+.gmail-actions { display: flex; align-items: center; gap: 2px; }
+.gmail-action { padding: 5px 7px; border: 0; border-radius: 7px; background: transparent; color: var(--accent-dark); font-size: 10px; font-weight: 800; }
+.gmail-action:hover { background: #e7ebee; }
+.gmail-list { max-height: 410px; overflow-y: auto; }
+.gmail-message { display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 13px; padding: 16px 18px; border-bottom: 1px solid #e3e6e9; }
+.gmail-message:last-child { border-bottom: 0; }
 .empty-state { min-height: 190px; padding: 24px; display: grid; place-items: center; align-content: center; text-align: center; }
 .empty-state > span { width: 38px; height: 38px; display: grid; place-items: center; margin-bottom: 9px; border-radius: 50%; background: var(--success-soft); color: var(--success); font-weight: 900; }
 .empty-state strong { font-size: 14px; }
@@ -102,7 +118,10 @@ h1 { margin: 0; font-size: clamp(30px, 3.1vw, 46px); line-height: 1.08; font-wei
 .email-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 12px; }
 .email-meta strong { color: var(--text); font-size: 13px; }
 .email-copy h3 { margin: 8px 0 5px; font-size: 15px; }
-.email-copy p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+.email-copy p { display: -webkit-box; margin: 0; overflow: hidden; color: var(--muted); font-size: 12px; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.gmail-message-link { display: inline-block; margin-top: 9px; color: var(--accent-dark); font-size: 10px; font-weight: 800; }
+.gmail-message-link:hover { text-decoration: underline; }
+.gmail-empty { min-height: 175px; }
 .button-row { display: flex; gap: 8px; margin-top: 14px; }
 .primary-button, .secondary-button { min-height: 36px; padding: 0 13px; border-radius: 10px; font-size: 12px; font-weight: 800; }
 .primary-button { border: 1px solid var(--accent-dark); background: var(--accent-dark); color: white; }
@@ -204,6 +223,9 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
   .brief-icon { width: 43px; height: 43px; border-radius: 13px; }
   .dashboard-grid { gap: 14px; }
   .panel { border-radius: 16px; scroll-margin-top: 16px; }
+  .gmail-connect { min-height: 210px; padding: 22px 18px; }
+  .gmail-toolbar { padding-inline: 14px; }
+  .gmail-message { padding: 15px 14px; }
   .project-list { grid-template-columns: 1fr; }
   .viewing-row { grid-template-columns: 62px minmax(0, 1fr); }
   .viewing-row .status { grid-column: 2; justify-self: start; }
@@ -219,6 +241,11 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
   .mobile-nav small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: 8px; font-weight: 800; }
   .toast { right: 14px; bottom: 84px; }
   .modal { padding: 19px; border-radius: 18px; }
+}
+
+@media (max-width: 420px) {
+  .gmail-toolbar { align-items: flex-start; flex-direction: column; gap: 5px; }
+  .gmail-actions { margin-left: -7px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

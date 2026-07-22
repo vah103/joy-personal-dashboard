@@ -1,4 +1,8 @@
 const STORAGE_KEY = "joy-dashboard-sample";
+const GOOGLE_CLIENT_ID = "711309621878-a4tq37k2bnojpsmtthf37c903ktbupia.apps.googleusercontent.com";
+const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
+const GMAIL_API_ROOT = "https://gmail.googleapis.com/gmail/v1/users/me";
+const GMAIL_INBOX_URL = "https://mail.google.com/mail/u/0/#inbox";
 
 const seedProjects = [
   {
@@ -26,6 +30,14 @@ const seedTasks = [
 ];
 
 const state = loadState();
+const gmail = {
+  status: "sdk-loading",
+  tokenClient: null,
+  accessToken: null,
+  expiresAt: 0,
+  messages: [],
+  error: "",
+};
 let toastTimer;
 
 const elements = {
@@ -51,7 +63,6 @@ function loadState() {
   const fallback = {
     tasks: clone(seedTasks),
     projects: clone(seedProjects),
-    emailDone: false,
     pendingConfirmed: false,
   };
 
@@ -61,7 +72,6 @@ function loadState() {
     return {
       tasks: Array.isArray(saved.tasks) ? saved.tasks : fallback.tasks,
       projects: Array.isArray(saved.projects) ? saved.projects : fallback.projects,
-      emailDone: Boolean(saved.emailDone),
       pendingConfirmed: Boolean(saved.pendingConfirmed),
     };
   } catch {
@@ -98,29 +108,187 @@ function renderHeader() {
 function renderBrief() {
   const dueCount = state.tasks.filter((task) => !task.done).length;
   const taskLabel = `${dueCount} ${dueCount === 1 ? "task" : "tasks"} due today`;
-  const emailLabel = state.emailDone ? "no important email" : "1 important email";
+  let emailLabel = "Gmail not connected";
+  if (["authorizing", "loading-messages"].includes(gmail.status)) emailLabel = "checking Gmail";
+  if (gmail.status === "connected") {
+    const count = gmail.messages.length;
+    emailLabel = count ? `${count} unread ${count === 1 ? "email" : "emails"}` : "no unread email";
+  }
   elements.brief.innerHTML = `You have <strong>2 customer viewings</strong>, <strong>${taskLabel}</strong>, and <strong>${emailLabel}</strong>.`;
 }
 
+function makeButton(label, action, className = "secondary-button") {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = className;
+  button.dataset.action = action;
+  button.textContent = label;
+  return button;
+}
+
+function renderGmailNotice({ icon = "G", title, copy, buttonLabel, action, error = false }) {
+  const card = document.createElement("div");
+  card.className = `gmail-connect${error ? " gmail-connect-error" : ""}`;
+
+  const badge = document.createElement("span");
+  badge.className = "gmail-brand";
+  badge.setAttribute("aria-hidden", "true");
+  badge.textContent = icon;
+
+  const heading = document.createElement("h3");
+  heading.textContent = title;
+
+  const description = document.createElement("p");
+  description.textContent = copy;
+
+  card.append(badge, heading, description);
+  if (buttonLabel && action) card.append(makeButton(buttonLabel, action, "primary-button gmail-connect-button"));
+
+  const privacy = document.createElement("small");
+  privacy.textContent = "Read-only access · Joy cannot send or delete email";
+  card.append(privacy);
+  elements.email.replaceChildren(card);
+}
+
+function senderName(from) {
+  const withoutAddress = String(from || "Unknown sender").replace(/\s*<[^>]+>\s*$/, "").replace(/^"|"$/g, "").trim();
+  return withoutAddress || String(from || "Unknown sender").split("@")[0];
+}
+
+function senderInitials(name) {
+  const words = String(name).split(/\s+/).filter(Boolean);
+  return (words.length > 1 ? `${words[0][0]}${words.at(-1)[0]}` : words[0]?.slice(0, 2) || "?").toUpperCase();
+}
+
+function formatEmailDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const today = new Date();
+  const sameDay = date.getFullYear() === today.getFullYear()
+    && date.getMonth() === today.getMonth()
+    && date.getDate() === today.getDate();
+  return new Intl.DateTimeFormat("en-US", sameDay
+    ? { hour: "numeric", minute: "2-digit" }
+    : { month: "short", day: "numeric" }).format(date);
+}
+
+function renderGmailMessage(message) {
+  const article = document.createElement("article");
+  article.className = "gmail-message";
+
+  const avatar = document.createElement("div");
+  avatar.className = "sender-avatar";
+  avatar.textContent = senderInitials(message.sender);
+
+  const copy = document.createElement("div");
+  copy.className = "email-copy";
+
+  const meta = document.createElement("div");
+  meta.className = "email-meta";
+  const sender = document.createElement("strong");
+  sender.textContent = message.sender;
+  const time = document.createElement("time");
+  time.dateTime = message.date || "";
+  time.textContent = formatEmailDate(message.date);
+  meta.append(sender, time);
+
+  const subject = document.createElement("h3");
+  subject.textContent = message.subject || "(No subject)";
+  const snippet = document.createElement("p");
+  snippet.textContent = message.snippet || "No preview available.";
+
+  const open = document.createElement("a");
+  open.className = "gmail-message-link";
+  open.href = `https://mail.google.com/mail/u/0/#all/${encodeURIComponent(message.threadId)}`;
+  open.target = "_blank";
+  open.rel = "noopener noreferrer";
+  open.textContent = "Open in Gmail ↗";
+
+  copy.append(meta, subject, snippet, open);
+  article.append(avatar, copy);
+  return article;
+}
+
 function renderEmail() {
-  elements.email.innerHTML = state.emailDone
-    ? `<div class="empty-state">
-        <span>✓</span><strong>You’re all caught up</strong>
-        <p>No priority emails need your attention.</p>
-        <button type="button" data-action="restore-email">Restore sample email</button>
-      </div>`
-    : `<article class="email-item">
-        <div class="sender-avatar">MT</div>
-        <div class="email-copy">
-          <div class="email-meta"><strong>Dr. Minh Tran</strong><time>8:42 AM</time></div>
-          <h3>TurtleBot 4 project review</h3>
-          <p>Could you send the latest navigation test results before Friday?</p>
-          <div class="button-row">
-            <button class="primary-button" type="button" data-action="open-email">Open email</button>
-            <button class="secondary-button" type="button" data-action="complete-email">Mark done</button>
-          </div>
-        </div>
-      </article>`;
+  if (gmail.status === "sdk-loading") {
+    renderGmailNotice({ icon: "…", title: "Preparing Gmail", copy: "Joy is loading Google's secure sign-in." });
+    return;
+  }
+
+  if (gmail.status === "authorizing") {
+    renderGmailNotice({ icon: "…", title: "Waiting for Google", copy: "Choose the Gmail account you want Joy to read." });
+    return;
+  }
+
+  if (gmail.status === "loading-messages") {
+    renderGmailNotice({ icon: "↻", title: "Checking your inbox", copy: "Joy is loading up to five unread messages." });
+    return;
+  }
+
+  if (gmail.status === "error") {
+    renderGmailNotice({
+      icon: "!",
+      title: "Gmail could not connect",
+      copy: gmail.error || "Please try connecting again.",
+      buttonLabel: "Try again",
+      action: "connect-gmail",
+      error: true,
+    });
+    return;
+  }
+
+  if (gmail.status !== "connected") {
+    renderGmailNotice({
+      title: "Connect your Gmail",
+      copy: "See up to five unread inbox messages here. Google will ask you to approve read-only access.",
+      buttonLabel: "Connect Gmail",
+      action: "connect-gmail",
+    });
+    return;
+  }
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "gmail-inbox";
+  const toolbar = document.createElement("div");
+  toolbar.className = "gmail-toolbar";
+  const status = document.createElement("div");
+  status.className = "gmail-status";
+  const dot = document.createElement("span");
+  dot.setAttribute("aria-hidden", "true");
+  const statusCopy = document.createElement("strong");
+  statusCopy.textContent = gmail.messages.length
+    ? `${gmail.messages.length} unread ${gmail.messages.length === 1 ? "message" : "messages"}`
+    : "Inbox is clear";
+  status.append(dot, statusCopy);
+
+  const actions = document.createElement("div");
+  actions.className = "gmail-actions";
+  actions.append(
+    makeButton("Refresh", "refresh-gmail", "gmail-action"),
+    makeButton("Disconnect", "disconnect-gmail", "gmail-action"),
+  );
+  toolbar.append(status, actions);
+  wrapper.append(toolbar);
+
+  if (gmail.messages.length) {
+    const list = document.createElement("div");
+    list.className = "gmail-list";
+    gmail.messages.forEach((message) => list.append(renderGmailMessage(message)));
+    wrapper.append(list);
+  } else {
+    const empty = document.createElement("div");
+    empty.className = "empty-state gmail-empty";
+    const check = document.createElement("span");
+    check.textContent = "✓";
+    const title = document.createElement("strong");
+    title.textContent = "You’re all caught up";
+    const copy = document.createElement("p");
+    copy.textContent = "There are no unread messages in your inbox.";
+    empty.append(check, title, copy);
+    wrapper.append(empty);
+  }
+
+  elements.email.replaceChildren(wrapper);
 }
 
 function renderProjects() {
@@ -176,6 +344,176 @@ function render() {
   renderProjects();
   renderTasks();
   renderSales();
+}
+
+function gmailErrorMessage(status) {
+  if (status === 401) return "Your Google session expired. Connect again to refresh it.";
+  if (status === 403) return "Google blocked access. Add this Gmail address as a test user, then try again.";
+  return "Joy could not reach Gmail. Check your connection and try again.";
+}
+
+async function gmailApi(path) {
+  const response = await window.fetch(`${GMAIL_API_ROOT}${path}`, {
+    headers: { Authorization: `Bearer ${gmail.accessToken}` },
+  });
+  if (!response.ok) {
+    const error = new Error(gmailErrorMessage(response.status));
+    error.status = response.status;
+    throw error;
+  }
+  return response.json();
+}
+
+function gmailHeader(message, name) {
+  const headers = message.payload?.headers || [];
+  return headers.find((header) => header.name.toLowerCase() === name.toLowerCase())?.value || "";
+}
+
+async function fetchGmailMessages() {
+  if (!gmail.accessToken) return;
+  gmail.status = "loading-messages";
+  gmail.error = "";
+  renderBrief();
+  renderEmail();
+
+  try {
+    const query = new URLSearchParams({ maxResults: "5", q: "is:unread in:inbox" });
+    const list = await gmailApi(`/messages?${query}`);
+    const messageRefs = Array.isArray(list.messages) ? list.messages : [];
+    const messages = await Promise.all(messageRefs.map(async ({ id }) => {
+      const params = new URLSearchParams({ format: "metadata" });
+      ["From", "Subject", "Date"].forEach((name) => params.append("metadataHeaders", name));
+      const message = await gmailApi(`/messages/${encodeURIComponent(id)}?${params}`);
+      return {
+        id: message.id,
+        threadId: message.threadId || message.id,
+        sender: senderName(gmailHeader(message, "From")),
+        subject: gmailHeader(message, "Subject"),
+        date: gmailHeader(message, "Date"),
+        snippet: message.snippet || "",
+      };
+    }));
+
+    gmail.messages = messages;
+    gmail.status = "connected";
+    renderBrief();
+    renderEmail();
+  } catch (error) {
+    if (error.status === 401) {
+      gmail.accessToken = null;
+      gmail.expiresAt = 0;
+    }
+    gmail.status = "error";
+    gmail.error = error.message || gmailErrorMessage(error.status);
+    renderBrief();
+    renderEmail();
+  }
+}
+
+function handleGoogleToken(response) {
+  if (!response || response.error || !response.access_token) {
+    gmail.status = "error";
+    gmail.error = "Google did not grant access. Please choose your account and try again.";
+    renderBrief();
+    renderEmail();
+    return;
+  }
+
+  const scopeChecker = window.google?.accounts?.oauth2?.hasGrantedAllScopes;
+  if (scopeChecker && !scopeChecker(response, GMAIL_SCOPE)) {
+    gmail.status = "error";
+    gmail.error = "Read-only Gmail permission was not approved.";
+    renderBrief();
+    renderEmail();
+    return;
+  }
+
+  gmail.accessToken = response.access_token;
+  gmail.expiresAt = Date.now() + (Number(response.expires_in) || 3600) * 1000;
+  fetchGmailMessages();
+}
+
+function initializeGoogleIdentity() {
+  try {
+    gmail.tokenClient = window.google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: GMAIL_SCOPE,
+      callback: handleGoogleToken,
+      error_callback: () => {
+        gmail.status = "disconnected";
+        gmail.error = "";
+        renderBrief();
+        renderEmail();
+      },
+    });
+    gmail.status = "disconnected";
+    renderBrief();
+    renderEmail();
+  } catch {
+    gmail.status = "error";
+    gmail.error = "Google sign-in could not start. Refresh the page and try again.";
+    renderBrief();
+    renderEmail();
+  }
+}
+
+function loadGoogleIdentity() {
+  if (window.google?.accounts?.oauth2) {
+    initializeGoogleIdentity();
+    return;
+  }
+
+  const script = document.createElement("script");
+  script.src = "https://accounts.google.com/gsi/client";
+  script.async = true;
+  script.defer = true;
+  script.onload = initializeGoogleIdentity;
+  script.onerror = () => {
+    gmail.status = "error";
+    gmail.error = "Google sign-in was blocked. Disable any blocker for this page, then refresh.";
+    renderBrief();
+    renderEmail();
+  };
+  document.head.append(script);
+}
+
+function connectGmail() {
+  if (!gmail.tokenClient) {
+    gmail.status = "error";
+    gmail.error = "Google sign-in is not ready yet. Refresh the page and try again.";
+    renderEmail();
+    return;
+  }
+  gmail.status = "authorizing";
+  gmail.error = "";
+  renderBrief();
+  renderEmail();
+  gmail.tokenClient.requestAccessToken();
+}
+
+function refreshGmail() {
+  if (!gmail.accessToken || Date.now() >= gmail.expiresAt - 60_000) {
+    connectGmail();
+    return;
+  }
+  fetchGmailMessages();
+}
+
+function disconnectGmail() {
+  const token = gmail.accessToken;
+  gmail.accessToken = null;
+  gmail.expiresAt = 0;
+  gmail.messages = [];
+  gmail.status = "disconnected";
+  gmail.error = "";
+  renderBrief();
+  renderEmail();
+
+  if (token && window.google?.accounts?.oauth2?.revoke) {
+    window.google.accounts.oauth2.revoke(token, () => showToast("Gmail disconnected"));
+  } else {
+    showToast("Gmail disconnected");
+  }
 }
 
 function showToast(message) {
@@ -242,17 +580,9 @@ document.addEventListener("click", (event) => {
 
   if (action === "open-project-form") openProjectForm();
   if (action === "close-project-form") closeProjectForm();
-  if (action === "complete-email") {
-    state.emailDone = true;
-    saveState();
-    render();
-    showToast("Email marked as done");
-  }
-  if (action === "restore-email") {
-    state.emailDone = false;
-    saveState();
-    render();
-  }
+  if (action === "connect-gmail") connectGmail();
+  if (action === "refresh-gmail") refreshGmail();
+  if (action === "disconnect-gmail") disconnectGmail();
   if (action === "toggle-viewing") {
     state.pendingConfirmed = !state.pendingConfirmed;
     saveState();
@@ -268,8 +598,7 @@ document.addEventListener("click", (event) => {
     showToast(`${project?.name || "Project"} archived`);
   }
   if (action === "view-day") document.querySelector("#to-do").scrollIntoView({ behavior: "smooth", block: "center" });
-  if (action === "open-email") showToast("Opening email is disabled in sample mode");
-  if (action === "view-inbox") showToast("Live email connection comes next");
+  if (action === "view-inbox") window.open(GMAIL_INBOX_URL, "_blank", "noopener,noreferrer");
   if (action === "open-sales") showToast("Live sales data comes next");
   if (action === "room-highlight") showToast("Room A12 · sample information");
   if (action === "notifications") showToast("2 sample notifications");
@@ -286,12 +615,15 @@ document.addEventListener("keydown", (event) => {
 
 const sections = [...document.querySelectorAll("#overview, #email, #sales, #projects, #to-do")];
 const navigationLinks = [...document.querySelectorAll('.nav-list a[href^="#"], .mobile-nav a[href^="#"]')];
-const observer = new IntersectionObserver((entries) => {
-  const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-  if (!visible) return;
-  navigationLinks.forEach((link) => link.classList.toggle("active", link.getAttribute("href") === `#${visible.target.id}`));
-}, { rootMargin: "-30% 0px -60%", threshold: [0, 0.25, 0.5] });
-sections.forEach((section) => observer.observe(section));
+if ("IntersectionObserver" in window) {
+  const observer = new IntersectionObserver((entries) => {
+    const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+    if (!visible) return;
+    navigationLinks.forEach((link) => link.classList.toggle("active", link.getAttribute("href") === `#${visible.target.id}`));
+  }, { rootMargin: "-30% 0px -60%", threshold: [0, 0.25, 0.5] });
+  sections.forEach((section) => observer.observe(section));
+}
 
 renderHeader();
 render();
+loadGoogleIdentity();
