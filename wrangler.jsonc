@@ -12,7 +12,7 @@
     {
       "binding": "DB",
       "database_name": "joy-dashboard",
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "database_id": "cf56b5be-2d98-4ae6-9fc1-357a21d821ff",
       "migrations_dir": "migrations"
     }
   ],
