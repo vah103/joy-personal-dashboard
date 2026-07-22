@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#eceff2">
+    <meta name="description" content="Vanh's personal command center for email, sales, projects, and daily tasks.">
+    <title>Joy — Personal Dashboard</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <main class="dashboard-shell">
+      <aside class="sidebar" aria-label="Primary navigation">
+        <a class="brand" href="#overview" aria-label="Joy overview">
+          <span class="brand-mark">J</span>
+          <span>Joy</span>
+        </a>
+
+        <nav class="nav-list" aria-label="Desktop navigation">
+          <a class="nav-item active" href="#overview"><span class="nav-icon" aria-hidden="true">O</span><span>Overview</span></a>
+          <a class="nav-item" href="#email"><span class="nav-icon" aria-hidden="true">E</span><span>Email</span></a>
+          <a class="nav-item" href="#sales"><span class="nav-icon" aria-hidden="true">S</span><span>Sales</span></a>
+          <a class="nav-item" href="#projects"><span class="nav-icon" aria-hidden="true">P</span><span>Projects</span></a>
+          <a class="nav-item" href="#to-do"><span class="nav-icon" aria-hidden="true">T</span><span>To-do</span></a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <button class="nav-item nav-button" type="button" data-action="sample-settings">
+            <span class="nav-icon" aria-hidden="true">S</span><span>Settings</span>
+          </button>
+          <div class="profile-card">
+            <span class="avatar">VH</span>
+            <span><strong>Vanh</strong><small>Personal workspace</small></span>
+          </div>
+        </div>
+      </aside>
+
+      <section class="main-content" id="overview">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow" id="today-label">Wednesday, July 22</p>
+            <h1 id="greeting">Good morning, Vanh.</h1>
+          </div>
+          <div class="header-actions">
+            <button class="icon-button" type="button" aria-label="Notifications" data-action="notifications">2</button>
+            <span class="header-avatar">VH</span>
+          </div>
+        </header>
+
+        <section class="joy-brief" aria-labelledby="brief-title">
+          <div class="brief-icon" aria-hidden="true">✦</div>
+          <div>
+            <p class="section-kicker" id="brief-title">Joy Brief</p>
+            <p id="brief-copy">You have <strong>2 customer viewings</strong>, <strong>2 tasks due today</strong>, and <strong>1 important email</strong>.</p>
+          </div>
+          <button class="text-button" type="button" data-action="view-day">View day</button>
+        </section>
+
+        <div class="dashboard-grid">
+          <section class="panel email-panel" id="email" aria-labelledby="email-title">
+            <div class="panel-heading">
+              <div><span class="panel-icon">E</span><h2 id="email-title">Priority Email</h2></div>
+              <button class="quiet-link" type="button" data-action="view-inbox">View inbox</button>
+            </div>
+            <div id="email-content"></div>
+          </section>
+
+          <section class="panel sales-panel" id="sales" aria-labelledby="sales-title">
+            <div class="panel-heading">
+              <div><span class="panel-icon">S</span><h2 id="sales-title">Sales</h2></div>
+              <button class="quiet-link" type="button" data-action="open-sales">Open sales</button>
+            </div>
+            <div class="sales-body">
+              <div class="viewings">
+                <p class="subheading">Upcoming viewings</p>
+                <article class="viewing-row">
+                  <time>10:30 AM</time>
+                  <div><strong>Linh Nguyen</strong><span>Studio A12 · Nguyen Trai</span></div>
+                  <span class="status confirmed">Confirmed</span>
+                </article>
+                <article class="viewing-row">
+                  <time>3:00 PM</time>
+                  <div><strong>Huy Pham</strong><span>1BR C08 · Tay Son</span></div>
+                  <button class="status status-button pending" id="pending-status" type="button" data-action="toggle-viewing">Pending</button>
+                </article>
+              </div>
+              <div class="room-highlight">
+                <span class="room-badge">Room highlight</span>
+                <div><strong>Sunlit studio · A12</strong><span>7.8M/month · Balcony · Furnished</span></div>
+                <button type="button" aria-label="Open room highlight" data-action="room-highlight">↗</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel projects-panel" id="projects" aria-labelledby="projects-title">
+            <div class="panel-heading">
+              <div><span class="panel-icon">P</span><h2 id="projects-title">Active Projects</h2></div>
+              <button class="quiet-link" type="button" data-action="open-project-form">+ Add project</button>
+            </div>
+            <div class="project-list" id="project-list"></div>
+          </section>
+
+          <section class="panel todo-panel" id="to-do" aria-labelledby="todo-title">
+            <div class="panel-heading">
+              <div><span class="panel-icon">T</span><h2 id="todo-title">Today’s To-do</h2></div>
+              <span class="count-pill" id="task-count">1 of 3 done</span>
+            </div>
+            <form class="quick-add" id="quick-add-form">
+              <label class="sr-only" for="quick-task">Add a task</label>
+              <input id="quick-task" name="task" type="text" placeholder="What do you need to do?" autocomplete="off">
+              <button type="submit" aria-label="Add task">+</button>
+            </form>
+            <div class="task-list" id="task-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <nav class="mobile-nav" aria-label="Mobile navigation">
+        <a class="active" href="#overview"><span>O</span><small>Overview</small></a>
+        <a href="#email"><span>E</span><small>Email</small></a>
+        <a href="#sales"><span>S</span><small>Sales</small></a>
+        <a href="#projects"><span>P</span><small>Projects</small></a>
+        <a href="#to-do"><span>T</span><small>To-do</small></a>
+      </nav>
+
+      <div class="modal-backdrop" id="project-modal" role="presentation" hidden>
+        <section class="modal" role="dialog" aria-modal="true" aria-labelledby="new-project-title">
+          <div class="modal-heading">
+            <div><p class="section-kicker">Projects</p><h2 id="new-project-title">Add a new project</h2></div>
+            <button type="button" aria-label="Close project form" data-action="close-project-form">×</button>
+          </div>
+          <form id="project-form">
+            <label>Project name<input name="name" type="text" placeholder="e.g. Personal finance" required></label>
+            <label>Current focus<input name="focus" type="text" placeholder="What are you focusing on?" required></label>
+            <label>Next action<input name="next" type="text" placeholder="What should happen next?" required></label>
+            <div class="modal-actions">
+              <button class="secondary-button" type="button" data-action="close-project-form">Cancel</button>
+              <button class="primary-button" type="submit">Add project</button>
+            </div>
+          </form>
+        </section>
+      </div>
+
+      <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+    </main>
+  </body>
+</html>
