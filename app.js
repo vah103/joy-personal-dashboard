@@ -5,6 +5,8 @@ const GMAIL_API_ROOT = "https://gmail.googleapis.com/gmail/v1/users/me";
 const GMAIL_INBOX_URL = "https://mail.google.com/mail/u/0/#inbox";
 const CLOUD_BACKEND = document.querySelector('meta[name="joy-backend"]')?.content === "cloudflare";
 const GMAIL_AUTO_REFRESH_MS = 60_000;
+const SALES_AUTO_REFRESH_MS = 60_000;
+const VIETNAM_TIME_ZONE = "Asia/Ho_Chi_Minh";
 
 const seedProjects = [
   {
@@ -42,15 +44,21 @@ const gmail = {
   syncedAt: 0,
   error: "",
 };
+const sales = {
+  status: CLOUD_BACKEND ? "loading" : "unavailable",
+  viewings: [],
+  fetchedAt: 0,
+  errorCode: "",
+};
 let toastTimer;
 let gmailAutoRefreshTimer;
+let salesAutoRefreshTimer;
 
 const elements = {
   brief: document.querySelector("#brief-copy"),
   email: document.querySelector("#email-content"),
   greeting: document.querySelector("#greeting"),
   modal: document.querySelector("#project-modal"),
-  pendingStatus: document.querySelector("#pending-status"),
   projectForm: document.querySelector("#project-form"),
   projectList: document.querySelector("#project-list"),
   quickAddForm: document.querySelector("#quick-add-form"),
@@ -58,6 +66,10 @@ const elements = {
   taskList: document.querySelector("#task-list"),
   todayLabel: document.querySelector("#today-label"),
   toast: document.querySelector("#toast"),
+  sales: document.querySelector("#sales-content"),
+  salesCount: document.querySelector("#sales-count"),
+  salesModal: document.querySelector("#sales-modal"),
+  salesModalContent: document.querySelector("#sales-modal-content"),
 };
 
 function clone(value) {
@@ -70,7 +82,6 @@ function loadState() {
     projects: clone(seedProjects),
     gmailDismissedIds: [],
     gmailPinnedIds: [],
-    pendingConfirmed: false,
   };
 
   try {
@@ -81,7 +92,6 @@ function loadState() {
       projects: Array.isArray(saved.projects) ? saved.projects : fallback.projects,
       gmailDismissedIds: Array.isArray(saved.gmailDismissedIds) ? saved.gmailDismissedIds.map(String).slice(-200) : [],
       gmailPinnedIds: Array.isArray(saved.gmailPinnedIds) ? saved.gmailPinnedIds.map(String).slice(-50) : [],
-      pendingConfirmed: Boolean(saved.pendingConfirmed),
     };
   } catch {
     window.localStorage.removeItem(STORAGE_KEY);
@@ -138,7 +148,11 @@ function renderBrief() {
     const count = gmail.messages.filter((message) => message.unread).length;
     emailLabel = count ? `${count} unread ${count === 1 ? "email" : "emails"}` : "no unread email";
   }
-  elements.brief.innerHTML = `You have <strong>2 customer viewings</strong>, <strong>${taskLabel}</strong>, and <strong>${emailLabel}</strong>.`;
+  const viewingCount = sales.status === "ready" ? sales.viewings.length : 0;
+  const viewingLabel = sales.status === "ready"
+    ? `${viewingCount} upcoming ${viewingCount === 1 ? "viewing" : "viewings"}`
+    : "sales awaiting sync";
+  elements.brief.innerHTML = `You have <strong>${viewingLabel}</strong>, <strong>${taskLabel}</strong>, and <strong>${emailLabel}</strong>.`;
 }
 
 function makeButton(label, action, className = "secondary-button") {
@@ -377,9 +391,150 @@ function renderTasks() {
 }
 
 function renderSales() {
-  elements.pendingStatus.textContent = state.pendingConfirmed ? "Confirmed" : "Pending";
-  elements.pendingStatus.classList.toggle("confirmed", state.pendingConfirmed);
-  elements.pendingStatus.classList.toggle("pending", !state.pendingConfirmed);
+  elements.salesCount.textContent = sales.status === "ready"
+    ? `${sales.viewings.length} ${sales.viewings.length === 1 ? "viewing" : "viewings"}`
+    : sales.status === "loading" ? "Loading" : "Not synced";
+
+  if (sales.status !== "ready") {
+    const notice = document.createElement("div");
+    notice.className = "sales-notice";
+    const title = document.createElement("strong");
+    const copy = document.createElement("p");
+
+    if (sales.status === "loading") {
+      title.textContent = "Loading viewing schedule";
+      copy.textContent = "Joy is checking the Appointments sheet.";
+    } else if (sales.status === "authorization-required") {
+      title.textContent = "Connect the viewing sheet once";
+      copy.textContent = "Approve read-only access so Joy can show live appointments.";
+      notice.append(title, copy, makeButton("Connect Sheet", "connect-sales", "primary-button"));
+      elements.sales.replaceChildren(notice);
+      renderSalesModal();
+      return;
+    } else if (sales.status === "unavailable") {
+      title.textContent = "Live sales stays private";
+      copy.textContent = "Open the secure Joy Cloudflare app to see customer appointments.";
+    } else {
+      title.textContent = "Viewing schedule could not sync";
+      copy.textContent = sales.errorCode === "SHEETS_API_DISABLED"
+        ? "Google Sheets API still needs to be enabled for Joy."
+        : "Check the Sheet connection, then try again.";
+      notice.append(title, copy, makeButton("Try again", "refresh-sales", "secondary-button"));
+      elements.sales.replaceChildren(notice);
+      renderSalesModal();
+      return;
+    }
+
+    notice.append(title, copy);
+    elements.sales.replaceChildren(notice);
+    renderSalesModal();
+    return;
+  }
+
+  if (!sales.viewings.length) {
+    const empty = document.createElement("div");
+    empty.className = "sales-empty";
+    const check = document.createElement("span");
+    check.textContent = "✓";
+    const title = document.createElement("strong");
+    title.textContent = "No upcoming viewings";
+    const copy = document.createElement("p");
+    copy.textContent = "Past appointments are hidden automatically.";
+    empty.append(check, title, copy);
+    elements.sales.replaceChildren(empty);
+    renderSalesModal();
+    return;
+  }
+
+  const scroll = document.createElement("div");
+  scroll.className = "viewing-list-scroll";
+  const columns = document.createElement("div");
+  columns.className = "viewing-columns";
+  ["Viewing time", "Customer", "Room address"].forEach((label) => {
+    const span = document.createElement("span");
+    span.textContent = label;
+    columns.append(span);
+  });
+  scroll.append(columns);
+
+  sales.viewings.forEach((viewing) => {
+    const row = document.createElement("article");
+    row.className = "viewing-row";
+    const time = document.createElement("time");
+    time.dateTime = viewing.viewingAt;
+    time.textContent = formatViewingTime(viewing.viewingAt);
+    const customer = document.createElement("strong");
+    customer.textContent = viewing.customerName;
+    const address = document.createElement("span");
+    address.textContent = viewing.viewingAddress;
+    row.append(time, customer, address);
+    scroll.append(row);
+  });
+
+  elements.sales.replaceChildren(scroll);
+  renderSalesModal();
+}
+
+function formatViewingTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: VIETNAM_TIME_ZONE,
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+  const part = (type) => parts.find((item) => item.type === type)?.value || "";
+  return `${part("day")} ${part("month")} · ${part("hour")}:${part("minute")}`;
+}
+
+function renderSalesModal() {
+  if (sales.status !== "ready" || !sales.viewings.length) {
+    const empty = document.createElement("div");
+    empty.className = "sales-modal-empty";
+    empty.textContent = sales.status === "ready"
+      ? "There are no upcoming appointments in the Sheet."
+      : "The live appointment list is not available yet.";
+    elements.salesModalContent.replaceChildren(empty);
+    return;
+  }
+
+  const scroll = document.createElement("div");
+  scroll.className = "sales-table-scroll";
+  const table = document.createElement("table");
+  table.className = "sales-table";
+  const head = document.createElement("thead");
+  const headRow = document.createElement("tr");
+  ["Customer", "Phone", "Viewing address", "Viewing time", "Before email", "Follow-up email"].forEach((label) => {
+    const th = document.createElement("th");
+    th.scope = "col";
+    th.textContent = label;
+    headRow.append(th);
+  });
+  head.append(headRow);
+
+  const body = document.createElement("tbody");
+  sales.viewings.forEach((viewing) => {
+    const row = document.createElement("tr");
+    [
+      viewing.customerName,
+      viewing.phone || "—",
+      viewing.viewingAddress,
+      viewing.viewingTime,
+      viewing.beforeStatus || "—",
+      viewing.afterStatus || "—",
+    ].forEach((value) => {
+      const cell = document.createElement("td");
+      cell.textContent = value;
+      row.append(cell);
+    });
+    body.append(row);
+  });
+  table.append(head, body);
+  scroll.append(table);
+  elements.salesModalContent.replaceChildren(scroll);
 }
 
 function render() {
@@ -402,9 +557,45 @@ async function backendRequest(path, options = {}) {
   if (!response.ok) {
     const error = new Error(payload.error || `Joy server returned ${response.status}`);
     error.status = response.status;
+    error.code = payload.error || "";
     throw error;
   }
   return payload;
+}
+
+async function fetchCloudSales({ silent = false } = {}) {
+  if (!silent) {
+    sales.status = "loading";
+    renderBrief();
+    renderSales();
+  }
+
+  try {
+    const payload = await backendRequest("/api/sales/viewings");
+    sales.viewings = Array.isArray(payload.viewings) ? payload.viewings : [];
+    sales.fetchedAt = Number(payload.fetchedAt || Date.now());
+    sales.errorCode = "";
+    sales.status = "ready";
+    startSalesAutoRefresh();
+  } catch (error) {
+    sales.viewings = [];
+    sales.errorCode = error.code || "SALE_SYNC_FAILED";
+    if (error.status === 401 || error.code === "SHEETS_AUTHORIZATION_REQUIRED") {
+      sales.status = "authorization-required";
+    } else {
+      sales.status = "error";
+    }
+  }
+  renderBrief();
+  renderSales();
+}
+
+function startSalesAutoRefresh() {
+  if (!CLOUD_BACKEND) return;
+  window.clearInterval(salesAutoRefreshTimer);
+  salesAutoRefreshTimer = window.setInterval(() => {
+    if (document.visibilityState === "visible") fetchCloudSales({ silent: true });
+  }, SALES_AUTO_REFRESH_MS);
 }
 
 async function initializeCloudGmail() {
@@ -793,6 +984,18 @@ function closeProjectForm() {
   elements.projectForm.reset();
 }
 
+function openSalesModal() {
+  renderSalesModal();
+  elements.salesModal.hidden = false;
+  document.body.classList.add("modal-open");
+  window.setTimeout(() => elements.salesModal.querySelector("[data-action='close-sales']")?.focus(), 0);
+}
+
+function closeSalesModal() {
+  elements.salesModal.hidden = true;
+  if (elements.modal.hidden) document.body.classList.remove("modal-open");
+}
+
 elements.quickAddForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const input = elements.quickAddForm.elements.task;
@@ -842,12 +1045,10 @@ document.addEventListener("click", (event) => {
   if (action === "toggle-email-pin") toggleEmailPin(control.dataset.emailId);
   if (action === "dismiss-email") dismissEmail(control.dataset.emailId);
   if (action === "restore-dismissed-emails") restoreDismissedEmails();
-  if (action === "toggle-viewing") {
-    state.pendingConfirmed = !state.pendingConfirmed;
-    saveState();
-    render();
-    showToast(state.pendingConfirmed ? "Viewing confirmed" : "Viewing moved to pending");
-  }
+  if (action === "open-sales") openSalesModal();
+  if (action === "close-sales") closeSalesModal();
+  if (action === "refresh-sales") fetchCloudSales();
+  if (action === "connect-sales") window.location.assign("/auth/start");
   if (action === "archive-project") {
     const id = Number(control.dataset.id);
     const project = state.projects.find((item) => item.id === id);
@@ -858,8 +1059,6 @@ document.addEventListener("click", (event) => {
   }
   if (action === "view-day") document.querySelector("#to-do").scrollIntoView({ behavior: "smooth", block: "center" });
   if (action === "view-inbox") window.open(GMAIL_INBOX_URL, "_blank", "noopener,noreferrer");
-  if (action === "open-sales") showToast("Live sales data comes next");
-  if (action === "room-highlight") showToast("Room A12 · sample information");
   if (action === "notifications") showToast("2 sample notifications");
   if (action === "sample-settings") showToast("Settings will be available in the live version");
 });
@@ -868,8 +1067,14 @@ elements.modal.addEventListener("mousedown", (event) => {
   if (event.target === elements.modal) closeProjectForm();
 });
 
+elements.salesModal.addEventListener("mousedown", (event) => {
+  if (event.target === elements.salesModal) closeSalesModal();
+});
+
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && !elements.modal.hidden) closeProjectForm();
+  if (event.key !== "Escape") return;
+  if (!elements.salesModal.hidden) closeSalesModal();
+  else if (!elements.modal.hidden) closeProjectForm();
 });
 
 const sections = [...document.querySelectorAll("#overview, #email, #sales, #projects, #to-do")];
@@ -885,11 +1090,18 @@ if ("IntersectionObserver" in window) {
 
 renderHeader();
 render();
-if (CLOUD_BACKEND) initializeCloudGmail();
-else loadGoogleIdentity();
+if (CLOUD_BACKEND) {
+  initializeCloudGmail();
+  fetchCloudSales();
+} else {
+  loadGoogleIdentity();
+}
 
 document.addEventListener("visibilitychange", () => {
   if (CLOUD_BACKEND && document.visibilityState === "visible" && gmail.status === "connected") {
     fetchCloudEmails({ silent: true });
+  }
+  if (CLOUD_BACKEND && document.visibilityState === "visible" && sales.status === "ready") {
+    fetchCloudSales({ silent: true });
   }
 });
