@@ -212,8 +212,8 @@ This mobile ordering change was discussed but should be verified before consider
 ## Phase 1 — To-do list and safe project deletion
 
 - Main panel title is now `To-do list`.
-- A completed task remains in its original chronological position for the rest of the Vietnam calendar day.
-- Completed tasks are checked and struck through; they disappear from the main list after the date changes but remain in Task history.
+- A completed task remains in its original chronological position on the completion date and throughout the following Vietnam calendar day.
+- Completed tasks are checked and struck through; a task completed on day 23 remains visible through day 24 and disappears from the main list on day 25, while remaining in Task history.
 - Project removal requires a custom confirmation modal.
 - Project removal remains a soft delete through the existing archive API.
 - Project IDs are compared as strings so UUID-based projects can be removed correctly.

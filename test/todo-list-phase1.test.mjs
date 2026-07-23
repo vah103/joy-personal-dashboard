@@ -14,27 +14,37 @@ test("keeps an open task visible", () => {
     shouldShowTask({
       done: false,
       completedAt: null,
-    }, new Date("2026-07-23T20:00:00+07:00")),
+    }, new Date("2026-07-25T20:00:00+07:00")),
     true,
   );
 });
 
-test("keeps a completed task visible for the rest of the same Vietnam day", () => {
+test("keeps a completed task visible on its completion date", () => {
   assert.equal(
     shouldShowTask({
       done: true,
-      completedAt: "2026-07-23T10:15:00+07:00",
+      completedAt: "2026-07-23T08:00:00+07:00",
     }, new Date("2026-07-23T23:50:00+07:00")),
     true,
   );
 });
 
-test("hides a completed task after the Vietnam date changes", () => {
+test("keeps a completed task visible throughout the following calendar day", () => {
   assert.equal(
     shouldShowTask({
       done: true,
-      completedAt: "2026-07-23T23:30:00+07:00",
-    }, new Date("2026-07-24T00:01:00+07:00")),
+      completedAt: "2026-07-23T08:00:00+07:00",
+    }, new Date("2026-07-24T23:59:00+07:00")),
+    true,
+  );
+});
+
+test("hides a completed task when the second following date begins", () => {
+  assert.equal(
+    shouldShowTask({
+      done: true,
+      completedAt: "2026-07-23T23:50:00+07:00",
+    }, new Date("2026-07-25T00:00:00+07:00")),
     false,
   );
 });
@@ -57,10 +67,24 @@ test("completed tasks are checked, struck through, and retain normal sorting", (
     "utf8",
   );
 
-  assert.ok(app.includes('class="task-row ${task.done ? "completed" : ""}"'));
-  assert.ok(app.includes('${task.done ? "checked disabled" : ""}'));
-  assert.ok(styles.includes(".task-row.completed .task-title"));
-  assert.ok(styles.includes("text-decoration-line: line-through"));
+  assert.ok(
+    app.includes(
+      'class="task-row ${task.done ? "completed" : ""}"',
+    ),
+  );
+
+  assert.ok(
+    app.includes('${task.done ? "checked disabled" : ""}'),
+  );
+
+  assert.ok(
+    styles.includes(".task-row.completed .task-title"),
+  );
+
+  assert.ok(
+    styles.includes("text-decoration-line: line-through"),
+  );
+
   assert.ok(!app.includes("completedTasks.concat"));
 });
 
@@ -76,11 +100,25 @@ test("project deletion requires confirmation and preserves string ids", () => {
   );
 
   assert.ok(html.includes('id="project-delete-modal"'));
-  assert.ok(html.includes('data-action="confirm-delete-project"'));
-  assert.ok(app.includes('openProjectDeleteConfirmation(control.dataset.id)'));
-  assert.ok(app.includes('String(item.id) !== id'));
-  assert.ok(app.includes('backendRequest("/api/projects/archive"'));
-  assert.ok(!app.includes("const id = Number(control.dataset.id)"));
+  assert.ok(
+    html.includes('data-action="confirm-delete-project"'),
+  );
+
+  assert.ok(
+    app.includes(
+      "openProjectDeleteConfirmation(control.dataset.id)",
+    ),
+  );
+
+  assert.ok(app.includes("String(item.id) !== id"));
+
+  assert.ok(
+    app.includes('backendRequest("/api/projects/archive"'),
+  );
+
+  assert.ok(
+    !app.includes("const id = Number(control.dataset.id)"),
+  );
 });
 
 test("todo helper is loaded before app and copied into dist", () => {
@@ -95,7 +133,8 @@ test("todo helper is loaded before app and copied into dist", () => {
   );
 
   assert.ok(
-    html.indexOf("todo-visibility.js") < html.indexOf("app.js"),
+    html.indexOf("todo-visibility.js")
+      < html.indexOf("app.js"),
   );
 
   assert.ok(
