@@ -14,7 +14,7 @@ const GMAIL_AUTO_REFRESH_MS = 60_000;
 const SALES_AUTO_REFRESH_MS = 60_000;
 const WEATHER_REFRESH_MS = 15 * 60_000;
 const VIETNAM_TIME_ZONE = "Asia/Ho_Chi_Minh";
-const WEATHER_ENDPOINT = "https://api.open-meteo.com/v1/forecast?latitude=21.0285&longitude=105.8542&current=temperature_2m,apparent_temperature,weather_code&timezone=Asia%2FHo_Chi_Minh&forecast_days=1";
+const WEATHER_ENDPOINT = "https://api.open-meteo.com/v1/forecast?latitude=21.0285&longitude=105.8542&current=temperature_2m,apparent_temperature,weather_code&hourly=precipitation_probability,precipitation,weather_code&timezone=Asia%2FHo_Chi_Minh&forecast_days=1";
 
 const seedProjects = [
   {
@@ -89,6 +89,7 @@ const elements = {
   weatherCondition: document.querySelector("#weather-condition"),
   weatherIcon: document.querySelector("#weather-icon"),
   weatherTemperature: document.querySelector("#weather-temperature"),
+  weatherRainNotice: document.querySelector("#weather-rain-notice"),
   sales: document.querySelector("#sales-content"),
   salesCount: document.querySelector("#sales-count"),
   salesModal: document.querySelector("#sales-modal"),
@@ -453,10 +454,23 @@ async function loadWeather() {
     elements.weatherCondition.textContent = Number.isFinite(apparent)
       ? `${details.label} · Feels ${Math.round(apparent)}°`
       : details.label;
+
+    const rainSummary = window.JoyWeather?.summarizeRainForecast(
+      payload?.hourly,
+      new Date(),
+    ) || {
+      state: "unavailable",
+      text: "Rain forecast unavailable",
+    };
+
+    elements.weatherRainNotice.textContent = rainSummary.text;
+    elements.weatherRainNotice.dataset.state = rainSummary.state;
   } catch {
     elements.weatherTemperature.textContent = "—";
     elements.weatherIcon.textContent = "◌";
     elements.weatherCondition.textContent = "Weather unavailable";
+    elements.weatherRainNotice.textContent = "Could not check rain forecast";
+    elements.weatherRainNotice.dataset.state = "unavailable";
   }
 }
 

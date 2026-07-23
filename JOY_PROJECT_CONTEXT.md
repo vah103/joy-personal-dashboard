@@ -141,6 +141,7 @@ Current automated tests cover:
 - D1 completed-task mapping
 - Gmail new-mail tracking cutoff
 - Gmail Done action and SVG pin interface
+- Compact same-day rain-window notice in the existing weather card
 
 Run:
 
@@ -150,8 +151,8 @@ npm.cmd test
 
 Expected when this document was created:
 
-- 25 tests
-- 25 passed
+- 29 tests
+- 29 passed
 - 0 failed
 
 ## 7. Important security rules
