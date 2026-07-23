@@ -230,7 +230,7 @@ This mobile ordering change was discussed but should be verified before consider
 
 ## Project visual polish v2
 
-- Project card and project-detail typography was enlarged for easier reading.
+- Typography is enlarged only inside project-detail popups; dashboard project cards retain their original text sizes.
 - The generated TurtleBot art replaces the original schematic illustration in the modal.
 - The same TurtleBot art is shown directly on the TurtleBot project card in the main dashboard.
 - The image is stored locally as `turtlebot4-art.webp` and copied into the production build.
