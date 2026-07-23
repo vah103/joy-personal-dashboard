@@ -68,6 +68,9 @@ let toastTimer;
 let scratchSaveTimer;
 let gmailAutoRefreshTimer;
 let salesAutoRefreshTimer;
+let taskDayRefreshTimer;
+let lastRenderedTodoDate = vietnamDateKey();
+let pendingProjectDeleteId = "";
 
 const elements = {
   brief: document.querySelector("#brief-copy"),
@@ -76,6 +79,9 @@ const elements = {
   modal: document.querySelector("#project-modal"),
   projectForm: document.querySelector("#project-form"),
   projectList: document.querySelector("#project-list"),
+  projectDeleteModal: document.querySelector("#project-delete-modal"),
+  projectDeleteName: document.querySelector("#project-delete-name"),
+  projectDeleteConfirm: document.querySelector("[data-action='confirm-delete-project']"),
   quickAddForm: document.querySelector("#quick-add-form"),
   scratchpad: document.querySelector("#scratchpad-input"),
   scratchpadStatus: document.querySelector("#scratchpad-status"),
@@ -715,7 +721,7 @@ function renderProjects() {
     .map((project) => `<article class="project-card">
       <div class="project-top">
         <strong>${escapeHtml(project.name)}</strong>
-        <div><span>${Number(project.progress) || 0}%</span><button type="button" aria-label="Archive ${escapeHtml(project.name)}" title="Archive project" data-action="archive-project" data-id="${escapeHtml(project.id)}">×</button></div>
+        <div><span>${Number(project.progress) || 0}%</span><button type="button" aria-label="Delete ${escapeHtml(project.name)}" title="Delete project" data-action="request-delete-project" data-id="${escapeHtml(project.id)}">×</button></div>
       </div>
       <div class="progress-track"><span class="${project.accent === "blue" ? "blue" : "slate"}" style="width:${Math.min(100, Math.max(0, Number(project.progress) || 0))}%"></span></div>
       <dl>
@@ -727,22 +733,52 @@ function renderProjects() {
 }
 
 function renderTasks() {
-  const activeTasks = sortTasks(state.tasks.filter((task) => !task.done));
-  elements.taskCount.textContent = `${activeTasks.length} open`;
+  const now = new Date();
+  lastRenderedTodoDate = vietnamDateKey(now);
 
-  if (!activeTasks.length) {
+  const visibleTasks = sortTasks(state.tasks.filter((task) => {
+    const shouldShowTask = window.JoyTodo?.shouldShowTask;
+
+    return typeof shouldShowTask === "function"
+      ? shouldShowTask(task, now)
+      : !task.done;
+  }));
+
+  const openCount = state.tasks.filter((task) => !task.done).length;
+  elements.taskCount.textContent = `${openCount} open`;
+
+  if (!visibleTasks.length) {
     elements.taskList.innerHTML = `<div class="task-empty"><strong>Your list is clear</strong><span>Add a task above whenever something comes up.</span></div>`;
     return;
   }
 
-  elements.taskList.innerHTML = activeTasks
-    .map((task) => `<label class="task-row">
-      <input type="checkbox" data-task-id="${escapeHtml(task.id)}" aria-label="Complete ${escapeHtml(task.title)}" />
+  elements.taskList.innerHTML = visibleTasks
+    .map((task) => `<label class="task-row ${task.done ? "completed" : ""}">
+      <input
+        type="checkbox"
+        data-task-id="${escapeHtml(task.id)}"
+        aria-label="${task.done ? "Completed" : "Complete"} ${escapeHtml(task.title)}"
+        ${task.done ? "checked disabled" : ""}
+      />
       <span class="checkmark" aria-hidden="true"></span>
       <span class="task-title">${escapeHtml(task.title)}</span>
       <time datetime="${escapeHtml(task.createdDate)}" title="Created ${formatTaskDate(task.createdDate, true)}">${formatTaskDate(task.createdDate)}</time>
     </label>`)
     .join("");
+}
+
+function startTodoDayRefresh() {
+  window.clearInterval(taskDayRefreshTimer);
+
+  taskDayRefreshTimer = window.setInterval(() => {
+    const currentDate = vietnamDateKey();
+
+    if (currentDate === lastRenderedTodoDate) return;
+
+    lastRenderedTodoDate = currentDate;
+    renderBrief();
+    renderTasks();
+  }, 60_000);
 }
 
 function renderTaskHistory() {
@@ -1364,6 +1400,82 @@ function closeProjectForm() {
   elements.projectForm.reset();
 }
 
+function openProjectDeleteConfirmation(id) {
+  const projectId = String(id || "");
+  const project = state.projects.find(
+    (item) => String(item.id) === projectId,
+  );
+
+  if (!project) {
+    showToast("Project could not be found");
+    return;
+  }
+
+  pendingProjectDeleteId = projectId;
+  elements.projectDeleteName.textContent = project.name;
+  elements.projectDeleteModal.hidden = false;
+  document.body.classList.add("modal-open");
+
+  window.setTimeout(() => {
+    elements.projectDeleteConfirm?.focus();
+  }, 0);
+}
+
+function closeProjectDeleteConfirmation() {
+  pendingProjectDeleteId = "";
+  elements.projectDeleteModal.hidden = true;
+
+  if (
+    elements.modal.hidden
+    && elements.salesModal.hidden
+    && elements.taskHistoryModal.hidden
+  ) {
+    document.body.classList.remove("modal-open");
+  }
+}
+
+async function confirmProjectDelete() {
+  const id = String(pendingProjectDeleteId || "");
+  const project = state.projects.find(
+    (item) => String(item.id) === id,
+  );
+
+  if (!id || !project) {
+    closeProjectDeleteConfirmation();
+    return;
+  }
+
+  state.projects = state.projects.filter(
+    (item) => String(item.id) !== id,
+  );
+
+  queueProjectArchive(id);
+  saveState();
+  closeProjectDeleteConfirmation();
+  renderBrief();
+  renderProjects();
+  showToast(`${project.name} removed from Active Projects`);
+
+  if (!CLOUD_BACKEND || !accountSync.connected) return;
+
+  try {
+    await backendRequest("/api/projects/archive", {
+      method: "POST",
+      body: JSON.stringify({ id }),
+    });
+
+    clearProjectArchive(id);
+    showToast(`${project.name} removed · synced`);
+  } catch (error) {
+    if (error.status === 404) {
+      clearProjectArchive(id);
+      return;
+    }
+
+    showToast(`${project.name} removed here · will sync when online`);
+  }
+}
+
 function openSalesModal() {
   renderSalesModal();
   elements.salesModal.hidden = false;
@@ -1373,7 +1485,11 @@ function openSalesModal() {
 
 function closeSalesModal() {
   elements.salesModal.hidden = true;
-  if (elements.modal.hidden && elements.taskHistoryModal.hidden) document.body.classList.remove("modal-open");
+  if (
+    elements.modal.hidden
+    && elements.taskHistoryModal.hidden
+    && elements.projectDeleteModal.hidden
+  ) document.body.classList.remove("modal-open");
 }
 
 async function syncCloudProjects({ silent = false } = {}) {
@@ -1459,7 +1575,11 @@ function openTaskHistory() {
 
 function closeTaskHistory() {
   elements.taskHistoryModal.hidden = true;
-  if (elements.modal.hidden && elements.salesModal.hidden) document.body.classList.remove("modal-open");
+  if (
+    elements.modal.hidden
+    && elements.salesModal.hidden
+    && elements.projectDeleteModal.hidden
+  ) document.body.classList.remove("modal-open");
 }
 
 elements.quickAddForm.addEventListener("submit", async (event) => {
@@ -1591,13 +1711,14 @@ document.addEventListener("click", async (event) => {
   if (action === "open-finance-preview") showToast("Finance detail popups will be designed next");
   if (action === "refresh-sales") fetchCloudSales();
   if (action === "connect-sales") window.location.assign("/auth/start");
-  if (action === "archive-project") {
-    const id = Number(control.dataset.id);
-    const project = state.projects.find((item) => item.id === id);
-    state.projects = state.projects.filter((item) => item.id !== id);
-    saveState();
-    render();
-    showToast(`${project?.name || "Project"} archived`);
+  if (action === "request-delete-project") {
+    openProjectDeleteConfirmation(control.dataset.id);
+  }
+  if (action === "cancel-delete-project") {
+    closeProjectDeleteConfirmation();
+  }
+  if (action === "confirm-delete-project") {
+    await confirmProjectDelete();
   }
   if (action === "view-day") document.querySelector("#to-do").scrollIntoView({ behavior: "smooth", block: "center" });
   if (action === "view-inbox") window.open(GMAIL_INBOX_URL, "_blank", "noopener,noreferrer");
@@ -1617,11 +1738,24 @@ elements.taskHistoryModal.addEventListener("mousedown", (event) => {
   if (event.target === elements.taskHistoryModal) closeTaskHistory();
 });
 
+elements.projectDeleteModal.addEventListener("mousedown", (event) => {
+  if (event.target === elements.projectDeleteModal) {
+    closeProjectDeleteConfirmation();
+  }
+});
+
 document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape") return;
-  if (!elements.taskHistoryModal.hidden) closeTaskHistory();
-  else if (!elements.salesModal.hidden) closeSalesModal();
-  else if (!elements.modal.hidden) closeProjectForm();
+
+  if (!elements.projectDeleteModal.hidden) {
+    closeProjectDeleteConfirmation();
+  } else if (!elements.taskHistoryModal.hidden) {
+    closeTaskHistory();
+  } else if (!elements.salesModal.hidden) {
+    closeSalesModal();
+  } else if (!elements.modal.hidden) {
+    closeProjectForm();
+  }
 });
 
 const sections = [...document.querySelectorAll("#overview, #email, #sales, #projects, #finance, #to-do")];
@@ -1638,6 +1772,7 @@ if ("IntersectionObserver" in window) {
 loadScratchpad();
 renderHeader();
 render();
+startTodoDayRefresh();
 loadWeather();
 window.setInterval(loadWeather, WEATHER_REFRESH_MS);
 if (CLOUD_BACKEND) {

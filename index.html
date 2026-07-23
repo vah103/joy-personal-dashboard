@@ -12,6 +12,7 @@
     <link rel="manifest" href="site.webmanifest?v=joy-original-wolf-v2">
     <link rel="stylesheet" href="styles.css?v=joy-self-hosted-fonts">
     <script src="weather-rain.js?v=joy-rain-notice-v1" defer></script>
+    <script src="todo-visibility.js?v=joy-todo-list-v1" defer></script>
     <script src="app.js?v=joy-weather-rain-notice-v1" defer></script>
       <link rel="stylesheet" href="finance-demo.css?v=joy-character-motion-v5">
       <script src="finance-demo.js?v=joy-character-motion-v4" defer></script>
@@ -147,7 +148,7 @@
           <div class="right-stack">
             <section class="panel todo-panel" id="to-do" aria-labelledby="todo-title">
               <div class="panel-heading">
-                <div><h2 id="todo-title">To-do</h2></div>
+                <div><h2 id="todo-title">To-do list</h2></div>
                 <div class="todo-heading-actions">
                   <span class="count-pill" id="task-count">0 open</span>
                   <button class="quiet-link" type="button" data-action="open-task-history" aria-haspopup="dialog">View history</button>
@@ -227,11 +228,37 @@
       <div class="modal-backdrop" id="task-history-modal" role="presentation" hidden>
         <section class="modal task-history-modal" role="dialog" aria-modal="true" aria-labelledby="task-history-title">
           <div class="modal-heading">
-            <div><p class="section-kicker">To-do</p><h2 id="task-history-title">Task history</h2></div>
+            <div><p class="section-kicker">To-do list</p><h2 id="task-history-title">Task history</h2></div>
             <button type="button" aria-label="Close task history" data-action="close-task-history">×</button>
           </div>
           <p class="task-history-summary" id="task-history-summary"></p>
           <div class="task-history-content" id="task-history-content"></div>
+        </section>
+      </div>
+
+      <div class="modal-backdrop" id="project-delete-modal" role="presentation" hidden>
+        <section class="modal project-delete-modal" role="dialog" aria-modal="true" aria-labelledby="project-delete-title">
+          <div class="modal-heading">
+            <div>
+              <p class="section-kicker">Active Projects</p>
+              <h2 id="project-delete-title">Delete project?</h2>
+            </div>
+            <button type="button" aria-label="Close delete confirmation" data-action="cancel-delete-project">×</button>
+          </div>
+
+          <div class="project-delete-copy">
+            <p>
+              Are you sure you want to remove
+              <strong id="project-delete-name">this project</strong>
+              from Active Projects?
+            </p>
+            <small>The project will be archived rather than permanently erased.</small>
+          </div>
+
+          <div class="modal-actions">
+            <button class="secondary-button" type="button" data-action="cancel-delete-project">Cancel</button>
+            <button class="danger-button" type="button" data-action="confirm-delete-project">Delete project</button>
+          </div>
         </section>
       </div>
 

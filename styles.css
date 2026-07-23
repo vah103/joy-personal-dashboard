@@ -2147,3 +2147,75 @@ h1 { color: #293033; }
   grid-template-rows: auto;
   row-gap: 0;
 }
+
+
+/* Phase 1: same-day completed tasks and safe project deletion */
+.task-row.completed {
+  color: #777d7f;
+}
+
+.task-row.completed .task-title {
+  text-decoration-line: line-through;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: rgba(67, 76, 79, 0.58);
+  opacity: 0.72;
+}
+
+.task-row.completed time {
+  opacity: 0.56;
+}
+
+.task-row.completed input:disabled {
+  cursor: default;
+}
+
+.task-row.completed .checkmark {
+  border-color: rgba(63, 102, 80, 0.42);
+  background: rgba(98, 139, 112, 0.18);
+}
+
+.project-delete-modal {
+  width: min(430px, calc(100vw - 32px));
+}
+
+.project-delete-copy {
+  padding: 22px 22px 4px;
+}
+
+.project-delete-copy p {
+  margin: 0;
+  color: #40484b;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.project-delete-copy strong {
+  color: #283337;
+}
+
+.project-delete-copy small {
+  display: block;
+  margin-top: 9px;
+  color: #73797b;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.project-delete-modal .modal-actions {
+  padding: 18px 22px 22px;
+}
+
+.danger-button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid #8d4e48;
+  border-radius: 10px;
+  background: #985a52;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.danger-button:hover {
+  background: #864941;
+}
