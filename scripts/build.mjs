@@ -3,9 +3,26 @@ import { resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
 const dist = resolve(root, "dist");
+const fonts = resolve(dist, "fonts");
+
+const fontFiles = [
+  ...[400, 500, 600, 700].flatMap((weight) => [
+    `instrument-sans-latin-${weight}-normal.woff2`,
+    `instrument-sans-latin-ext-${weight}-normal.woff2`,
+  ]).map((file) => ["instrument-sans", file]),
+  ...[400, 500].flatMap((weight) => [
+    `newsreader-latin-${weight}-normal.woff2`,
+    `newsreader-latin-ext-${weight}-normal.woff2`,
+  ]).map((file) => ["newsreader", file]),
+  ...[
+    "quicksand-latin-600-normal.woff2",
+    "quicksand-latin-ext-600-normal.woff2",
+  ].map((file) => ["quicksand", file]),
+];
 
 await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
+await mkdir(fonts, { recursive: true });
 
 const sourceHtml = await readFile(resolve(root, "index.html"), "utf8");
 const cloudflareHtml = sourceHtml.replace(
@@ -13,11 +30,36 @@ const cloudflareHtml = sourceHtml.replace(
   '    <meta name="joy-backend" content="cloudflare">\n  </head>',
 );
 
+const sourceSaleHtml = await readFile(resolve(root, "sale-manager.html"), "utf8");
+const cloudflareSaleHtml = sourceSaleHtml.replace(
+  "</head>",
+  '    <meta name="joy-backend" content="cloudflare">\n  </head>',
+);
+
 await writeFile(resolve(dist, "index.html"), cloudflareHtml);
+await writeFile(resolve(dist, "sale-manager.html"), cloudflareSaleHtml);
 await Promise.all([
   cp(resolve(root, "app.js"), resolve(dist, "app.js")),
   cp(resolve(root, "styles.css"), resolve(dist, "styles.css")),
-  cp(resolve(root, "favicon.svg"), resolve(dist, "favicon.svg")),
+  cp(resolve(root, "sale-fonts", "nunito-latin-400-normal.woff2"), resolve(fonts, "nunito-latin-400-normal.woff2")),
+  cp(resolve(root, "sale-fonts", "nunito-vietnamese-400-normal.woff2"), resolve(fonts, "nunito-vietnamese-400-normal.woff2")),
+  cp(resolve(root, "sale-fonts", "nunito-latin-600-normal.woff2"), resolve(fonts, "nunito-latin-600-normal.woff2")),
+  cp(resolve(root, "sale-fonts", "nunito-vietnamese-600-normal.woff2"), resolve(fonts, "nunito-vietnamese-600-normal.woff2")),
+  cp(resolve(root, "sale-fonts", "nunito-latin-700-normal.woff2"), resolve(fonts, "nunito-latin-700-normal.woff2")),
+  cp(resolve(root, "sale-fonts", "nunito-vietnamese-700-normal.woff2"), resolve(fonts, "nunito-vietnamese-700-normal.woff2")),
+  cp(resolve(root, "sale-manager.js"), resolve(dist, "sale-manager.js")),
+  cp(resolve(root, "sale-manager.css"), resolve(dist, "sale-manager.css")),
+  cp(resolve(root, "finance-demo.css"), resolve(dist, "finance-demo.css")),
+  cp(resolve(root, "finance-demo.js"), resolve(dist, "finance-demo.js")),
+  cp(resolve(root, "app-icon-64.png"), resolve(dist, "app-icon-64.png")),
+  cp(resolve(root, "app-icon-192.png"), resolve(dist, "app-icon-192.png")),
+  cp(resolve(root, "app-icon-512.png"), resolve(dist, "app-icon-512.png")),
+  cp(resolve(root, "wolf-mark.svg"), resolve(dist, "wolf-mark.svg")),
+  cp(resolve(root, "site.webmanifest"), resolve(dist, "site.webmanifest")),
+  ...fontFiles.map(([family, file]) => cp(
+    resolve(root, "node_modules", "@fontsource", family, "files", file),
+    resolve(fonts, file),
+  )),
 ]);
 
 console.log("Joy frontend built for Cloudflare");

@@ -1,4 +1,7 @@
 const STORAGE_KEY = "joy-dashboard-sample";
+const TODO_STORAGE_KEY = "joy-dashboard-todos-v1";
+const TODO_PENDING_COMPLETIONS_KEY = "joy-dashboard-todo-pending-completions-v1";
+const SCRATCHPAD_KEY = "joy-dashboard-scratchpad";
 const GOOGLE_CLIENT_ID = "711309621878-a4tq37k2bnojpsmtthf37c903ktbupia.apps.googleusercontent.com";
 const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
 const GMAIL_API_ROOT = "https://gmail.googleapis.com/gmail/v1/users/me";
@@ -6,7 +9,9 @@ const GMAIL_INBOX_URL = "https://mail.google.com/mail/u/0/#inbox";
 const CLOUD_BACKEND = document.querySelector('meta[name="joy-backend"]')?.content === "cloudflare";
 const GMAIL_AUTO_REFRESH_MS = 60_000;
 const SALES_AUTO_REFRESH_MS = 60_000;
+const WEATHER_REFRESH_MS = 15 * 60_000;
 const VIETNAM_TIME_ZONE = "Asia/Ho_Chi_Minh";
+const WEATHER_ENDPOINT = "https://api.open-meteo.com/v1/forecast?latitude=21.0285&longitude=105.8542&current=temperature_2m,apparent_temperature,weather_code&timezone=Asia%2FHo_Chi_Minh&forecast_days=1";
 
 const seedProjects = [
   {
@@ -27,11 +32,7 @@ const seedProjects = [
   },
 ];
 
-const seedTasks = [
-  { id: 1, title: "Prepare commands for tomorrow’s lab", time: "9:00 AM", priority: "High" },
-  { id: 2, title: "Reply to room viewing inquiry", time: "11:00 AM", priority: "Medium", done: true },
-  { id: 3, title: "Practice IELTS Speaking for 30 minutes", time: "7:00 PM", priority: "Low" },
-];
+const seedTasks = [];
 
 const state = loadState();
 const gmail = {
@@ -51,6 +52,7 @@ const sales = {
   errorCode: "",
 };
 let toastTimer;
+let scratchSaveTimer;
 let gmailAutoRefreshTimer;
 let salesAutoRefreshTimer;
 
@@ -62,10 +64,18 @@ const elements = {
   projectForm: document.querySelector("#project-form"),
   projectList: document.querySelector("#project-list"),
   quickAddForm: document.querySelector("#quick-add-form"),
+  scratchpad: document.querySelector("#scratchpad-input"),
+  scratchpadStatus: document.querySelector("#scratchpad-status"),
   taskCount: document.querySelector("#task-count"),
+  taskHistoryContent: document.querySelector("#task-history-content"),
+  taskHistoryModal: document.querySelector("#task-history-modal"),
+  taskHistorySummary: document.querySelector("#task-history-summary"),
   taskList: document.querySelector("#task-list"),
   todayLabel: document.querySelector("#today-label"),
   toast: document.querySelector("#toast"),
+  weatherCondition: document.querySelector("#weather-condition"),
+  weatherIcon: document.querySelector("#weather-icon"),
+  weatherTemperature: document.querySelector("#weather-temperature"),
   sales: document.querySelector("#sales-content"),
   salesCount: document.querySelector("#sales-count"),
   salesModal: document.querySelector("#sales-modal"),
@@ -76,9 +86,55 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function normalizeTask(task) {
+  if (!task || typeof task !== "object") return null;
+  const title = String(task.title || "").trim();
+  if (!title) return null;
+  return {
+    id: String(task.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`),
+    title,
+    createdDate: /^\d{4}-\d{2}-\d{2}$/.test(String(task.createdDate || "")) ? task.createdDate : vietnamDateKey(),
+    createdAt: String(task.createdAt || new Date().toISOString()),
+    done: Boolean(task.done),
+    completedAt: task.completedAt ? String(task.completedAt) : null,
+  };
+}
+
+function loadTasks() {
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(TODO_STORAGE_KEY));
+    if (!Array.isArray(saved)) return clone(seedTasks);
+    return saved.map(normalizeTask).filter(Boolean);
+  } catch {
+    window.localStorage.removeItem(TODO_STORAGE_KEY);
+    return clone(seedTasks);
+  }
+}
+
+function loadPendingTaskCompletions() {
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(TODO_PENDING_COMPLETIONS_KEY));
+    return Array.isArray(saved) ? [...new Set(saved.map(String).filter(Boolean))] : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePendingTaskCompletions(ids) {
+  window.localStorage.setItem(TODO_PENDING_COMPLETIONS_KEY, JSON.stringify([...new Set(ids.map(String))]));
+}
+
+function queueTaskCompletion(id) {
+  savePendingTaskCompletions([...loadPendingTaskCompletions(), String(id)]);
+}
+
+function clearTaskCompletion(id) {
+  savePendingTaskCompletions(loadPendingTaskCompletions().filter((item) => item !== String(id)));
+}
+
 function loadState() {
   const fallback = {
-    tasks: clone(seedTasks),
+    tasks: loadTasks(),
     projects: clone(seedProjects),
     gmailDismissedIds: [],
     gmailPinnedIds: [],
@@ -88,7 +144,7 @@ function loadState() {
     const saved = JSON.parse(window.localStorage.getItem(STORAGE_KEY));
     if (!saved || typeof saved !== "object") return fallback;
     return {
-      tasks: Array.isArray(saved.tasks) ? saved.tasks : fallback.tasks,
+      tasks: fallback.tasks,
       projects: Array.isArray(saved.projects) ? saved.projects : fallback.projects,
       gmailDismissedIds: Array.isArray(saved.gmailDismissedIds) ? saved.gmailDismissedIds.map(String).slice(-200) : [],
       gmailPinnedIds: Array.isArray(saved.gmailPinnedIds) ? saved.gmailPinnedIds.map(String).slice(-50) : [],
@@ -100,7 +156,34 @@ function loadState() {
 }
 
 function saveState() {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  const dashboardState = {
+    projects: state.projects,
+    gmailDismissedIds: state.gmailDismissedIds,
+    gmailPinnedIds: state.gmailPinnedIds,
+  };
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(dashboardState));
+  window.localStorage.setItem(TODO_STORAGE_KEY, JSON.stringify(state.tasks));
+}
+
+function loadScratchpad() {
+  try {
+    elements.scratchpad.value = window.localStorage.getItem(SCRATCHPAD_KEY) || "";
+  } catch {
+    elements.scratchpadStatus.textContent = "Unavailable";
+  }
+}
+
+function queueScratchpadSave() {
+  elements.scratchpadStatus.textContent = "Saving";
+  window.clearTimeout(scratchSaveTimer);
+  scratchSaveTimer = window.setTimeout(() => {
+    try {
+      window.localStorage.setItem(SCRATCHPAD_KEY, elements.scratchpad.value);
+      elements.scratchpadStatus.textContent = "Saved";
+    } catch {
+      elements.scratchpadStatus.textContent = "Not saved";
+    }
+  }, 450);
 }
 
 function escapeHtml(value) {
@@ -110,6 +193,34 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+function vietnamDateKey(date = new Date()) {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-US", {
+    timeZone: VIETNAM_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date).filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+function formatTaskDate(dateKey, includeYear = false) {
+  const [year, month, day] = String(dateKey || "").split("-");
+  if (!year || !month || !day) return "—";
+  return includeYear ? `${day}/${month}/${year}` : `${day}/${month}`;
+}
+
+function sortTasks(tasks) {
+  return [...tasks].sort((a, b) => {
+    const dateOrder = String(b.createdDate).localeCompare(String(a.createdDate));
+    if (dateOrder) return dateOrder;
+    return String(b.createdAt).localeCompare(String(a.createdAt));
+  });
+}
+
+function createTaskId() {
+  return window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
 function renderHeader() {
@@ -122,6 +233,43 @@ function renderHeader() {
     day: "numeric",
   }).format(now);
   elements.greeting.textContent = `Good ${daypart}, Vanh.`;
+}
+
+function weatherDetails(code) {
+  if (code === 0) return { label: "Clear sky", icon: "☀" };
+  if (code === 1) return { label: "Mostly clear", icon: "☀" };
+  if (code === 2) return { label: "Partly cloudy", icon: "☁" };
+  if (code === 3) return { label: "Overcast", icon: "☁" };
+  if ([45, 48].includes(code)) return { label: "Foggy", icon: "≋" };
+  if (code >= 51 && code <= 57) return { label: "Light drizzle", icon: "☂" };
+  if ((code >= 61 && code <= 67) || (code >= 80 && code <= 82)) return { label: "Rain", icon: "☂" };
+  if ((code >= 71 && code <= 77) || (code >= 85 && code <= 86)) return { label: "Snow", icon: "❄" };
+  if (code >= 95) return { label: "Thunderstorm", icon: "ϟ" };
+  return { label: "Current weather", icon: "◌" };
+}
+
+async function loadWeather() {
+  try {
+    const response = await window.fetch(WEATHER_ENDPOINT, { headers: { Accept: "application/json" } });
+    if (!response.ok) throw new Error(`Weather service returned ${response.status}`);
+    const payload = await response.json();
+    const current = payload?.current;
+    const temperature = Number(current?.temperature_2m);
+    const apparent = Number(current?.apparent_temperature);
+    const code = Number(current?.weather_code);
+    if (!Number.isFinite(temperature) || !Number.isFinite(code)) throw new Error("Weather data is incomplete");
+
+    const details = weatherDetails(code);
+    elements.weatherTemperature.textContent = `${Math.round(temperature)}°`;
+    elements.weatherIcon.textContent = details.icon;
+    elements.weatherCondition.textContent = Number.isFinite(apparent)
+      ? `${details.label} · Feels ${Math.round(apparent)}°`
+      : details.label;
+  } catch {
+    elements.weatherTemperature.textContent = "—";
+    elements.weatherIcon.textContent = "◌";
+    elements.weatherCondition.textContent = "Weather unavailable";
+  }
 }
 
 function isEmailPinned(id) {
@@ -141,7 +289,7 @@ function sortGmailMessages(messages) {
 
 function renderBrief() {
   const dueCount = state.tasks.filter((task) => !task.done).length;
-  const taskLabel = `${dueCount} ${dueCount === 1 ? "task" : "tasks"} due today`;
+  const taskLabel = `${dueCount} open ${dueCount === 1 ? "task" : "tasks"}`;
   let emailLabel = "Gmail not connected";
   if (["authorizing", "loading-messages"].includes(gmail.status)) emailLabel = "checking Gmail";
   if (gmail.status === "connected") {
@@ -371,23 +519,52 @@ function renderProjects() {
 }
 
 function renderTasks() {
-  const doneCount = state.tasks.filter((task) => task.done).length;
-  elements.taskCount.textContent = `${doneCount} of ${state.tasks.length} done`;
+  const activeTasks = sortTasks(state.tasks.filter((task) => !task.done));
+  elements.taskCount.textContent = `${activeTasks.length} open`;
 
-  if (!state.tasks.length) {
-    elements.taskList.innerHTML = `<div class="task-empty">Nothing on your list yet.</div>`;
+  if (!activeTasks.length) {
+    elements.taskList.innerHTML = `<div class="task-empty"><strong>Your list is clear</strong><span>Add a task above whenever something comes up.</span></div>`;
     return;
   }
 
-  elements.taskList.innerHTML = state.tasks
-    .map((task) => `<label class="task-row ${task.done ? "completed" : ""}">
-      <input type="checkbox" data-task-id="${Number(task.id)}" ${task.done ? "checked" : ""} />
+  elements.taskList.innerHTML = activeTasks
+    .map((task) => `<label class="task-row">
+      <input type="checkbox" data-task-id="${escapeHtml(task.id)}" aria-label="Complete ${escapeHtml(task.title)}" />
       <span class="checkmark" aria-hidden="true"></span>
       <span class="task-title">${escapeHtml(task.title)}</span>
-      <time>${escapeHtml(task.time)}</time>
-      <span class="priority ${String(task.priority).toLowerCase()}">${escapeHtml(task.priority)}</span>
+      <time datetime="${escapeHtml(task.createdDate)}" title="Created ${formatTaskDate(task.createdDate, true)}">${formatTaskDate(task.createdDate)}</time>
     </label>`)
     .join("");
+}
+
+function renderTaskHistory() {
+  const tasks = sortTasks(state.tasks);
+  const completedCount = tasks.filter((task) => task.done).length;
+  const openCount = tasks.length - completedCount;
+  elements.taskHistorySummary.textContent = `${tasks.length} total · ${openCount} open · ${completedCount} completed`;
+
+  if (!tasks.length) {
+    elements.taskHistoryContent.innerHTML = `<div class="task-history-empty"><strong>History starts today</strong><p>Tasks you add will stay here, even after they are completed.</p></div>`;
+    return;
+  }
+
+  const groups = new Map();
+  tasks.forEach((task) => {
+    if (!groups.has(task.createdDate)) groups.set(task.createdDate, []);
+    groups.get(task.createdDate).push(task);
+  });
+
+  elements.taskHistoryContent.innerHTML = [...groups.entries()].map(([dateKey, dayTasks]) => `
+    <section class="task-history-group">
+      <h3><time datetime="${escapeHtml(dateKey)}">${formatTaskDate(dateKey, true)}</time></h3>
+      <div class="task-history-list">
+        ${dayTasks.map((task) => `<div class="history-task-row ${task.done ? "completed" : ""}">
+          <span class="history-check" aria-hidden="true">${task.done ? "✓" : ""}</span>
+          <span class="history-task-title">${escapeHtml(task.title)}</span>
+          <span class="history-task-state">${task.done ? "Completed" : "Open"}</span>
+        </div>`).join("")}
+      </div>
+    </section>`).join("");
 }
 
 function renderSales() {
@@ -542,6 +719,7 @@ function render() {
   renderEmail();
   renderProjects();
   renderTasks();
+  renderTaskHistory();
   renderSales();
 }
 
@@ -993,20 +1171,88 @@ function openSalesModal() {
 
 function closeSalesModal() {
   elements.salesModal.hidden = true;
-  if (elements.modal.hidden) document.body.classList.remove("modal-open");
+  if (elements.modal.hidden && elements.taskHistoryModal.hidden) document.body.classList.remove("modal-open");
 }
 
-elements.quickAddForm.addEventListener("submit", (event) => {
+async function syncCloudTasks({ silent = false } = {}) {
+  if (!CLOUD_BACKEND) return false;
+  try {
+    // Existing local tasks are imported once by stable id. D1 keeps its copy authoritative
+    // when an id already exists, so an older browser cache cannot undo cloud changes.
+    if (state.tasks.length) {
+      await backendRequest("/api/tasks/import", {
+        method: "POST",
+        body: JSON.stringify({ tasks: state.tasks }),
+      });
+    }
+    for (const id of loadPendingTaskCompletions()) {
+      try {
+        await backendRequest("/api/tasks/complete", { method: "POST", body: JSON.stringify({ id }) });
+        clearTaskCompletion(id);
+      } catch (error) {
+        if (error.status === 404) clearTaskCompletion(id);
+        else throw error;
+      }
+    }
+    const payload = await backendRequest("/api/tasks");
+    state.tasks = Array.isArray(payload.tasks) ? payload.tasks.map(normalizeTask).filter(Boolean) : [];
+    saveState();
+    renderBrief();
+    renderTasks();
+    renderTaskHistory();
+    return true;
+  } catch (error) {
+    if (!silent && error.status !== 401) showToast("To-do is offline · changes stay on this device");
+    return false;
+  }
+}
+
+function openTaskHistory() {
+  renderTaskHistory();
+  elements.taskHistoryModal.hidden = false;
+  document.body.classList.add("modal-open");
+  window.setTimeout(() => elements.taskHistoryModal.querySelector("[data-action='close-task-history']")?.focus(), 0);
+}
+
+function closeTaskHistory() {
+  elements.taskHistoryModal.hidden = true;
+  if (elements.modal.hidden && elements.salesModal.hidden) document.body.classList.remove("modal-open");
+}
+
+elements.quickAddForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const input = elements.quickAddForm.elements.task;
   const title = input.value.trim();
   if (!title) return;
-  state.tasks.push({ id: Date.now(), title, time: "Today", priority: "Medium", done: false });
+  const now = new Date();
+  state.tasks.push({
+    id: createTaskId(),
+    title,
+    createdDate: vietnamDateKey(now),
+    createdAt: now.toISOString(),
+    done: false,
+    completedAt: null,
+  });
   input.value = "";
   saveState();
   render();
-  showToast("Task added to today");
+  input.focus();
+  if (CLOUD_BACKEND) {
+    try {
+      await backendRequest("/api/tasks", {
+        method: "POST",
+        body: JSON.stringify(state.tasks.at(-1)),
+      });
+      showToast(`Task synced · ${formatTaskDate(vietnamDateKey(now))}`);
+    } catch (error) {
+      showToast(error.status === 401 ? "Saved here · connect Google to sync" : "Saved here · will sync when online");
+    }
+  } else {
+    showToast(`Task added · ${formatTaskDate(vietnamDateKey(now))}`);
+  }
 });
+
+elements.scratchpad.addEventListener("input", queueScratchpadSave);
 
 elements.projectForm.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -1022,14 +1268,30 @@ elements.projectForm.addEventListener("submit", (event) => {
   showToast(`${name} added to Projects`);
 });
 
-elements.taskList.addEventListener("change", (event) => {
+elements.taskList.addEventListener("change", async (event) => {
   const input = event.target.closest("input[data-task-id]");
   if (!input) return;
-  const task = state.tasks.find((item) => item.id === Number(input.dataset.taskId));
+  const task = state.tasks.find((item) => String(item.id) === String(input.dataset.taskId));
   if (!task) return;
-  task.done = input.checked;
+  task.done = true;
+  task.completedAt = new Date().toISOString();
+  queueTaskCompletion(task.id);
   saveState();
   render();
+  if (CLOUD_BACKEND) {
+    try {
+      await backendRequest("/api/tasks/complete", {
+        method: "POST",
+        body: JSON.stringify({ id: task.id }),
+      });
+      clearTaskCompletion(task.id);
+      showToast("Task completed · synced");
+    } catch {
+      showToast("Task completed here · will sync when online");
+    }
+  } else {
+    showToast("Task completed");
+  }
 });
 
 document.addEventListener("click", (event) => {
@@ -1047,6 +1309,10 @@ document.addEventListener("click", (event) => {
   if (action === "restore-dismissed-emails") restoreDismissedEmails();
   if (action === "open-sales") openSalesModal();
   if (action === "close-sales") closeSalesModal();
+  if (action === "open-sale-manager") window.location.assign("/sale-manager.html");
+  if (action === "open-task-history") openTaskHistory();
+  if (action === "close-task-history") closeTaskHistory();
+  if (action === "open-finance-preview") showToast("Finance detail popups will be designed next");
   if (action === "refresh-sales") fetchCloudSales();
   if (action === "connect-sales") window.location.assign("/auth/start");
   if (action === "archive-project") {
@@ -1071,13 +1337,18 @@ elements.salesModal.addEventListener("mousedown", (event) => {
   if (event.target === elements.salesModal) closeSalesModal();
 });
 
+elements.taskHistoryModal.addEventListener("mousedown", (event) => {
+  if (event.target === elements.taskHistoryModal) closeTaskHistory();
+});
+
 document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape") return;
-  if (!elements.salesModal.hidden) closeSalesModal();
+  if (!elements.taskHistoryModal.hidden) closeTaskHistory();
+  else if (!elements.salesModal.hidden) closeSalesModal();
   else if (!elements.modal.hidden) closeProjectForm();
 });
 
-const sections = [...document.querySelectorAll("#overview, #email, #sales, #projects, #to-do")];
+const sections = [...document.querySelectorAll("#overview, #email, #sales, #projects, #finance, #to-do")];
 const navigationLinks = [...document.querySelectorAll('.nav-list a[href^="#"], .mobile-nav a[href^="#"]')];
 if ("IntersectionObserver" in window) {
   const observer = new IntersectionObserver((entries) => {
@@ -1088,11 +1359,15 @@ if ("IntersectionObserver" in window) {
   sections.forEach((section) => observer.observe(section));
 }
 
+loadScratchpad();
 renderHeader();
 render();
+loadWeather();
+window.setInterval(loadWeather, WEATHER_REFRESH_MS);
 if (CLOUD_BACKEND) {
   initializeCloudGmail();
   fetchCloudSales();
+  syncCloudTasks({ silent: true });
 } else {
   loadGoogleIdentity();
 }
@@ -1103,5 +1378,8 @@ document.addEventListener("visibilitychange", () => {
   }
   if (CLOUD_BACKEND && document.visibilityState === "visible" && sales.status === "ready") {
     fetchCloudSales({ silent: true });
+  }
+  if (CLOUD_BACKEND && document.visibilityState === "visible") {
+    syncCloudTasks({ silent: true });
   }
 });

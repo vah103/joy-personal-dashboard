@@ -1,5 +1,22 @@
+# Dependencies and build output
 node_modules/
 dist/
 .wrangler/
+*.log
+
+# Local secrets - never commit
 .dev.vars
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Installer backups
+joy-backups/
+*.before-*
+
+# OS and editor files
 .DS_Store
+Thumbs.db
+.vscode/

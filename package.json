@@ -12,6 +12,9 @@
     "db:migrate:remote": "wrangler d1 migrations apply joy-dashboard --remote"
   },
   "devDependencies": {
+    "@fontsource/instrument-sans": "^5.2.8",
+    "@fontsource/newsreader": "^5.2.8",
+    "@fontsource/quicksand": "^5.2.8",
     "wrangler": "^4.113.0"
   }
 }

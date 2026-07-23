@@ -1,4 +1,10 @@
 import { normalizeUpcomingViewings } from "./sales.js";
+import {
+  monthHeading,
+  parseFinanceTracker,
+  parseSaleLedger,
+  validateSaleDeal,
+} from "./finance-sales.js";
 
 const SESSION_COOKIE = "__Host-joy_session";
 const OAUTH_STATE_COOKIE = "__Host-joy_oauth_state";
@@ -6,8 +12,12 @@ const PKCE_COOKIE = "__Host-joy_pkce";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 365;
 const OAUTH_COOKIE_MAX_AGE = 10 * 60;
 const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
-const GOOGLE_SHEETS_SCOPE = "https://www.googleapis.com/auth/spreadsheets.readonly";
+const GOOGLE_SHEETS_SCOPE = "https://www.googleapis.com/auth/spreadsheets";
 const APPOINTMENTS_RANGE = "Appointments!A2:F";
+const FINANCE_TRACKER_RANGE = "'Finance Tracker'!A1:AH40";
+const SALE_LEDGER_RANGE = "Sale!A1:E1000";
+const PERSONAL_FINANCE_YEAR = 2026;
+const SALE_SHEET_TITLE = "Sale";
 
 export default {
   async fetch(request, env, ctx) {
@@ -43,6 +53,10 @@ async function routeRequest(request, env) {
 
     if (pathname === "/api/emails" && request.method === "GET") return listEmails(session.user_email, env);
     if (pathname === "/api/sales/viewings" && request.method === "GET") return listUpcomingViewings(session.user_email, env);
+    if (pathname === "/api/finance/summary" && request.method === "GET") return getFinanceSummary(session.user_email, env);
+    if (pathname === "/api/sales/deals" && request.method === "GET") return listSaleDeals(session.user_email, env);
+    if (pathname === "/api/sales/deals" && request.method === "POST") return addSaleDeal(request, session.user_email, env);
+    if (pathname === "/api/sales/deals" && request.method === "PATCH") return updateSaleDeal(request, session.user_email, env);
     if (pathname === "/api/emails/pin" && request.method === "POST") return updateEmailPin(request, session.user_email, env);
     if (pathname === "/api/emails/dismiss" && request.method === "POST") return dismissEmail(request, session.user_email, env);
     if (pathname === "/api/emails/restore" && request.method === "POST") return restoreEmails(session.user_email, env);
@@ -240,10 +254,10 @@ async function gmailApi(accessToken, path) {
   return response.json();
 }
 
-async function sheetsApi(accessToken, spreadsheetId, range) {
+async function sheetsApi(accessToken, spreadsheetId, range, valueRenderOption = "FORMATTED_VALUE") {
   const parameters = new URLSearchParams({
     majorDimension: "ROWS",
-    valueRenderOption: "FORMATTED_VALUE",
+    valueRenderOption,
     dateTimeRenderOption: "FORMATTED_STRING",
   });
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}/values/${encodeURIComponent(range)}?${parameters}`;
@@ -260,6 +274,281 @@ async function sheetsApi(accessToken, spreadsheetId, range) {
     throw error;
   }
   return payload;
+}
+
+async function sheetsSpreadsheetApi(accessToken, spreadsheetId, path = "", options = {}) {
+  const response = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}${path}`,
+    {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+        ...(options.headers || {}),
+      },
+    },
+  );
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(`Google Sheets API returned ${response.status}`);
+    error.status = response.status;
+    error.reason = payload.error?.details?.find((detail) => detail.reason)?.reason
+      || payload.error?.status
+      || "";
+    throw error;
+  }
+  return payload;
+}
+
+async function sheetsBatchUpdate(accessToken, spreadsheetId, requests) {
+  return sheetsSpreadsheetApi(accessToken, spreadsheetId, ":batchUpdate", {
+    method: "POST",
+    body: JSON.stringify({ requests }),
+  });
+}
+
+async function sheetsValuesBatchUpdate(accessToken, spreadsheetId, data, valueInputOption) {
+  return sheetsSpreadsheetApi(accessToken, spreadsheetId, "/values:batchUpdate", {
+    method: "POST",
+    body: JSON.stringify({ valueInputOption, data }),
+  });
+}
+
+async function getSheetId(accessToken, spreadsheetId, title) {
+  const metadata = await sheetsSpreadsheetApi(
+    accessToken,
+    spreadsheetId,
+    "?fields=sheets.properties(sheetId,title)",
+  );
+  const sheet = (metadata.sheets || []).find((item) => item.properties?.title === title);
+  if (!sheet) {
+    const error = new Error(`Sheet ${title} was not found`);
+    error.status = 404;
+    throw error;
+  }
+  return Number(sheet.properties.sheetId);
+}
+
+async function getFinanceSummary(email, env) {
+  if (!env.FINANCE_SPREADSHEET_ID) return json({ error: "FINANCE_SHEET_NOT_CONFIGURED" }, 503);
+
+  try {
+    const accessToken = await getAccessToken(email, env);
+    const [sheet, saleSheet] = await Promise.all([
+      sheetsApi(accessToken, env.FINANCE_SPREADSHEET_ID, FINANCE_TRACKER_RANGE, "UNFORMATTED_VALUE"),
+      sheetsApi(accessToken, env.FINANCE_SPREADSHEET_ID, SALE_LEDGER_RANGE, "UNFORMATTED_VALUE"),
+    ]);
+    const finance = parseFinanceTracker(sheet.values, {
+      year: PERSONAL_FINANCE_YEAR,
+      selectedMonth: vietnamMonthKey(),
+    });
+    const ledger = parseSaleLedger(saleSheet.values, PERSONAL_FINANCE_YEAR);
+    const saleMonth = ledger.months.find((month) => month.key === finance.current.key) || { total: 0, count: 0 };
+    return json({
+      ...finance,
+      sale: { income: saleMonth.total, count: saleMonth.count },
+      gold: { chi: 0.5 },
+      source: "2026 | Vanh / Finance Tracker",
+      spreadsheetUrl: financeSpreadsheetUrl(env.FINANCE_SPREADSHEET_ID),
+      fetchedAt: Date.now(),
+    });
+  } catch (error) {
+    return personalSheetError("Finance sync failed", error);
+  }
+}
+
+async function listSaleDeals(email, env) {
+  if (!env.FINANCE_SPREADSHEET_ID) return json({ error: "FINANCE_SHEET_NOT_CONFIGURED" }, 503);
+
+  try {
+    const accessToken = await getAccessToken(email, env);
+    const sheet = await sheetsApi(
+      accessToken,
+      env.FINANCE_SPREADSHEET_ID,
+      SALE_LEDGER_RANGE,
+      "UNFORMATTED_VALUE",
+    );
+    const ledger = parseSaleLedger(sheet.values, PERSONAL_FINANCE_YEAR);
+    return json({
+      year: ledger.year,
+      months: ledger.months,
+      selectedMonth: vietnamMonthKey(),
+      source: "2026 | Vanh / Sale",
+      fetchedAt: Date.now(),
+    });
+  } catch (error) {
+    return personalSheetError("Sale ledger sync failed", error);
+  }
+}
+
+async function addSaleDeal(request, email, env) {
+  if (!env.FINANCE_SPREADSHEET_ID) return json({ error: "FINANCE_SHEET_NOT_CONFIGURED" }, 503);
+  const validation = validateSaleDeal(await readJson(request));
+  if (validation.error) return json({ error: validation.error }, 400);
+
+  try {
+    const accessToken = await getAccessToken(email, env);
+    const spreadsheetId = env.FINANCE_SPREADSHEET_ID;
+    const sheet = await sheetsApi(accessToken, spreadsheetId, SALE_LEDGER_RANGE, "UNFORMATTED_VALUE");
+    const ledger = parseSaleLedger(sheet.values, PERSONAL_FINANCE_YEAR);
+    const sheetId = await getSheetId(accessToken, spreadsheetId, SALE_SHEET_TITLE);
+    const block = ledger.blocks.find((item) => item.key === validation.value.month);
+    let primaryRow;
+
+    if (block && block.headerIndex >= 0) {
+      const insertIndex = block.headerIndex + 1;
+      await insertRows(accessToken, spreadsheetId, sheetId, insertIndex, 2, false);
+      primaryRow = insertIndex + 1;
+      const lastDetailRow = block.deals.length
+        ? Math.max(...block.deals.map((deal) => deal.detailRow)) + 2
+        : primaryRow + 1;
+      await writeSaleDeal(accessToken, spreadsheetId, primaryRow, validation.value);
+      await writeMonthTotalFormula(
+        accessToken,
+        spreadsheetId,
+        block.headingRow,
+        block.headerRow + 1,
+        lastDetailRow,
+      );
+    } else {
+      const firstHeadingIndex = ledger.blocks.length
+        ? Math.min(...ledger.blocks.map((item) => item.headingIndex))
+        : 0;
+      await insertRows(accessToken, spreadsheetId, sheetId, firstHeadingIndex, 6);
+      if (ledger.blocks.length) {
+        await copySaleBlockFormat(accessToken, spreadsheetId, sheetId, firstHeadingIndex, 6);
+      }
+      const headingRow = firstHeadingIndex + 1;
+      const headerRow = headingRow + 2;
+      primaryRow = headingRow + 3;
+      await sheetsValuesBatchUpdate(accessToken, spreadsheetId, [
+        { range: `Sale!B${headingRow}:B${headingRow}`, values: [[monthHeading(validation.value.month)]] },
+        { range: `Sale!B${headerRow}:E${headerRow}`, values: [["Address", "Customer", "Host", "Commission"]] },
+      ], "RAW");
+      await writeSaleDeal(accessToken, spreadsheetId, primaryRow, validation.value);
+      await writeMonthTotalFormula(accessToken, spreadsheetId, headingRow, primaryRow, primaryRow + 1);
+    }
+
+    return json({
+      ok: true,
+      deal: { ...validation.value, sourceRow: primaryRow, detailRow: primaryRow + 1 },
+    }, 201);
+  } catch (error) {
+    return personalSheetError("Adding a Sale deal failed", error, true);
+  }
+}
+
+async function updateSaleDeal(request, email, env) {
+  if (!env.FINANCE_SPREADSHEET_ID) return json({ error: "FINANCE_SHEET_NOT_CONFIGURED" }, 503);
+  const validation = validateSaleDeal(await readJson(request), { requireSourceRow: true });
+  if (validation.error) return json({ error: validation.error }, 400);
+
+  try {
+    const accessToken = await getAccessToken(email, env);
+    const spreadsheetId = env.FINANCE_SPREADSHEET_ID;
+    const sheet = await sheetsApi(accessToken, spreadsheetId, SALE_LEDGER_RANGE, "UNFORMATTED_VALUE");
+    const ledger = parseSaleLedger(sheet.values, PERSONAL_FINANCE_YEAR);
+    const existing = ledger.months
+      .flatMap((month) => month.deals)
+      .find((deal) => deal.sourceRow === validation.value.sourceRow);
+    if (!existing) return json({ error: "SALE_DEAL_NOT_FOUND" }, 404);
+    if (existing.month !== validation.value.month) return json({ error: "SALE_MONTH_MOVE_NOT_SUPPORTED" }, 400);
+
+    await writeSaleDeal(accessToken, spreadsheetId, existing.sourceRow, validation.value);
+    return json({
+      ok: true,
+      deal: { ...validation.value, sourceRow: existing.sourceRow, detailRow: existing.detailRow },
+    });
+  } catch (error) {
+    return personalSheetError("Updating a Sale deal failed", error, true);
+  }
+}
+
+async function insertRows(accessToken, spreadsheetId, sheetId, startIndex, count, inheritFromBefore = true) {
+  await sheetsBatchUpdate(accessToken, spreadsheetId, [{
+    insertDimension: {
+      range: {
+        sheetId,
+        dimension: "ROWS",
+        startIndex,
+        endIndex: startIndex + count,
+      },
+      inheritFromBefore: startIndex > 0 && inheritFromBefore,
+    },
+  }]);
+}
+
+async function copySaleBlockFormat(accessToken, spreadsheetId, sheetId, destinationStart, rowCount) {
+  await sheetsBatchUpdate(accessToken, spreadsheetId, [{
+    copyPaste: {
+      source: {
+        sheetId,
+        startRowIndex: destinationStart + rowCount,
+        endRowIndex: destinationStart + rowCount * 2,
+        startColumnIndex: 0,
+        endColumnIndex: 5,
+      },
+      destination: {
+        sheetId,
+        startRowIndex: destinationStart,
+        endRowIndex: destinationStart + rowCount,
+        startColumnIndex: 0,
+        endColumnIndex: 5,
+      },
+      pasteType: "PASTE_FORMAT",
+      pasteOrientation: "NORMAL",
+    },
+  }]);
+}
+
+async function writeSaleDeal(accessToken, spreadsheetId, primaryRow, deal) {
+  await sheetsValuesBatchUpdate(accessToken, spreadsheetId, [
+    {
+      range: `Sale!B${primaryRow}:D${primaryRow}`,
+      values: [[deal.address, deal.customer, deal.host]],
+    },
+    {
+      range: `Sale!B${primaryRow + 1}:D${primaryRow + 1}`,
+      values: [[deal.rent, deal.phone, deal.rate]],
+    },
+  ], "RAW");
+  await sheetsValuesBatchUpdate(accessToken, spreadsheetId, [{
+    range: `Sale!E${primaryRow}:E${primaryRow}`,
+    values: [[`=B${primaryRow + 1}*D${primaryRow + 1}`]],
+  }], "USER_ENTERED");
+}
+
+async function writeMonthTotalFormula(accessToken, spreadsheetId, headingRow, firstDealRow, lastDealRow) {
+  await sheetsValuesBatchUpdate(accessToken, spreadsheetId, [{
+    range: `Sale!E${headingRow}:E${headingRow}`,
+    values: [[`=SUM(E${firstDealRow}:E${lastDealRow})`]],
+  }], "USER_ENTERED");
+}
+
+function personalSheetError(label, error, write = false) {
+  console.error(label, error.status, error.reason);
+  if (error.status === 401 || error.reason === "ACCESS_TOKEN_SCOPE_INSUFFICIENT") {
+    return json({ error: write ? "SHEETS_WRITE_AUTHORIZATION_REQUIRED" : "SHEETS_AUTHORIZATION_REQUIRED" }, 403);
+  }
+  if (error.reason === "SERVICE_DISABLED") return json({ error: "SHEETS_API_DISABLED" }, 503);
+  if (error.status === 403) return json({ error: write ? "SHEETS_WRITE_ACCESS_DENIED" : "FINANCE_SHEET_ACCESS_DENIED" }, 403);
+  if (error.status === 404) return json({ error: "FINANCE_SHEET_NOT_FOUND" }, 404);
+  return json({ error: write ? "SALE_WRITE_FAILED" : "FINANCE_SYNC_FAILED" }, 502);
+}
+
+function vietnamMonthKey() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(new Date());
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  return `${year}-${month}`;
+}
+
+function financeSpreadsheetUrl(spreadsheetId) {
+  return `https://docs.google.com/spreadsheets/d/${encodeURIComponent(spreadsheetId)}/edit#gid=980013791`;
 }
 
 async function listUpcomingViewings(email, env) {
