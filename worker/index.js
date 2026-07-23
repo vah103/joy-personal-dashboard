@@ -5,6 +5,7 @@ import {
   parseSaleLedger,
   validateSaleDeal,
 } from "./finance-sales.js";
+import { normalizeTaskInput, taskRowToApi } from "./todos.js";
 
 const SESSION_COOKIE = "__Host-joy_session";
 const OAUTH_STATE_COOKIE = "__Host-joy_oauth_state";
@@ -60,6 +61,10 @@ async function routeRequest(request, env) {
     if (pathname === "/api/emails/pin" && request.method === "POST") return updateEmailPin(request, session.user_email, env);
     if (pathname === "/api/emails/dismiss" && request.method === "POST") return dismissEmail(request, session.user_email, env);
     if (pathname === "/api/emails/restore" && request.method === "POST") return restoreEmails(session.user_email, env);
+    if (pathname === "/api/tasks" && request.method === "GET") return listTasks(session.user_email, env);
+    if (pathname === "/api/tasks" && request.method === "POST") return addTask(request, session.user_email, env);
+    if (pathname === "/api/tasks/import" && request.method === "POST") return importTasks(request, session.user_email, env);
+    if (pathname === "/api/tasks/complete" && request.method === "POST") return completeTask(request, session.user_email, env);
     if (pathname === "/api/disconnect" && request.method === "POST") return disconnectGoogle(request, session.user_email, env);
     return json({ error: "NOT_FOUND" }, 404);
   }
@@ -575,6 +580,104 @@ async function listUpcomingViewings(email, env) {
     if (error.status === 404) return json({ error: "SALE_SHEET_NOT_FOUND" }, 404);
     return json({ error: "SALE_SYNC_FAILED" }, 502);
   }
+}
+
+
+async function listTasks(email, env) {
+  const rows = await env.DB.prepare(`
+    SELECT id, title, done, created_at, updated_at
+    FROM tasks
+    WHERE user_email = ?
+    ORDER BY created_at DESC
+  `).bind(email).all();
+
+  return json({
+    tasks: rows.results.map(taskRowToApi),
+    fetchedAt: Date.now(),
+  });
+}
+
+async function addTask(request, email, env) {
+  const validation = normalizeTaskInput(await readJson(request));
+  if (!validation.ok) return json({ error: validation.error }, 400);
+
+  const { id, title, done, createdAt, updatedAt } = validation.task;
+  const existing = await env.DB.prepare(
+    "SELECT user_email FROM tasks WHERE id = ?",
+  ).bind(id).first();
+
+  if (existing && existing.user_email !== email) {
+    return json({ error: "TASK_ID_CONFLICT" }, 409);
+  }
+
+  await env.DB.prepare(`
+    INSERT INTO tasks (
+      id, user_email, title, due_at, priority, done, created_at, updated_at
+    ) VALUES (?, ?, ?, NULL, 'Medium', ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      title = excluded.title,
+      done = excluded.done,
+      updated_at = MAX(tasks.updated_at, excluded.updated_at)
+    WHERE tasks.user_email = excluded.user_email
+  `).bind(id, email, title, done ? 1 : 0, createdAt, updatedAt).run();
+
+  const row = await env.DB.prepare(`
+    SELECT id, title, done, created_at, updated_at
+    FROM tasks WHERE id = ? AND user_email = ?
+  `).bind(id, email).first();
+
+  return json({ ok: true, task: taskRowToApi(row) }, 201);
+}
+
+async function importTasks(request, email, env) {
+  const body = await readJson(request);
+  const input = Array.isArray(body.tasks) ? body.tasks.slice(0, 500) : [];
+  const valid = input.map(normalizeTaskInput).filter((item) => item.ok);
+
+  if (!valid.length) {
+    return json({ ok: true, imported: 0 });
+  }
+
+  const statements = valid.map(({ task }) => env.DB.prepare(`
+    INSERT INTO tasks (
+      id, user_email, title, due_at, priority, done, created_at, updated_at
+    ) VALUES (?, ?, ?, NULL, 'Medium', ?, ?, ?)
+    ON CONFLICT(id) DO NOTHING
+  `).bind(
+    task.id,
+    email,
+    task.title,
+    task.done ? 1 : 0,
+    task.createdAt,
+    task.updatedAt,
+  ));
+
+  await env.DB.batch(statements);
+  return json({ ok: true, imported: valid.length });
+}
+
+async function completeTask(request, email, env) {
+  const body = await readJson(request);
+  const id = String(body.id || "").trim();
+  if (!id || id.length > 100) return json({ error: "INVALID_TASK_ID" }, 400);
+
+  const now = Date.now();
+  const result = await env.DB.prepare(`
+    UPDATE tasks
+    SET done = 1, updated_at = ?
+    WHERE id = ? AND user_email = ?
+  `).bind(now, id, email).run();
+
+  if (!Number(result.meta?.changes || 0)) {
+    return json({ error: "TASK_NOT_FOUND" }, 404);
+  }
+
+  const row = await env.DB.prepare(`
+    SELECT id, title, done, created_at, updated_at
+    FROM tasks WHERE id = ? AND user_email = ?
+  `).bind(id, email).first();
+
+  return json({ ok: true, task: taskRowToApi(row) });
 }
 
 async function syncGmail(email, env) {
