@@ -4,6 +4,7 @@ const TODO_PENDING_COMPLETIONS_KEY = "joy-dashboard-todo-pending-completions-v1"
 const SCRATCHPAD_KEY = "joy-dashboard-scratchpad";
 const SCRATCHPAD_META_KEY = "joy-dashboard-scratchpad-cloud-meta-v1";
 const SCRATCHPAD_CONFLICT_BACKUP_KEY = "joy-dashboard-scratchpad-conflict-backup-v1";
+const PROJECT_PENDING_ARCHIVES_KEY = "joy-dashboard-project-pending-archives-v1";
 const GOOGLE_CLIENT_ID = "711309621878-a4tq37k2bnojpsmtthf37c903ktbupia.apps.googleusercontent.com";
 const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
 const GMAIL_API_ROOT = "https://gmail.googleapis.com/gmail/v1/users/me";
@@ -60,6 +61,7 @@ const accountSync = {
   scratchpadUpdatedAt: 0,
   scratchpadReady: false,
   scratchpadSaving: false,
+  projectsReady: false,
 };
 
 let toastTimer;
@@ -97,6 +99,27 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function normalizeProject(project) {
+  if (!project || typeof project !== "object") return null;
+  const name = String(project.name || "").trim();
+  const focus = String(project.focus || "").trim();
+  const next = String(project.next || project.nextAction || "").trim();
+  if (!name || !focus || !next) return null;
+
+  const now = new Date().toISOString();
+  return {
+    id: String(project.id || createProjectId()),
+    name,
+    focus,
+    next,
+    progress: Math.min(100, Math.max(0, Math.round(Number(project.progress) || 0))),
+    accent: project.accent === "blue" ? "blue" : "slate",
+    archived: Boolean(project.archived),
+    createdAt: String(project.createdAt || now),
+    updatedAt: String(project.updatedAt || project.createdAt || now),
+  };
+}
+
 function normalizeTask(task) {
   if (!task || typeof task !== "object") return null;
   const title = String(task.title || "").trim();
@@ -120,6 +143,32 @@ function loadTasks() {
     window.localStorage.removeItem(TODO_STORAGE_KEY);
     return clone(seedTasks);
   }
+}
+
+function loadPendingProjectArchives() {
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(PROJECT_PENDING_ARCHIVES_KEY));
+    return Array.isArray(saved) ? [...new Set(saved.map(String).filter(Boolean))] : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePendingProjectArchives(ids) {
+  window.localStorage.setItem(
+    PROJECT_PENDING_ARCHIVES_KEY,
+    JSON.stringify([...new Set(ids.map(String).filter(Boolean))]),
+  );
+}
+
+function queueProjectArchive(id) {
+  savePendingProjectArchives([...loadPendingProjectArchives(), String(id)]);
+}
+
+function clearProjectArchive(id) {
+  savePendingProjectArchives(
+    loadPendingProjectArchives().filter((item) => item !== String(id)),
+  );
 }
 
 function loadPendingTaskCompletions() {
@@ -146,7 +195,7 @@ function clearTaskCompletion(id) {
 function loadState() {
   const fallback = {
     tasks: loadTasks(),
-    projects: clone(seedProjects),
+    projects: clone(seedProjects).map(normalizeProject).filter(Boolean),
     gmailDismissedIds: [],
     gmailPinnedIds: [],
   };
@@ -156,7 +205,7 @@ function loadState() {
     if (!saved || typeof saved !== "object") return fallback;
     return {
       tasks: fallback.tasks,
-      projects: Array.isArray(saved.projects) ? saved.projects : fallback.projects,
+      projects: Array.isArray(saved.projects) ? saved.projects.map(normalizeProject).filter(Boolean) : fallback.projects.map(normalizeProject).filter(Boolean),
       gmailDismissedIds: Array.isArray(saved.gmailDismissedIds) ? saved.gmailDismissedIds.map(String).slice(-200) : [],
       gmailPinnedIds: Array.isArray(saved.gmailPinnedIds) ? saved.gmailPinnedIds.map(String).slice(-50) : [],
     };
@@ -352,6 +401,10 @@ function sortTasks(tasks) {
     if (dateOrder) return dateOrder;
     return String(b.createdAt).localeCompare(String(a.createdAt));
   });
+}
+
+function createProjectId() {
+  return window.crypto?.randomUUID?.() || `project-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
 function createTaskId() {
@@ -642,7 +695,7 @@ function renderProjects() {
     .map((project) => `<article class="project-card">
       <div class="project-top">
         <strong>${escapeHtml(project.name)}</strong>
-        <div><span>${Number(project.progress) || 0}%</span><button type="button" aria-label="Archive ${escapeHtml(project.name)}" title="Archive project" data-action="archive-project" data-id="${Number(project.id)}">×</button></div>
+        <div><span>${Number(project.progress) || 0}%</span><button type="button" aria-label="Archive ${escapeHtml(project.name)}" title="Archive project" data-action="archive-project" data-id="${escapeHtml(project.id)}">×</button></div>
       </div>
       <div class="progress-track"><span class="${project.accent === "blue" ? "blue" : "slate"}" style="width:${Math.min(100, Math.max(0, Number(project.progress) || 0))}%"></span></div>
       <dl>
@@ -929,6 +982,7 @@ async function initializeCloudGmail() {
     accountSync.connected = true;
     accountSync.email = session.email || "";
     await syncCloudScratchpad();
+    await syncCloudProjects();
     await fetchCloudEmails();
   } catch {
     gmail.status = "error";
@@ -1186,6 +1240,7 @@ async function disconnectGmail() {
       accountSync.connected = false;
       accountSync.email = "";
       accountSync.scratchpadReady = false;
+      accountSync.projectsReady = false;
       elements.scratchpadStatus.textContent = "Local";
       state.gmailPinnedIds = [];
       saveState();
@@ -1319,6 +1374,47 @@ function closeSalesModal() {
   if (elements.modal.hidden && elements.taskHistoryModal.hidden) document.body.classList.remove("modal-open");
 }
 
+async function syncCloudProjects({ silent = false } = {}) {
+  if (!CLOUD_BACKEND || !accountSync.connected) return false;
+
+  try {
+    const localProjects = state.projects.map(normalizeProject).filter(Boolean);
+    if (localProjects.length) {
+      await backendRequest("/api/projects/import", {
+        method: "POST",
+        body: JSON.stringify({ projects: localProjects }),
+      });
+    }
+
+    for (const id of loadPendingProjectArchives()) {
+      try {
+        await backendRequest("/api/projects/archive", {
+          method: "POST",
+          body: JSON.stringify({ id }),
+        });
+        clearProjectArchive(id);
+      } catch (error) {
+        if (error.status === 404) clearProjectArchive(id);
+        else throw error;
+      }
+    }
+
+    const payload = await backendRequest("/api/projects");
+    state.projects = Array.isArray(payload.projects)
+      ? payload.projects.map(normalizeProject).filter((project) => project && !project.archived)
+      : [];
+    accountSync.projectsReady = true;
+    saveState();
+    renderProjects();
+    return true;
+  } catch (error) {
+    if (!silent && error.status !== 401) {
+      showToast("Projects are offline · changes stay on this device");
+    }
+    return false;
+  }
+}
+
 async function syncCloudTasks({ silent = false } = {}) {
   if (!CLOUD_BACKEND) return false;
   try {
@@ -1399,18 +1495,52 @@ elements.quickAddForm.addEventListener("submit", async (event) => {
 
 elements.scratchpad.addEventListener("input", queueScratchpadSave);
 
-elements.projectForm.addEventListener("submit", (event) => {
+elements.projectForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = new FormData(elements.projectForm);
   const name = String(form.get("name") || "").trim();
   const focus = String(form.get("focus") || "").trim();
   const next = String(form.get("next") || "").trim();
   if (!name || !focus || !next) return;
-  state.projects.push({ id: Date.now(), name, focus, next, progress: 10, accent: "slate" });
+
+  const now = new Date().toISOString();
+  const project = normalizeProject({
+    id: createProjectId(),
+    name,
+    focus,
+    next,
+    progress: 10,
+    accent: "slate",
+    createdAt: now,
+    updatedAt: now,
+  });
+  if (!project) return;
+
+  state.projects.push(project);
   saveState();
   closeProjectForm();
   render();
-  showToast(`${name} added to Projects`);
+  showToast(accountSync.connected ? `${name} added · syncing` : `${name} saved locally`);
+
+  if (CLOUD_BACKEND && accountSync.connected) {
+    try {
+      const payload = await backendRequest("/api/projects", {
+        method: "POST",
+        body: JSON.stringify(project),
+      });
+      const saved = normalizeProject(payload.project);
+      if (saved) {
+        state.projects = state.projects.map((item) => item.id === saved.id ? saved : item);
+        saveState();
+        renderProjects();
+      }
+      showToast(`${name} added · synced`);
+    } catch (error) {
+      showToast(error.status === 401
+        ? `${name} saved here · connect Google to sync`
+        : `${name} saved here · will sync when online`);
+    }
+  }
 });
 
 elements.taskList.addEventListener("change", async (event) => {
@@ -1439,7 +1569,7 @@ elements.taskList.addEventListener("change", async (event) => {
   }
 });
 
-document.addEventListener("click", (event) => {
+document.addEventListener("click", async (event) => {
   const control = event.target.closest("[data-action]");
   if (!control) return;
   const action = control.dataset.action;
@@ -1527,5 +1657,6 @@ document.addEventListener("visibilitychange", () => {
   if (CLOUD_BACKEND && document.visibilityState === "visible") {
     syncCloudTasks({ silent: true });
     if (accountSync.connected) syncCloudScratchpad({ silent: true });
+    if (accountSync.connected) syncCloudProjects({ silent: true });
   }
 });

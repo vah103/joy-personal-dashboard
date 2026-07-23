@@ -6,7 +6,12 @@ import {
   validateSaleDeal,
 } from "./finance-sales.js";
 import { normalizeTaskInput, taskRowToApi } from "./todos.js";
-import { normalizeScratchpadInput, scratchpadRowToApi } from "./account-sync.js";
+import {
+  normalizeProjectInput,
+  normalizeScratchpadInput,
+  projectRowToApi,
+  scratchpadRowToApi,
+} from "./account-sync.js";
 
 const SESSION_COOKIE = "__Host-joy_session";
 const OAUTH_STATE_COOKIE = "__Host-joy_oauth_state";
@@ -53,6 +58,10 @@ async function routeRequest(request, env) {
     if (!session) return json({ error: "AUTH_REQUIRED" }, 401);
     if (request.method !== "GET" && !isSameOrigin(request)) return json({ error: "INVALID_ORIGIN" }, 403);
 
+    if (pathname === "/api/projects" && request.method === "GET") return listProjects(session.user_email, env);
+    if (pathname === "/api/projects" && request.method === "POST") return addProject(request, session.user_email, env);
+    if (pathname === "/api/projects/import" && request.method === "POST") return importProjects(request, session.user_email, env);
+    if (pathname === "/api/projects/archive" && request.method === "POST") return archiveProject(request, session.user_email, env);
     if (pathname === "/api/scratchpad" && request.method === "GET") return getScratchpad(session.user_email, env);
     if (pathname === "/api/scratchpad" && request.method === "PUT") return updateScratchpad(request, session.user_email, env);
     if (pathname === "/api/emails" && request.method === "GET") return listEmails(session.user_email, env);
@@ -683,6 +692,110 @@ async function completeTask(request, email, env) {
   return json({ ok: true, task: taskRowToApi(row) });
 }
 
+
+
+async function listProjects(email, env) {
+  const rows = await env.DB.prepare(`
+    SELECT id, name, focus, next_action, progress, accent, archived, created_at, updated_at
+    FROM joy_projects
+    WHERE user_email = ? AND archived = 0
+    ORDER BY updated_at DESC, created_at DESC
+  `).bind(email).all();
+
+  return json({
+    projects: rows.results.map(projectRowToApi),
+    fetchedAt: Date.now(),
+  });
+}
+
+async function addProject(request, email, env) {
+  const validation = normalizeProjectInput(await readJson(request));
+  if (!validation.ok) return json({ error: validation.error }, 400);
+
+  const project = validation.project;
+  await env.DB.prepare(`
+    INSERT INTO joy_projects (
+      user_email, id, name, focus, next_action, progress, accent,
+      archived, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(user_email, id) DO UPDATE SET
+      name = excluded.name,
+      focus = excluded.focus,
+      next_action = excluded.next_action,
+      progress = excluded.progress,
+      accent = excluded.accent,
+      archived = excluded.archived,
+      updated_at = excluded.updated_at
+    WHERE excluded.updated_at >= joy_projects.updated_at
+  `).bind(
+    email,
+    project.id,
+    project.name,
+    project.focus,
+    project.next,
+    project.progress,
+    project.accent,
+    project.archived ? 1 : 0,
+    project.createdAt,
+    project.updatedAt,
+  ).run();
+
+  const row = await env.DB.prepare(`
+    SELECT id, name, focus, next_action, progress, accent, archived, created_at, updated_at
+    FROM joy_projects
+    WHERE user_email = ? AND id = ?
+  `).bind(email, project.id).first();
+
+  return json({ ok: true, project: projectRowToApi(row) }, 201);
+}
+
+async function importProjects(request, email, env) {
+  const body = await readJson(request);
+  const input = Array.isArray(body.projects) ? body.projects.slice(0, 200) : [];
+  const valid = input.map(normalizeProjectInput).filter((item) => item.ok);
+
+  if (!valid.length) return json({ ok: true, imported: 0 });
+
+  const statements = valid.map(({ project }) => env.DB.prepare(`
+    INSERT INTO joy_projects (
+      user_email, id, name, focus, next_action, progress, accent,
+      archived, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(user_email, id) DO NOTHING
+  `).bind(
+    email,
+    project.id,
+    project.name,
+    project.focus,
+    project.next,
+    project.progress,
+    project.accent,
+    project.archived ? 1 : 0,
+    project.createdAt,
+    project.updatedAt,
+  ));
+
+  await env.DB.batch(statements);
+  return json({ ok: true, imported: valid.length });
+}
+
+async function archiveProject(request, email, env) {
+  const body = await readJson(request);
+  const id = String(body.id || "").trim();
+  if (!id || id.length > 100) return json({ error: "INVALID_PROJECT_ID" }, 400);
+
+  const result = await env.DB.prepare(`
+    UPDATE joy_projects
+    SET archived = 1, updated_at = ?
+    WHERE user_email = ? AND id = ?
+  `).bind(Date.now(), email, id).run();
+
+  if (!Number(result.meta?.changes || 0)) {
+    return json({ error: "PROJECT_NOT_FOUND" }, 404);
+  }
+
+  return json({ ok: true, id });
+}
 
 async function getScratchpad(email, env) {
   const row = await env.DB.prepare(`
