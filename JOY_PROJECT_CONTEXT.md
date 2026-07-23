@@ -8,7 +8,7 @@ Joy is a private personal dashboard deployed with Cloudflare Workers.
 
 Main functions:
 
-- Gmail dashboard
+- Gmail dashboard that starts empty and only surfaces newly received email
 - Upcoming room viewings from Google Sheets
 - Personal Finance dashboard
 - 2026 Sale workspace
@@ -65,6 +65,8 @@ Main files:
 - worker/index.js
 - worker/finance-sales.js
 - worker/todos.js
+- worker/account-sync.js
+- worker/gmail-sync.js
 
 The Worker connects the frontend to:
 
@@ -76,9 +78,16 @@ The Worker connects the frontend to:
 
 ### Database
 
-Migration:
+Migrations:
 
+- migrations/0001_initial.sql
 - migrations/0002_tasks_sync.sql
+- migrations/0003_account_sync.sql
+- migrations/0004_projects_account_sync.sql
+- migrations/0005_gmail_new_mail_window.sql
+
+Gmail stores a per-account tracking start. Existing mail is cleared once when the
+migration takes effect, and only mail received afterward is surfaced.
 
 To-do records are synchronized through D1 so they appear across desktop and mobile.
 
@@ -130,6 +139,8 @@ Current automated tests cover:
 - Empty task rejection
 - Vietnam task-history date
 - D1 completed-task mapping
+- Gmail new-mail tracking cutoff
+- Gmail Done action and SVG pin interface
 
 Run:
 
@@ -139,8 +150,8 @@ npm.cmd test
 
 Expected when this document was created:
 
-- 10 tests
-- 10 passed
+- 25 tests
+- 25 passed
 - 0 failed
 
 ## 7. Important security rules

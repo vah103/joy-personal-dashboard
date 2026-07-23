@@ -482,7 +482,7 @@ function renderBrief() {
   if (["authorizing", "loading-messages"].includes(gmail.status)) emailLabel = "checking Gmail";
   if (gmail.status === "connected") {
     const count = gmail.messages.filter((message) => message.unread).length;
-    emailLabel = count ? `${count} unread ${count === 1 ? "email" : "emails"}` : "no unread email";
+    emailLabel = count ? `${count} new ${count === 1 ? "email" : "emails"}` : "no new email";
   }
   const viewingCount = sales.status === "ready" ? sales.viewings.length : 0;
   const viewingLabel = sales.status === "ready"
@@ -582,16 +582,21 @@ function renderGmailMessage(message) {
   const messageActions = document.createElement("div");
   messageActions.className = "gmail-message-actions";
 
+  const pinned = isEmailPinned(message.id);
   const pin = makeButton("", "toggle-email-pin", "gmail-square-button gmail-pin-button");
   pin.dataset.emailId = message.id;
-  pin.setAttribute("aria-pressed", String(isEmailPinned(message.id)));
-  pin.setAttribute("aria-label", isEmailPinned(message.id) ? "Unpin email" : "Pin email");
-  pin.title = isEmailPinned(message.id) ? "Remove pin" : "Keep this email at the top";
+  pin.setAttribute("aria-pressed", String(pinned));
+  pin.setAttribute("aria-label", pinned ? "Unpin email" : "Pin email");
+  pin.title = pinned ? "Remove pin" : "Keep this email at the top";
+  pin.innerHTML = `<svg class="gmail-pin-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path class="gmail-pin-head" d="M9 3.5h6v4l2.5 2.5v1.5h-11V10L9 7.5Z"></path>
+    <path d="M12 11.5V21"></path>
+  </svg>`;
 
   const read = makeButton("", "dismiss-email", "gmail-square-button gmail-read-button");
   read.dataset.emailId = message.id;
-  read.setAttribute("aria-label", "Mark as read in Joy");
-  read.title = "Hide this email from Joy";
+  read.setAttribute("aria-label", "Done with this email");
+  read.title = "Đã đọc · remove from Joy";
 
   messageActions.append(open, pin, read);
 
@@ -612,7 +617,7 @@ function renderEmail() {
   }
 
   if (gmail.status === "loading-messages") {
-    renderGmailNotice({ icon: "↻", title: "Checking your inbox", copy: "Joy is loading up to five unread messages." });
+    renderGmailNotice({ icon: "↻", title: "Checking for new mail", copy: "Joy is looking only for email received after tracking started." });
     return;
   }
 
@@ -632,8 +637,8 @@ function renderEmail() {
     renderGmailNotice({
       title: CLOUD_BACKEND ? "Connect Gmail once" : "Connect your Gmail",
       copy: CLOUD_BACKEND
-        ? "After one read-only approval, Joy will keep Gmail updated automatically."
-        : "See up to five unread inbox messages here. Google will ask you to approve read-only access.",
+        ? "Joy will only surface email that arrives after tracking starts."
+        : "Joy will show up to five new inbox messages received from now on.",
       buttonLabel: CLOUD_BACKEND ? "Connect once" : "Connect Gmail",
       action: "connect-gmail",
     });
@@ -650,16 +655,13 @@ function renderEmail() {
   dot.setAttribute("aria-hidden", "true");
   const statusCopy = document.createElement("strong");
   statusCopy.textContent = gmail.messages.length
-    ? `${CLOUD_BACKEND ? "Auto · " : ""}${gmail.messages.length} ${gmail.messages.length === 1 ? "message" : "messages"}`
-    : `${CLOUD_BACKEND ? "Auto · " : ""}Inbox is clear`;
+    ? `${CLOUD_BACKEND ? "Auto · " : ""}${gmail.messages.length} new ${gmail.messages.length === 1 ? "message" : "messages"}`
+    : `${CLOUD_BACKEND ? "Auto · " : ""}No new mail`;
   status.append(dot, statusCopy);
 
   const actions = document.createElement("div");
   actions.className = "gmail-actions";
   actions.append(makeButton("Refresh", "refresh-gmail", "gmail-action"));
-  if ((CLOUD_BACKEND ? gmail.hiddenCount : state.gmailDismissedIds.length)) {
-    actions.append(makeButton("Restore", "restore-dismissed-emails", "gmail-action"));
-  }
   actions.append(makeButton("Disconnect", "disconnect-gmail", "gmail-action"));
   toolbar.append(status, actions);
   wrapper.append(toolbar);
@@ -675,9 +677,9 @@ function renderEmail() {
     const check = document.createElement("span");
     check.textContent = "✓";
     const title = document.createElement("strong");
-    title.textContent = "You’re all caught up";
+    title.textContent = "No new mail";
     const copy = document.createElement("p");
-    copy.textContent = "There are no unread messages in your inbox.";
+    copy.textContent = "Joy will show only email received after tracking started.";
     empty.append(check, title, copy);
     wrapper.append(empty);
   }
@@ -1308,7 +1310,7 @@ async function dismissEmail(id) {
   saveState();
   renderBrief();
   renderEmail();
-  showToast("Email hidden from Joy");
+  showToast("Done · removed from Joy");
 
   if (CLOUD_BACKEND) {
     try {
@@ -1321,24 +1323,6 @@ async function dismissEmail(id) {
       fetchCloudEmails({ silent: true });
     }
   }
-}
-
-async function restoreDismissedEmails() {
-  if (CLOUD_BACKEND) {
-    try {
-      await backendRequest("/api/emails/restore", { method: "POST" });
-      gmail.hiddenCount = 0;
-      showToast("Hidden emails restored");
-      await fetchCloudEmails();
-    } catch {
-      showToast("Joy could not restore hidden emails");
-    }
-    return;
-  }
-  state.gmailDismissedIds = [];
-  saveState();
-  showToast("Hidden emails restored");
-  fetchGmailMessages();
 }
 
 function showToast(message) {
@@ -1581,7 +1565,6 @@ document.addEventListener("click", async (event) => {
   if (action === "disconnect-gmail") disconnectGmail();
   if (action === "toggle-email-pin") toggleEmailPin(control.dataset.emailId);
   if (action === "dismiss-email") dismissEmail(control.dataset.emailId);
-  if (action === "restore-dismissed-emails") restoreDismissedEmails();
   if (action === "open-sales") openSalesModal();
   if (action === "close-sales") closeSalesModal();
   if (action === "open-sale-manager") window.location.assign("/sale-manager.html");

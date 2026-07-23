@@ -12,6 +12,7 @@ import {
   projectRowToApi,
   scratchpadRowToApi,
 } from "./account-sync.js";
+import { gmailSearchQuery, isGmailMessageNew } from "./gmail-sync.js";
 
 const SESSION_COOKIE = "__Host-joy_session";
 const OAUTH_STATE_COOKIE = "__Host-joy_oauth_state";
@@ -894,30 +895,81 @@ async function updateScratchpad(request, email, env) {
 
 async function syncGmail(email, env) {
   const now = Date.now();
+
   try {
+    const syncState = await env.DB.prepare(
+      "SELECT watch_started_at FROM gmail_sync WHERE user_email = ?",
+    ).bind(email).first();
+
+    const watchStartedAt = Number(syncState?.watch_started_at || 0);
+
+    // The first sync after this migration establishes a clean starting point.
+    // Existing cached, pinned and dismissed mail is intentionally discarded.
+    if (!watchStartedAt) {
+      await env.DB.batch([
+        env.DB.prepare("DELETE FROM email_cache WHERE user_email = ?").bind(email),
+        env.DB.prepare("DELETE FROM email_preferences WHERE user_email = ?").bind(email),
+        env.DB.prepare(`
+          INSERT INTO gmail_sync (
+            user_email, last_synced_at, last_error, watch_started_at
+          ) VALUES (?, ?, NULL, ?)
+          ON CONFLICT(user_email) DO UPDATE SET
+            last_synced_at = excluded.last_synced_at,
+            last_error = NULL,
+            watch_started_at = CASE
+              WHEN gmail_sync.watch_started_at > 0
+                THEN gmail_sync.watch_started_at
+              ELSE excluded.watch_started_at
+            END
+        `).bind(email, now, now),
+      ]);
+      return [];
+    }
+
     const accessToken = await getAccessToken(email, env);
     const preferences = await env.DB.prepare(`
       SELECT message_id, pinned, dismissed, updated_at
-      FROM email_preferences WHERE user_email = ? ORDER BY updated_at DESC
+      FROM email_preferences
+      WHERE user_email = ?
+      ORDER BY updated_at DESC
     `).bind(email).all();
-    const dismissed = new Set(preferences.results.filter((row) => row.dismissed).map((row) => row.message_id));
+
+    const dismissed = new Set(
+      preferences.results
+        .filter((row) => row.dismissed)
+        .map((row) => String(row.message_id)),
+    );
+
     const pinnedIds = preferences.results
       .filter((row) => row.pinned && !row.dismissed)
-      .map((row) => row.message_id);
+      .map((row) => String(row.message_id));
 
-    const listQuery = new URLSearchParams({ maxResults: "25", q: "is:unread in:inbox" });
+    const listQuery = new URLSearchParams({
+      maxResults: "25",
+      q: gmailSearchQuery(watchStartedAt),
+    });
+
     const list = await gmailApi(accessToken, `/messages?${listQuery}`);
     const unreadIds = (list.messages || [])
       .map((message) => String(message.id))
       .filter((id) => !dismissed.has(id))
       .slice(0, 5);
+
     const ids = [...new Set([...pinnedIds, ...unreadIds])];
 
     const messages = (await Promise.all(ids.map(async (id) => {
       try {
         const detailsQuery = new URLSearchParams({ format: "metadata" });
-        ["From", "Subject", "Date"].forEach((name) => detailsQuery.append("metadataHeaders", name));
-        const message = await gmailApi(accessToken, `/messages/${encodeURIComponent(id)}?${detailsQuery}`);
+        ["From", "Subject", "Date"].forEach((name) => {
+          detailsQuery.append("metadataHeaders", name);
+        });
+
+        const message = await gmailApi(
+          accessToken,
+          `/messages/${encodeURIComponent(id)}?${detailsQuery}`,
+        );
+
+        if (!isGmailMessageNew(message, watchStartedAt)) return null;
         return normalizeGmailMessage(message, pinnedIds.includes(id));
       } catch (error) {
         if (error.status === 404) return null;
@@ -925,11 +977,15 @@ async function syncGmail(email, env) {
       }
     }))).filter(Boolean);
 
-    const statements = [env.DB.prepare("DELETE FROM email_cache WHERE user_email = ?").bind(email)];
+    const statements = [
+      env.DB.prepare("DELETE FROM email_cache WHERE user_email = ?").bind(email),
+    ];
+
     messages.forEach((message, index) => {
       statements.push(env.DB.prepare(`
         INSERT INTO email_cache (
-          user_email, message_id, thread_id, sender, subject, snippet, message_date, unread, pinned, fetched_at
+          user_email, message_id, thread_id, sender, subject, snippet,
+          message_date, unread, pinned, fetched_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         email,
@@ -944,17 +1000,31 @@ async function syncGmail(email, env) {
         now - index,
       ));
     });
+
     statements.push(env.DB.prepare(`
-      INSERT INTO gmail_sync (user_email, last_synced_at, last_error) VALUES (?, ?, NULL)
-      ON CONFLICT(user_email) DO UPDATE SET last_synced_at = excluded.last_synced_at, last_error = NULL
-    `).bind(email, now));
+      INSERT INTO gmail_sync (
+        user_email, last_synced_at, last_error, watch_started_at
+      ) VALUES (?, ?, NULL, ?)
+      ON CONFLICT(user_email) DO UPDATE SET
+        last_synced_at = excluded.last_synced_at,
+        last_error = NULL,
+        watch_started_at = CASE
+          WHEN gmail_sync.watch_started_at > 0
+            THEN gmail_sync.watch_started_at
+          ELSE excluded.watch_started_at
+        END
+    `).bind(email, now, watchStartedAt));
+
     await env.DB.batch(statements);
     return messages;
   } catch (error) {
     await env.DB.prepare(`
-      INSERT INTO gmail_sync (user_email, last_synced_at, last_error) VALUES (?, ?, ?)
-      ON CONFLICT(user_email) DO UPDATE SET last_error = excluded.last_error
+      INSERT INTO gmail_sync (user_email, last_synced_at, last_error)
+      VALUES (?, ?, ?)
+      ON CONFLICT(user_email) DO UPDATE SET
+        last_error = excluded.last_error
     `).bind(email, 0, String(error.message || error).slice(0, 300)).run();
+
     throw error;
   }
 }
@@ -981,10 +1051,18 @@ function senderName(from) {
 }
 
 async function listEmails(email, env) {
-  const sync = await env.DB.prepare("SELECT last_synced_at, last_error FROM gmail_sync WHERE user_email = ?")
-    .bind(email).first();
+  const sync = await env.DB.prepare(`
+    SELECT last_synced_at, last_error, watch_started_at
+    FROM gmail_sync
+    WHERE user_email = ?
+  `).bind(email).first();
+
   let syncError = sync?.last_error || null;
-  if (!sync || Number(sync.last_synced_at) < Date.now() - 45_000) {
+  if (
+    !sync
+    || !Number(sync.watch_started_at)
+    || Number(sync.last_synced_at) < Date.now() - 45_000
+  ) {
     try {
       await syncGmail(email, env);
       syncError = null;
@@ -1000,7 +1078,11 @@ async function listEmails(email, env) {
     `).bind(email).all(),
     env.DB.prepare("SELECT COUNT(*) AS count FROM email_preferences WHERE user_email = ? AND dismissed = 1")
       .bind(email).first(),
-    env.DB.prepare("SELECT last_synced_at FROM gmail_sync WHERE user_email = ?").bind(email).first(),
+    env.DB.prepare(`
+      SELECT last_synced_at, watch_started_at
+      FROM gmail_sync
+      WHERE user_email = ?
+    `).bind(email).first(),
   ]);
 
   return json({
@@ -1016,6 +1098,7 @@ async function listEmails(email, env) {
     })),
     hiddenCount: Number(hidden?.count || 0),
     syncedAt: Number(updated?.last_synced_at || 0),
+    watchStartedAt: Number(updated?.watch_started_at || 0),
     syncError,
   });
 }

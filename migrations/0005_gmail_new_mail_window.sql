@@ -1,0 +1,2 @@
+ALTER TABLE gmail_sync
+ADD COLUMN watch_started_at INTEGER NOT NULL DEFAULT 0;
