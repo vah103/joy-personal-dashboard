@@ -72,7 +72,7 @@ test("TurtleBot art appears in both modal and dashboard card", () => {
 
 test("project typography is enlarged and remains responsive", () => {
   assert.ok(styles.includes("Project visual polish v2"));
-  assert.ok(styles.includes(".project-card-art"));
+  assert.ok(styles.includes(".turtlebot-card-visual"));
   assert.ok(styles.includes(".project-details-heading h2"));
   assert.ok(styles.includes("@media (max-width: 800px)"));
 });
@@ -94,7 +94,7 @@ test("project detail assets are loaded and included in build output", () => {
 test("TurtleBot image is integrated into the dashboard card", () => {
   assert.ok(projectDetails.includes("turtlebot-card-visual"));
   assert.ok(projectDetails.includes("turtlebot4-art.webp"));
-  assert.ok(styles.includes("TurtleBot integrated dashboard card v5"));
+  assert.ok(styles.includes("TurtleBot hero dashboard card v6"));
   assert.ok(styles.includes(".turtlebot-card-visual"));
   assert.ok(styles.includes("mix-blend-mode: multiply"));
   assert.ok(

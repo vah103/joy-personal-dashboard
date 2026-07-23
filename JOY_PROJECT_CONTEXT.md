@@ -257,3 +257,11 @@ This mobile ordering change was discussed but should be verified before consider
 - Column 3 contains the TurtleBot art.
 - The robot is no longer absolutely positioned or cropped by an oversized transform.
 - Dashboard typography remains unchanged.
+
+## TurtleBot hero dashboard card v6
+
+- TurtleBot now uses a taller hero-style project card inspired by the approved visual mockup.
+- The title and progress receive TurtleBot-specific emphasis without changing other project cards.
+- Current focus and next action are stacked with circular visual markers.
+- The TurtleBot artwork occupies the right half with radar-ring decoration and a Stage 2 validation badge.
+- All project values remain live HTML rather than baked into a static image.
