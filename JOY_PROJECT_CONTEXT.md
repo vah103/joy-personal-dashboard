@@ -217,3 +217,13 @@ This mobile ordering change was discussed but should be verified before consider
 - Project removal requires a custom confirmation modal.
 - Project removal remains a soft delete through the existing archive API.
 - Project IDs are compared as strings so UUID-based projects can be removed correctly.
+
+## Active Project details v1
+
+- TurtleBot 4 and IELTS project cards now open a responsive detail modal.
+- The TurtleBot modal contains a local SVG illustration, a nine-stage roadmap, selected ROS 2 commands with copy controls and the 23/07/2026 robot log.
+- TurtleBot source links open the exact roadmap and daily-log tabs in Google Docs.
+- The IELTS modal contains Writing, Reading, Listening and Flashcards sections.
+- Reading and Listening have prepared empty notebook states even before their first study entry exists.
+- Google Docs remain the source for long-form notes; this first version uses curated summaries instead of fetching full documents at runtime.
+- No D1 migration is required for this version.

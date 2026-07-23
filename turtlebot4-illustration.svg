@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 520" role="img" aria-labelledby="title desc">
+  <title id="title">TurtleBot 4 illustration</title>
+  <desc id="desc">A stylised indoor mobile robot with a circular base, camera mast and LiDAR.</desc>
+
+  <defs>
+    <linearGradient id="base" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3e4b50"/>
+      <stop offset="1" stop-color="#1f292d"/>
+    </linearGradient>
+
+    <linearGradient id="shell" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f9fbfb"/>
+      <stop offset="1" stop-color="#c9d4d6"/>
+    </linearGradient>
+
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%">
+      <feDropShadow dx="0" dy="18" stdDeviation="16" flood-color="#203035" flood-opacity=".22"/>
+    </filter>
+  </defs>
+
+  <ellipse cx="374" cy="441" rx="235" ry="36" fill="#304148" opacity=".13"/>
+
+  <g opacity=".32" fill="none" stroke="#728a92" stroke-width="2">
+    <circle cx="378" cy="257" r="190"/>
+    <circle cx="378" cy="257" r="145"/>
+    <path d="M378 67v380M188 257h380"/>
+  </g>
+
+  <g filter="url(#shadow)">
+    <ellipse cx="376" cy="365" rx="196" ry="84" fill="url(#base)"/>
+
+    <path d="M196 347c12-57 75-101 180-101 104 0 170 43 181 101v34c-18 48-80 77-181 77-100 0-162-29-180-77Z" fill="#313e43"/>
+
+    <ellipse cx="376" cy="347" rx="180" ry="72" fill="url(#shell)" stroke="#75898f" stroke-width="5"/>
+
+    <path d="M228 353c31 32 82 47 148 47 68 0 119-16 151-48" fill="none" stroke="#8da0a5" stroke-width="5" opacity=".55"/>
+
+    <rect x="230" y="377" width="51" height="38" rx="15" fill="#161e21"/>
+    <rect x="473" y="377" width="51" height="38" rx="15" fill="#161e21"/>
+
+    <circle cx="376" cy="346" r="32" fill="#263337"/>
+    <circle cx="376" cy="346" r="19" fill="#6f8b94"/>
+    <circle cx="376" cy="346" r="8" fill="#b5c9cf"/>
+
+    <path d="M350 320v-79h52v79" fill="#d9e1e2" stroke="#667b82" stroke-width="6"/>
+
+    <rect x="339" y="221" width="74" height="39" rx="13" fill="#273438"/>
+    <rect x="349" y="229" width="54" height="23" rx="9" fill="#7a969f"/>
+    <circle cx="363" cy="240.5" r="7" fill="#192327"/>
+    <circle cx="389" cy="240.5" r="7" fill="#192327"/>
+    <circle cx="363" cy="240.5" r="2.5" fill="#b9d7df"/>
+    <circle cx="389" cy="240.5" r="2.5" fill="#b9d7df"/>
+
+    <rect x="360" y="158" width="32" height="67" rx="10" fill="#e4eaeb" stroke="#62777e" stroke-width="5"/>
+
+    <ellipse cx="376" cy="153" rx="68" ry="19" fill="#253135"/>
+    <rect x="308" y="133" width="136" height="22" rx="11" fill="#354349"/>
+    <ellipse cx="376" cy="133" rx="68" ry="19" fill="#8199a1"/>
+    <ellipse cx="376" cy="133" rx="47" ry="11" fill="#bbcacd"/>
+    <circle cx="376" cy="133" r="7" fill="#526970"/>
+
+    <rect x="291" y="279" width="44" height="17" rx="8.5" fill="#87a0a8"/>
+    <rect x="417" y="279" width="44" height="17" rx="8.5" fill="#87a0a8"/>
+
+    <circle cx="258" cy="348" r="8" fill="#65828b"/>
+    <circle cx="494" cy="348" r="8" fill="#65828b"/>
+  </g>
+
+  <g fill="#4d666e">
+    <circle cx="605" cy="160" r="5"/>
+    <circle cx="627" cy="201" r="3"/>
+    <circle cx="135" cy="219" r="4"/>
+  </g>
+
+  <g fill="none" stroke="#5f7982" stroke-width="3" stroke-linecap="round" opacity=".55">
+    <path d="M457 135c74 10 119 41 145 78"/>
+    <path d="M294 135c-72 9-117 42-143 79"/>
+  </g>
+</svg>
