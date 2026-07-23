@@ -66,7 +66,7 @@ test("TurtleBot art appears in both modal and dashboard card", () => {
   assert.ok(fs.existsSync(turtlebotArtUrl));
   assert.ok(fs.statSync(turtlebotArtUrl).size > 10_000);
   assert.ok(projectDetails.includes("turtlebot4-art.webp"));
-  assert.ok(projectDetails.includes("project-card-art"));
+  assert.ok(projectDetails.includes("turtlebot-card-visual"));
   assert.ok(projectDetails.includes("project-card-turtlebot"));
 });
 
@@ -88,4 +88,13 @@ test("project detail assets are loaded and included in build output", () => {
   assert.ok(build.includes('"project-details.js"'));
   assert.ok(build.includes('"project-details.css"'));
   assert.ok(build.includes('"turtlebot4-art.webp"'));
+});
+
+
+test("TurtleBot image is integrated into the dashboard card", () => {
+  assert.ok(projectDetails.includes("turtlebot-card-visual"));
+  assert.ok(projectDetails.includes("turtlebot4-art.webp"));
+  assert.ok(styles.includes("TurtleBot integrated dashboard card v3"));
+  assert.ok(styles.includes(".turtlebot-card-visual"));
+  assert.ok(!styles.includes(".project-card-art {"));
 });

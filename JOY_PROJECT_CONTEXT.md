@@ -234,3 +234,9 @@ This mobile ordering change was discussed but should be verified before consider
 - The generated TurtleBot art replaces the original schematic illustration in the modal.
 - The same TurtleBot art is shown directly on the TurtleBot project card in the main dashboard.
 - The image is stored locally as `turtlebot4-art.webp` and copied into the production build.
+
+## TurtleBot integrated dashboard card v3
+
+- The TurtleBot art is integrated directly into the project card background instead of appearing inside a separate framed image.
+- Project data remains live HTML; the generated text-heavy mockup is not used as a static card image.
+- Dashboard text sizes remain unchanged. Enlarged typography applies only to the project detail popup.

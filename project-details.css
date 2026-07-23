@@ -730,27 +730,7 @@
   padding: 18px;
 }
 
-.project-card-art {
-  display: block;
-  margin: 15px 0;
-  overflow: hidden;
-  border: 1px solid rgba(57, 70, 76, 0.1);
-  border-radius: 15px;
-  background: #fafafa;
-}
 
-.project-card-art img {
-  display: block;
-  width: 100%;
-  height: 175px;
-  object-fit: contain;
-  object-position: center;
-  transition: transform 180ms ease;
-}
-
-.project-card-turtlebot:hover .project-card-art img {
-  transform: scale(1.015);
-}
 
 .project-details-heading h2 {
   font-size: 30px;
@@ -973,4 +953,100 @@
   .turtlebot-visual {
     min-height: 235px;
   }
+}
+
+
+/* TurtleBot integrated dashboard card v3 */
+.projects-panel .project-card-turtlebot {
+  position: relative;
+  isolation: isolate;
+  min-height: 250px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 78% 48%, rgba(255,255,255,.96) 0 22%, rgba(255,255,255,.62) 42%, transparent 63%),
+    linear-gradient(135deg, #f7f2eb 0%, #f3eee7 54%, #ece8e2 100%);
+}
+
+.projects-panel .project-card-turtlebot::before {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(circle at 72% 54%, transparent 0 30%, rgba(103,139,151,.10) 30.5% 31%, transparent 31.5% 38%, rgba(103,139,151,.07) 38.5% 39%, transparent 39.5%),
+    linear-gradient(90deg, transparent 0 63%, rgba(75,88,94,.10) 63% 63.15%, transparent 63.15%);
+  content: "";
+  pointer-events: none;
+}
+
+.projects-panel .project-card-turtlebot > :not(.turtlebot-card-visual) {
+  position: relative;
+  z-index: 2;
+  max-width: 58%;
+}
+
+.projects-panel .project-card-turtlebot .project-top {
+  max-width: 100%;
+}
+
+.projects-panel .project-card-turtlebot .project-meta {
+  display: grid;
+  max-width: 56%;
+  gap: 13px;
+}
+
+.projects-panel .project-card-turtlebot .project-meta > div {
+  padding: 11px 12px;
+  border: 1px solid rgba(68,83,89,.08);
+  border-radius: 12px;
+  background: rgba(255,255,255,.56);
+  backdrop-filter: blur(5px);
+}
+
+.projects-panel .project-card-turtlebot .progress-track {
+  max-width: 42%;
+}
+
+.turtlebot-card-visual {
+  position: absolute;
+  top: 18px;
+  right: -2px;
+  bottom: 10px;
+  z-index: 1;
+  display: grid;
+  width: 48%;
+  place-items: center;
+  pointer-events: none;
+}
+
+.turtlebot-card-visual img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  filter: drop-shadow(0 16px 16px rgba(33,43,47,.16));
+  transform: scale(1.12);
+  transform-origin: center;
+  transition: transform 180ms ease;
+}
+
+.project-card-turtlebot:hover .turtlebot-card-visual img {
+  transform: scale(1.15) translateY(-2px);
+}
+
+@media (max-width: 720px) {
+  .projects-panel .project-card-turtlebot { min-height: 330px; }
+  .projects-panel .project-card-turtlebot > :not(.turtlebot-card-visual),
+  .projects-panel .project-card-turtlebot .project-meta,
+  .projects-panel .project-card-turtlebot .progress-track { max-width: 100%; }
+  .projects-panel .project-card-turtlebot .project-meta { padding-bottom: 145px; }
+  .turtlebot-card-visual {
+    top: auto;
+    right: 8px;
+    bottom: 4px;
+    left: 8px;
+    width: auto;
+    height: 150px;
+  }
+  .turtlebot-card-visual img { transform: scale(1.03); }
 }
