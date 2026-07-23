@@ -6,59 +6,117 @@ await import("../weather-rain.js");
 
 const { summarizeRainForecast } = globalThis.JoyWeather;
 
-test("groups consecutive rainy hours into one compact window", () => {
+test("reports a one-hour strong rain window", () => {
   const result = summarizeRainForecast({
     time: [
-      "2026-07-23T17:00",
-      "2026-07-23T18:00",
       "2026-07-23T19:00",
       "2026-07-23T20:00",
       "2026-07-23T21:00",
     ],
-    precipitation_probability: [10, 55, 82, 65, 20],
-    precipitation: [0, 0.2, 1.5, 0.4, 0],
-    weather_code: [2, 61, 63, 61, 2],
-  }, new Date("2026-07-23T16:30:00+07:00"));
+    precipitation_probability: [40, 82, 45],
+    precipitation: [0.1, 1.2, 0.1],
+    weather_code: [51, 63, 51],
+  }, new Date("2026-07-23T17:00:00+07:00"));
 
   assert.equal(result.state, "rain");
-  assert.equal(result.text, "Rain possible: 18:00–21:00");
+  assert.equal(result.text, "Strong rain signal: 19:00–20:00");
 });
 
-test("shows a quiet notice when no meaningful rain remains today", () => {
+test("keeps the full variable-length strong window", () => {
   const result = summarizeRainForecast({
     time: [
-      "2026-07-23T14:00",
-      "2026-07-23T15:00",
-      "2026-07-23T16:00",
-    ],
-    precipitation_probability: [10, 20, 25],
-    precipitation: [0, 0, 0],
-    weather_code: [1, 2, 2],
-  }, new Date("2026-07-23T13:00:00+07:00"));
-
-  assert.equal(result.state, "clear");
-  assert.equal(result.text, "No significant rain expected today");
-});
-
-test("ignores rain windows that have already passed", () => {
-  const result = summarizeRainForecast({
-    time: [
-      "2026-07-23T06:00",
-      "2026-07-23T07:00",
-      "2026-07-23T18:00",
       "2026-07-23T19:00",
+      "2026-07-23T20:00",
+      "2026-07-23T21:00",
+      "2026-07-23T22:00",
+      "2026-07-23T23:00",
     ],
-    precipitation_probability: [80, 70, 45, 60],
-    precipitation: [2, 1, 0.2, 0.6],
-    weather_code: [63, 61, 61, 61],
+    precipitation_probability: [75, 82, 78, 74, 35],
+    precipitation: [0.5, 1.4, 1.1, 0.4, 0.1],
+    weather_code: [61, 63, 63, 61, 51],
+  }, new Date("2026-07-23T17:00:00+07:00"));
+
+  assert.equal(
+    result.text,
+    "Strong rain signal: 18:00–22:00",
+  );
+});
+
+test("does not notify for weak rain signals", () => {
+  const result = summarizeRainForecast({
+    time: [
+      "2026-07-23T19:00",
+      "2026-07-23T20:00",
+      "2026-07-23T21:00",
+    ],
+    precipitation_probability: [45, 55, 65],
+    precipitation: [0.1, 0.2, 0.2],
+    weather_code: [51, 51, 61],
+  }, new Date("2026-07-23T17:00:00+07:00"));
+
+  assert.equal(result.state, "quiet");
+  assert.equal(result.text, "");
+});
+
+test("a weak hour separates two strong windows", () => {
+  const result = summarizeRainForecast({
+    time: [
+      "2026-07-23T19:00",
+      "2026-07-23T20:00",
+      "2026-07-23T21:00",
+      "2026-07-23T22:00",
+    ],
+    precipitation_probability: [80, 45, 85, 82],
+    precipitation: [1.2, 0.1, 1.4, 0.8],
+    weather_code: [63, 51, 63, 63],
+  }, new Date("2026-07-23T17:00:00+07:00"));
+
+  assert.equal(
+    result.text,
+    "Strong rain signal: 18:00–19:00 and 20:00–22:00",
+  );
+});
+
+test("ignores strong rain intervals that have already ended", () => {
+  const result = summarizeRainForecast({
+    time: [
+      "2026-07-23T08:00",
+      "2026-07-23T19:00",
+      "2026-07-23T20:00",
+    ],
+    precipitation_probability: [90, 75, 80],
+    precipitation: [2, 0.5, 1],
+    weather_code: [63, 61, 63],
   }, new Date("2026-07-23T12:00:00+07:00"));
 
-  assert.equal(result.text, "Rain possible: 18:00–20:00");
+  assert.equal(
+    result.text,
+    "Strong rain signal: 18:00–20:00",
+  );
 });
 
-test("weather helper is loaded before app and copied into dist", () => {
+test("uses the API timestamp as the end of the hourly interval", () => {
+  const result = summarizeRainForecast({
+    time: ["2026-07-23T18:00"],
+    precipitation_probability: [85],
+    precipitation: [1.2],
+    weather_code: [63],
+  }, new Date("2026-07-23T17:05:00+07:00"));
+
+  assert.equal(
+    result.text,
+    "Strong rain signal: 17:00–18:00",
+  );
+});
+
+test("weather assets and quiet-state hiding are wired correctly", () => {
   const html = fs.readFileSync(
     new URL("../index.html", import.meta.url),
+    "utf8",
+  );
+
+  const app = fs.readFileSync(
+    new URL("../app.js", import.meta.url),
     "utf8",
   );
 
@@ -68,8 +126,7 @@ test("weather helper is loaded before app and copied into dist", () => {
   );
 
   assert.ok(html.includes('id="weather-rain-notice"'));
-  assert.ok(
-    html.indexOf("weather-rain.js") < html.indexOf("app.js"),
-  );
+  assert.ok(html.indexOf("weather-rain.js") < html.indexOf("app.js"));
+  assert.ok(app.includes("weatherRainNotice.hidden"));
   assert.ok(build.includes('resolve(root, "weather-rain.js")'));
 });

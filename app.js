@@ -463,13 +463,17 @@ async function loadWeather() {
       text: "Rain forecast unavailable",
     };
 
+    const showRainNotice = rainSummary.state === "rain";
+
+    elements.weatherRainNotice.hidden = !showRainNotice;
     elements.weatherRainNotice.textContent = rainSummary.text;
     elements.weatherRainNotice.dataset.state = rainSummary.state;
   } catch {
     elements.weatherTemperature.textContent = "—";
     elements.weatherIcon.textContent = "◌";
     elements.weatherCondition.textContent = "Weather unavailable";
-    elements.weatherRainNotice.textContent = "Could not check rain forecast";
+    elements.weatherRainNotice.hidden = true;
+    elements.weatherRainNotice.textContent = "";
     elements.weatherRainNotice.dataset.state = "unavailable";
   }
 }

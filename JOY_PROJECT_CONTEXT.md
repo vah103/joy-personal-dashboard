@@ -151,8 +151,8 @@ npm.cmd test
 
 Expected when this document was created:
 
-- 29 tests
-- 29 passed
+- 32 tests
+- 32 passed
 - 0 failed
 
 ## 7. Important security rules

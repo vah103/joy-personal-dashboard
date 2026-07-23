@@ -1,7 +1,14 @@
 (function registerJoyWeather(root) {
   const TIME_ZONE = "Asia/Ho_Chi_Minh";
-  const RAIN_PROBABILITY_THRESHOLD = 40;
-  const RAIN_AMOUNT_THRESHOLD = 0.1;
+
+  /*
+   * Conservative dashboard thresholds.
+   * Weak or uncertain rain signals are intentionally not announced.
+   */
+  const HIGH_PROBABILITY = 70;
+  const VERY_HIGH_PROBABILITY = 80;
+  const SUPPORTING_AMOUNT_MM = 0.3;
+  const STRONG_AMOUNT_MM = 1;
 
   function vietnamClock(now) {
     const parts = new Intl.DateTimeFormat("en-CA", {
@@ -10,14 +17,17 @@
       month: "2-digit",
       day: "2-digit",
       hour: "2-digit",
+      minute: "2-digit",
       hourCycle: "h23",
     }).formatToParts(now);
 
-    const value = (type) => parts.find((part) => part.type === type)?.value || "";
+    const value = (type) =>
+      parts.find((part) => part.type === type)?.value || "";
 
     return {
       dateKey: `${value("year")}-${value("month")}-${value("day")}`,
       hour: Number(value("hour")),
+      minute: Number(value("minute")),
     };
   }
 
@@ -28,83 +38,121 @@
   }
 
   function hourLabel(hour) {
-    return `${String(Math.min(24, Math.max(0, hour))).padStart(2, "0")}:00`;
+    return `${String(Math.max(0, Math.min(24, hour))).padStart(2, "0")}:00`;
+  }
+
+  function hasStrongRainSignal({
+    probability,
+    amount,
+    weatherCode,
+  }) {
+    const meaningfulHighProbability =
+      probability >= HIGH_PROBABILITY
+      && amount >= SUPPORTING_AMOUNT_MM;
+
+    const strongRainAmount = amount >= STRONG_AMOUNT_MM;
+
+    const veryHighSupportedProbability =
+      probability >= VERY_HIGH_PROBABILITY
+      && isRainWeatherCode(weatherCode);
+
+    return meaningfulHighProbability
+      || strongRainAmount
+      || veryHighSupportedProbability;
   }
 
   function summarizeRainForecast(hourly, now = new Date()) {
-    const times = Array.isArray(hourly?.time) ? hourly.time : [];
-    const probabilities = Array.isArray(hourly?.precipitation_probability)
-      ? hourly.precipitation_probability
+    const times = Array.isArray(hourly?.time)
+      ? hourly.time
       : [];
-    const precipitation = Array.isArray(hourly?.precipitation)
-      ? hourly.precipitation
-      : [];
-    const weatherCodes = Array.isArray(hourly?.weather_code)
-      ? hourly.weather_code
-      : [];
+
+    const probabilities =
+      Array.isArray(hourly?.precipitation_probability)
+        ? hourly.precipitation_probability
+        : [];
+
+    const precipitation =
+      Array.isArray(hourly?.precipitation)
+        ? hourly.precipitation
+        : [];
+
+    const weatherCodes =
+      Array.isArray(hourly?.weather_code)
+        ? hourly.weather_code
+        : [];
 
     if (!times.length) {
       return {
-        state: "unavailable",
-        text: "Rain forecast unavailable",
+        state: "quiet",
+        text: "",
       };
     }
 
     const current = vietnamClock(now);
-    const rainyHours = [];
+    const currentMinute = current.hour * 60 + current.minute;
+    const strongHours = [];
 
     times.forEach((time, index) => {
       const value = String(time || "");
+
       if (!value.startsWith(current.dateKey)) return;
 
-      const hour = Number(value.slice(11, 13));
-      if (!Number.isInteger(hour) || hour < current.hour) return;
+      /*
+       * Open-Meteo hourly precipitation belongs to the preceding hour.
+       * A value stamped 20:00 describes approximately 19:00–20:00.
+       */
+      const endHour = Number(value.slice(11, 13));
 
-      const probability = Number(probabilities[index] || 0);
-      const amount = Number(precipitation[index] || 0);
-      const weatherCode = Number(weatherCodes[index]);
+      if (!Number.isInteger(endHour) || endHour <= 0) return;
 
-      const likelyRain = probability >= RAIN_PROBABILITY_THRESHOLD
-        || amount >= RAIN_AMOUNT_THRESHOLD
-        || isRainWeatherCode(weatherCode);
+      const startHour = endHour - 1;
+      const endMinute = endHour * 60;
 
-      if (likelyRain) rainyHours.push({ hour, probability });
+      if (endMinute <= currentMinute) return;
+
+      const entry = {
+        startHour,
+        endHour,
+        probability: Number(probabilities[index] || 0),
+        amount: Number(precipitation[index] || 0),
+        weatherCode: Number(weatherCodes[index]),
+      };
+
+      if (hasStrongRainSignal(entry)) {
+        strongHours.push(entry);
+      }
     });
 
-    if (!rainyHours.length) {
+    if (!strongHours.length) {
       return {
-        state: "clear",
-        text: "No significant rain expected today",
+        state: "quiet",
+        text: "",
       };
     }
 
     const groups = [];
 
-    rainyHours.forEach((entry) => {
+    strongHours.forEach((entry) => {
       const currentGroup = groups.at(-1);
       const previous = currentGroup?.at(-1);
 
-      if (!previous || entry.hour !== previous.hour + 1) {
+      if (!previous || entry.startHour !== previous.endHour) {
         groups.push([entry]);
       } else {
         currentGroup.push(entry);
       }
     });
 
-    const windows = groups.map((group) => ({
-      start: hourLabel(group[0].hour),
-      end: hourLabel(group.at(-1).hour + 1),
-    }));
+    const windows = groups.map((group) => {
+      const start = hourLabel(group[0].startHour);
+      const end = hourLabel(group.at(-1).endHour);
 
-    const visibleWindows = windows
-      .slice(0, 2)
-      .map((window) => `${window.start}–${window.end}`);
-
-    const suffix = windows.length > 2 ? "…" : "";
+      return `${start}–${end}`;
+    });
 
     return {
       state: "rain",
-      text: `Rain possible: ${visibleWindows.join(" and ")}${suffix}`,
+      text: `Strong rain signal: ${windows.join(" and ")}`,
     };
   }
 

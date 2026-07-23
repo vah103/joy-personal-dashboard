@@ -2141,3 +2141,9 @@ h1 { color: #293033; }
     font-size: 10px;
   }
 }
+
+.weather-card:has(.weather-rain-notice[hidden]) {
+  min-height: 78px;
+  grid-template-rows: auto;
+  row-gap: 0;
+}
