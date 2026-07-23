@@ -265,3 +265,11 @@ This mobile ordering change was discussed but should be verified before consider
 - Current focus and next action are stacked with circular visual markers.
 - The TurtleBot artwork occupies the right half with radar-ring decoration and a Stage 2 validation badge.
 - All project values remain live HTML rather than baked into a static image.
+
+## TurtleBot full-background hero card v7
+
+- The complete no-text TurtleBot artwork is used as the dashboard card background.
+- Project values remain live HTML layered over the blank left side of the artwork.
+- The separately injected dashboard robot image is hidden to prevent duplication.
+- The project popup continues to use its own large illustration.
+- The stylesheet URL is cache-busted for immediate production refresh.

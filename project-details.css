@@ -957,45 +957,56 @@
 
 
 
-/* TurtleBot hero dashboard card v6 */
+/* TurtleBot full-background hero card v7 */
 .projects-panel .project-card-turtlebot {
   position: relative;
   isolation: isolate;
 
   display: grid;
-  grid-template-columns: minmax(255px, 54%) minmax(210px, 46%);
+  grid-template-columns: minmax(0, 47%) minmax(0, 53%);
   grid-template-rows: auto auto 1fr;
 
   min-height: 320px;
   padding: 25px 27px;
   overflow: hidden;
 
-  border-color: rgba(70, 78, 82, 0.16);
+  border: 1px solid rgba(73, 78, 80, 0.16);
+  border-radius: 18px;
 
-  background:
-    radial-gradient(
-      circle at 77% 51%,
-      rgba(255, 255, 255, 0.98) 0 22%,
-      rgba(255, 255, 255, 0.58) 44%,
-      transparent 67%
-    ),
+  background-color: #f6efe5;
+  background-image:
     linear-gradient(
-      135deg,
-      #faf5ee 0%,
-      #f5efe8 55%,
-      #ede9e4 100%
-    );
+      90deg,
+      rgba(250, 246, 240, 0.16) 0%,
+      rgba(250, 246, 240, 0.07) 43%,
+      transparent 58%
+    ),
+    url("turtlebot4-card-background.webp?v=hero-bg-v1");
 
-  box-shadow:
-    0 15px 30px rgba(38, 42, 44, 0.08);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+
+  box-shadow: 0 15px 30px rgba(38, 42, 44, 0.08);
 }
 
-/* Stage badge */
+/* The robot is baked into the complete background artwork. */
+.projects-panel .project-card-turtlebot > .turtlebot-card-visual {
+  display: none !important;
+}
+
+.projects-panel .project-card-turtlebot > :not(.turtlebot-card-visual) {
+  position: relative;
+  z-index: 2;
+  max-width: none;
+}
+
+/* Stage badge remains live HTML/CSS decoration. */
 .projects-panel .project-card-turtlebot::after {
   position: absolute;
   top: 20px;
   right: 22px;
-  z-index: 5;
+  z-index: 4;
 
   padding: 7px 12px 7px 29px;
 
@@ -1008,7 +1019,7 @@
       #6c9ba9 0 5px,
       transparent 5.5px
     ),
-    rgba(250, 248, 244, 0.8);
+    rgba(250, 248, 244, 0.86);
 
   color: #557681;
   content: "Stage 2 · Validation";
@@ -1020,34 +1031,8 @@
   backdrop-filter: blur(7px);
 }
 
-/* Radar rings behind the robot */
 .projects-panel .project-card-turtlebot::before {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-
-  background:
-    radial-gradient(
-      circle at 76% 52%,
-      transparent 0 29%,
-      rgba(99, 141, 155, 0.11) 29.4% 30%,
-      transparent 30.4% 37%,
-      rgba(99, 141, 155, 0.07) 37.4% 38%,
-      transparent 38.4% 45%,
-      rgba(99, 141, 155, 0.045) 45.4% 46%,
-      transparent 46.4%
-    );
-
-  content: "";
-  pointer-events: none;
-}
-
-.projects-panel
-.project-card-turtlebot
-> :not(.turtlebot-card-visual) {
-  position: relative;
-  z-index: 3;
-  max-width: none;
+  display: none;
 }
 
 /* Title and percentage */
@@ -1092,19 +1077,16 @@
   font-weight: 700;
 }
 
-/* Keep delete control small at the card corner */
 .projects-panel .project-card-turtlebot .project-top button {
   position: absolute;
   top: -7px;
   left: 154px;
-
   width: 25px;
   height: 25px;
-
   opacity: 0.55;
 }
 
-/* Progress bar */
+/* Progress */
 .projects-panel .project-card-turtlebot .progress-track {
   grid-column: 1;
   grid-row: 2;
@@ -1137,10 +1119,9 @@
 
 .projects-panel .project-card-turtlebot dl > div {
   position: relative;
-
   display: block;
-
   min-width: 0;
+
   padding: 15px 0 15px 59px !important;
 
   border: 0 !important;
@@ -1153,7 +1134,6 @@
   border-top: 1px solid rgba(71, 80, 84, 0.12) !important;
 }
 
-/* Circular icons */
 .projects-panel .project-card-turtlebot dl > div::before {
   position: absolute;
   top: 50%;
@@ -1162,7 +1142,6 @@
   display: grid;
   width: 43px;
   height: 43px;
-
   place-items: center;
 
   border-radius: 50%;
@@ -1176,16 +1155,13 @@
   transform: translateY(-50%);
 }
 
-.projects-panel
-.project-card-turtlebot
-dl > div:nth-child(2)::before {
+.projects-panel .project-card-turtlebot dl > div:nth-child(2)::before {
   content: "▶";
   font-size: 17px;
 }
 
 .projects-panel .project-card-turtlebot dt {
   margin: 0 0 5px;
-
   color: #747e81;
   font-size: 10px;
   font-weight: 750;
@@ -1194,99 +1170,25 @@ dl > div:nth-child(2)::before {
 }
 
 .projects-panel .project-card-turtlebot dd {
-  max-width: 220px;
+  max-width: 225px;
   margin: 0;
-
   color: #2d383c;
   font-size: 15px;
   font-weight: 800;
   line-height: 1.38;
-
   overflow-wrap: normal;
-}
-
-/* Large robot art on the right */
-.turtlebot-card-visual {
-  position: relative;
-  inset: auto;
-
-  grid-column: 2;
-  grid-row: 1 / 4;
-
-  z-index: 1;
-
-  display: grid;
-  width: 100%;
-  height: 100%;
-  min-width: 0;
-  min-height: 270px;
-
-  place-items: center;
-  overflow: visible;
-
-  pointer-events: none;
-}
-
-.turtlebot-card-visual img {
-  display: block;
-
-  width: 154%;
-  height: 116%;
-
-  object-fit: contain;
-  object-position: 66% 56%;
-
-  mix-blend-mode: multiply;
-  opacity: 0.99;
-
-  filter:
-    drop-shadow(
-      0 18px 18px rgba(33, 42, 46, 0.18)
-    );
-
-  transform:
-    translateX(-3%)
-    translateY(4%)
-    scale(1.02);
-
-  transform-origin: center;
-  transition: transform 180ms ease;
-}
-
-.project-card-turtlebot:hover
-.turtlebot-card-visual img {
-  transform:
-    translateX(-3%)
-    translateY(2%)
-    scale(1.045);
-}
-
-/* Decorative detail lines */
-.turtlebot-card-visual::after {
-  position: absolute;
-  right: 4px;
-  bottom: 17px;
-
-  width: 56px;
-  height: 24px;
-
-  border-top: 3px solid rgba(80, 133, 148, 0.45);
-  border-bottom: 3px solid rgba(80, 133, 148, 0.28);
-
-  content: "";
 }
 
 @media (max-width: 720px) {
   .projects-panel .project-card-turtlebot {
     grid-template-columns: 1fr;
-    grid-template-rows:
-      auto
-      auto
-      auto
-      230px;
+    grid-template-rows: auto auto auto;
 
-    min-height: auto;
+    min-height: 500px;
     padding: 22px;
+
+    background-position: 62% center;
+    background-size: cover;
   }
 
   .projects-panel .project-card-turtlebot::after {
@@ -1307,30 +1209,7 @@ dl > div:nth-child(2)::before {
   .projects-panel .project-card-turtlebot dl {
     grid-column: 1;
     grid-row: 3;
-
     width: 100%;
-  }
-
-  .turtlebot-card-visual {
-    grid-column: 1;
-    grid-row: 4;
-
-    min-height: 230px;
-  }
-
-  .turtlebot-card-visual img {
-    width: 125%;
-    height: 120%;
-
-    transform:
-      translateY(4%)
-      scale(0.96);
-  }
-
-  .project-card-turtlebot:hover
-  .turtlebot-card-visual img {
-    transform:
-      translateY(2%)
-      scale(0.98);
+    padding-bottom: 220px;
   }
 }
