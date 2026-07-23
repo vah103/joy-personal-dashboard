@@ -723,3 +723,282 @@
     flex-direction: column;
   }
 }
+
+
+/* Project visual polish v2 */
+.projects-panel .project-card {
+  padding: 18px;
+}
+
+.projects-panel .project-top strong {
+  font-size: 17px !important;
+  line-height: 1.3;
+}
+
+.projects-panel .project-top span {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.projects-panel .project-card dt {
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.projects-panel .project-card dd {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.project-card-art {
+  display: block;
+  margin: 15px 0;
+  overflow: hidden;
+  border: 1px solid rgba(57, 70, 76, 0.1);
+  border-radius: 15px;
+  background: #fafafa;
+}
+
+.project-card-art img {
+  display: block;
+  width: 100%;
+  height: 175px;
+  object-fit: contain;
+  object-position: center;
+  transition: transform 180ms ease;
+}
+
+.project-card-turtlebot:hover .project-card-art img {
+  transform: scale(1.015);
+}
+
+.project-details-heading h2 {
+  font-size: 30px;
+}
+
+.project-details-heading > div > p:last-child {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.project-details-status span,
+.project-details-status p {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.project-details-tabs button {
+  font-size: 14px;
+}
+
+.project-details-content {
+  font-size: 14px;
+}
+
+.project-detail-label {
+  font-size: 11px;
+}
+
+.project-detail-hero-copy h3 {
+  font-size: 24px;
+  line-height: 1.25;
+}
+
+.project-detail-hero-copy > p:not(.project-detail-label) {
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.project-detail-checks span,
+.skill-tags span,
+.notebook-fields span {
+  font-size: 11px;
+}
+
+.project-detail-section-heading h3 {
+  font-size: 20px;
+}
+
+.project-detail-link,
+.notebook-link {
+  font-size: 13px;
+}
+
+.project-detail-intro {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.roadmap-item {
+  min-height: 64px;
+}
+
+.roadmap-item small {
+  font-size: 10px;
+}
+
+.roadmap-item strong {
+  font-size: 14px;
+}
+
+.roadmap-item em {
+  font-size: 11px;
+}
+
+.current-stage-card h3 {
+  font-size: 19px;
+}
+
+.current-stage-card ul {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.project-location-note {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.command-heading small {
+  font-size: 10px;
+}
+
+.command-heading strong {
+  font-size: 14px;
+}
+
+.command-heading button {
+  min-width: 64px;
+  min-height: 33px;
+  font-size: 12px;
+}
+
+.command-card pre {
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.robot-log-entry time {
+  font-size: 11px;
+}
+
+.robot-log-entry header h3 {
+  font-size: 19px;
+}
+
+.robot-log-entry header > span {
+  font-size: 11px;
+}
+
+.robot-log-summary p {
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.robot-log-columns h4 {
+  font-size: 13px;
+}
+
+.robot-log-columns ul {
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.ielts-focus-card small,
+.notebook-card small,
+.flashcard-preview-card small {
+  font-size: 10px;
+}
+
+.ielts-focus-card h3 {
+  font-size: 23px;
+}
+
+.ielts-focus-card > p,
+.notebook-card p,
+.empty-notebook p,
+.flashcard-coming p {
+  font-size: 13.5px;
+  line-height: 1.65;
+}
+
+.ielts-metrics span {
+  font-size: 11px;
+}
+
+.ielts-metrics strong {
+  font-size: 18px;
+}
+
+.notebook-card h3 {
+  font-size: 17px;
+}
+
+.empty-notebook h3,
+.flashcard-coming h3 {
+  font-size: 19px;
+}
+
+.empty-notebook small {
+  font-size: 11px;
+}
+
+.flashcard-ipa {
+  font-size: 15px;
+}
+
+.flashcard-preview-card blockquote {
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.flashcard-actions-preview span {
+  font-size: 12px;
+}
+
+.turtlebot-visual {
+  min-height: 315px;
+  background: #fff;
+}
+
+.turtlebot-visual img {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+
+@media (max-width: 800px) {
+  .projects-panel .project-top strong {
+    font-size: 16px !important;
+  }
+
+  .projects-panel .project-card dd {
+    font-size: 13px;
+  }
+
+  .project-card-art img {
+    height: 155px;
+  }
+
+  .project-details-heading h2 {
+    font-size: 25px;
+  }
+
+  .project-details-tabs button {
+    font-size: 13px;
+  }
+
+  .project-detail-hero-copy h3 {
+    font-size: 21px;
+  }
+
+  .project-detail-section-heading h3 {
+    font-size: 18px;
+  }
+
+  .turtlebot-visual {
+    min-height: 235px;
+  }
+}

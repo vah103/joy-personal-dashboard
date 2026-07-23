@@ -22,16 +22,18 @@ const build = fs.readFileSync(
   "utf8",
 );
 
-const illustration = fs.readFileSync(
-  new URL("../turtlebot4-illustration.svg", import.meta.url),
-  "utf8",
+const turtlebotArtUrl = new URL(
+  "../turtlebot4-art.webp",
+  import.meta.url,
 );
 
 test("TurtleBot project contains roadmap, commands and daily log", () => {
   assert.ok(projectDetails.includes("Project roadmap"));
   assert.ok(projectDetails.includes("Important ROS 2 commands"));
   assert.ok(projectDetails.includes("23/07/2026"));
-  assert.ok(projectDetails.includes("SLAM, Localization and Navigation"));
+  assert.ok(
+    projectDetails.includes("SLAM, Localization and Navigation"),
+  );
   assert.ok(projectDetails.includes("copy-command"));
 });
 
@@ -44,29 +46,38 @@ test("IELTS project contains all four requested sections", () => {
   assert.ok(projectDetails.includes('["writing", "Writing"]'));
   assert.ok(projectDetails.includes('["reading", "Reading"]'));
   assert.ok(projectDetails.includes('["listening", "Listening"]'));
-  assert.ok(projectDetails.includes('["flashcards", "Flashcards"]'));
+  assert.ok(
+    projectDetails.includes('["flashcards", "Flashcards"]'),
+  );
   assert.ok(projectDetails.includes("No study sessions yet"));
 });
 
-test("project cards open details without interfering with their controls", () => {
+test("project cards open details without interfering with controls", () => {
   assert.ok(projectDetails.includes(".project-card-has-details"));
-  assert.ok(projectDetails.includes("button, a, input, textarea, select"));
+  assert.ok(
+    projectDetails.includes(
+      "button, a, input, textarea, select",
+    ),
+  );
   assert.ok(projectDetails.includes("aria-haspopup"));
 });
 
-test("responsive project details styling is present", () => {
-  assert.ok(styles.includes(".project-details-modal"));
-  assert.ok(styles.includes(".turtlebot-visual"));
+test("TurtleBot art appears in both modal and dashboard card", () => {
+  assert.ok(fs.existsSync(turtlebotArtUrl));
+  assert.ok(fs.statSync(turtlebotArtUrl).size > 10_000);
+  assert.ok(projectDetails.includes("turtlebot4-art.webp"));
+  assert.ok(projectDetails.includes("project-card-art"));
+  assert.ok(projectDetails.includes("project-card-turtlebot"));
+});
+
+test("project typography is enlarged and remains responsive", () => {
+  assert.ok(styles.includes("Project visual polish v2"));
+  assert.ok(styles.includes(".project-card-art"));
+  assert.ok(styles.includes(".project-details-heading h2"));
   assert.ok(styles.includes("@media (max-width: 800px)"));
 });
 
-test("TurtleBot illustration is a local SVG asset", () => {
-  assert.ok(illustration.includes("<svg"));
-  assert.ok(illustration.includes("TurtleBot 4 illustration"));
-  assert.ok(projectDetails.includes("turtlebot4-illustration.svg"));
-});
-
-test("project details assets are loaded and included in build output", () => {
+test("project detail assets are loaded and included in build output", () => {
   assert.ok(html.includes("project-details.css"));
   assert.ok(html.includes("project-details.js"));
 
@@ -76,5 +87,5 @@ test("project details assets are loaded and included in build output", () => {
 
   assert.ok(build.includes('"project-details.js"'));
   assert.ok(build.includes('"project-details.css"'));
-  assert.ok(build.includes('"turtlebot4-illustration.svg"'));
+  assert.ok(build.includes('"turtlebot4-art.webp"'));
 });

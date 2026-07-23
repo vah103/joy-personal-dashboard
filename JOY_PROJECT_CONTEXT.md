@@ -227,3 +227,10 @@ This mobile ordering change was discussed but should be verified before consider
 - Reading and Listening have prepared empty notebook states even before their first study entry exists.
 - Google Docs remain the source for long-form notes; this first version uses curated summaries instead of fetching full documents at runtime.
 - No D1 migration is required for this version.
+
+## Project visual polish v2
+
+- Project card and project-detail typography was enlarged for easier reading.
+- The generated TurtleBot art replaces the original schematic illustration in the modal.
+- The same TurtleBot art is shown directly on the TurtleBot project card in the main dashboard.
+- The image is stored locally as `turtlebot4-art.webp` and copied into the production build.

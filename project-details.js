@@ -235,7 +235,7 @@ ros2 service call /bot1/lifecycle_manager_navigation/manage_nodes \
       <div class="project-detail-hero turtlebot-hero">
         <div class="turtlebot-visual">
           <img
-            src="turtlebot4-illustration.svg?v=project-details-v1"
+            src="turtlebot4-art.webp?v=project-art-v2"
             alt="Stylised illustration of a TurtleBot 4 mobile robot"
           >
         </div>
@@ -695,6 +695,33 @@ ros2 service call /bot1/lifecycle_manager_navigation/manage_nodes \
       card.classList.add("project-card-has-details");
       card.tabIndex = 0;
       card.setAttribute("aria-haspopup", "dialog");
+
+      if (
+        key === "turtlebot4"
+        && !card.querySelector(".project-card-art")
+      ) {
+        card.classList.add("project-card-turtlebot");
+
+        const art = document.createElement("figure");
+        art.className = "project-card-art";
+
+        const image = document.createElement("img");
+        image.src = "turtlebot4-art.webp?v=project-art-v2";
+        image.alt = "TurtleBot 4 art illustration";
+        image.loading = "lazy";
+        image.decoding = "async";
+
+        art.append(image);
+
+        const progress = card.querySelector(".progress-track");
+
+        if (progress) {
+          card.insertBefore(art, progress);
+        } else {
+          card.append(art);
+        }
+      }
+
       card.setAttribute(
         "aria-label",
         `Open ${PROJECTS[key].title} project details`,
