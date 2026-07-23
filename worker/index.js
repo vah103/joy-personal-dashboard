@@ -6,6 +6,7 @@ import {
   validateSaleDeal,
 } from "./finance-sales.js";
 import { normalizeTaskInput, taskRowToApi } from "./todos.js";
+import { normalizeScratchpadInput, scratchpadRowToApi } from "./account-sync.js";
 
 const SESSION_COOKIE = "__Host-joy_session";
 const OAUTH_STATE_COOKIE = "__Host-joy_oauth_state";
@@ -52,6 +53,8 @@ async function routeRequest(request, env) {
     if (!session) return json({ error: "AUTH_REQUIRED" }, 401);
     if (request.method !== "GET" && !isSameOrigin(request)) return json({ error: "INVALID_ORIGIN" }, 403);
 
+    if (pathname === "/api/scratchpad" && request.method === "GET") return getScratchpad(session.user_email, env);
+    if (pathname === "/api/scratchpad" && request.method === "PUT") return updateScratchpad(request, session.user_email, env);
     if (pathname === "/api/emails" && request.method === "GET") return listEmails(session.user_email, env);
     if (pathname === "/api/sales/viewings" && request.method === "GET") return listUpcomingViewings(session.user_email, env);
     if (pathname === "/api/finance/summary" && request.method === "GET") return getFinanceSummary(session.user_email, env);
@@ -678,6 +681,102 @@ async function completeTask(request, email, env) {
   `).bind(id, email).first();
 
   return json({ ok: true, task: taskRowToApi(row) });
+}
+
+
+async function getScratchpad(email, env) {
+  const row = await env.DB.prepare(`
+    SELECT content, version, updated_at
+    FROM scratchpads
+    WHERE user_email = ?
+  `).bind(email).first();
+
+  return json({
+    scratchpad: scratchpadRowToApi(row),
+    fetchedAt: Date.now(),
+  });
+}
+
+async function updateScratchpad(request, email, env) {
+  const validation = normalizeScratchpadInput(await readJson(request));
+  if (!validation.ok) return json({ error: validation.error }, 400);
+
+  const { content, baseVersion } = validation.value;
+  const current = await env.DB.prepare(`
+    SELECT content, version, updated_at
+    FROM scratchpads
+    WHERE user_email = ?
+  `).bind(email).first();
+
+  if (!current) {
+    if (baseVersion !== 0) {
+      return json({
+        error: "SCRATCHPAD_VERSION_CONFLICT",
+        scratchpad: scratchpadRowToApi(null),
+      }, 409);
+    }
+
+    const now = Date.now();
+    await env.DB.prepare(`
+      INSERT INTO scratchpads (user_email, content, version, updated_at)
+      VALUES (?, ?, 1, ?)
+    `).bind(email, content, now).run();
+
+    return json({
+      ok: true,
+      scratchpad: {
+        exists: true,
+        content,
+        version: 1,
+        updatedAt: now,
+      },
+    });
+  }
+
+  const currentVersion = Number(current.version || 0);
+  if (baseVersion !== currentVersion) {
+    return json({
+      error: "SCRATCHPAD_VERSION_CONFLICT",
+      scratchpad: scratchpadRowToApi(current),
+    }, 409);
+  }
+
+  const now = Date.now();
+  const nextVersion = currentVersion + 1;
+
+  await env.DB.batch([
+    env.DB.prepare(`
+      INSERT INTO scratchpad_revisions (
+        user_email, content, version, created_at
+      ) VALUES (?, ?, ?, ?)
+    `).bind(email, String(current.content || ""), currentVersion, now),
+    env.DB.prepare(`
+      UPDATE scratchpads
+      SET content = ?, version = ?, updated_at = ?
+      WHERE user_email = ? AND version = ?
+    `).bind(content, nextVersion, now, email, currentVersion),
+  ]);
+
+  await env.DB.prepare(`
+    DELETE FROM scratchpad_revisions
+    WHERE user_email = ?
+      AND id NOT IN (
+        SELECT id FROM scratchpad_revisions
+        WHERE user_email = ?
+        ORDER BY created_at DESC
+        LIMIT 20
+      )
+  `).bind(email, email).run();
+
+  return json({
+    ok: true,
+    scratchpad: {
+      exists: true,
+      content,
+      version: nextVersion,
+      updatedAt: now,
+    },
+  });
 }
 
 async function syncGmail(email, env) {

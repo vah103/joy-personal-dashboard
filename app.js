@@ -2,6 +2,8 @@ const STORAGE_KEY = "joy-dashboard-sample";
 const TODO_STORAGE_KEY = "joy-dashboard-todos-v1";
 const TODO_PENDING_COMPLETIONS_KEY = "joy-dashboard-todo-pending-completions-v1";
 const SCRATCHPAD_KEY = "joy-dashboard-scratchpad";
+const SCRATCHPAD_META_KEY = "joy-dashboard-scratchpad-cloud-meta-v1";
+const SCRATCHPAD_CONFLICT_BACKUP_KEY = "joy-dashboard-scratchpad-conflict-backup-v1";
 const GOOGLE_CLIENT_ID = "711309621878-a4tq37k2bnojpsmtthf37c903ktbupia.apps.googleusercontent.com";
 const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
 const GMAIL_API_ROOT = "https://gmail.googleapis.com/gmail/v1/users/me";
@@ -51,6 +53,15 @@ const sales = {
   fetchedAt: 0,
   errorCode: "",
 };
+const accountSync = {
+  connected: false,
+  email: "",
+  scratchpadVersion: 0,
+  scratchpadUpdatedAt: 0,
+  scratchpadReady: false,
+  scratchpadSaving: false,
+};
+
 let toastTimer;
 let scratchSaveTimer;
 let gmailAutoRefreshTimer;
@@ -165,25 +176,149 @@ function saveState() {
   window.localStorage.setItem(TODO_STORAGE_KEY, JSON.stringify(state.tasks));
 }
 
+function loadScratchpadMeta() {
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(SCRATCHPAD_META_KEY));
+    return saved && typeof saved === "object"
+      ? {
+          version: Number(saved.version || 0),
+          updatedAt: Number(saved.updatedAt || 0),
+        }
+      : { version: 0, updatedAt: 0 };
+  } catch {
+    return { version: 0, updatedAt: 0 };
+  }
+}
+
+function saveScratchpadMeta(scratchpad) {
+  const meta = {
+    version: Number(scratchpad?.version || 0),
+    updatedAt: Number(scratchpad?.updatedAt || 0),
+  };
+  accountSync.scratchpadVersion = meta.version;
+  accountSync.scratchpadUpdatedAt = meta.updatedAt;
+  window.localStorage.setItem(SCRATCHPAD_META_KEY, JSON.stringify(meta));
+}
+
 function loadScratchpad() {
   try {
     elements.scratchpad.value = window.localStorage.getItem(SCRATCHPAD_KEY) || "";
+    const meta = loadScratchpadMeta();
+    accountSync.scratchpadVersion = meta.version;
+    accountSync.scratchpadUpdatedAt = meta.updatedAt;
+    elements.scratchpadStatus.textContent = CLOUD_BACKEND ? "Local" : "Saved";
   } catch {
     elements.scratchpadStatus.textContent = "Unavailable";
   }
 }
 
+function saveScratchpadLocally(content) {
+  window.localStorage.setItem(SCRATCHPAD_KEY, content);
+}
+
+async function saveCloudScratchpad() {
+  if (!CLOUD_BACKEND || !accountSync.connected || accountSync.scratchpadSaving) return;
+  accountSync.scratchpadSaving = true;
+  elements.scratchpadStatus.textContent = "Syncing";
+
+  try {
+    const content = elements.scratchpad.value;
+    const payload = await backendRequest("/api/scratchpad", {
+      method: "PUT",
+      body: JSON.stringify({
+        content,
+        baseVersion: accountSync.scratchpadVersion,
+      }),
+    });
+    saveScratchpadMeta(payload.scratchpad);
+    saveScratchpadLocally(payload.scratchpad.content);
+    elements.scratchpadStatus.textContent = "Synced";
+  } catch (error) {
+    if (error.status === 409) {
+      try {
+        window.localStorage.setItem(SCRATCHPAD_CONFLICT_BACKUP_KEY, elements.scratchpad.value);
+        const latest = await backendRequest("/api/scratchpad");
+        const cloud = latest.scratchpad;
+        elements.scratchpad.value = cloud.content || "";
+        saveScratchpadLocally(elements.scratchpad.value);
+        saveScratchpadMeta(cloud);
+        elements.scratchpadStatus.textContent = "Updated";
+        showToast("Scratchpad changed on another device · local draft backed up");
+      } catch {
+        elements.scratchpadStatus.textContent = "Offline";
+      }
+    } else {
+      elements.scratchpadStatus.textContent = error.status === 401 ? "Local" : "Offline";
+    }
+  } finally {
+    accountSync.scratchpadSaving = false;
+  }
+}
+
 function queueScratchpadSave() {
-  elements.scratchpadStatus.textContent = "Saving";
+  elements.scratchpadStatus.textContent = accountSync.connected ? "Saving" : "Local";
   window.clearTimeout(scratchSaveTimer);
-  scratchSaveTimer = window.setTimeout(() => {
+  scratchSaveTimer = window.setTimeout(async () => {
     try {
-      window.localStorage.setItem(SCRATCHPAD_KEY, elements.scratchpad.value);
-      elements.scratchpadStatus.textContent = "Saved";
+      saveScratchpadLocally(elements.scratchpad.value);
+      if (accountSync.connected) {
+        await saveCloudScratchpad();
+      } else {
+        elements.scratchpadStatus.textContent = "Local";
+      }
     } catch {
       elements.scratchpadStatus.textContent = "Not saved";
     }
-  }, 450);
+  }, 700);
+}
+
+async function syncCloudScratchpad({ silent = false } = {}) {
+  if (!CLOUD_BACKEND || !accountSync.connected) return false;
+  if (!silent) elements.scratchpadStatus.textContent = "Syncing";
+
+  try {
+    const localContent = window.localStorage.getItem(SCRATCHPAD_KEY) || "";
+    const localMeta = loadScratchpadMeta();
+    const payload = await backendRequest("/api/scratchpad");
+    const cloud = payload.scratchpad;
+
+    if (!cloud.exists) {
+      if (localContent) {
+        accountSync.scratchpadVersion = 0;
+        elements.scratchpad.value = localContent;
+        await saveCloudScratchpad();
+      } else {
+        saveScratchpadMeta(cloud);
+        elements.scratchpadStatus.textContent = "Synced";
+      }
+      accountSync.scratchpadReady = true;
+      return true;
+    }
+
+    if (localContent && localContent !== cloud.content && localMeta.version === cloud.version) {
+      accountSync.scratchpadVersion = cloud.version;
+      elements.scratchpad.value = localContent;
+      await saveCloudScratchpad();
+      accountSync.scratchpadReady = true;
+      return true;
+    }
+
+    if (localContent && localContent !== cloud.content && localMeta.version === 0) {
+      window.localStorage.setItem(SCRATCHPAD_CONFLICT_BACKUP_KEY, localContent);
+    }
+
+    elements.scratchpad.value = cloud.content || "";
+    saveScratchpadLocally(elements.scratchpad.value);
+    saveScratchpadMeta(cloud);
+    accountSync.scratchpadReady = true;
+    elements.scratchpadStatus.textContent = "Synced";
+    return true;
+  } catch (error) {
+    if (!silent) {
+      elements.scratchpadStatus.textContent = error.status === 401 ? "Local" : "Offline";
+    }
+    return false;
+  }
 }
 
 function escapeHtml(value) {
@@ -783,11 +918,17 @@ async function initializeCloudGmail() {
   try {
     const session = await backendRequest("/api/session");
     if (!session.connected) {
+      accountSync.connected = false;
+      accountSync.email = "";
       gmail.status = "disconnected";
+      elements.scratchpadStatus.textContent = "Local";
       renderBrief();
       renderEmail();
       return;
     }
+    accountSync.connected = true;
+    accountSync.email = session.email || "";
+    await syncCloudScratchpad();
     await fetchCloudEmails();
   } catch {
     gmail.status = "error";
@@ -1042,6 +1183,10 @@ async function disconnectGmail() {
       gmail.messages = [];
       gmail.hiddenCount = 0;
       gmail.status = "disconnected";
+      accountSync.connected = false;
+      accountSync.email = "";
+      accountSync.scratchpadReady = false;
+      elements.scratchpadStatus.textContent = "Local";
       state.gmailPinnedIds = [];
       saveState();
       renderBrief();
@@ -1381,5 +1526,6 @@ document.addEventListener("visibilitychange", () => {
   }
   if (CLOUD_BACKEND && document.visibilityState === "visible") {
     syncCloudTasks({ silent: true });
+    if (accountSync.connected) syncCloudScratchpad({ silent: true });
   }
 });
