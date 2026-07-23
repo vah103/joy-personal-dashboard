@@ -956,97 +956,188 @@
 }
 
 
-/* TurtleBot integrated dashboard card v3 */
+
+/* TurtleBot integrated dashboard card v4 */
 .projects-panel .project-card-turtlebot {
   position: relative;
   isolation: isolate;
-  min-height: 250px;
+  min-height: 252px;
+  padding: 19px 252px 19px 19px;
   overflow: hidden;
   background:
-    radial-gradient(circle at 78% 48%, rgba(255,255,255,.96) 0 22%, rgba(255,255,255,.62) 42%, transparent 63%),
-    linear-gradient(135deg, #f7f2eb 0%, #f3eee7 54%, #ece8e2 100%);
+    radial-gradient(
+      circle at 79% 51%,
+      rgba(255, 255, 255, 0.96) 0 22%,
+      rgba(255, 255, 255, 0.48) 42%,
+      transparent 65%
+    ),
+    linear-gradient(
+      135deg,
+      #f8f3ec 0%,
+      #f4efe8 50%,
+      #eeeae4 100%
+    );
 }
 
 .projects-panel .project-card-turtlebot::before {
   position: absolute;
   inset: 0;
-  z-index: -2;
+  z-index: -1;
   background:
-    radial-gradient(circle at 72% 54%, transparent 0 30%, rgba(103,139,151,.10) 30.5% 31%, transparent 31.5% 38%, rgba(103,139,151,.07) 38.5% 39%, transparent 39.5%),
-    linear-gradient(90deg, transparent 0 63%, rgba(75,88,94,.10) 63% 63.15%, transparent 63.15%);
+    radial-gradient(
+      circle at 77% 53%,
+      transparent 0 29%,
+      rgba(100, 138, 151, 0.10) 29.4% 30%,
+      transparent 30.4% 37%,
+      rgba(100, 138, 151, 0.07) 37.4% 38%,
+      transparent 38.4%
+    );
   content: "";
   pointer-events: none;
 }
 
-.projects-panel .project-card-turtlebot > :not(.turtlebot-card-visual) {
+.projects-panel
+.project-card-turtlebot
+> :not(.turtlebot-card-visual) {
   position: relative;
   z-index: 2;
-  max-width: 58%;
+  max-width: none;
 }
 
+/* Header: project name, percentage and delete button */
 .projects-panel .project-card-turtlebot .project-top {
-  max-width: 100%;
+  width: 100%;
+  max-width: none;
 }
 
-.projects-panel .project-card-turtlebot .project-meta {
-  display: grid;
-  max-width: 56%;
-  gap: 13px;
+/* Progress bar stays directly under the title */
+.projects-panel .project-card-turtlebot .progress-track {
+  width: 100%;
+  max-width: none;
+  margin: 15px 0 18px;
 }
 
-.projects-panel .project-card-turtlebot .project-meta > div {
-  padding: 11px 12px;
-  border: 1px solid rgba(68,83,89,.08);
-  border-radius: 12px;
-  background: rgba(255,255,255,.56);
+/*
+ * The real card markup uses a DL rather than .project-meta.
+ * Stack Current focus and Next action vertically.
+ */
+.projects-panel .project-card-turtlebot dl {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  gap: 11px;
+}
+
+.projects-panel .project-card-turtlebot dl > div {
+  min-width: 0;
+  padding: 10px 12px !important;
+  border: 1px solid rgba(70, 84, 90, 0.08) !important;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.52);
   backdrop-filter: blur(5px);
 }
 
-.projects-panel .project-card-turtlebot .progress-track {
-  max-width: 42%;
+.projects-panel .project-card-turtlebot dt {
+  margin-bottom: 4px;
 }
 
+.projects-panel .project-card-turtlebot dd {
+  max-width: 240px;
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* Robot visual integrated into the right side of the board */
 .turtlebot-card-visual {
   position: absolute;
-  top: 18px;
-  right: -2px;
-  bottom: 10px;
+  top: 5px;
+  right: -18px;
+  bottom: 2px;
   z-index: 1;
   display: grid;
-  width: 48%;
+  width: 50%;
   place-items: center;
+  overflow: hidden;
   pointer-events: none;
 }
 
 .turtlebot-card-visual img {
   display: block;
-  width: 100%;
-  height: 100%;
+  width: 128%;
+  height: 108%;
   object-fit: contain;
-  object-position: center;
-  filter: drop-shadow(0 16px 16px rgba(33,43,47,.16));
-  transform: scale(1.12);
+  object-position: right center;
+
+  /*
+   * Multiply removes the visible white rectangle by blending
+   * the white background into the cream project card.
+   */
+  mix-blend-mode: multiply;
+  opacity: 0.97;
+
+  -webkit-mask-image:
+    linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(0, 0, 0, 0.45) 13%,
+      #000 31%
+    );
+
+  mask-image:
+    linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(0, 0, 0, 0.45) 13%,
+      #000 31%
+    );
+
+  filter:
+    drop-shadow(0 15px 15px rgba(35, 44, 48, 0.16));
+
+  transform:
+    translateX(7%)
+    scale(1.08);
+
   transform-origin: center;
   transition: transform 180ms ease;
 }
 
 .project-card-turtlebot:hover .turtlebot-card-visual img {
-  transform: scale(1.15) translateY(-2px);
+  transform:
+    translateX(7%)
+    translateY(-2px)
+    scale(1.11);
 }
 
 @media (max-width: 720px) {
-  .projects-panel .project-card-turtlebot { min-height: 330px; }
-  .projects-panel .project-card-turtlebot > :not(.turtlebot-card-visual),
-  .projects-panel .project-card-turtlebot .project-meta,
-  .projects-panel .project-card-turtlebot .progress-track { max-width: 100%; }
-  .projects-panel .project-card-turtlebot .project-meta { padding-bottom: 145px; }
+  .projects-panel .project-card-turtlebot {
+    min-height: 410px;
+    padding: 18px;
+  }
+
+  .projects-panel .project-card-turtlebot dl {
+    padding-bottom: 175px;
+  }
+
   .turtlebot-card-visual {
     top: auto;
-    right: 8px;
-    bottom: 4px;
-    left: 8px;
+    right: 5px;
+    bottom: 0;
+    left: 5px;
     width: auto;
-    height: 150px;
+    height: 180px;
   }
-  .turtlebot-card-visual img { transform: scale(1.03); }
+
+  .turtlebot-card-visual img {
+    width: 112%;
+    height: 112%;
+    object-position: center;
+    transform: scale(1.02);
+  }
+
+  .project-card-turtlebot:hover .turtlebot-card-visual img {
+    transform: translateY(-2px) scale(1.04);
+  }
 }

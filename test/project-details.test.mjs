@@ -94,7 +94,13 @@ test("project detail assets are loaded and included in build output", () => {
 test("TurtleBot image is integrated into the dashboard card", () => {
   assert.ok(projectDetails.includes("turtlebot-card-visual"));
   assert.ok(projectDetails.includes("turtlebot4-art.webp"));
-  assert.ok(styles.includes("TurtleBot integrated dashboard card v3"));
+  assert.ok(styles.includes("TurtleBot integrated dashboard card v4"));
   assert.ok(styles.includes(".turtlebot-card-visual"));
+  assert.ok(styles.includes("mix-blend-mode: multiply"));
+  assert.ok(
+    styles.includes(
+      ".projects-panel .project-card-turtlebot dl",
+    ),
+  );
   assert.ok(!styles.includes(".project-card-art {"));
 });

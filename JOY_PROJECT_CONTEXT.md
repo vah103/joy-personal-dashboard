@@ -240,3 +240,11 @@ This mobile ordering change was discussed but should be verified before consider
 - The TurtleBot art is integrated directly into the project card background instead of appearing inside a separate framed image.
 - Project data remains live HTML; the generated text-heavy mockup is not used as a static card image.
 - Dashboard text sizes remain unchanged. Enlarged typography applies only to the project detail popup.
+
+## TurtleBot integrated dashboard card v4
+
+- Fixed the card layout to target the real `<dl>` project metadata markup.
+- Current focus and next action are stacked on the left.
+- TurtleBot occupies the right side without a separate image frame.
+- The image white background is blended into the board using multiply and a left-edge mask.
+- Dashboard typography remains unchanged.
