@@ -248,3 +248,12 @@ This mobile ordering change was discussed but should be verified before consider
 - TurtleBot occupies the right side without a separate image frame.
 - The image white background is blended into the board using multiply and a left-edge mask.
 - Dashboard typography remains unchanged.
+
+## TurtleBot dashboard card v5
+
+- Rebuilt the TurtleBot card as a real three-column grid.
+- Column 1 contains project title, progress percentage and progress bar.
+- Column 2 contains Current focus and Next action.
+- Column 3 contains the TurtleBot art.
+- The robot is no longer absolutely positioned or cropped by an oversized transform.
+- Dashboard typography remains unchanged.
