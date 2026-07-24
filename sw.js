@@ -1,19 +1,35 @@
+self.addEventListener("install", () => {
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
 self.addEventListener("push", (event) => {
   let data = {};
   try {
     data = event.data ? event.data.json() : {};
   } catch {
-    data = { title: "", body: event.data?.text() || "Bạn có thông báo mới." };
+    data = { title: "Thông báo mới", body: event.data?.text() || "Bạn có thông báo mới." };
   }
 
-  // iOS already shows the installed app name above every notification.
-  // Hide Hey Joy-branded payload titles so the name is not repeated as
-  // “from Hey Joy!” underneath the app label.
+  const kind = String(data.data?.kind || "");
   const payloadTitle = typeof data.title === "string" ? data.title.trim() : "";
-  const notificationTitle = payloadTitle.startsWith("Hey Joy!") ? "" : payloadTitle;
+  let notificationTitle = payloadTitle
+    .replace(/^Hey Joy!\s*(?:·|-)??\s*/i, "")
+    .trim();
+
+  if (kind === "test") notificationTitle = "Đã hoạt động";
+  if (kind === "rain") notificationTitle = "Dự báo mưa mới";
+  if (!notificationTitle) notificationTitle = "Thông báo mới";
+
+  const notificationBody = kind === "test"
+    ? "Thông báo trên iPhone đã hoạt động, hahahaa"
+    : (data.body || "");
 
   event.waitUntil(self.registration.showNotification(notificationTitle, {
-    body: data.body || "",
+    body: notificationBody,
     icon: data.icon || "/app-icon-192.png",
     badge: data.badge || "/app-icon-64.png",
     tag: data.tag || "hey-joy-notification",
