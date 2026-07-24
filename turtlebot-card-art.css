@@ -205,20 +205,30 @@
   font-weight: 700;
 }
 
+/* TurtleBot mobile background layout v2 */
 @media (max-width: 720px) {
   .projects-panel .project-card.turtlebot-project-card {
     grid-template-columns: 1fr;
     grid-template-rows: auto auto auto;
-    min-height: 500px;
+    min-height: 620px;
     padding: 22px;
-    background-position: 62% center;
-    background-size: cover;
+    background-color: #f6efe5;
+    background-position:
+      center center,
+      62% 100%;
+    background-size:
+      100% 100%,
+      112% auto;
+    background-repeat:
+      no-repeat,
+      no-repeat;
   }
 
   .projects-panel .project-card.turtlebot-project-card .project-stage-pill {
     top: 18px;
-    right: 18px;
-    max-width: 45%;
+    right: 16px;
+    max-width: 48%;
+    font-size: 9px;
   }
 
   .projects-panel .project-card.turtlebot-project-card .project-top,
@@ -229,7 +239,7 @@
 
   .projects-panel .project-card.turtlebot-project-card dl {
     width: 100%;
-    padding-bottom: 230px;
+    padding-bottom: 260px;
   }
 }
 
