@@ -689,7 +689,7 @@ ros2 service call /bot1/lifecycle_manager_navigation/manage_nodes \
         || "";
 
       const key = projectKeyFromName(name);
-      if (!key) return;
+      if (!key || key === "turtlebot4") return;
 
       card.dataset.projectDetailKey = key;
       card.classList.add("project-card-has-details");
@@ -765,7 +765,7 @@ ros2 service call /bot1/lifecycle_manager_navigation/manage_nodes \
         card.querySelector(".project-top strong")?.textContent,
       );
 
-    if (key) {
+    if (key && key !== "turtlebot4") {
       openProject(key, card);
     }
   });
@@ -784,8 +784,11 @@ ros2 service call /bot1/lifecycle_manager_navigation/manage_nodes \
     const card = event.target.closest(".project-card-has-details");
     if (!card || event.target !== card) return;
 
+    const key = card.dataset.projectDetailKey;
+    if (!key || key === "turtlebot4") return;
+
     event.preventDefault();
-    openProject(card.dataset.projectDetailKey, card);
+    openProject(key, card);
   });
 
   document.addEventListener("mousedown", (event) => {
