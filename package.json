@@ -11,6 +11,9 @@
     "db:migrate:local": "wrangler d1 migrations apply joy-dashboard --local",
     "db:migrate:remote": "wrangler d1 migrations apply joy-dashboard --remote"
   },
+  "dependencies": {
+    "web-push": "^3.6.7"
+  },
   "devDependencies": {
     "@fontsource/instrument-sans": "^5.2.8",
     "@fontsource/newsreader": "^5.2.8",
