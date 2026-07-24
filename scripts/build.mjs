@@ -35,6 +35,7 @@ const projectHubScripts = [
   '    <script src="project-hub-render.js?v=turtlebot-hub-v3" defer></script>\n',
   '    <script src="project-hub-actions.js?v=turtlebot-hub-v3" defer></script>\n',
   '    <script src="project-data/ielts/ielts-card.js?v=ielts-card-v2" defer></script>\n',
+  '    <script src="push-notifications.js?v=rain-push-v1" defer></script>\n',
 ].join("");
 
 const sourceHtml = await readFile(resolve(root, "index.html"), "utf8");
@@ -43,7 +44,7 @@ const cloudflareHtml = sourceHtml
   .replace('<title>Joy — Personal Dashboard</title>', '<title>Hey Joy! — Personal Dashboard</title>')
   .replace('aria-label="Joy overview"', 'aria-label="Hey Joy! overview"')
   .replace('<p class="section-kicker" id="brief-title">Joy</p>', '<p class="section-kicker" id="brief-title">Hey Joy!</p>')
-  .replace('site.webmanifest?v=joy-original-wolf-v2', 'site.webmanifest?v=hey-joy-brand-v1')
+  .replace('site.webmanifest?v=joy-original-wolf-v2', 'site.webmanifest?v=hey-joy-push-v1')
   .replace(
     "</head>",
     `${projectHubHead}    <meta name="joy-backend" content="cloudflare">\n  </head>`,
@@ -71,6 +72,8 @@ await Promise.all([
   cp(resolve(root, "styles.css"), resolve(dist, "styles.css")),
   cp(resolve(root, "weather-rain.js"), resolve(dist, "weather-rain.js")),
   cp(resolve(root, "todo-visibility.js"), resolve(dist, "todo-visibility.js")),
+  cp(resolve(root, "push-notifications.js"), resolve(dist, "push-notifications.js")),
+  cp(resolve(root, "sw.js"), resolve(dist, "sw.js")),
   cp(resolve(root, "project-hub-performance.js"), resolve(dist, "project-hub-performance.js")),
   cp(resolve(root, "project-hub-core.js"), resolve(dist, "project-hub-core.js")),
   cp(resolve(root, "project-hub-render.js"), resolve(dist, "project-hub-render.js")),
