@@ -3,6 +3,7 @@
   "name": "joy-personal-dashboard",
   "main": "worker/router.js",
   "compatibility_date": "2026-07-22",
+  "compatibility_flags": ["nodejs_compat"],
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
