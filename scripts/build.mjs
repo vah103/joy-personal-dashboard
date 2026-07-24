@@ -24,11 +24,12 @@ await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
 await mkdir(fonts, { recursive: true });
 
-const projectHubHead = '    <link rel="stylesheet" href="project-hub.css?v=turtlebot-hub-v1">\n';
+const projectHubHead = '    <link rel="stylesheet" href="project-hub.css?v=turtlebot-hub-v2">\n';
 const projectHubScripts = [
-  '    <script src="project-hub-core.js?v=turtlebot-hub-v1" defer></script>\n',
-  '    <script src="project-hub-render.js?v=turtlebot-hub-v1" defer></script>\n',
-  '    <script src="project-hub-actions.js?v=turtlebot-hub-v1" defer></script>\n',
+  '    <script src="project-hub-performance.js?v=turtlebot-hub-v2" defer></script>\n',
+  '    <script src="project-hub-core.js?v=turtlebot-hub-v2" defer></script>\n',
+  '    <script src="project-hub-render.js?v=turtlebot-hub-v2" defer></script>\n',
+  '    <script src="project-hub-actions.js?v=turtlebot-hub-v2" defer></script>\n',
 ].join("");
 
 const sourceHtml = await readFile(resolve(root, "index.html"), "utf8");
@@ -50,6 +51,7 @@ await writeFile(resolve(dist, "sale-manager.html"), cloudflareSaleHtml);
 await Promise.all([
   cp(resolve(root, "app.js"), resolve(dist, "app.js")),
   cp(resolve(root, "styles.css"), resolve(dist, "styles.css")),
+  cp(resolve(root, "project-hub-performance.js"), resolve(dist, "project-hub-performance.js")),
   cp(resolve(root, "project-hub-core.js"), resolve(dist, "project-hub-core.js")),
   cp(resolve(root, "project-hub-render.js"), resolve(dist, "project-hub-render.js")),
   cp(resolve(root, "project-hub-actions.js"), resolve(dist, "project-hub-actions.js")),
