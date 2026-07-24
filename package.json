@@ -12,7 +12,7 @@
     "db:migrate:remote": "wrangler d1 migrations apply joy-dashboard --remote"
   },
   "dependencies": {
-    "web-push": "^3.6.7"
+    "@block65/webcrypto-web-push": "^1.0.2"
   },
   "devDependencies": {
     "@fontsource/instrument-sans": "^5.2.8",
