@@ -20,23 +20,22 @@ self.addEventListener("push", (event) => {
     .replace(/^Hey Joy!\s*(?:·|-)??\s*/i, "")
     .trim();
 
-  if (kind === "test") notificationTitle = "Thông báo trên iPhone đã hoạt động, hahahaa";
+  if (kind === "test") notificationTitle = "Đã hoạt động";
   if (kind === "rain") notificationTitle = "Dự báo mưa mới";
   if (!notificationTitle) notificationTitle = "Thông báo mới";
 
-  const notificationOptions = {
+  const notificationBody = kind === "test"
+    ? "Thông báo trên iPhone đã hoạt động, hahahaa"
+    : (data.body || "");
+
+  event.waitUntil(self.registration.showNotification(notificationTitle, {
+    body: notificationBody,
     icon: data.icon || "/app-icon-192.png",
     badge: data.badge || "/app-icon-64.png",
     tag: data.tag || "hey-joy-notification",
     renotify: Boolean(data.renotify),
     data: data.data || { url: "/" },
-  };
-
-  // Keep the first iPhone test notification title-only. iOS will still show
-  // the app attribution (“from Hey Joy!”), but no extra message line is added.
-  if (kind !== "test" && data.body) notificationOptions.body = data.body;
-
-  event.waitUntil(self.registration.showNotification(notificationTitle, notificationOptions));
+  }));
 });
 
 self.addEventListener("notificationclick", (event) => {
