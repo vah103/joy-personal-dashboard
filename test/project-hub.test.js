@@ -55,3 +55,14 @@ test("project list observer cannot recurse through card text updates", () => {
   assert.ok(guard.includes("subtree: false"));
   assert.ok(guard.includes("childList: true"));
 });
+
+test("dashboard card keeps the original TurtleBot artwork separately from the popup", () => {
+  const build = read("scripts/build.mjs");
+  const cardCss = read("turtlebot-card-art.css");
+  assert.ok(fs.existsSync(new URL("turtlebot4-card-background.webp", root)));
+  assert.ok(build.includes("turtlebot-card-art.css"));
+  assert.ok(build.includes("turtlebot4-card-background.webp"));
+  assert.ok(cardCss.includes("turtlebot4-card-background.webp"));
+  assert.ok(cardCss.includes(".turtlebot-project-card"));
+  assert.ok(!cardCss.includes(".turtlebot-hub-backdrop"));
+});
