@@ -27,7 +27,7 @@ await mkdir(fonts, { recursive: true });
 const projectHubHead = [
   '    <link rel="stylesheet" href="project-hub.css?v=turtlebot-hub-v3">\n',
   '    <link rel="stylesheet" href="turtlebot-card-art.css?v=restored-card-v6">\n',
-  '    <link rel="stylesheet" href="project-data/ielts/ielts-card.css?v=ielts-card-v1">\n',
+  '    <link rel="stylesheet" href="project-data/ielts/ielts-card.css?v=ielts-card-v2">\n',
 ].join("");
 const projectHubScripts = [
   '    <script src="project-hub-performance.js?v=turtlebot-hub-v3" defer></script>\n',

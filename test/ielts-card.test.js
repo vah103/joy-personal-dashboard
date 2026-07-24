@@ -14,12 +14,12 @@ test("IELTS dashboard card uses the real document artwork and stays responsive",
   const script = read("project-data/ielts/ielts-card.js");
   const image = new URL("../project-data/ielts/ielts-card-background.webp", import.meta.url);
 
-  assert.ok(build.includes("project-data/ielts/ielts-card.css?v=ielts-card-v1"));
+  assert.ok(build.includes("project-data/ielts/ielts-card.css?v=ielts-card-v2"));
   assert.ok(build.includes("project-data/ielts/ielts-card.js?v=ielts-card-v1"));
   assert.ok(fs.existsSync(image));
   assert.ok(fs.statSync(image).size > 50_000);
 
-  assert.ok(css.includes('url("ielts-card-background.webp?v=ielts-card-v1")'));
+  assert.ok(css.includes('url("ielts-card-background.webp?v=ielts-card-v2")'));
   assert.ok(css.includes(".ielts-target-pill"));
   assert.ok(css.includes("@media (max-width: 720px)"));
   assert.ok(css.includes("background-size:\n      100% 100%,\n      100% auto;"));

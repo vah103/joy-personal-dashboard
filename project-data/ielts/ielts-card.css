@@ -21,14 +21,14 @@
       rgba(242, 245, 246, 0.34) 67%,
       rgba(223, 232, 235, 0.12) 100%
     ),
-    url("ielts-card-background.webp?v=ielts-card-v1");
+    url("ielts-card-background.webp?v=ielts-card-v2");
   background-position:
     center,
-    right 48%;
+    right bottom;
   background-repeat: no-repeat;
   background-size:
     100% 100%,
-    58% auto;
+    64% auto;
   color: #283338;
   box-shadow: 0 15px 30px rgba(38, 42, 44, 0.08);
 }
@@ -232,7 +232,7 @@
         rgba(237, 242, 243, 0.2) 72%,
         rgba(215, 228, 232, 0.08) 100%
       ),
-      url("ielts-card-background.webp?v=ielts-card-v1");
+      url("ielts-card-background.webp?v=ielts-card-v2");
     background-position:
       center,
       center bottom;
