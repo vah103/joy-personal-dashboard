@@ -24,12 +24,15 @@ await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
 await mkdir(fonts, { recursive: true });
 
-const projectHubHead = '    <link rel="stylesheet" href="project-hub.css?v=turtlebot-hub-v2">\n';
+const projectHubHead = [
+  '    <link rel="stylesheet" href="project-hub.css?v=turtlebot-hub-v3">\n',
+  '    <link rel="stylesheet" href="turtlebot-card-art.css?v=restored-card-v1">\n',
+].join("");
 const projectHubScripts = [
-  '    <script src="project-hub-performance.js?v=turtlebot-hub-v2" defer></script>\n',
-  '    <script src="project-hub-core.js?v=turtlebot-hub-v2" defer></script>\n',
-  '    <script src="project-hub-render.js?v=turtlebot-hub-v2" defer></script>\n',
-  '    <script src="project-hub-actions.js?v=turtlebot-hub-v2" defer></script>\n',
+  '    <script src="project-hub-performance.js?v=turtlebot-hub-v3" defer></script>\n',
+  '    <script src="project-hub-core.js?v=turtlebot-hub-v3" defer></script>\n',
+  '    <script src="project-hub-render.js?v=turtlebot-hub-v3" defer></script>\n',
+  '    <script src="project-hub-actions.js?v=turtlebot-hub-v3" defer></script>\n',
 ].join("");
 
 const sourceHtml = await readFile(resolve(root, "index.html"), "utf8");
@@ -56,6 +59,8 @@ await Promise.all([
   cp(resolve(root, "project-hub-render.js"), resolve(dist, "project-hub-render.js")),
   cp(resolve(root, "project-hub-actions.js"), resolve(dist, "project-hub-actions.js")),
   cp(resolve(root, "project-hub.css"), resolve(dist, "project-hub.css")),
+  cp(resolve(root, "turtlebot-card-art.css"), resolve(dist, "turtlebot-card-art.css")),
+  cp(resolve(root, "turtlebot4-card-background.webp"), resolve(dist, "turtlebot4-card-background.webp")),
   cp(resolve(root, "project-data"), resolve(dist, "project-data"), { recursive: true }),
   cp(resolve(root, "sale-fonts", "nunito-latin-400-normal.woff2"), resolve(fonts, "nunito-latin-400-normal.woff2")),
   cp(resolve(root, "sale-fonts", "nunito-vietnamese-400-normal.woff2"), resolve(fonts, "nunito-vietnamese-400-normal.woff2")),
