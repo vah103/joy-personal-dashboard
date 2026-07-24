@@ -28,6 +28,7 @@ const projectHubHead = [
   '    <link rel="stylesheet" href="project-hub.css?v=turtlebot-hub-v3">\n',
   '    <link rel="stylesheet" href="turtlebot-card-art.css?v=restored-card-v6">\n',
   '    <link rel="stylesheet" href="project-data/ielts/ielts-card.css?v=ielts-card-v2">\n',
+  '    <link rel="stylesheet" href="mobile-notifications.css?v=iphone-rain-bell-v1">\n',
 ].join("");
 const projectHubScripts = [
   '    <script src="project-hub-performance.js?v=turtlebot-hub-v3" defer></script>\n',
@@ -74,6 +75,7 @@ await Promise.all([
   cp(resolve(root, "todo-visibility.js"), resolve(dist, "todo-visibility.js")),
   cp(resolve(root, "push-notifications.js"), resolve(dist, "push-notifications.js")),
   cp(resolve(root, "sw.js"), resolve(dist, "sw.js")),
+  cp(resolve(root, "mobile-notifications.css"), resolve(dist, "mobile-notifications.css")),
   cp(resolve(root, "project-hub-performance.js"), resolve(dist, "project-hub-performance.js")),
   cp(resolve(root, "project-hub-core.js"), resolve(dist, "project-hub-core.js")),
   cp(resolve(root, "project-hub-render.js"), resolve(dist, "project-hub-render.js")),
