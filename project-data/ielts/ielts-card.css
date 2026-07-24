@@ -1,0 +1,267 @@
+/* IELTS dashboard card — real document artwork, live HTML content. */
+.projects-panel .project-card.ielts-project-card {
+  position: relative;
+  isolation: isolate;
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 47%) minmax(0, 53%);
+  grid-template-rows: auto auto 1fr;
+  min-height: 320px;
+  padding: 25px 27px;
+  overflow: hidden;
+  border: 1px solid rgba(73, 78, 80, 0.16);
+  border-radius: 18px;
+  background-color: #f3f1ed;
+  background-image:
+    linear-gradient(
+      90deg,
+      #faf7f2 0%,
+      rgba(250, 247, 242, 0.99) 38%,
+      rgba(250, 247, 242, 0.91) 48%,
+      rgba(242, 245, 246, 0.34) 67%,
+      rgba(223, 232, 235, 0.12) 100%
+    ),
+    url("ielts-card-background.webp?v=ielts-card-v1");
+  background-position:
+    center,
+    right 48%;
+  background-repeat: no-repeat;
+  background-size:
+    100% 100%,
+    58% auto;
+  color: #283338;
+  box-shadow: 0 15px 30px rgba(38, 42, 44, 0.08);
+}
+
+.projects-panel .project-card.ielts-project-card:hover,
+.projects-panel .project-card.ielts-project-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(73, 101, 112, 0.28);
+  box-shadow: 0 20px 38px rgba(38, 42, 44, 0.12);
+}
+
+.projects-panel .project-card.ielts-project-card > * {
+  position: relative;
+  z-index: 2;
+}
+
+.projects-panel .project-card.ielts-project-card .project-top {
+  grid-column: 1;
+  grid-row: 1;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 7px;
+  width: 100%;
+}
+
+.projects-panel .project-card.ielts-project-card .project-top > strong {
+  color: #243239;
+  font-size: 31px;
+  font-weight: 850;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+
+.projects-panel .project-card.ielts-project-card .ielts-subtitle {
+  display: block;
+  color: #6e7c82;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.015em;
+}
+
+.projects-panel .project-card.ielts-project-card .project-top > div {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  margin-top: 8px;
+}
+
+.projects-panel .project-card.ielts-project-card .project-top span {
+  color: #4e8291;
+  font-size: 29px;
+  font-weight: 850;
+  line-height: 1;
+}
+
+.projects-panel .project-card.ielts-project-card .project-top span::after {
+  margin-left: 8px;
+  color: #788184;
+  content: "Progress";
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.projects-panel .project-card.ielts-project-card .project-top button {
+  position: absolute;
+  top: -6px;
+  left: 94px;
+  width: 25px;
+  height: 25px;
+  color: #667176;
+  opacity: 0.55;
+}
+
+.projects-panel .project-card.ielts-project-card .progress-track {
+  grid-column: 1;
+  grid-row: 2;
+  width: min(100%, 255px);
+  height: 7px;
+  margin: 4px 0 17px;
+  border-radius: 999px;
+  background: rgba(115, 112, 105, 0.14);
+}
+
+.projects-panel .project-card.ielts-project-card .progress-track span {
+  border-radius: inherit;
+  background: linear-gradient(90deg, #5c8b99, #9dbbc4);
+}
+
+.projects-panel .project-card.ielts-project-card dl {
+  grid-column: 1;
+  grid-row: 3;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 0;
+  width: min(100%, 295px);
+  margin: 0;
+  padding-bottom: 25px;
+}
+
+.projects-panel .project-card.ielts-project-card dl > div {
+  position: relative;
+  display: block;
+  min-width: 0;
+  padding: 13px 0 13px 53px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+}
+
+.projects-panel .project-card.ielts-project-card dl > div + div {
+  border-top: 1px solid rgba(71, 80, 84, 0.12) !important;
+}
+
+.projects-panel .project-card.ielts-project-card dl > div::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  display: grid;
+  width: 39px;
+  height: 39px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(91, 135, 149, 0.13);
+  color: #527b88;
+  content: "◎";
+  font-size: 20px;
+  font-weight: 800;
+  transform: translateY(-50%);
+}
+
+.projects-panel .project-card.ielts-project-card dl > div:nth-child(2)::before {
+  content: "▶";
+  font-size: 15px;
+}
+
+.projects-panel .project-card.ielts-project-card dt {
+  margin: 0 0 4px;
+  color: #747e81;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.projects-panel .project-card.ielts-project-card dd {
+  max-width: 225px;
+  margin: 0;
+  color: #2d383c;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.38;
+}
+
+.projects-panel .project-card.ielts-project-card .ielts-target-pill {
+  position: absolute;
+  top: 20px;
+  right: 22px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  margin: 0;
+  padding: 8px 13px 8px 31px;
+  border: 1px solid rgba(81, 105, 114, 0.2);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 15px 50%, #6091a0 0 5px, transparent 5.5px),
+    rgba(247, 248, 247, 0.92);
+  color: #486d79;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+  backdrop-filter: blur(8px);
+}
+
+.projects-panel .project-card.ielts-project-card .ielts-project-source {
+  position: absolute;
+  left: 27px;
+  bottom: 13px;
+  z-index: 3;
+  margin: 0;
+  color: rgba(67, 82, 88, 0.64);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .projects-panel .project-card.ielts-project-card {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    min-height: 620px;
+    padding: 22px;
+    background-image:
+      linear-gradient(
+        180deg,
+        #faf7f2 0%,
+        rgba(250, 247, 242, 0.99) 45%,
+        rgba(250, 247, 242, 0.93) 53%,
+        rgba(237, 242, 243, 0.2) 72%,
+        rgba(215, 228, 232, 0.08) 100%
+      ),
+      url("ielts-card-background.webp?v=ielts-card-v1");
+    background-position:
+      center,
+      center bottom;
+    background-size:
+      100% 100%,
+      100% auto;
+  }
+
+  .projects-panel .project-card.ielts-project-card .ielts-target-pill {
+    top: 18px;
+    right: 16px;
+    max-width: 48%;
+    padding: 7px 10px 7px 27px;
+    font-size: 9px;
+  }
+
+  .projects-panel .project-card.ielts-project-card .project-top,
+  .projects-panel .project-card.ielts-project-card .progress-track,
+  .projects-panel .project-card.ielts-project-card dl {
+    grid-column: 1;
+  }
+
+  .projects-panel .project-card.ielts-project-card dl {
+    width: 100%;
+    padding-bottom: 285px;
+  }
+
+  .projects-panel .project-card.ielts-project-card .ielts-project-source {
+    left: 22px;
+    bottom: 13px;
+  }
+}
