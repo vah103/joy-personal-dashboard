@@ -2,6 +2,7 @@
   const button = document.querySelector('[data-action="notifications"]');
   if (!button) return;
 
+  const VAPID_KEY_STORAGE = "hey-joy-vapid-public-key-v1";
   const isIos = /iP(hone|ad|od)/i.test(navigator.userAgent)
     || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   const isStandalone = () => window.matchMedia("(display-mode: standalone)").matches
@@ -38,6 +39,16 @@
       const registration = await ensureServiceWorker();
       const { publicKey } = await requestJson("/api/push/public-key");
       let subscription = await registration.pushManager.getSubscription();
+      const savedPublicKey = readSavedPublicKey();
+
+      // A PushSubscription is permanently bound to the applicationServerKey
+      // used to create it. Recreate an old or unverified subscription whenever
+      // the server publishes a different VAPID public key.
+      if (subscription && savedPublicKey !== publicKey) {
+        await subscription.unsubscribe();
+        subscription = null;
+      }
+
       if (!subscription) {
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
@@ -54,6 +65,7 @@
         body: JSON.stringify({ endpoint: subscription.endpoint }),
       });
 
+      savePublicKey(publicKey);
       setButtonState("on");
       window.alert("Đã bật thông báo cho Hey Joy! Một thông báo thử sẽ xuất hiện trên iPhone.");
     } catch (error) {
@@ -62,6 +74,8 @@
       if (error.status === 401) {
         window.alert("Hãy kết nối tài khoản Google trên iPhone trước, sau đó nhấn chuông thêm một lần nữa.");
         window.location.assign("/auth/start");
+      } else if (error.message === "TEST_PUSH_NOT_DELIVERED") {
+        window.alert("Máy đã đăng ký nhận thông báo, nhưng khóa gửi của Hey Joy! chưa được Apple chấp nhận. Hãy cập nhật lại cặp khóa VAPID rồi thử lại.");
       } else {
         window.alert(`Chưa bật được thông báo: ${error.message || "Unknown error"}`);
       }
@@ -78,7 +92,8 @@
     try {
       const registration = await ensureServiceWorker();
       const subscription = await registration.pushManager.getSubscription();
-      const enabled = Notification.permission === "granted" && Boolean(subscription);
+      const verifiedHere = Boolean(readSavedPublicKey());
+      const enabled = Notification.permission === "granted" && Boolean(subscription) && verifiedHere;
       setButtonState(enabled ? "on" : "off");
       if (enabled) {
         await requestJson("/api/push/subscribe", {
@@ -110,6 +125,22 @@
     button.title = title;
     button.setAttribute("aria-label", title);
     button.setAttribute("aria-pressed", String(pressed));
+  }
+
+  function readSavedPublicKey() {
+    try {
+      return window.localStorage.getItem(VAPID_KEY_STORAGE) || "";
+    } catch {
+      return "";
+    }
+  }
+
+  function savePublicKey(value) {
+    try {
+      window.localStorage.setItem(VAPID_KEY_STORAGE, value);
+    } catch {
+      // The active subscription still works even when localStorage is unavailable.
+    }
   }
 
   async function requestJson(path, options = {}) {
