@@ -8,12 +8,14 @@ function read(path) {
   return fs.readFileSync(new URL(path, root), "utf8");
 }
 
-test("TurtleBot full background is shifted slightly right on desktop", () => {
+test("TurtleBot full background shifts right without rescaling", () => {
   const build = read("scripts/build.mjs");
   const css = read("project-data/turtlebot4/turtlebot-card-position.css");
 
-  assert.ok(build.includes("turtlebot-card-position.css?v=card-position-v1"));
-  assert.ok(css.includes("background-position: center, left center"));
-  assert.ok(css.includes("background-size: auto, 102.5% auto"));
+  assert.ok(build.includes("turtlebot-card-position.css?v=card-position-v2"));
+  assert.ok(css.includes('url("/turtlebot4-card-background.webp?v=shift-right-v1")'));
+  assert.ok(css.includes("background-size: cover"));
+  assert.ok(css.includes("transform: translateX(18px)"));
+  assert.ok(!css.includes("102.5%"));
   assert.ok(css.includes("@media (min-width: 721px)"));
 });
