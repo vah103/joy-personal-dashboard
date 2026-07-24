@@ -39,6 +39,10 @@ const projectHubScripts = [
 
 const sourceHtml = await readFile(resolve(root, "index.html"), "utf8");
 const cloudflareHtml = sourceHtml
+  .replace('<meta name="application-name" content="Joy">', '<meta name="application-name" content="Hey Joy!">')
+  .replace('<title>Joy — Personal Dashboard</title>', '<title>Hey Joy! — Personal Dashboard</title>')
+  .replace('aria-label="Joy overview"', 'aria-label="Hey Joy! overview"')
+  .replace('<p class="section-kicker" id="brief-title">Joy</p>', '<p class="section-kicker" id="brief-title">Hey Joy!</p>')
   .replace(
     "</head>",
     `${projectHubHead}    <meta name="joy-backend" content="cloudflare">\n  </head>`,
@@ -46,10 +50,13 @@ const cloudflareHtml = sourceHtml
   .replace("</body>", `${projectHubScripts}  </body>`);
 
 const sourceSaleHtml = await readFile(resolve(root, "sale-manager.html"), "utf8");
-const cloudflareSaleHtml = sourceSaleHtml.replace(
-  "</head>",
-  '    <meta name="joy-backend" content="cloudflare">\n  </head>',
-);
+const cloudflareSaleHtml = sourceSaleHtml
+  .replace('<meta name="description" content="Joy\'s private 2026 room sale workspace.">', '<meta name="description" content="Hey Joy! private 2026 room sale workspace.">')
+  .replace('<title>Sale 2026 — Joy</title>', '<title>Sale 2026 — Hey Joy!</title>')
+  .replace(
+    "</head>",
+    '    <meta name="joy-backend" content="cloudflare">\n  </head>',
+  );
 
 await writeFile(resolve(dist, "index.html"), cloudflareHtml);
 await writeFile(resolve(dist, "sale-manager.html"), cloudflareSaleHtml);
@@ -92,4 +99,4 @@ await Promise.all([
   )),
 ]);
 
-console.log("Joy frontend built for Cloudflare");
+console.log("Hey Joy! frontend built for Cloudflare");
