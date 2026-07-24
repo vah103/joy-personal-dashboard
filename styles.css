@@ -245,9 +245,28 @@ h1 { margin: 0; font-size: clamp(30px, 3.1vw, 46px); line-height: 1.08; font-wei
 .gmail-square-button { position: relative; width: 26px; height: 26px; flex: 0 0 26px; padding: 0; border: 1px solid var(--border); border-radius: 7px; background: rgba(255, 255, 255, 0.82); color: #66717b; }
 .gmail-square-button:hover { border-color: var(--border-strong); background: white; }
 .gmail-square-button[aria-pressed="true"] { border-color: #b9c8d5; background: var(--accent-soft); color: var(--accent-dark); }
-.gmail-pin-button::before { content: ""; position: absolute; top: 6px; left: 9px; width: 7px; height: 7px; border: 1.5px solid currentColor; border-radius: 2px; transform: rotate(45deg); }
-.gmail-pin-button::after { content: ""; position: absolute; top: 14px; left: 12px; width: 1.5px; height: 6px; border-radius: 99px; background: currentColor; transform: rotate(45deg); transform-origin: top; }
-.gmail-pin-button[aria-pressed="true"]::before { background: currentColor; box-shadow: inset 0 0 0 2px var(--accent-soft); }
+.gmail-pin-icon {
+  width: 15px;
+  height: 15px;
+  display: block;
+  margin: auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+  transition: transform 160ms ease;
+}
+.gmail-pin-button:hover .gmail-pin-icon {
+  transform: translateY(-1px) rotate(-8deg);
+}
+.gmail-pin-button[aria-pressed="true"] .gmail-pin-icon {
+  transform: rotate(-8deg);
+}
+.gmail-pin-button[aria-pressed="true"] .gmail-pin-head {
+  fill: currentColor;
+  stroke-width: 1.5;
+}
 .gmail-read-button { color: var(--success); }
 .gmail-read-button::before { content: "✓"; display: grid; place-items: center; height: 100%; font-size: 13px; font-weight: 900; }
 .gmail-empty { min-height: 134px; }
@@ -2062,4 +2081,141 @@ h1 { color: #293033; }
   .task-history-modal { padding: 18px; }
   .history-task-row { grid-template-columns: 20px minmax(0, 1fr); }
   .history-task-state { display: none; }
+}
+
+
+/* Compact same-day rain notice */
+.weather-card {
+  min-height: 98px;
+  grid-template-rows: auto auto;
+  row-gap: 8px;
+}
+
+.weather-rain-notice {
+  grid-column: 1 / -1;
+  min-width: 0;
+  margin: 0;
+  padding: 7px 9px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  border-top: 1px solid rgba(58, 78, 84, 0.12);
+  color: #4c626b;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.weather-rain-notice::before {
+  content: "🔔";
+  flex: 0 0 auto;
+  color: #4c7181;
+  font-family: "Segoe UI Emoji", "Apple Color Emoji", sans-serif;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.weather-rain-notice[data-state="clear"] {
+  color: #557064;
+}
+
+.weather-rain-notice[data-state="clear"]::before {
+  color: #4e7461;
+}
+
+.weather-rain-notice[data-state="unavailable"] {
+  color: #73797a;
+}
+
+.weather-rain-notice[data-state="unavailable"]::before {
+  color: #73797a;
+  opacity: 0.72;
+}
+
+@media (max-width: 760px) {
+  .weather-card {
+    min-height: 94px;
+  }
+
+  .weather-rain-notice {
+    font-size: 10px;
+  }
+}
+
+.weather-card:has(.weather-rain-notice[hidden]) {
+  min-height: 78px;
+  grid-template-rows: auto;
+  row-gap: 0;
+}
+
+
+/* Phase 1: same-day completed tasks and safe project deletion */
+.task-row.completed {
+  color: #777d7f;
+}
+
+.task-row.completed .task-title {
+  text-decoration-line: line-through;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: rgba(67, 76, 79, 0.58);
+  opacity: 0.72;
+}
+
+.task-row.completed time {
+  opacity: 0.56;
+}
+
+.task-row.completed input:disabled {
+  cursor: default;
+}
+
+.task-row.completed .checkmark {
+  border-color: rgba(63, 102, 80, 0.42);
+  background: rgba(98, 139, 112, 0.18);
+}
+
+.project-delete-modal {
+  width: min(430px, calc(100vw - 32px));
+}
+
+.project-delete-copy {
+  padding: 22px 22px 4px;
+}
+
+.project-delete-copy p {
+  margin: 0;
+  color: #40484b;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.project-delete-copy strong {
+  color: #283337;
+}
+
+.project-delete-copy small {
+  display: block;
+  margin-top: 9px;
+  color: #73797b;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.project-delete-modal .modal-actions {
+  padding: 18px 22px 22px;
+}
+
+.danger-button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid #8d4e48;
+  border-radius: 10px;
+  background: #985a52;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.danger-button:hover {
+  background: #864941;
 }

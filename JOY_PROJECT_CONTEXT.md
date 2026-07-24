@@ -8,7 +8,7 @@ Joy is a private personal dashboard deployed with Cloudflare Workers.
 
 Main functions:
 
-- Gmail dashboard
+- Gmail dashboard that starts empty and only surfaces newly received email
 - Upcoming room viewings from Google Sheets
 - Personal Finance dashboard
 - 2026 Sale workspace
@@ -65,6 +65,8 @@ Main files:
 - worker/index.js
 - worker/finance-sales.js
 - worker/todos.js
+- worker/account-sync.js
+- worker/gmail-sync.js
 
 The Worker connects the frontend to:
 
@@ -76,9 +78,16 @@ The Worker connects the frontend to:
 
 ### Database
 
-Migration:
+Migrations:
 
+- migrations/0001_initial.sql
 - migrations/0002_tasks_sync.sql
+- migrations/0003_account_sync.sql
+- migrations/0004_projects_account_sync.sql
+- migrations/0005_gmail_new_mail_window.sql
+
+Gmail stores a per-account tracking start. Existing mail is cleared once when the
+migration takes effect, and only mail received afterward is surfaced.
 
 To-do records are synchronized through D1 so they appear across desktop and mobile.
 
@@ -130,6 +139,9 @@ Current automated tests cover:
 - Empty task rejection
 - Vietnam task-history date
 - D1 completed-task mapping
+- Gmail new-mail tracking cutoff
+- Gmail Done action and SVG pin interface
+- Compact same-day rain-window notice in the existing weather card
 
 Run:
 
@@ -139,8 +151,8 @@ npm.cmd test
 
 Expected when this document was created:
 
-- 10 tests
-- 10 passed
+- 32 tests
+- 32 passed
 - 0 failed
 
 ## 7. Important security rules
@@ -196,3 +208,68 @@ Before deploying, confirm Wrangler is connected to the correct Cloudflare accoun
 On mobile, reorder the dashboard so that the desktop right-hand column appears before the left-hand column.
 
 This mobile ordering change was discussed but should be verified before considering it completed.
+
+## Phase 1 — To-do list and safe project deletion
+
+- Main panel title is now `To-do list`.
+- A completed task remains in its original chronological position on the completion date and throughout the following Vietnam calendar day.
+- Completed tasks are checked and struck through; a task completed on day 23 remains visible through day 24 and disappears from the main list on day 25, while remaining in Task history.
+- Project removal requires a custom confirmation modal.
+- Project removal remains a soft delete through the existing archive API.
+- Project IDs are compared as strings so UUID-based projects can be removed correctly.
+
+## Active Project details v1
+
+- TurtleBot 4 and IELTS project cards now open a responsive detail modal.
+- The TurtleBot modal contains a local SVG illustration, a nine-stage roadmap, selected ROS 2 commands with copy controls and the 23/07/2026 robot log.
+- TurtleBot source links open the exact roadmap and daily-log tabs in Google Docs.
+- The IELTS modal contains Writing, Reading, Listening and Flashcards sections.
+- Reading and Listening have prepared empty notebook states even before their first study entry exists.
+- Google Docs remain the source for long-form notes; this first version uses curated summaries instead of fetching full documents at runtime.
+- No D1 migration is required for this version.
+
+## Project visual polish v2
+
+- Typography is enlarged only inside project-detail popups; dashboard project cards retain their original text sizes.
+- The generated TurtleBot art replaces the original schematic illustration in the modal.
+- The same TurtleBot art is shown directly on the TurtleBot project card in the main dashboard.
+- The image is stored locally as `turtlebot4-art.webp` and copied into the production build.
+
+## TurtleBot integrated dashboard card v3
+
+- The TurtleBot art is integrated directly into the project card background instead of appearing inside a separate framed image.
+- Project data remains live HTML; the generated text-heavy mockup is not used as a static card image.
+- Dashboard text sizes remain unchanged. Enlarged typography applies only to the project detail popup.
+
+## TurtleBot integrated dashboard card v4
+
+- Fixed the card layout to target the real `<dl>` project metadata markup.
+- Current focus and next action are stacked on the left.
+- TurtleBot occupies the right side without a separate image frame.
+- The image white background is blended into the board using multiply and a left-edge mask.
+- Dashboard typography remains unchanged.
+
+## TurtleBot dashboard card v5
+
+- Rebuilt the TurtleBot card as a real three-column grid.
+- Column 1 contains project title, progress percentage and progress bar.
+- Column 2 contains Current focus and Next action.
+- Column 3 contains the TurtleBot art.
+- The robot is no longer absolutely positioned or cropped by an oversized transform.
+- Dashboard typography remains unchanged.
+
+## TurtleBot hero dashboard card v6
+
+- TurtleBot now uses a taller hero-style project card inspired by the approved visual mockup.
+- The title and progress receive TurtleBot-specific emphasis without changing other project cards.
+- Current focus and next action are stacked with circular visual markers.
+- The TurtleBot artwork occupies the right half with radar-ring decoration and a Stage 2 validation badge.
+- All project values remain live HTML rather than baked into a static image.
+
+## TurtleBot full-background hero card v7
+
+- The complete no-text TurtleBot artwork is used as the dashboard card background.
+- Project values remain live HTML layered over the blank left side of the artwork.
+- The separately injected dashboard robot image is hidden to prevent duplication.
+- The project popup continues to use its own large illustration.
+- The stylesheet URL is cache-busted for immediate production refresh.

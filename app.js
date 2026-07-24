@@ -14,7 +14,7 @@ const GMAIL_AUTO_REFRESH_MS = 60_000;
 const SALES_AUTO_REFRESH_MS = 60_000;
 const WEATHER_REFRESH_MS = 15 * 60_000;
 const VIETNAM_TIME_ZONE = "Asia/Ho_Chi_Minh";
-const WEATHER_ENDPOINT = "https://api.open-meteo.com/v1/forecast?latitude=21.0285&longitude=105.8542&current=temperature_2m,apparent_temperature,weather_code&timezone=Asia%2FHo_Chi_Minh&forecast_days=1";
+const WEATHER_ENDPOINT = "https://api.open-meteo.com/v1/forecast?latitude=21.0285&longitude=105.8542&current=temperature_2m,apparent_temperature,weather_code&hourly=precipitation_probability,precipitation,weather_code&timezone=Asia%2FHo_Chi_Minh&forecast_days=1";
 
 const seedProjects = [
   {
@@ -68,6 +68,9 @@ let toastTimer;
 let scratchSaveTimer;
 let gmailAutoRefreshTimer;
 let salesAutoRefreshTimer;
+let taskDayRefreshTimer;
+let lastRenderedTodoDate = vietnamDateKey();
+let pendingProjectDeleteId = "";
 
 const elements = {
   brief: document.querySelector("#brief-copy"),
@@ -76,6 +79,9 @@ const elements = {
   modal: document.querySelector("#project-modal"),
   projectForm: document.querySelector("#project-form"),
   projectList: document.querySelector("#project-list"),
+  projectDeleteModal: document.querySelector("#project-delete-modal"),
+  projectDeleteName: document.querySelector("#project-delete-name"),
+  projectDeleteConfirm: document.querySelector("[data-action='confirm-delete-project']"),
   quickAddForm: document.querySelector("#quick-add-form"),
   scratchpad: document.querySelector("#scratchpad-input"),
   scratchpadStatus: document.querySelector("#scratchpad-status"),
@@ -89,6 +95,7 @@ const elements = {
   weatherCondition: document.querySelector("#weather-condition"),
   weatherIcon: document.querySelector("#weather-icon"),
   weatherTemperature: document.querySelector("#weather-temperature"),
+  weatherRainNotice: document.querySelector("#weather-rain-notice"),
   sales: document.querySelector("#sales-content"),
   salesCount: document.querySelector("#sales-count"),
   salesModal: document.querySelector("#sales-modal"),
@@ -453,10 +460,27 @@ async function loadWeather() {
     elements.weatherCondition.textContent = Number.isFinite(apparent)
       ? `${details.label} · Feels ${Math.round(apparent)}°`
       : details.label;
+
+    const rainSummary = window.JoyWeather?.summarizeRainForecast(
+      payload?.hourly,
+      new Date(),
+    ) || {
+      state: "unavailable",
+      text: "Rain forecast unavailable",
+    };
+
+    const showRainNotice = rainSummary.state === "rain";
+
+    elements.weatherRainNotice.hidden = !showRainNotice;
+    elements.weatherRainNotice.textContent = rainSummary.text;
+    elements.weatherRainNotice.dataset.state = rainSummary.state;
   } catch {
     elements.weatherTemperature.textContent = "—";
     elements.weatherIcon.textContent = "◌";
     elements.weatherCondition.textContent = "Weather unavailable";
+    elements.weatherRainNotice.hidden = true;
+    elements.weatherRainNotice.textContent = "";
+    elements.weatherRainNotice.dataset.state = "unavailable";
   }
 }
 
@@ -482,7 +506,7 @@ function renderBrief() {
   if (["authorizing", "loading-messages"].includes(gmail.status)) emailLabel = "checking Gmail";
   if (gmail.status === "connected") {
     const count = gmail.messages.filter((message) => message.unread).length;
-    emailLabel = count ? `${count} unread ${count === 1 ? "email" : "emails"}` : "no unread email";
+    emailLabel = count ? `${count} new ${count === 1 ? "email" : "emails"}` : "no new email";
   }
   const viewingCount = sales.status === "ready" ? sales.viewings.length : 0;
   const viewingLabel = sales.status === "ready"
@@ -582,16 +606,21 @@ function renderGmailMessage(message) {
   const messageActions = document.createElement("div");
   messageActions.className = "gmail-message-actions";
 
+  const pinned = isEmailPinned(message.id);
   const pin = makeButton("", "toggle-email-pin", "gmail-square-button gmail-pin-button");
   pin.dataset.emailId = message.id;
-  pin.setAttribute("aria-pressed", String(isEmailPinned(message.id)));
-  pin.setAttribute("aria-label", isEmailPinned(message.id) ? "Unpin email" : "Pin email");
-  pin.title = isEmailPinned(message.id) ? "Remove pin" : "Keep this email at the top";
+  pin.setAttribute("aria-pressed", String(pinned));
+  pin.setAttribute("aria-label", pinned ? "Unpin email" : "Pin email");
+  pin.title = pinned ? "Remove pin" : "Keep this email at the top";
+  pin.innerHTML = `<svg class="gmail-pin-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path class="gmail-pin-head" d="M9 3.5h6v4l2.5 2.5v1.5h-11V10L9 7.5Z"></path>
+    <path d="M12 11.5V21"></path>
+  </svg>`;
 
   const read = makeButton("", "dismiss-email", "gmail-square-button gmail-read-button");
   read.dataset.emailId = message.id;
-  read.setAttribute("aria-label", "Mark as read in Joy");
-  read.title = "Hide this email from Joy";
+  read.setAttribute("aria-label", "Done with this email");
+  read.title = "Đã đọc · remove from Joy";
 
   messageActions.append(open, pin, read);
 
@@ -612,7 +641,7 @@ function renderEmail() {
   }
 
   if (gmail.status === "loading-messages") {
-    renderGmailNotice({ icon: "↻", title: "Checking your inbox", copy: "Joy is loading up to five unread messages." });
+    renderGmailNotice({ icon: "↻", title: "Checking for new mail", copy: "Joy is looking only for email received after tracking started." });
     return;
   }
 
@@ -632,8 +661,8 @@ function renderEmail() {
     renderGmailNotice({
       title: CLOUD_BACKEND ? "Connect Gmail once" : "Connect your Gmail",
       copy: CLOUD_BACKEND
-        ? "After one read-only approval, Joy will keep Gmail updated automatically."
-        : "See up to five unread inbox messages here. Google will ask you to approve read-only access.",
+        ? "Joy will only surface email that arrives after tracking starts."
+        : "Joy will show up to five new inbox messages received from now on.",
       buttonLabel: CLOUD_BACKEND ? "Connect once" : "Connect Gmail",
       action: "connect-gmail",
     });
@@ -650,16 +679,13 @@ function renderEmail() {
   dot.setAttribute("aria-hidden", "true");
   const statusCopy = document.createElement("strong");
   statusCopy.textContent = gmail.messages.length
-    ? `${CLOUD_BACKEND ? "Auto · " : ""}${gmail.messages.length} ${gmail.messages.length === 1 ? "message" : "messages"}`
-    : `${CLOUD_BACKEND ? "Auto · " : ""}Inbox is clear`;
+    ? `${CLOUD_BACKEND ? "Auto · " : ""}${gmail.messages.length} new ${gmail.messages.length === 1 ? "message" : "messages"}`
+    : `${CLOUD_BACKEND ? "Auto · " : ""}No new mail`;
   status.append(dot, statusCopy);
 
   const actions = document.createElement("div");
   actions.className = "gmail-actions";
   actions.append(makeButton("Refresh", "refresh-gmail", "gmail-action"));
-  if ((CLOUD_BACKEND ? gmail.hiddenCount : state.gmailDismissedIds.length)) {
-    actions.append(makeButton("Restore", "restore-dismissed-emails", "gmail-action"));
-  }
   actions.append(makeButton("Disconnect", "disconnect-gmail", "gmail-action"));
   toolbar.append(status, actions);
   wrapper.append(toolbar);
@@ -675,9 +701,9 @@ function renderEmail() {
     const check = document.createElement("span");
     check.textContent = "✓";
     const title = document.createElement("strong");
-    title.textContent = "You’re all caught up";
+    title.textContent = "No new mail";
     const copy = document.createElement("p");
-    copy.textContent = "There are no unread messages in your inbox.";
+    copy.textContent = "Joy will show only email received after tracking started.";
     empty.append(check, title, copy);
     wrapper.append(empty);
   }
@@ -695,7 +721,7 @@ function renderProjects() {
     .map((project) => `<article class="project-card">
       <div class="project-top">
         <strong>${escapeHtml(project.name)}</strong>
-        <div><span>${Number(project.progress) || 0}%</span><button type="button" aria-label="Archive ${escapeHtml(project.name)}" title="Archive project" data-action="archive-project" data-id="${escapeHtml(project.id)}">×</button></div>
+        <div><span>${Number(project.progress) || 0}%</span><button type="button" aria-label="Delete ${escapeHtml(project.name)}" title="Delete project" data-action="request-delete-project" data-id="${escapeHtml(project.id)}">×</button></div>
       </div>
       <div class="progress-track"><span class="${project.accent === "blue" ? "blue" : "slate"}" style="width:${Math.min(100, Math.max(0, Number(project.progress) || 0))}%"></span></div>
       <dl>
@@ -707,22 +733,52 @@ function renderProjects() {
 }
 
 function renderTasks() {
-  const activeTasks = sortTasks(state.tasks.filter((task) => !task.done));
-  elements.taskCount.textContent = `${activeTasks.length} open`;
+  const now = new Date();
+  lastRenderedTodoDate = vietnamDateKey(now);
 
-  if (!activeTasks.length) {
+  const visibleTasks = sortTasks(state.tasks.filter((task) => {
+    const shouldShowTask = window.JoyTodo?.shouldShowTask;
+
+    return typeof shouldShowTask === "function"
+      ? shouldShowTask(task, now)
+      : !task.done;
+  }));
+
+  const openCount = state.tasks.filter((task) => !task.done).length;
+  elements.taskCount.textContent = `${openCount} open`;
+
+  if (!visibleTasks.length) {
     elements.taskList.innerHTML = `<div class="task-empty"><strong>Your list is clear</strong><span>Add a task above whenever something comes up.</span></div>`;
     return;
   }
 
-  elements.taskList.innerHTML = activeTasks
-    .map((task) => `<label class="task-row">
-      <input type="checkbox" data-task-id="${escapeHtml(task.id)}" aria-label="Complete ${escapeHtml(task.title)}" />
+  elements.taskList.innerHTML = visibleTasks
+    .map((task) => `<label class="task-row ${task.done ? "completed" : ""}">
+      <input
+        type="checkbox"
+        data-task-id="${escapeHtml(task.id)}"
+        aria-label="${task.done ? "Completed" : "Complete"} ${escapeHtml(task.title)}"
+        ${task.done ? "checked disabled" : ""}
+      />
       <span class="checkmark" aria-hidden="true"></span>
       <span class="task-title">${escapeHtml(task.title)}</span>
       <time datetime="${escapeHtml(task.createdDate)}" title="Created ${formatTaskDate(task.createdDate, true)}">${formatTaskDate(task.createdDate)}</time>
     </label>`)
     .join("");
+}
+
+function startTodoDayRefresh() {
+  window.clearInterval(taskDayRefreshTimer);
+
+  taskDayRefreshTimer = window.setInterval(() => {
+    const currentDate = vietnamDateKey();
+
+    if (currentDate === lastRenderedTodoDate) return;
+
+    lastRenderedTodoDate = currentDate;
+    renderBrief();
+    renderTasks();
+  }, 60_000);
 }
 
 function renderTaskHistory() {
@@ -1308,7 +1364,7 @@ async function dismissEmail(id) {
   saveState();
   renderBrief();
   renderEmail();
-  showToast("Email hidden from Joy");
+  showToast("Done · removed from Joy");
 
   if (CLOUD_BACKEND) {
     try {
@@ -1321,24 +1377,6 @@ async function dismissEmail(id) {
       fetchCloudEmails({ silent: true });
     }
   }
-}
-
-async function restoreDismissedEmails() {
-  if (CLOUD_BACKEND) {
-    try {
-      await backendRequest("/api/emails/restore", { method: "POST" });
-      gmail.hiddenCount = 0;
-      showToast("Hidden emails restored");
-      await fetchCloudEmails();
-    } catch {
-      showToast("Joy could not restore hidden emails");
-    }
-    return;
-  }
-  state.gmailDismissedIds = [];
-  saveState();
-  showToast("Hidden emails restored");
-  fetchGmailMessages();
 }
 
 function showToast(message) {
@@ -1362,6 +1400,82 @@ function closeProjectForm() {
   elements.projectForm.reset();
 }
 
+function openProjectDeleteConfirmation(id) {
+  const projectId = String(id || "");
+  const project = state.projects.find(
+    (item) => String(item.id) === projectId,
+  );
+
+  if (!project) {
+    showToast("Project could not be found");
+    return;
+  }
+
+  pendingProjectDeleteId = projectId;
+  elements.projectDeleteName.textContent = project.name;
+  elements.projectDeleteModal.hidden = false;
+  document.body.classList.add("modal-open");
+
+  window.setTimeout(() => {
+    elements.projectDeleteConfirm?.focus();
+  }, 0);
+}
+
+function closeProjectDeleteConfirmation() {
+  pendingProjectDeleteId = "";
+  elements.projectDeleteModal.hidden = true;
+
+  if (
+    elements.modal.hidden
+    && elements.salesModal.hidden
+    && elements.taskHistoryModal.hidden
+  ) {
+    document.body.classList.remove("modal-open");
+  }
+}
+
+async function confirmProjectDelete() {
+  const id = String(pendingProjectDeleteId || "");
+  const project = state.projects.find(
+    (item) => String(item.id) === id,
+  );
+
+  if (!id || !project) {
+    closeProjectDeleteConfirmation();
+    return;
+  }
+
+  state.projects = state.projects.filter(
+    (item) => String(item.id) !== id,
+  );
+
+  queueProjectArchive(id);
+  saveState();
+  closeProjectDeleteConfirmation();
+  renderBrief();
+  renderProjects();
+  showToast(`${project.name} removed from Active Projects`);
+
+  if (!CLOUD_BACKEND || !accountSync.connected) return;
+
+  try {
+    await backendRequest("/api/projects/archive", {
+      method: "POST",
+      body: JSON.stringify({ id }),
+    });
+
+    clearProjectArchive(id);
+    showToast(`${project.name} removed · synced`);
+  } catch (error) {
+    if (error.status === 404) {
+      clearProjectArchive(id);
+      return;
+    }
+
+    showToast(`${project.name} removed here · will sync when online`);
+  }
+}
+
 function openSalesModal() {
   renderSalesModal();
   elements.salesModal.hidden = false;
@@ -1371,7 +1485,11 @@ function openSalesModal() {
 
 function closeSalesModal() {
   elements.salesModal.hidden = true;
-  if (elements.modal.hidden && elements.taskHistoryModal.hidden) document.body.classList.remove("modal-open");
+  if (
+    elements.modal.hidden
+    && elements.taskHistoryModal.hidden
+    && elements.projectDeleteModal.hidden
+  ) document.body.classList.remove("modal-open");
 }
 
 async function syncCloudProjects({ silent = false } = {}) {
@@ -1457,7 +1575,11 @@ function openTaskHistory() {
 
 function closeTaskHistory() {
   elements.taskHistoryModal.hidden = true;
-  if (elements.modal.hidden && elements.salesModal.hidden) document.body.classList.remove("modal-open");
+  if (
+    elements.modal.hidden
+    && elements.salesModal.hidden
+    && elements.projectDeleteModal.hidden
+  ) document.body.classList.remove("modal-open");
 }
 
 elements.quickAddForm.addEventListener("submit", async (event) => {
@@ -1581,7 +1703,6 @@ document.addEventListener("click", async (event) => {
   if (action === "disconnect-gmail") disconnectGmail();
   if (action === "toggle-email-pin") toggleEmailPin(control.dataset.emailId);
   if (action === "dismiss-email") dismissEmail(control.dataset.emailId);
-  if (action === "restore-dismissed-emails") restoreDismissedEmails();
   if (action === "open-sales") openSalesModal();
   if (action === "close-sales") closeSalesModal();
   if (action === "open-sale-manager") window.location.assign("/sale-manager.html");
@@ -1590,13 +1711,14 @@ document.addEventListener("click", async (event) => {
   if (action === "open-finance-preview") showToast("Finance detail popups will be designed next");
   if (action === "refresh-sales") fetchCloudSales();
   if (action === "connect-sales") window.location.assign("/auth/start");
-  if (action === "archive-project") {
-    const id = Number(control.dataset.id);
-    const project = state.projects.find((item) => item.id === id);
-    state.projects = state.projects.filter((item) => item.id !== id);
-    saveState();
-    render();
-    showToast(`${project?.name || "Project"} archived`);
+  if (action === "request-delete-project") {
+    openProjectDeleteConfirmation(control.dataset.id);
+  }
+  if (action === "cancel-delete-project") {
+    closeProjectDeleteConfirmation();
+  }
+  if (action === "confirm-delete-project") {
+    await confirmProjectDelete();
   }
   if (action === "view-day") document.querySelector("#to-do").scrollIntoView({ behavior: "smooth", block: "center" });
   if (action === "view-inbox") window.open(GMAIL_INBOX_URL, "_blank", "noopener,noreferrer");
@@ -1616,11 +1738,24 @@ elements.taskHistoryModal.addEventListener("mousedown", (event) => {
   if (event.target === elements.taskHistoryModal) closeTaskHistory();
 });
 
+elements.projectDeleteModal.addEventListener("mousedown", (event) => {
+  if (event.target === elements.projectDeleteModal) {
+    closeProjectDeleteConfirmation();
+  }
+});
+
 document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape") return;
-  if (!elements.taskHistoryModal.hidden) closeTaskHistory();
-  else if (!elements.salesModal.hidden) closeSalesModal();
-  else if (!elements.modal.hidden) closeProjectForm();
+
+  if (!elements.projectDeleteModal.hidden) {
+    closeProjectDeleteConfirmation();
+  } else if (!elements.taskHistoryModal.hidden) {
+    closeTaskHistory();
+  } else if (!elements.salesModal.hidden) {
+    closeSalesModal();
+  } else if (!elements.modal.hidden) {
+    closeProjectForm();
+  }
 });
 
 const sections = [...document.querySelectorAll("#overview, #email, #sales, #projects, #finance, #to-do")];
@@ -1637,6 +1772,7 @@ if ("IntersectionObserver" in window) {
 loadScratchpad();
 renderHeader();
 render();
+startTodoDayRefresh();
 loadWeather();
 window.setInterval(loadWeather, WEATHER_REFRESH_MS);
 if (CLOUD_BACKEND) {

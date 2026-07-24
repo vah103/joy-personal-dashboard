@@ -53,7 +53,14 @@ await writeFile(resolve(dist, "index.html"), cloudflareHtml);
 await writeFile(resolve(dist, "sale-manager.html"), cloudflareSaleHtml);
 await Promise.all([
   cp(resolve(root, "app.js"), resolve(dist, "app.js")),
+  cp(resolve(root, "project-details.js"), resolve(dist, "project-details.js")),
+  cp(resolve(root, "project-details.css"), resolve(dist, "project-details.css")),
+  cp(resolve(root, "turtlebot4-card-background.webp"), resolve(dist, "turtlebot4-card-background.webp")),
+  cp(resolve(root, "turtlebot4-illustration.svg"), resolve(dist, "turtlebot4-illustration.svg")),
+  cp(resolve(root, "turtlebot4-art.webp"), resolve(dist, "turtlebot4-art.webp")),
   cp(resolve(root, "styles.css"), resolve(dist, "styles.css")),
+  cp(resolve(root, "weather-rain.js"), resolve(dist, "weather-rain.js")),
+  cp(resolve(root, "todo-visibility.js"), resolve(dist, "todo-visibility.js")),
   cp(resolve(root, "project-hub-performance.js"), resolve(dist, "project-hub-performance.js")),
   cp(resolve(root, "project-hub-core.js"), resolve(dist, "project-hub-core.js")),
   cp(resolve(root, "project-hub-render.js"), resolve(dist, "project-hub-render.js")),
