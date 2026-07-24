@@ -1,7 +1,10 @@
 import app from "./index.js";
 import { handleProjectHubRequest, isProjectHubRoute } from "./project-hub.js";
-import { handlePushRequest, isPushRoute } from "./push.js";
-import { runRainPushSchedule } from "./rain-push.js";
+import {
+  handlePushRequest,
+  isPushRoute,
+  runRainPushSchedule,
+} from "./push.js";
 
 export default {
   async fetch(request, env, ctx) {
