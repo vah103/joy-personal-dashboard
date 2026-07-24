@@ -117,7 +117,7 @@ async function sendTestNotification(request, email, env) {
 
   const result = await sendPushRows(rows.results, {
     title: "Hey Joy!",
-    body: "Thông báo trên iPhone đã hoạt động. Mình sẽ báo khi khung giờ mưa thay đổi.",
+    body: "Thông báo trên iPhone đã hoạt đông, hahahaa",
     icon: "/app-icon-192.png",
     badge: "/app-icon-64.png",
     tag: "hey-joy-test",
