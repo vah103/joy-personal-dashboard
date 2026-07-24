@@ -39,10 +39,19 @@ test("worker router preserves the existing app and adds project hub APIs", () =>
 
 test("build includes project hub assets in order", () => {
   const build = read("scripts/build.mjs");
+  const performanceIndex = build.indexOf("project-hub-performance.js");
   const coreIndex = build.indexOf("project-hub-core.js");
   const renderIndex = build.indexOf("project-hub-render.js");
   const actionsIndex = build.indexOf("project-hub-actions.js");
-  assert.ok(coreIndex >= 0 && renderIndex > coreIndex && actionsIndex > renderIndex);
+  assert.ok(performanceIndex >= 0 && coreIndex > performanceIndex);
+  assert.ok(renderIndex > coreIndex && actionsIndex > renderIndex);
   assert.ok(build.includes("project-hub.css"));
   assert.ok(build.includes("project-data"));
+});
+
+test("project list observer cannot recurse through card text updates", () => {
+  const guard = read("project-hub-performance.js");
+  assert.ok(guard.includes('target.id === "project-list"'));
+  assert.ok(guard.includes("subtree: false"));
+  assert.ok(guard.includes("childList: true"));
 });
