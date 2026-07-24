@@ -1,6 +1,6 @@
 {
-  "name": "Joy — Personal Dashboard",
-  "short_name": "Joy",
+  "name": "Hey Joy! — Personal Dashboard",
+  "short_name": "Hey Joy!",
   "description": "Vanh's personal dashboard for projects, tasks, sales, email, and finance.",
   "start_url": "/",
   "display": "standalone",
