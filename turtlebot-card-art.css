@@ -232,3 +232,16 @@
     padding-bottom: 230px;
   }
 }
+
+/* TurtleBot desktop background position adjustment */
+@media (min-width: 721px) {
+  .projects-panel .project-card.turtlebot-project-card {
+    background-position:
+      center center,
+      calc(50% + 24px) center;
+    background-size:
+      auto,
+      cover;
+  }
+}
+/* End TurtleBot desktop background position adjustment */
