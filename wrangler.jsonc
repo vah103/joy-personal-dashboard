@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "joy-personal-dashboard",
-  "main": "worker/index.js",
+  "main": "worker/router.js",
   "compatibility_date": "2026-07-22",
   "assets": {
     "directory": "./dist",
