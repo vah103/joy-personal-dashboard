@@ -15,7 +15,7 @@ test("IELTS dashboard card uses the real document artwork and stays responsive",
   const image = new URL("../project-data/ielts/ielts-card-background.webp", import.meta.url);
 
   assert.ok(build.includes("project-data/ielts/ielts-card.css?v=ielts-card-v2"));
-  assert.ok(build.includes("project-data/ielts/ielts-card.js?v=ielts-card-v1"));
+  assert.ok(build.includes("project-data/ielts/ielts-card.js?v=ielts-card-v2"));
   assert.ok(fs.existsSync(image));
   assert.ok(fs.statSync(image).size > 50_000);
 
@@ -26,6 +26,8 @@ test("IELTS dashboard card uses the real document artwork and stays responsive",
 
   assert.ok(script.includes('card.classList.add("ielts-project-card")'));
   assert.ok(script.includes("Target Band 7.0"));
+  assert.ok(script.includes('if (progressValue) progressValue.textContent = "32%"'));
+  assert.ok(script.includes('progressFill.style.width = "32%"'));
   assert.ok(script.includes("childList: true"));
   assert.ok(!script.includes("subtree: true"));
 });

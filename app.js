@@ -28,7 +28,7 @@ const seedProjects = [
   {
     id: 2,
     name: "IELTS",
-    progress: 62,
+    progress: 32,
     accent: "blue",
     focus: "Speaking fluency",
     next: "Complete a Part 2 mock",

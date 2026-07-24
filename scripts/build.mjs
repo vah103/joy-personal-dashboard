@@ -34,7 +34,7 @@ const projectHubScripts = [
   '    <script src="project-hub-core.js?v=turtlebot-hub-v3" defer></script>\n',
   '    <script src="project-hub-render.js?v=turtlebot-hub-v3" defer></script>\n',
   '    <script src="project-hub-actions.js?v=turtlebot-hub-v3" defer></script>\n',
-  '    <script src="project-data/ielts/ielts-card.js?v=ielts-card-v1" defer></script>\n',
+  '    <script src="project-data/ielts/ielts-card.js?v=ielts-card-v2" defer></script>\n',
 ].join("");
 
 const sourceHtml = await readFile(resolve(root, "index.html"), "utf8");

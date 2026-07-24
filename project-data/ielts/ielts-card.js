@@ -6,6 +6,13 @@
 
       card.classList.add("ielts-project-card");
 
+      /* IELTS dashboard progress override */
+      const progressValue = card.querySelector(".project-top span");
+      const progressFill = card.querySelector(".progress-track span");
+
+      if (progressValue) progressValue.textContent = "32%";
+      if (progressFill) progressFill.style.width = "32%";
+
       if (!card.querySelector(".ielts-subtitle")) {
         const subtitle = document.createElement("small");
         subtitle.className = "ielts-subtitle";
