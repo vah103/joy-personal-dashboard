@@ -1,4 +1,4 @@
-import webpush from "web-push";
+import { buildPushPayload } from "@block65/webcrypto-web-push";
 
 const SESSION_COOKIE = "__Host-joy_session";
 const WEATHER_ENDPOINT = "https://api.open-meteo.com/v1/forecast?latitude=21.0285&longitude=105.8542&hourly=precipitation_probability,precipitation,weather_code&timezone=Asia%2FHo_Chi_Minh&forecast_days=1";
@@ -124,7 +124,9 @@ async function sendTestNotification(request, email, env) {
     data: { url: "/", kind: "test" },
   }, env, { ttl: 60, topic: "hey-joy-test" });
 
-  if (!result.sent) return json({ error: "TEST_PUSH_NOT_DELIVERED", failed: result.failed }, 502);
+  if (!result.sent) {
+    return json({ error: "TEST_PUSH_NOT_DELIVERED", failed: result.failed }, 502);
+  }
   return json({ ok: true, sent: result.sent });
 }
 
@@ -179,11 +181,11 @@ async function saveRainState(email, windowKey, notifiedAt, env) {
 
 async function sendPushRows(rows, payload, env, options = {}) {
   requirePushConfig(env);
-  webpush.setVapidDetails(
-    env.VAPID_SUBJECT,
-    env.VAPID_PUBLIC_KEY,
-    env.VAPID_PRIVATE_KEY,
-  );
+  const vapid = {
+    subject: env.VAPID_SUBJECT,
+    publicKey: env.VAPID_PUBLIC_KEY,
+    privateKey: env.VAPID_PRIVATE_KEY,
+  };
 
   const deadEndpoints = [];
   let sent = 0;
@@ -191,27 +193,35 @@ async function sendPushRows(rows, payload, env, options = {}) {
 
   await Promise.all(rows.map(async (row) => {
     try {
-      await webpush.sendNotification(
-        {
-          endpoint: row.endpoint,
-          keys: { p256dh: row.p256dh, auth: row.auth },
-        },
-        JSON.stringify(payload),
-        {
-          TTL: Number(options.ttl || 300),
+      const subscription = {
+        endpoint: row.endpoint,
+        expirationTime: null,
+        keys: { p256dh: row.p256dh, auth: row.auth },
+      };
+      const requestInit = await buildPushPayload({
+        data: JSON.stringify(payload),
+        options: {
+          ttl: Number(options.ttl || 300),
           urgency: options.urgency || "high",
-          topic: options.topic,
+          ...(options.topic ? { topic: options.topic } : {}),
         },
-      );
-      sent += 1;
-    } catch (error) {
+      }, subscription, vapid);
+      const response = await fetch(row.endpoint, requestInit);
+      if (response.ok) {
+        sent += 1;
+        return;
+      }
+
       failed += 1;
-      const statusCode = Number(error?.statusCode || 0);
-      if (statusCode === 404 || statusCode === 410) {
+      if (response.status === 404 || response.status === 410) {
         deadEndpoints.push(row.endpoint);
       } else {
-        console.error("Hey Joy push delivery failed", statusCode || error);
+        const details = await response.text().catch(() => "");
+        console.error("Hey Joy push delivery failed", response.status, details.slice(0, 300));
       }
+    } catch (error) {
+      failed += 1;
+      console.error("Hey Joy push encryption failed", error);
     }
   }));
 
