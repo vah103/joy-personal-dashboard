@@ -43,6 +43,7 @@ const cloudflareHtml = sourceHtml
   .replace('<title>Joy — Personal Dashboard</title>', '<title>Hey Joy! — Personal Dashboard</title>')
   .replace('aria-label="Joy overview"', 'aria-label="Hey Joy! overview"')
   .replace('<p class="section-kicker" id="brief-title">Joy</p>', '<p class="section-kicker" id="brief-title">Hey Joy!</p>')
+  .replace('site.webmanifest?v=joy-original-wolf-v2', 'site.webmanifest?v=hey-joy-brand-v1')
   .replace(
     "</head>",
     `${projectHubHead}    <meta name="joy-backend" content="cloudflare">\n  </head>`,
