@@ -1,4 +1,4 @@
-/* Keep TurtleBot artwork sharp by rendering it as an independent direct WebP layer. */
+/* Keep TurtleBot artwork sharp by rendering it as an independent transparent layer. */
 .projects-panel .project-card.turtlebot-project-card {
   background-color: #f6efe5;
   background-image:
@@ -20,20 +20,19 @@
 
 .projects-panel .project-card.turtlebot-project-card::before {
   position: absolute;
-  top: 3px;
-  right: -8px;
-  bottom: -5px;
+  top: 5px;
+  right: -2px;
+  bottom: -3px;
   z-index: 1;
   display: block;
-  width: 58%;
+  width: 55%;
   height: auto;
-  background-image: url("/turtlebot4-art.webp?v=robot-layer-v2");
-  background-position: center bottom;
+  background-image: url("turtlebot4-card-robot.svg?v=robot-layer-v1");
+  background-position: right bottom;
   background-repeat: no-repeat;
   background-size: contain;
   content: "";
   filter: drop-shadow(0 14px 13px rgba(31, 38, 41, 0.19));
-  mix-blend-mode: multiply;
   pointer-events: none;
 }
 
@@ -50,10 +49,10 @@
 
   .projects-panel .project-card.turtlebot-project-card::before {
     top: auto;
-    right: -6%;
+    right: -7%;
     bottom: -2px;
-    width: 92%;
-    height: 61%;
-    background-position: center bottom;
+    width: 88%;
+    height: 59%;
+    background-position: right bottom;
   }
 }
