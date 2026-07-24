@@ -3,10 +3,16 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data ? event.data.json() : {};
   } catch {
-    data = { title: "Hey Joy!", body: event.data?.text() || "Bạn có thông báo mới." };
+    data = { title: "", body: event.data?.text() || "Bạn có thông báo mới." };
   }
 
-  event.waitUntil(self.registration.showNotification(data.title || "Hey Joy!", {
+  // iOS already shows the installed app name above every notification.
+  // Hide Hey Joy-branded payload titles so the name is not repeated as
+  // “from Hey Joy!” underneath the app label.
+  const payloadTitle = typeof data.title === "string" ? data.title.trim() : "";
+  const notificationTitle = payloadTitle.startsWith("Hey Joy!") ? "" : payloadTitle;
+
+  event.waitUntil(self.registration.showNotification(notificationTitle, {
     body: data.body || "",
     icon: data.icon || "/app-icon-192.png",
     badge: data.badge || "/app-icon-64.png",
