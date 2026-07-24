@@ -238,7 +238,7 @@
   .projects-panel .project-card.turtlebot-project-card {
     background-position:
       center center,
-      calc(50% + 40px) center;
+      calc(50% + 60px) center;
     background-size:
       auto,
       cover;
