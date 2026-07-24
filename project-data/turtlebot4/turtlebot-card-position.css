@@ -1,0 +1,7 @@
+/* Fine-tune only the desktop full-background artwork position. */
+@media (min-width: 721px) {
+  .projects-panel .project-card.turtlebot-project-card {
+    background-position: center, left center;
+    background-size: auto, 102.5% auto;
+  }
+}
