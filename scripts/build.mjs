@@ -25,7 +25,11 @@ await mkdir(dist, { recursive: true });
 await mkdir(fonts, { recursive: true });
 
 const projectHubHead = '    <link rel="stylesheet" href="project-hub.css?v=turtlebot-hub-v1">\n';
-const projectHubScript = '    <script src="project-hub.js?v=turtlebot-hub-v1" defer></script>\n';
+const projectHubScripts = [
+  '    <script src="project-hub-core.js?v=turtlebot-hub-v1" defer></script>\n',
+  '    <script src="project-hub-render.js?v=turtlebot-hub-v1" defer></script>\n',
+  '    <script src="project-hub-actions.js?v=turtlebot-hub-v1" defer></script>\n',
+].join("");
 
 const sourceHtml = await readFile(resolve(root, "index.html"), "utf8");
 const cloudflareHtml = sourceHtml
@@ -33,7 +37,7 @@ const cloudflareHtml = sourceHtml
     "</head>",
     `${projectHubHead}    <meta name="joy-backend" content="cloudflare">\n  </head>`,
   )
-  .replace("</body>", `${projectHubScript}  </body>`);
+  .replace("</body>", `${projectHubScripts}  </body>`);
 
 const sourceSaleHtml = await readFile(resolve(root, "sale-manager.html"), "utf8");
 const cloudflareSaleHtml = sourceSaleHtml.replace(
@@ -46,7 +50,9 @@ await writeFile(resolve(dist, "sale-manager.html"), cloudflareSaleHtml);
 await Promise.all([
   cp(resolve(root, "app.js"), resolve(dist, "app.js")),
   cp(resolve(root, "styles.css"), resolve(dist, "styles.css")),
-  cp(resolve(root, "project-hub.js"), resolve(dist, "project-hub.js")),
+  cp(resolve(root, "project-hub-core.js"), resolve(dist, "project-hub-core.js")),
+  cp(resolve(root, "project-hub-render.js"), resolve(dist, "project-hub-render.js")),
+  cp(resolve(root, "project-hub-actions.js"), resolve(dist, "project-hub-actions.js")),
   cp(resolve(root, "project-hub.css"), resolve(dist, "project-hub.css")),
   cp(resolve(root, "project-data"), resolve(dist, "project-data"), { recursive: true }),
   cp(resolve(root, "sale-fonts", "nunito-latin-400-normal.woff2"), resolve(fonts, "nunito-latin-400-normal.woff2")),
