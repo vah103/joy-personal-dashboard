@@ -1,0 +1,234 @@
+/* Restore the original TurtleBot dashboard artwork without changing the Project Hub popup. */
+.projects-panel .project-card.turtlebot-project-card {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 47%) minmax(0, 53%);
+  grid-template-rows: auto auto 1fr;
+  min-height: 320px;
+  padding: 25px 27px;
+  overflow: hidden;
+  border: 1px solid rgba(73, 78, 80, 0.16);
+  border-radius: 18px;
+  background-color: #f6efe5;
+  background-image:
+    linear-gradient(
+      90deg,
+      rgba(250, 246, 240, 0.16) 0%,
+      rgba(250, 246, 240, 0.07) 43%,
+      transparent 58%
+    ),
+    url("turtlebot4-card-background.webp?v=restored-card-v1");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  color: #293236;
+  box-shadow: 0 15px 30px rgba(38, 42, 44, 0.08);
+}
+
+.projects-panel .project-card.turtlebot-project-card::before {
+  display: none;
+}
+
+.projects-panel .project-card.turtlebot-project-card:hover,
+.projects-panel .project-card.turtlebot-project-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(73, 101, 112, 0.28);
+  box-shadow: 0 20px 38px rgba(38, 42, 44, 0.12);
+}
+
+.projects-panel .project-card.turtlebot-project-card > * {
+  position: relative;
+  z-index: 2;
+}
+
+.projects-panel .project-card.turtlebot-project-card .project-top {
+  grid-column: 1;
+  grid-row: 1;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 17px;
+  width: 100%;
+}
+
+.projects-panel .project-card.turtlebot-project-card .project-top > strong {
+  color: #293236;
+  font-size: 29px;
+  font-weight: 850;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+
+.projects-panel .project-card.turtlebot-project-card .project-top > div {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+}
+
+.projects-panel .project-card.turtlebot-project-card .project-top span {
+  color: #477a89;
+  font-size: 28px;
+  font-weight: 850;
+  line-height: 1;
+}
+
+.projects-panel .project-card.turtlebot-project-card .project-top span::after {
+  margin-left: 8px;
+  color: #788184;
+  content: "Progress";
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.projects-panel .project-card.turtlebot-project-card .project-top button {
+  position: absolute;
+  top: -7px;
+  left: 154px;
+  width: 25px;
+  height: 25px;
+  color: #667176;
+  opacity: 0.55;
+}
+
+.projects-panel .project-card.turtlebot-project-card .progress-track {
+  grid-column: 1;
+  grid-row: 2;
+  width: min(100%, 255px);
+  height: 7px;
+  margin: 3px 0 18px;
+  border-radius: 999px;
+  background: rgba(115, 112, 105, 0.14);
+}
+
+.projects-panel .project-card.turtlebot-project-card .progress-track span {
+  border-radius: inherit;
+  background: linear-gradient(90deg, #6f9ba8, #9fc0c9);
+}
+
+.projects-panel .project-card.turtlebot-project-card dl {
+  grid-column: 1;
+  grid-row: 3;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 0;
+  width: min(100%, 295px);
+  margin: 0;
+  padding-bottom: 24px;
+}
+
+.projects-panel .project-card.turtlebot-project-card dl > div {
+  position: relative;
+  display: block;
+  min-width: 0;
+  padding: 13px 0 13px 53px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+}
+
+.projects-panel .project-card.turtlebot-project-card dl > div + div {
+  border-top: 1px solid rgba(71, 80, 84, 0.12) !important;
+}
+
+.projects-panel .project-card.turtlebot-project-card dl > div::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  display: grid;
+  width: 39px;
+  height: 39px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(104, 145, 157, 0.13);
+  color: #557c88;
+  content: "◎";
+  font-size: 20px;
+  font-weight: 800;
+  transform: translateY(-50%);
+}
+
+.projects-panel .project-card.turtlebot-project-card dl > div:nth-child(2)::before {
+  content: "▶";
+  font-size: 15px;
+}
+
+.projects-panel .project-card.turtlebot-project-card dt {
+  margin: 0 0 4px;
+  color: #747e81;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.projects-panel .project-card.turtlebot-project-card dd {
+  max-width: 225px;
+  margin: 0;
+  color: #2d383c;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.38;
+  overflow-wrap: normal;
+}
+
+.projects-panel .project-card.turtlebot-project-card .project-stage-pill {
+  position: absolute;
+  top: 20px;
+  right: 22px;
+  z-index: 4;
+  display: inline-flex;
+  width: auto;
+  margin: 0;
+  padding: 7px 12px 7px 29px;
+  border: 1px solid rgba(81, 105, 114, 0.18);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 14px 50%, #6c9ba9 0 5px, transparent 5.5px),
+    rgba(250, 248, 244, 0.88);
+  color: #557681;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  backdrop-filter: blur(7px);
+}
+
+.projects-panel .project-card.turtlebot-project-card .project-git-source {
+  position: absolute;
+  left: 27px;
+  bottom: 13px;
+  z-index: 3;
+  margin: 0;
+  color: rgba(67, 82, 88, 0.62);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .projects-panel .project-card.turtlebot-project-card {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    min-height: 500px;
+    padding: 22px;
+    background-position: 62% center;
+    background-size: cover;
+  }
+
+  .projects-panel .project-card.turtlebot-project-card .project-stage-pill {
+    top: 18px;
+    right: 18px;
+    max-width: 45%;
+  }
+
+  .projects-panel .project-card.turtlebot-project-card .project-top,
+  .projects-panel .project-card.turtlebot-project-card .progress-track,
+  .projects-panel .project-card.turtlebot-project-card dl {
+    grid-column: 1;
+  }
+
+  .projects-panel .project-card.turtlebot-project-card dl {
+    width: 100%;
+    padding-bottom: 230px;
+  }
+}
