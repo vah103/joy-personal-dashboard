@@ -21,7 +21,7 @@ self.addEventListener("push", (event) => {
     .trim();
 
   if (kind === "test") notificationTitle = "Đã hoạt động";
-  if (kind === "rain") notificationTitle = "Dự báo mưa mới";
+  if (["rain", "dry", "sunny"].includes(kind)) notificationTitle = "Weather update";
   if (!notificationTitle) notificationTitle = "Thông báo mới";
 
   const notificationBody = kind === "test"
