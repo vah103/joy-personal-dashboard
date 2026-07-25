@@ -16,6 +16,26 @@
     return payload;
   }
 
+  function ensureAccountCard() {
+    const card = document.querySelector(".sidebar-footer .profile-card");
+    if (!card) return;
+    card.classList.add("joy-account-card");
+    card.innerHTML = `
+      <span class="joy-account-copy">
+        <strong>Vanh</strong>
+        <small id="account-email">Checking account…</small>
+        <em id="account-google-status">Google account</em>
+      </span>
+      <button class="joy-signout-button" type="button" data-action="sign-out" aria-label="Sign out of Joy" title="Sign out">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M10 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4"/>
+          <path d="M14 8l4 4-4 4"/>
+          <path d="M9 12h9"/>
+        </svg>
+      </button>
+    `;
+  }
+
   function updateProfile(session) {
     const email = document.querySelector("#account-email");
     const google = document.querySelector("#account-google-status");
@@ -29,6 +49,7 @@
   }
 
   async function loadAccount() {
+    ensureAccountCard();
     try {
       const session = await request("/api/session");
       if (!session.signedIn) {
