@@ -7,7 +7,6 @@
 
   function vietnamDateKey(value = new Date()) {
     const date = value instanceof Date ? value : new Date(value);
-
     if (Number.isNaN(date.getTime())) return "";
 
     const parts = Object.fromEntries(
@@ -26,51 +25,38 @@
   }
 
   function calendarDayNumber(dateKey) {
-    const [year, month, day] = String(dateKey || "")
-      .split("-")
-      .map(Number);
-
+    const [year, month, day] = String(dateKey || "").split("-").map(Number);
     if (!year || !month || !day) return null;
-
-    return Math.floor(
-      Date.UTC(year, month - 1, day) / 86_400_000,
-    );
+    return Math.floor(Date.UTC(year, month - 1, day) / 86_400_000);
   }
 
   function shouldShowTask(task, now = new Date()) {
     if (!task?.done) return true;
     if (!task.completedAt) return false;
 
-    const completedDate = vietnamDateKey(task.completedAt);
-    const currentDate = vietnamDateKey(now);
-
-    const completedDay = calendarDayNumber(completedDate);
-    const currentDay = calendarDayNumber(currentDate);
-
-    if (completedDay === null || currentDay === null) {
-      return false;
-    }
+    const completedDay = calendarDayNumber(vietnamDateKey(task.completedAt));
+    const currentDay = calendarDayNumber(vietnamDateKey(now));
+    if (completedDay === null || currentDay === null) return false;
 
     const elapsedCalendarDays = currentDay - completedDay;
-
-    /*
-     * Completed on day 23:
-     * - day 23: elapsed 0 → visible
-     * - day 24: elapsed 1 → visible
-     * - day 25: elapsed 2 → hidden
-     */
     return elapsedCalendarDays >= 0
       && elapsedCalendarDays < COMPLETED_TASK_VISIBLE_DAYS;
   }
 
-  root.JoyTodo = Object.freeze({
-    shouldShowTask,
-    vietnamDateKey,
-  });
+  root.JoyTodo = Object.freeze({ shouldShowTask, vietnamDateKey });
 
   if (typeof document === "undefined" || typeof root.fetch !== "function") return;
 
   const nativeFetch = root.fetch.bind(root);
+
+  function loadTasks() {
+    try {
+      const tasks = JSON.parse(root.localStorage.getItem(TODO_STORAGE_KEY));
+      return Array.isArray(tasks) ? tasks : [];
+    } catch {
+      return [];
+    }
+  }
 
   function loadPendingTaskDeletions() {
     try {
@@ -90,7 +76,7 @@
         JSON.stringify([...new Set(ids.map(String).filter(Boolean))]),
       );
     } catch {
-      // The task is still removed from the current page when storage is unavailable.
+      // The current page can still hide the deleted task.
     }
   }
 
@@ -110,14 +96,12 @@
 
   function removeTaskFromLocalStorage(id) {
     try {
-      const tasks = JSON.parse(root.localStorage.getItem(TODO_STORAGE_KEY));
-      if (!Array.isArray(tasks)) return;
       root.localStorage.setItem(
         TODO_STORAGE_KEY,
-        JSON.stringify(tasks.filter((task) => String(task?.id) !== String(id))),
+        JSON.stringify(loadTasks().filter((task) => String(task?.id) !== String(id))),
       );
     } catch {
-      // A cloud deletion can still succeed even when local storage is unavailable.
+      // Cloud deletion may still succeed.
     }
   }
 
@@ -152,7 +136,7 @@
           body: JSON.stringify(filteredTaskPayload(payload, pendingIds)),
         };
       } catch {
-        // Preserve the original request when its body is not JSON.
+        // Keep the original request body.
       }
     }
 
@@ -196,13 +180,12 @@
 
   async function flushPendingTaskDeletions() {
     if (!isCloudDashboard()) return;
-
     for (const id of loadPendingTaskDeletions()) {
       try {
         await deleteCloudTask(id);
         clearTaskDeletion(id);
       } catch {
-        // Keep the id queued and retry on the next page load.
+        // Retry on a later page load.
       }
     }
   }
@@ -213,9 +196,13 @@
     const style = document.createElement("style");
     style.id = "joy-task-delete-styles";
     style.textContent = `
+      #task-list .task-delete-button { display: none !important; }
+      .history-task-row {
+        grid-template-columns: auto minmax(0, 1fr) auto auto !important;
+      }
       .task-delete-button {
-        width: 30px;
-        height: 30px;
+        width: 32px;
+        height: 32px;
         display: inline-grid;
         place-items: center;
         padding: 0;
@@ -244,63 +231,70 @@
         stroke-width: 1.8;
         pointer-events: none;
       }
-      .task-row.joy-task-removing {
+      .history-task-row.joy-task-removing {
         opacity: .45;
         pointer-events: none;
-      }
-      @media (max-width: 760px) {
-        .task-delete-button {
-          width: 34px;
-          height: 34px;
-        }
       }
     `;
     document.head.append(style);
   }
 
-  function decorateTaskRows() {
-    const list = document.querySelector("#task-list");
-    if (!list) return;
+  function taskMatchesHistoryRow(task, dateKey, title, isDone) {
+    return String(task?.createdDate || "") === dateKey
+      && String(task?.title || "").trim() === title
+      && Boolean(task?.done) === isDone;
+  }
 
-    list.querySelectorAll(".task-row").forEach((row) => {
-      if (row.querySelector(".task-delete-button")) return;
+  function decorateHistoryRows() {
+    const history = document.querySelector("#task-history-content");
+    if (!history) return;
 
-      const taskInput = row.querySelector("input[data-task-id]");
-      const id = String(taskInput?.dataset.taskId || "").trim();
-      if (!id) return;
+    history.querySelectorAll(".task-delete-button").forEach((button) => button.remove());
 
-      const title = row.querySelector(".task-title")?.textContent?.trim() || "this task";
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "task-delete-button";
-      button.dataset.joyDeleteTask = id;
-      button.setAttribute("aria-label", `Delete ${title}`);
-      button.title = "Delete task";
-      button.innerHTML = `
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M4 7h16"/>
-          <path d="M9 7V4h6v3"/>
-          <path d="M7 7l1 13h8l1-13"/>
-          <path d="M10 11v5M14 11v5"/>
-        </svg>
-      `;
-      row.append(button);
+    const tasks = loadTasks();
+    const usedIds = new Set();
+
+    history.querySelectorAll(".task-history-group").forEach((group) => {
+      const dateKey = group.querySelector("h3 time")?.getAttribute("datetime") || "";
+
+      group.querySelectorAll(".history-task-row").forEach((row) => {
+        const title = row.querySelector(".history-task-title")?.textContent?.trim() || "";
+        const isDone = row.classList.contains("completed");
+        const task = tasks.find((item) => (
+          !usedIds.has(String(item?.id))
+          && taskMatchesHistoryRow(item, dateKey, title, isDone)
+        ));
+        const id = String(task?.id || "").trim();
+        if (!id) return;
+        usedIds.add(id);
+
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "task-delete-button";
+        button.dataset.joyDeleteTask = id;
+        button.setAttribute("aria-label", `Delete ${title || "task"}`);
+        button.title = "Delete task";
+        button.innerHTML = `
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 7h16"/>
+            <path d="M9 7V4h6v3"/>
+            <path d="M7 7l1 13h8l1-13"/>
+            <path d="M10 11v5M14 11v5"/>
+          </svg>
+        `;
+        row.append(button);
+      });
     });
   }
 
-  function updateOpenTaskCount() {
-    const pill = document.querySelector("#task-count");
-    if (!pill) return;
-    const openTasks = document.querySelectorAll(
-      "#task-list .task-row:not(.completed):not(.joy-task-removing)",
-    ).length;
-    pill.textContent = `${openTasks} open`;
+  function removeDashboardDeleteButtons() {
+    document.querySelectorAll("#task-list .task-delete-button").forEach((button) => button.remove());
   }
 
   async function handleTaskDeletion(button) {
     const id = String(button.dataset.joyDeleteTask || "").trim();
-    const row = button.closest(".task-row");
-    const title = row?.querySelector(".task-title")?.textContent?.trim() || "this task";
+    const row = button.closest(".history-task-row");
+    const title = row?.querySelector(".history-task-title")?.textContent?.trim() || "this task";
     if (!id || !row) return;
 
     const confirmed = root.confirm(`Delete “${title}”?`);
@@ -309,7 +303,6 @@
     button.disabled = true;
     row.classList.add("joy-task-removing");
     removeTaskFromLocalStorage(id);
-    updateOpenTaskCount();
 
     if (isCloudDashboard()) {
       queueTaskDeletion(id);
@@ -317,7 +310,7 @@
         await deleteCloudTask(id);
         clearTaskDeletion(id);
       } catch {
-        // The queued id prevents the task from returning and will retry later.
+        // The queued id keeps the task hidden until deletion can sync.
       }
     }
 
@@ -326,11 +319,20 @@
 
   function startTaskDeletionUi() {
     installDeleteButtonStyles();
-    decorateTaskRows();
+    removeDashboardDeleteButtons();
+    decorateHistoryRows();
 
-    const list = document.querySelector("#task-list");
-    if (list) {
-      new MutationObserver(decorateTaskRows).observe(list, {
+    const taskList = document.querySelector("#task-list");
+    if (taskList) {
+      new MutationObserver(removeDashboardDeleteButtons).observe(taskList, {
+        childList: true,
+        subtree: true,
+      });
+    }
+
+    const history = document.querySelector("#task-history-content");
+    if (history) {
+      new MutationObserver(decorateHistoryRows).observe(history, {
         childList: true,
         subtree: true,
       });
@@ -338,7 +340,7 @@
 
     document.addEventListener("click", (event) => {
       const button = event.target.closest?.(".task-delete-button");
-      if (!button) return;
+      if (!button || !button.closest("#task-history-modal")) return;
       event.preventDefault();
       event.stopPropagation();
       void handleTaskDeletion(button);
