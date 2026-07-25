@@ -1,6 +1,15 @@
 const SESSION_COOKIE = "__Host-joy_session";
 const TASK_DELETE_PATH = "/api/tasks/delete";
 
+const CREATE_TASK_DELETIONS_TABLE = `
+  CREATE TABLE IF NOT EXISTS task_deletions (
+    user_email TEXT NOT NULL,
+    task_id TEXT NOT NULL,
+    deleted_at INTEGER NOT NULL,
+    PRIMARY KEY (user_email, task_id)
+  )
+`;
+
 export function isTaskDeleteRoute(pathname) {
   return pathname === TASK_DELETE_PATH;
 }
@@ -21,16 +30,27 @@ export async function handleTaskDeleteRequest(request, env) {
       return json({ error: "INVALID_TASK_ID" }, 400);
     }
 
-    const result = await env.DB.prepare(`
-      DELETE FROM tasks
-      WHERE id = ? AND user_email = ?
-    `).bind(id, session.user_email).run();
+    await env.DB.prepare(CREATE_TASK_DELETIONS_TABLE).run();
 
-    if (!Number(result.meta?.changes || 0)) {
-      return json({ error: "TASK_NOT_FOUND" }, 404);
-    }
+    const now = Date.now();
+    const results = await env.DB.batch([
+      env.DB.prepare(`
+        INSERT INTO task_deletions (user_email, task_id, deleted_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT(user_email, task_id) DO UPDATE SET
+          deleted_at = excluded.deleted_at
+      `).bind(session.user_email, id, now),
+      env.DB.prepare(`
+        DELETE FROM tasks
+        WHERE id = ? AND user_email = ?
+      `).bind(id, session.user_email),
+    ]);
 
-    return json({ ok: true, id });
+    return json({
+      ok: true,
+      id,
+      removed: Number(results[1]?.meta?.changes || 0) > 0,
+    });
   } catch (error) {
     console.error("Joy task deletion failed", error);
     return json({ error: "TASK_DELETE_FAILED" }, 500);
