@@ -5,6 +5,10 @@ import {
   isPushRoute,
   runRainPushSchedule,
 } from "./push.js";
+import {
+  handleTaskDeleteRequest,
+  isTaskDeleteRoute,
+} from "./task-delete.js";
 
 export default {
   async fetch(request, env, ctx) {
@@ -14,6 +18,9 @@ export default {
     }
     if (isProjectHubRoute(pathname)) {
       return handleProjectHubRequest(request, env);
+    }
+    if (isTaskDeleteRoute(pathname)) {
+      return handleTaskDeleteRequest(request, env);
     }
     return app.fetch(request, env, ctx);
   },
