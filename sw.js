@@ -30,8 +30,8 @@ self.addEventListener("push", (event) => {
 
   event.waitUntil(self.registration.showNotification(notificationTitle, {
     body: notificationBody,
-    icon: data.icon || "/app-icon-192.png",
-    badge: data.badge || "/app-icon-64.png",
+    icon: data.icon || "/joy-blue-icon.png?v=joy-topographic-blue-v1",
+    badge: data.badge || "/joy-blue-icon.png?v=joy-topographic-blue-v1",
     tag: data.tag || "hey-joy-notification",
     renotify: Boolean(data.renotify),
     data: data.data || { url: "/" },

@@ -105,6 +105,7 @@ await Promise.all([
   cp(resolve(root, "app-icon-512.png"), resolve(dist, "app-icon-512.png")),
   cp(resolve(root, "app-icon-old.svg"), resolve(dist, "app-icon-old.svg")),
   cp(resolve(root, "wolf-mark.svg"), resolve(dist, "wolf-mark.svg")),
+  cp(resolve(root, "joy-blue-icon.png"), resolve(dist, "joy-blue-icon.png")),
   cp(resolve(root, "site.webmanifest"), resolve(dist, "site.webmanifest")),
   ...fontFiles.map(([family, file]) => cp(
     resolve(root, "node_modules", "@fontsource", family, "files", file),
