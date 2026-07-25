@@ -7,6 +7,11 @@
 .joy-account-copy {
   min-width: 0;
   display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
 }
 
 .joy-account-copy strong,
@@ -60,7 +65,95 @@
   stroke-width: 1.8;
 }
 
+.header-avatar[data-action="open-account"] { cursor: pointer; }
+
+.joy-account-modal { width: min(480px, 100%); }
+
+.joy-account-identity {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 14px;
+  border: 1px solid #d5d1ca;
+  border-radius: 15px;
+  background: #fbfaf7;
+}
+
+.joy-account-identity > span:last-child { min-width: 0; }
+.joy-account-identity strong,
+.joy-account-identity small { display: block; }
+.joy-account-identity small {
+  max-width: 310px;
+  margin-top: 2px;
+  overflow: hidden;
+  color: #747b7d;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.joy-account-wolf {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: #202529;
+}
+.joy-account-wolf img { width: 31px; height: 31px; }
+
+.joy-integration-list {
+  display: grid;
+  gap: 9px;
+  margin-top: 16px;
+}
+
+.joy-integration-row {
+  min-height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 13px;
+  border: 1px solid #d8d4cd;
+  border-radius: 14px;
+  background: #f8f6f2;
+}
+
+.joy-integration-row strong,
+.joy-integration-row small { display: block; }
+.joy-integration-row small { margin-top: 2px; color: #777d7d; font-size: 10px; }
+.joy-integration-row button {
+  min-width: 88px;
+  padding: 8px 11px;
+  border: 1px solid #536f61;
+  border-radius: 10px;
+  background: #536f61;
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+}
+.joy-integration-row button.connected {
+  border-color: #cbc5bc;
+  background: #fbfaf7;
+  color: #6d7474;
+}
+
+.joy-account-signout {
+  width: 100%;
+  margin-top: 16px;
+  padding: 11px 14px;
+  border: 1px solid #d6c3bf;
+  border-radius: 12px;
+  background: #f5e9e6;
+  color: #8d4f47;
+  font-weight: 800;
+}
+
 @media (max-width: 760px) {
   .joy-account-copy small,
   .joy-account-copy em { max-width: none; }
+  .joy-account-modal { width: min(440px, 100%); }
+  .joy-account-identity small { max-width: 240px; }
 }
