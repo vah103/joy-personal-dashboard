@@ -49,24 +49,21 @@
 
   const nativeFetch = root.fetch.bind(root);
 
-  function loadTasks() {
+  function readStoredArray(key) {
     try {
-      const tasks = JSON.parse(root.localStorage.getItem(TODO_STORAGE_KEY));
-      return Array.isArray(tasks) ? tasks : [];
+      const value = JSON.parse(root.localStorage.getItem(key));
+      return Array.isArray(value) ? value : [];
     } catch {
       return [];
     }
   }
 
+  function loadTasks() {
+    return readStoredArray(TODO_STORAGE_KEY);
+  }
+
   function loadPendingTaskDeletions() {
-    try {
-      const saved = JSON.parse(root.localStorage.getItem(TODO_PENDING_DELETIONS_KEY));
-      return Array.isArray(saved)
-        ? [...new Set(saved.map(String).filter(Boolean))]
-        : [];
-    } catch {
-      return [];
-    }
+    return [...new Set(readStoredArray(TODO_PENDING_DELETIONS_KEY).map(String).filter(Boolean))];
   }
 
   function savePendingTaskDeletions(ids) {
@@ -76,7 +73,7 @@
         JSON.stringify([...new Set(ids.map(String).filter(Boolean))]),
       );
     } catch {
-      // The current page can still hide the deleted task.
+      // A cloud deletion can still succeed when local storage is unavailable.
     }
   }
 
@@ -101,7 +98,7 @@
         JSON.stringify(loadTasks().filter((task) => String(task?.id) !== String(id))),
       );
     } catch {
-      // Cloud deletion may still succeed.
+      // The queued cloud deletion still prevents the task from returning.
     }
   }
 
@@ -180,6 +177,7 @@
 
   async function flushPendingTaskDeletions() {
     if (!isCloudDashboard()) return;
+
     for (const id of loadPendingTaskDeletions()) {
       try {
         await deleteCloudTask(id);
@@ -245,19 +243,41 @@
       && Boolean(task?.done) === isDone;
   }
 
+  function buildDeleteButton(id, title) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "task-delete-button";
+    button.dataset.joyDeleteTask = id;
+    button.setAttribute("aria-label", `Delete ${title || "task"}`);
+    button.title = "Delete task";
+    button.innerHTML = `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 7h16"/>
+        <path d="M9 7V4h6v3"/>
+        <path d="M7 7l1 13h8l1-13"/>
+        <path d="M10 11v5M14 11v5"/>
+      </svg>
+    `;
+    return button;
+  }
+
   function decorateHistoryRows() {
     const history = document.querySelector("#task-history-content");
     if (!history) return;
 
-    history.querySelectorAll(".task-delete-button").forEach((button) => button.remove());
-
     const tasks = loadTasks();
-    const usedIds = new Set();
+    const usedIds = new Set(
+      [...history.querySelectorAll(".task-delete-button")]
+        .map((button) => String(button.dataset.joyDeleteTask || ""))
+        .filter(Boolean),
+    );
 
     history.querySelectorAll(".task-history-group").forEach((group) => {
       const dateKey = group.querySelector("h3 time")?.getAttribute("datetime") || "";
 
       group.querySelectorAll(".history-task-row").forEach((row) => {
+        if (row.querySelector(".task-delete-button")) return;
+
         const title = row.querySelector(".history-task-title")?.textContent?.trim() || "";
         const isDone = row.classList.contains("completed");
         const task = tasks.find((item) => (
@@ -266,29 +286,11 @@
         ));
         const id = String(task?.id || "").trim();
         if (!id) return;
-        usedIds.add(id);
 
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "task-delete-button";
-        button.dataset.joyDeleteTask = id;
-        button.setAttribute("aria-label", `Delete ${title || "task"}`);
-        button.title = "Delete task";
-        button.innerHTML = `
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 7h16"/>
-            <path d="M9 7V4h6v3"/>
-            <path d="M7 7l1 13h8l1-13"/>
-            <path d="M10 11v5M14 11v5"/>
-          </svg>
-        `;
-        row.append(button);
+        usedIds.add(id);
+        row.append(buildDeleteButton(id, title));
       });
     });
-  }
-
-  function removeDashboardDeleteButtons() {
-    document.querySelectorAll("#task-list .task-delete-button").forEach((button) => button.remove());
   }
 
   async function handleTaskDeletion(button) {
@@ -297,8 +299,7 @@
     const title = row?.querySelector(".history-task-title")?.textContent?.trim() || "this task";
     if (!id || !row) return;
 
-    const confirmed = root.confirm(`Delete “${title}”?`);
-    if (!confirmed) return;
+    if (!root.confirm(`Delete “${title}”?`)) return;
 
     button.disabled = true;
     row.classList.add("joy-task-removing");
@@ -310,7 +311,7 @@
         await deleteCloudTask(id);
         clearTaskDeletion(id);
       } catch {
-        // The queued id keeps the task hidden until deletion can sync.
+        // Keep the id queued so the task stays hidden and retries later.
       }
     }
 
@@ -319,16 +320,7 @@
 
   function startTaskDeletionUi() {
     installDeleteButtonStyles();
-    removeDashboardDeleteButtons();
     decorateHistoryRows();
-
-    const taskList = document.querySelector("#task-list");
-    if (taskList) {
-      new MutationObserver(removeDashboardDeleteButtons).observe(taskList, {
-        childList: true,
-        subtree: true,
-      });
-    }
 
     const history = document.querySelector("#task-history-content");
     if (history) {
