@@ -1,12 +1,16 @@
 import { buildPushPayload } from "@block65/webcrypto-web-push";
 
 const SESSION_COOKIE = "__Host-joy_session";
+const PLACE_NAME = "Hanoi";
 const WEATHER_ENDPOINT = "https://api.open-meteo.com/v1/forecast?latitude=21.0285&longitude=105.8542&hourly=precipitation_probability,precipitation,weather_code&timezone=Asia%2FHo_Chi_Minh&forecast_days=1";
 const CHECK_EVERY_MINUTES = 5;
+const DAILY_WEATHER_HOUR = 7;
 const HIGH_PROBABILITY = 70;
 const VERY_HIGH_PROBABILITY = 80;
 const SUPPORTING_AMOUNT_MM = 0.3;
 const STRONG_AMOUNT_MM = 1;
+const ANY_RAIN_PROBABILITY = 40;
+const ANY_RAIN_AMOUNT_MM = 0.1;
 
 export function isPushRoute(pathname) {
   return pathname.startsWith("/api/push/");
@@ -43,7 +47,8 @@ export async function handlePushRequest(request, env) {
 
 export async function runRainPushSchedule(env) {
   if (!hasPushConfig(env)) return;
-  if (new Date().getUTCMinutes() % CHECK_EVERY_MINUTES !== 0) return;
+  const now = new Date();
+  if (now.getUTCMinutes() % CHECK_EVERY_MINUTES !== 0) return;
 
   const active = await env.DB.prepare(
     "SELECT COUNT(*) AS count FROM push_subscriptions",
@@ -51,17 +56,17 @@ export async function runRainPushSchedule(env) {
   if (!Number(active?.count || 0)) return;
 
   try {
-    const forecast = await fetchRainForecast();
-    const summary = summarizeRainForecast(forecast?.hourly, new Date());
+    const forecast = await fetchWeatherForecast();
+    const summary = summarizeWeatherForecast(forecast?.hourly, now);
     const users = await env.DB.prepare(
       "SELECT DISTINCT user_email FROM push_subscriptions",
     ).all();
 
     await Promise.allSettled(
-      users.results.map(({ user_email: email }) => processRainSummary(email, summary, env)),
+      users.results.map(({ user_email: email }) => processWeatherSummary(email, summary, env)),
     );
   } catch (error) {
-    console.error("Hey Joy rain notification check failed", error);
+    console.error("Hey Joy weather notification check failed", error);
   }
 }
 
@@ -130,20 +135,49 @@ async function sendTestNotification(request, email, env) {
   return json({ ok: true, sent: result.sent });
 }
 
-async function processRainSummary(email, summary, env) {
+async function processWeatherSummary(email, summary, env) {
   const current = await env.DB.prepare(`
     SELECT last_window_key
     FROM rain_notification_state
     WHERE user_email = ?
   `).bind(email).first();
-  const previousKey = String(current?.last_window_key || "");
+  const state = parseWeatherState(current?.last_window_key);
+  let stateChanged = false;
 
-  if (!summary.windowKey) {
-    if (previousKey) await saveRainState(email, "", 0, env);
-    return;
+  if (!summary.rainKey && state.rainKey) {
+    state.rainKey = "";
+    stateChanged = true;
   }
 
-  if (summary.windowKey === previousKey) return;
+  const pending = [];
+  if (summary.rainKey && summary.rainKey !== state.rainKey) {
+    pending.push({
+      kind: "rain",
+      body: `Heavy rain is expected in ${PLACE_NAME} at ${summary.rainWindowText}.`,
+      tag: "hey-joy-rain",
+      topic: "hey-joy-rain",
+      ttl: 30 * 60,
+      urgency: "high",
+    });
+  }
+
+  if (summary.dailyKind && state.dailyDate !== summary.dateKey) {
+    pending.push({
+      kind: summary.dailyKind,
+      body: summary.dailyKind === "sunny"
+        ? "It's a sunny day."
+        : "No rain is expected.",
+      tag: "hey-joy-weather-daily",
+      topic: "hey-joy-weather-daily",
+      ttl: 6 * 60 * 60,
+      urgency: "normal",
+    });
+  }
+
+  if (!pending.length) {
+    if (stateChanged) await saveWeatherState(email, state, 0, env);
+    return;
+  }
 
   const subscriptions = await env.DB.prepare(`
     SELECT endpoint, p256dh, auth
@@ -152,22 +186,56 @@ async function processRainSummary(email, summary, env) {
   `).bind(email).all();
   if (!subscriptions.results.length) return;
 
-  const result = await sendPushRows(subscriptions.results, {
-    title: "Hey Joy! · Dự báo mưa mới",
-    body: `Khả năng mưa mạnh tại Hà Nội: ${summary.windowText}.`,
-    icon: "/app-icon-192.png",
-    badge: "/app-icon-64.png",
-    tag: "hey-joy-rain",
-    renotify: true,
-    data: { url: "/", kind: "rain", windowKey: summary.windowKey },
-  }, env, { ttl: 30 * 60, topic: "hey-joy-rain", urgency: "high" });
+  let notifiedAt = 0;
+  for (const notification of pending) {
+    const result = await sendPushRows(subscriptions.results, {
+      title: "Weather update",
+      body: notification.body,
+      icon: "/app-icon-192.png",
+      badge: "/app-icon-64.png",
+      tag: notification.tag,
+      renotify: notification.kind === "rain",
+      data: {
+        url: "/",
+        kind: notification.kind,
+        ...(summary.rainKey ? { windowKey: summary.rainKey } : {}),
+      },
+    }, env, {
+      ttl: notification.ttl,
+      topic: notification.topic,
+      urgency: notification.urgency,
+    });
 
-  if (result.sent > 0) {
-    await saveRainState(email, summary.windowKey, Date.now(), env);
+    if (result.sent > 0) {
+      notifiedAt = Date.now();
+      stateChanged = true;
+      if (notification.kind === "rain") state.rainKey = summary.rainKey;
+      else state.dailyDate = summary.dateKey;
+    }
+  }
+
+  if (stateChanged) await saveWeatherState(email, state, notifiedAt, env);
+}
+
+function parseWeatherState(value) {
+  const stored = String(value || "").trim();
+  if (!stored) return { rainKey: "", dailyDate: "" };
+  try {
+    const parsed = JSON.parse(stored);
+    return {
+      rainKey: String(parsed?.rainKey || ""),
+      dailyDate: String(parsed?.dailyDate || ""),
+    };
+  } catch {
+    return { rainKey: stored, dailyDate: "" };
   }
 }
 
-async function saveRainState(email, windowKey, notifiedAt, env) {
+async function saveWeatherState(email, state, notifiedAt, env) {
+  const stateKey = JSON.stringify({
+    rainKey: String(state.rainKey || ""),
+    dailyDate: String(state.dailyDate || ""),
+  });
   await env.DB.prepare(`
     INSERT INTO rain_notification_state (
       user_email, last_window_key, last_notified_at, updated_at
@@ -176,7 +244,7 @@ async function saveRainState(email, windowKey, notifiedAt, env) {
       last_window_key = excluded.last_window_key,
       last_notified_at = excluded.last_notified_at,
       updated_at = excluded.updated_at
-  `).bind(email, windowKey, notifiedAt, Date.now()).run();
+  `).bind(email, stateKey, notifiedAt, Date.now()).run();
 }
 
 async function sendPushRows(rows, payload, env, options = {}) {
@@ -234,7 +302,7 @@ async function sendPushRows(rows, payload, env, options = {}) {
   return { sent, failed };
 }
 
-async function fetchRainForecast() {
+async function fetchWeatherForecast() {
   const response = await fetch(WEATHER_ENDPOINT, {
     headers: { Accept: "application/json" },
   });
@@ -242,7 +310,7 @@ async function fetchRainForecast() {
   return response.json();
 }
 
-function summarizeRainForecast(hourly, now) {
+function summarizeWeatherForecast(hourly, now) {
   const times = Array.isArray(hourly?.time) ? hourly.time : [];
   const probabilities = Array.isArray(hourly?.precipitation_probability)
     ? hourly.precipitation_probability
@@ -253,11 +321,20 @@ function summarizeRainForecast(hourly, now) {
   const weatherCodes = Array.isArray(hourly?.weather_code)
     ? hourly.weather_code
     : [];
-  if (!times.length) return { windowKey: "", windowText: "" };
-
   const current = vietnamClock(now);
+  if (!times.length) {
+    return {
+      dateKey: current.dateKey,
+      rainKey: "",
+      rainWindowText: "",
+      dailyKind: "",
+    };
+  }
+
   const currentMinute = current.hour * 60 + current.minute;
   const strongHours = [];
+  const futureHours = [];
+  const daylightHours = [];
 
   times.forEach((time, index) => {
     const value = String(time || "");
@@ -266,8 +343,6 @@ function summarizeRainForecast(hourly, now) {
     const endHour = Number(value.slice(11, 13));
     if (!Number.isInteger(endHour) || endHour <= 0) return;
     const startHour = endHour - 1;
-    if (endHour * 60 <= currentMinute) return;
-
     const entry = {
       startHour,
       endHour,
@@ -275,25 +350,53 @@ function summarizeRainForecast(hourly, now) {
       amount: Number(precipitation[index] || 0),
       weatherCode: Number(weatherCodes[index]),
     };
+
+    if (startHour >= 6 && startHour < 18) daylightHours.push(entry);
+    if (endHour * 60 <= currentMinute) return;
+    futureHours.push(entry);
     if (hasStrongRainSignal(entry)) strongHours.push(entry);
   });
 
-  if (!strongHours.length) return { windowKey: "", windowText: "" };
+  if (strongHours.length) {
+    const groups = [];
+    strongHours.forEach((entry) => {
+      const group = groups.at(-1);
+      const previous = group?.at(-1);
+      if (!previous || entry.startHour !== previous.endHour) groups.push([entry]);
+      else group.push(entry);
+    });
 
-  const groups = [];
-  strongHours.forEach((entry) => {
-    const group = groups.at(-1);
-    const previous = group?.at(-1);
-    if (!previous || entry.startHour !== previous.endHour) groups.push([entry]);
-    else group.push(entry);
-  });
+    const windows = groups.map((group) => (
+      `${hourLabel(group[0].startHour)}–${hourLabel(group.at(-1).endHour)}`
+    ));
+    return {
+      dateKey: current.dateKey,
+      rainKey: `${current.dateKey}|rain|${windows.join("|")}`,
+      rainWindowText: windows.join(" and "),
+      dailyKind: "",
+    };
+  }
 
-  const windows = groups.map((group) => (
-    `${hourLabel(group[0].startHour)}–${hourLabel(group.at(-1).endHour)}`
-  ));
+  if (current.hour < DAILY_WEATHER_HOUR || futureHours.some(hasAnyRainSignal)) {
+    return {
+      dateKey: current.dateKey,
+      rainKey: "",
+      rainWindowText: "",
+      dailyKind: "",
+    };
+  }
+
+  const sunnyHours = daylightHours.filter(({ weatherCode }) => (
+    weatherCode === 0 || weatherCode === 1
+  )).length;
+  const isSunny = daylightHours.length >= 4
+    && sunnyHours >= Math.ceil(daylightHours.length / 2);
+
   return {
-    windowKey: `${current.dateKey}|${windows.join("|")}`,
-    windowText: windows.join(" và "),
+    dateKey: current.dateKey,
+    rainKey: "",
+    rainWindowText: "",
+    dailyKind: isSunny ? "sunny" : "dry",
   };
 }
 
@@ -301,6 +404,11 @@ function hasStrongRainSignal({ probability, amount, weatherCode }) {
   return (probability >= HIGH_PROBABILITY && amount >= SUPPORTING_AMOUNT_MM)
     || amount >= STRONG_AMOUNT_MM
     || (probability >= VERY_HIGH_PROBABILITY && isRainWeatherCode(weatherCode));
+}
+
+function hasAnyRainSignal({ probability, amount, weatherCode }) {
+  return amount >= ANY_RAIN_AMOUNT_MM
+    || (probability >= ANY_RAIN_PROBABILITY && isRainWeatherCode(weatherCode));
 }
 
 function isRainWeatherCode(code) {
