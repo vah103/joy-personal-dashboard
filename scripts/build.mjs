@@ -47,7 +47,7 @@ const cloudflareHtml = sourceHtml
   .replace('<title>Joy — Personal Dashboard</title>', '<title>Hey Joy! — Personal Dashboard</title>')
   .replace('aria-label="Joy overview"', 'aria-label="Hey Joy! overview"')
   .replace('<p class="section-kicker" id="brief-title">Joy</p>', '<p class="section-kicker" id="brief-title">Hey Joy!</p>')
-  .replace('site.webmanifest?v=joy-original-wolf-v2', 'site.webmanifest?v=hey-joy-push-v1')
+  .replace('site.webmanifest?v=joy-original-wolf-v2', 'site.webmanifest?v=joy-old-blue-wolf-v3')
   .replace(
     "</head>",
     `${projectHubHead}    <meta name="joy-backend" content="cloudflare">\n  </head>`,
@@ -103,6 +103,7 @@ await Promise.all([
   cp(resolve(root, "app-icon-64.png"), resolve(dist, "app-icon-64.png")),
   cp(resolve(root, "app-icon-192.png"), resolve(dist, "app-icon-192.png")),
   cp(resolve(root, "app-icon-512.png"), resolve(dist, "app-icon-512.png")),
+  cp(resolve(root, "app-icon-old.svg"), resolve(dist, "app-icon-old.svg")),
   cp(resolve(root, "wolf-mark.svg"), resolve(dist, "wolf-mark.svg")),
   cp(resolve(root, "site.webmanifest"), resolve(dist, "site.webmanifest")),
   ...fontFiles.map(([family, file]) => cp(
