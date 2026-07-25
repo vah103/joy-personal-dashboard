@@ -6,11 +6,19 @@ const browserSource = fs.readFileSync(new URL("../todo-visibility.js", import.me
 const routerSource = fs.readFileSync(new URL("../worker/router.js", import.meta.url), "utf8");
 const workerSource = fs.readFileSync(new URL("../worker/task-delete.js", import.meta.url), "utf8");
 
-test("to-do rows expose a confirmed delete control", () => {
+test("to-do history exposes a confirmed delete control", () => {
   assert.ok(browserSource.includes('className = "task-delete-button"'));
   assert.ok(browserSource.includes("root.confirm"));
   assert.ok(browserSource.includes('TASK_DELETE_ENDPOINT = "/api/tasks/delete"'));
   assert.ok(browserSource.includes("removeTaskFromLocalStorage(id)"));
+  assert.ok(browserSource.includes('button.closest("#task-history-modal")'));
+});
+
+test("task history decoration cannot trigger an infinite mutation loop", () => {
+  assert.ok(browserSource.includes('if (row.querySelector(".task-delete-button")) return;'));
+  assert.ok(!browserSource.includes(
+    'history.querySelectorAll(".task-delete-button").forEach((button) => button.remove())',
+  ));
 });
 
 test("pending task deletions cannot be re-imported during sync", () => {
