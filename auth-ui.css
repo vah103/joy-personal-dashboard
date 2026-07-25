@@ -1,0 +1,66 @@
+.profile-card.joy-account-card {
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.joy-account-copy {
+  min-width: 0;
+  display: block;
+}
+
+.joy-account-copy strong,
+.joy-account-copy small,
+.joy-account-copy em {
+  display: block;
+}
+
+.joy-account-copy small,
+.joy-account-copy em {
+  max-width: 132px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.joy-account-copy em {
+  margin-top: 3px;
+  color: #838a8f;
+  font-size: 9px;
+  font-style: normal;
+}
+
+.joy-signout-button {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, .09);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .045);
+  color: #aeb4b7;
+}
+
+.joy-signout-button:hover,
+.joy-signout-button:focus-visible {
+  border-color: rgba(255, 255, 255, .18);
+  background: rgba(255, 255, 255, .09);
+  color: #f2efea;
+}
+
+.joy-signout-button svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+@media (max-width: 760px) {
+  .joy-account-copy small,
+  .joy-account-copy em { max-width: none; }
+}
