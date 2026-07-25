@@ -24,8 +24,14 @@ test("PWA installs with the restored blue wolf icon", () => {
   assert.ok(manifest.icons.every((icon) => !String(icon.purpose).includes("maskable")));
 });
 
+test("blue icon uses a fresh PWA identity instead of Android's cached black app", () => {
+  assert.equal(manifest.id, "/?pwa=blue-wolf-v4");
+  assert.equal(manifest.start_url, "/?pwa=blue-wolf-v4");
+  assert.equal(manifest.theme_color, "#627A82");
+});
+
 test("Cloudflare build includes and cache-busts the restored icon", () => {
   assert.ok(restoredIcon.includes("data:image/jpeg;base64,"));
   assert.ok(buildSource.includes('cp(resolve(root, "app-icon-old.svg")'));
-  assert.ok(buildSource.includes("joy-old-blue-wolf-v3"));
+  assert.ok(buildSource.includes("joy-blue-wolf-v4"));
 });
