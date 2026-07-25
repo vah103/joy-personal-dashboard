@@ -29,6 +29,7 @@ const projectHubHead = [
   '    <link rel="stylesheet" href="turtlebot-card-art.css?v=restored-card-v6">\n',
   '    <link rel="stylesheet" href="project-data/ielts/ielts-card.css?v=ielts-card-v2">\n',
   '    <link rel="stylesheet" href="mobile-notifications.css?v=iphone-rain-bell-v1">\n',
+  '    <link rel="stylesheet" href="auth-ui.css?v=joy-google-account-v1">\n',
 ].join("");
 const projectHubScripts = [
   '    <script src="project-hub-performance.js?v=turtlebot-hub-v3" defer></script>\n',
@@ -37,6 +38,7 @@ const projectHubScripts = [
   '    <script src="project-hub-actions.js?v=turtlebot-hub-v3" defer></script>\n',
   '    <script src="project-data/ielts/ielts-card.js?v=ielts-card-v2" defer></script>\n',
   '    <script src="push-notifications.js?v=rain-push-v2" defer></script>\n',
+  '    <script src="auth-ui.js?v=joy-google-account-v1" defer></script>\n',
 ].join("");
 
 const sourceHtml = await readFile(resolve(root, "index.html"), "utf8");
@@ -64,6 +66,10 @@ const cloudflareSaleHtml = sourceSaleHtml
 await writeFile(resolve(dist, "index.html"), cloudflareHtml);
 await writeFile(resolve(dist, "sale-manager.html"), cloudflareSaleHtml);
 await Promise.all([
+  cp(resolve(root, "login.html"), resolve(dist, "login.html")),
+  cp(resolve(root, "login.css"), resolve(dist, "login.css")),
+  cp(resolve(root, "auth-ui.js"), resolve(dist, "auth-ui.js")),
+  cp(resolve(root, "auth-ui.css"), resolve(dist, "auth-ui.css")),
   cp(resolve(root, "app.js"), resolve(dist, "app.js")),
   cp(resolve(root, "project-details.js"), resolve(dist, "project-details.js")),
   cp(resolve(root, "project-details.css"), resolve(dist, "project-details.css")),
