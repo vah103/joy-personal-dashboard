@@ -9,6 +9,10 @@ import {
   handleTaskDeleteRequest,
   isTaskDeleteRoute,
 } from "./task-delete.js";
+import {
+  handleTaskImportRequest,
+  isTaskImportRoute,
+} from "./task-sync.js";
 
 export default {
   async fetch(request, env, ctx) {
@@ -21,6 +25,9 @@ export default {
     }
     if (isTaskDeleteRoute(pathname)) {
       return handleTaskDeleteRequest(request, env);
+    }
+    if (isTaskImportRoute(pathname)) {
+      return handleTaskImportRequest(request, env);
     }
     return app.fetch(request, env, ctx);
   },
