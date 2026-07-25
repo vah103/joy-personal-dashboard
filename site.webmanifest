@@ -1,23 +1,24 @@
 {
-  "id": "/",
+  "id": "/?pwa=blue-wolf-v4",
   "name": "Hey Joy! — Personal Dashboard",
   "short_name": "Hey Joy!",
   "description": "Vanh's personal dashboard for projects, tasks, sales, email, and finance.",
-  "start_url": "/",
+  "start_url": "/?pwa=blue-wolf-v4",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#627A82",
   "theme_color": "#627A82",
   "icons": [
     {
-      "src": "app-icon-192.png?v=joy-old-blue-wolf-v3",
-      "sizes": "192x192",
-      "type": "image/png",
+      "src": "app-icon-old.svg?v=joy-blue-wolf-v4",
+      "sizes": "any",
+      "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "app-icon-old.svg?v=joy-old-blue-wolf-v3",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "app-icon-192.png?v=joy-blue-wolf-v4",
+      "sizes": "192x192",
+      "type": "image/png",
       "purpose": "any"
     }
   ]
