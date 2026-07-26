@@ -1,0 +1,429 @@
+@font-face {
+  font-family: "Nunito";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url("fonts/nunito-latin-400-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Nunito";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url("fonts/nunito-latin-600-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Nunito";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url("fonts/nunito-latin-700-normal.woff2") format("woff2");
+}
+
+#to-do,
+#joy-task-modal,
+#joy-focus-modal {
+  --joy-task-blue: #526f7c;
+  --joy-task-blue-soft: rgba(190, 210, 218, .66);
+  --joy-task-green: #597868;
+  --joy-task-paper: rgba(247, 245, 239, .78);
+  --joy-task-border: rgba(69, 79, 82, .18);
+  font-family: "Nunito", ui-rounded, system-ui, sans-serif;
+}
+
+#quick-add-form.quick-add {
+  grid-template-columns: minmax(0, 1fr) 42px 52px;
+  gap: 9px;
+}
+
+.joy-reminder-toggle {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--joy-task-border);
+  border-radius: 13px;
+  background: rgba(248, 247, 243, .54);
+  color: #607078;
+  box-shadow: inset 0 1px rgba(255,255,255,.58);
+}
+
+.joy-reminder-toggle:hover,
+.joy-reminder-toggle.active {
+  border-color: rgba(72, 103, 117, .3);
+  background: var(--joy-task-blue-soft);
+  color: #3f5d69;
+}
+
+.joy-reminder-toggle svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.joy-reminder-composer {
+  margin: -1px 20px 0;
+  padding: 13px;
+  border: 1px solid var(--joy-task-border);
+  border-radius: 0 0 16px 16px;
+  background: rgba(236, 236, 231, .8);
+  box-shadow: inset 0 1px rgba(255,255,255,.46);
+}
+
+.joy-reminder-fields {
+  display: grid;
+  grid-template-columns: 1fr .8fr 1fr auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.joy-reminder-fields label,
+.joy-task-modal label,
+.joy-focus-modal label {
+  display: grid;
+  gap: 5px;
+  color: #6e7476;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.joy-reminder-fields input,
+.joy-reminder-fields select,
+.joy-task-modal input,
+.joy-task-modal select,
+.joy-focus-modal input {
+  min-width: 0;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid rgba(67, 75, 77, .17);
+  border-radius: 10px;
+  background: rgba(250, 249, 245, .82);
+  color: #303638;
+  font-family: "Nunito", ui-rounded, system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.joy-notify-switch {
+  min-width: 48px;
+  justify-items: center;
+}
+
+.joy-notify-switch input,
+.joy-focus-enabled input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.joy-notify-switch i,
+.joy-focus-enabled i {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  display: block;
+  border-radius: 999px;
+  background: #c9cdcc;
+  box-shadow: inset 0 1px 3px rgba(40,45,46,.14);
+}
+
+.joy-notify-switch i::after,
+.joy-focus-enabled i::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #f8f6f1;
+  box-shadow: 0 2px 7px rgba(40,45,46,.2);
+  transition: transform 160ms ease;
+}
+
+.joy-notify-switch input:checked + i,
+.joy-focus-enabled input:checked + i {
+  background: var(--joy-task-green);
+}
+
+.joy-notify-switch input:checked + i::after,
+.joy-focus-enabled input:checked + i::after {
+  transform: translateX(18px);
+}
+
+.joy-weekday-picker {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.joy-weekday-picker button {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid rgba(70, 77, 78, .17);
+  border-radius: 9px;
+  background: rgba(248, 247, 243, .62);
+  color: #73797b;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.joy-weekday-picker button.active {
+  border-color: #617e89;
+  background: #617e89;
+  color: white;
+}
+
+.joy-reminder-hint {
+  margin: 9px 1px 0;
+  color: #7a8081;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.joy-task-toolbar {
+  margin: 10px 20px 2px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.joy-task-filters {
+  display: flex;
+  gap: 5px;
+  padding: 4px;
+  border: 1px solid rgba(72, 79, 80, .14);
+  border-radius: 12px;
+  background: rgba(222, 223, 219, .55);
+}
+
+.joy-task-filters button,
+.joy-focus-button {
+  min-height: 30px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #707779;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.joy-task-filters button.active {
+  background: rgba(249, 247, 242, .9);
+  color: #405d69;
+  box-shadow: 0 5px 14px rgba(48,53,53,.08), inset 0 1px white;
+}
+
+.joy-focus-button {
+  border: 1px solid rgba(72, 79, 80, .15);
+  background: rgba(248, 247, 243, .5);
+  color: #53676f;
+}
+
+.joy-focus-button.active {
+  border-color: rgba(73, 112, 91, .28);
+  background: rgba(193, 216, 202, .72);
+  color: #426250;
+}
+
+#task-list .joy-task-row {
+  cursor: pointer;
+}
+
+#task-list .joy-task-row .checkmark {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+
+#task-list .joy-task-row .task-title {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: end;
+}
+
+#task-list .joy-task-row > time {
+  grid-column: 3;
+  grid-row: 1;
+  align-self: end;
+}
+
+#task-list .joy-task-meta {
+  grid-column: 2 / 4;
+  grid-row: 2;
+  min-width: 0;
+  margin-top: 2px;
+  overflow: hidden;
+  color: #69787e;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#task-list .joy-task-meta[data-state="repeating"] { color: #557364; }
+#task-list .joy-task-meta[data-state="snoozed"] { color: #84694e; }
+#task-list .joy-task-meta[data-state="overdue"] { color: #9a5d52; }
+#task-list .joy-task-row.joy-task-overdue { background: linear-gradient(90deg, rgba(235, 207, 201, .22), transparent); }
+#task-list .joy-filter-empty { margin: 10px 0 0; }
+
+.joy-task-modal,
+.joy-focus-modal {
+  width: min(480px, 100%);
+}
+
+.joy-modal-close {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(69, 76, 78, .16);
+  border-radius: 10px;
+  background: rgba(249, 247, 242, .7);
+  color: #707678;
+  font-size: 20px;
+}
+
+#joy-task-detail-form,
+#joy-focus-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.joy-task-title-field input { height: 44px; font-size: 14px; }
+
+.joy-task-detail-grid,
+.joy-focus-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.joy-detail-notify {
+  justify-items: start;
+  align-content: end;
+}
+
+.joy-task-status,
+.joy-focus-next {
+  margin: 0;
+  padding: 10px 11px;
+  border: 1px solid rgba(70, 78, 80, .13);
+  border-radius: 11px;
+  background: rgba(225, 228, 225, .52);
+  color: #647074;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.joy-snooze-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.joy-snooze-actions > span {
+  margin-right: 2px;
+  color: #777d7e;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.joy-snooze-actions button {
+  padding: 7px 9px;
+  border: 1px solid rgba(76, 85, 87, .14);
+  border-radius: 9px;
+  background: rgba(248, 247, 243, .68);
+  color: #5c6b70;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.joy-task-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.joy-task-modal-actions .primary-button { margin-left: auto; }
+
+.joy-danger-link,
+.joy-secondary-link {
+  padding: 8px 4px;
+  border: 0;
+  background: transparent;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.joy-danger-link { color: #9a5d52; }
+.joy-secondary-link { color: #68777d; }
+
+.joy-focus-enabled {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(69, 76, 78, .15);
+  border-radius: 13px;
+  background: rgba(237, 236, 231, .66);
+}
+
+.joy-focus-enabled span { display: block; }
+.joy-focus-enabled strong,
+.joy-focus-enabled small { display: block; }
+.joy-focus-enabled strong { color: #343a3c; font-size: 12px; }
+.joy-focus-enabled small { margin-top: 2px; color: #797f80; font-size: 9px; font-weight: 600; }
+
+@media (max-width: 760px) {
+  #quick-add-form.quick-add {
+    grid-template-columns: minmax(0, 1fr) 40px 48px;
+    gap: 7px;
+  }
+
+  .joy-reminder-toggle { width: 40px; height: 40px; }
+  .joy-reminder-composer { margin-inline: 14px; }
+  .joy-reminder-fields { grid-template-columns: 1fr 1fr; }
+  .joy-notify-switch { justify-items: start; }
+  .joy-task-toolbar { margin-inline: 14px; }
+  .joy-task-filters button { padding-inline: 8px; }
+  #task-list .joy-task-row {
+    grid-template-columns: 24px minmax(0, 1fr) !important;
+    grid-template-rows: auto auto;
+    min-height: 54px;
+    padding-block: 8px;
+  }
+  #task-list .joy-task-row > time { display: none !important; }
+  #task-list .joy-task-meta { grid-column: 2; white-space: normal; }
+  .joy-task-modal,
+  .joy-focus-modal { width: min(440px, 100%); }
+}
+
+@media (max-width: 430px) {
+  .joy-task-toolbar { align-items: stretch; flex-direction: column; }
+  .joy-task-filters { display: grid; grid-template-columns: repeat(3, 1fr); }
+  .joy-focus-button { align-self: flex-end; }
+  .joy-task-detail-grid,
+  .joy-focus-grid { grid-template-columns: 1fr; }
+  .joy-task-modal-actions { flex-wrap: wrap; }
+  .joy-task-modal-actions .primary-button { width: 100%; margin-left: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .joy-notify-switch i::after,
+  .joy-focus-enabled i::after { transition: none; }
+}
