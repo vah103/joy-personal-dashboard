@@ -1,0 +1,36 @@
+@media (max-width: 760px) {
+  .topbar {
+    position: relative;
+    display: block;
+  }
+
+  .topbar > div:first-child {
+    min-width: 0;
+  }
+
+  .topbar .eyebrow {
+    min-height: 42px;
+    padding-right: 112px;
+    display: flex;
+    align-items: center;
+  }
+
+  .topbar .header-actions {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
+
+  #greeting {
+    width: 100%;
+  }
+
+  #greeting .greeting-daypart,
+  #greeting .greeting-name {
+    display: block;
+  }
+
+  #greeting .greeting-daypart {
+    white-space: nowrap;
+  }
+}
