@@ -45,7 +45,7 @@ const projectHubHead = [
   '    <link rel="stylesheet" href="project-data/ielts/ielts-card.css?v=ielts-card-v2">\n',
   '    <link rel="stylesheet" href="mobile-notifications.css?v=iphone-rain-bell-v1">\n',
   '    <link rel="stylesheet" href="auth-ui.css?v=joy-google-account-v1">\n',
-  '    <link rel="stylesheet" href="greeting-layout.css?v=mobile-greeting-v1">\n',
+  '    <link rel="stylesheet" href="greeting-layout.css?v=mobile-greeting-v2">\n',
 ].join("");
 
 const projectHubScripts = [
@@ -57,7 +57,7 @@ const projectHubScripts = [
   '    <script src="weather-status-ui.js?v=three-state-weather-v1" defer></script>\n',
   '    <script src="push-notifications.js?v=rain-push-v2" defer></script>\n',
   '    <script src="auth-ui.js?v=joy-google-account-v1" defer></script>\n',
-  '    <script src="greeting-layout.js?v=mobile-greeting-v1" defer></script>\n',
+  '    <script src="greeting-layout.js?v=mobile-greeting-v2" defer></script>\n',
 ].join("");
 
 const sourceHtml = await readFile(resolve(dashboardPage, "index.html"), "utf8");
