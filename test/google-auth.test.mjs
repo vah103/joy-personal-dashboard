@@ -55,6 +55,6 @@ test("Cloudflare build contains all authentication assets", () => {
   assert.ok(buildSource.includes('resolve(loginPage, "login.css")'));
   assert.ok(buildSource.includes('resolve(features, "auth", "auth-ui.js")'));
   assert.ok(buildSource.includes('resolve(features, "auth", "auth-ui.css")'));
-  assert.ok(buildSource.includes("auth-ui.css?v=joy-google-account-v1"));
-  assert.ok(buildSource.includes("auth-ui.js?v=joy-google-account-v1"));
+  assert.ok(buildSource.includes("auth-ui.css?v=joy-google-account-v3"));
+  assert.ok(buildSource.includes("auth-ui.js?v=joy-google-account-v3"));
 });
