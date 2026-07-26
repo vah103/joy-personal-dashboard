@@ -9,8 +9,9 @@
     <link rel="icon" href="app-icon-64.png?v=joy-original-wolf-v2" type="image/png" sizes="64x64">
     <link rel="apple-touch-icon" href="app-icon-192.png?v=joy-original-wolf-v2" sizes="192x192">
     <link rel="stylesheet" href="styles.css?v=joy-self-hosted-fonts">
-    <link rel="stylesheet" href="sale-manager.css?v=joy-glide-motion-v3">
+    <link rel="stylesheet" href="sale-manager.css?v=joy-room-summary-v1">
     <script src="sale-manager.js?v=joy-sale-nunito-v3" defer></script>
+    <script type="module" src="room-summary.js?v=joy-room-summary-v1"></script>
   </head>
   <body class="sale-page">
     <main class="sale-shell">
@@ -48,6 +49,36 @@
         </header>
 
         <div class="sale-status" id="sale-status" hidden></div>
+
+        <section class="sale-room-tool" aria-labelledby="room-summary-title">
+          <div class="sale-room-tool-heading">
+            <div>
+              <p>Sale assistant</p>
+              <h2 id="room-summary-title">Room summary</h2>
+              <span>Paste a source listing and turn it into one clean customer view.</span>
+            </div>
+            <small>Temporary · never saved</small>
+          </div>
+          <div class="sale-room-workspace">
+            <div class="sale-room-composer">
+              <label for="room-summary-input">Source room information</label>
+              <textarea id="room-summary-input" maxlength="12000" spellcheck="false" placeholder="Example: 180 Phú Mỹ còn phòng 302 giá 4tr2, vào luôn. Full nội thất, thang máy. Điện 4k, nước 100k/người, wifi 100k, xe 100k. Cọc 1 tháng..."></textarea>
+              <p>Phone numbers, source names and commission details are removed from the customer view.</p>
+              <div class="sale-room-actions">
+                <button class="sale-secondary-button" id="room-summary-clear" type="button">Clear</button>
+                <button class="sale-primary-button" id="room-summary-generate" type="button">Create summary</button>
+              </div>
+            </div>
+            <div class="sale-room-preview">
+              <div class="sale-room-preview-heading">
+                <div><small>Customer view</small><strong>Ready to screenshot</strong></div>
+                <button class="sale-secondary-button" id="room-summary-capture-button" type="button" disabled>Screenshot view</button>
+              </div>
+              <article class="room-share-card is-empty" id="room-summary-card" aria-live="polite"></article>
+              <p class="sale-room-edit-note">Tap any generated text to correct it before taking a screenshot.</p>
+            </div>
+          </div>
+        </section>
 
         <section class="sale-summary" aria-label="Selected month summary">
           <article class="sale-summary-card total-card">
@@ -130,6 +161,9 @@
           </div>
         </form>
       </section>
+    </div>
+    <div class="sale-room-capture" id="room-summary-capture" hidden aria-label="Room summary screenshot view">
+      <div class="sale-room-capture-card" id="room-summary-capture-card"></div>
     </div>
     <div class="sale-toast" id="sale-toast" role="status" aria-live="polite" hidden></div>
   </body>
