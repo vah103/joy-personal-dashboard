@@ -30,15 +30,29 @@ self.addEventListener("push", (event) => {
     ? "Thông báo trên iPhone đã hoạt động, hahahaa"
     : (data.body || "");
 
-  event.waitUntil(self.registration.showNotification(notificationTitle, {
+  const options = {
     body: notificationBody,
     icon: data.icon || "/joy-blue-icon.png?v=joy-topographic-blue-v1",
     badge: data.badge || "/joy-blue-icon.png?v=joy-topographic-blue-v1",
     tag: data.tag || "hey-joy-notification",
     renotify: Boolean(data.renotify),
-    actions: Array.isArray(data.actions) ? data.actions.slice(0, 3) : [],
     data: data.data || { url: "/" },
-  }));
+  };
+
+  // iOS currently exposes no notification action buttons. Passing actions there can
+  // make showNotification reject entirely, so only include them when supported.
+  const maxActions = Number(self.Notification?.maxActions || 0);
+  if (maxActions > 0 && Array.isArray(data.actions) && data.actions.length) {
+    options.actions = data.actions.slice(0, maxActions);
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(notificationTitle, options).catch((error) => {
+      console.warn("Hey Joy notification options were not fully supported", error);
+      delete options.actions;
+      return self.registration.showNotification(notificationTitle, options);
+    }),
+  );
 });
 
 self.addEventListener("notificationclick", (event) => {
