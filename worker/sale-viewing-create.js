@@ -1,23 +1,34 @@
 const SESSION_COOKIE = "__Host-joy_session";
 const VIETNAM_TIME_ZONE = "Asia/Ho_Chi_Minh";
 const APPOINTMENTS_APPEND_RANGE = "Appointments!A:F";
+const SHORT_NOTICE_MS = 60 * 60 * 1000;
 
 export function isSaleViewingCreateRoute(pathname, method = "") {
   return pathname === "/api/sales/viewings" && String(method).toUpperCase() === "POST";
 }
 
 export function validateSaleViewingInput(input, now = Date.now()) {
-  const customerName = cleanText(input?.customerName, 100);
   const phone = cleanPhone(input?.phone);
   const viewingAddress = cleanText(input?.viewingAddress, 220);
+  const suppliedCustomerName = cleanText(input?.customerName, 100);
   const viewingAt = new Date(input?.viewingAt || "");
   const timestamp = viewingAt.getTime();
 
-  if (!customerName) return { error: "VIEWING_CUSTOMER_REQUIRED" };
   if (!viewingAddress) return { error: "VIEWING_ADDRESS_REQUIRED" };
   if (!Number.isFinite(timestamp)) return { error: "VIEWING_TIME_REQUIRED" };
   if (timestamp < now - 10 * 60 * 1000) return { error: "VIEWING_TIME_IN_PAST" };
   if (timestamp > now + 366 * 24 * 60 * 60 * 1000) return { error: "VIEWING_TIME_TOO_FAR" };
+
+  const customerName = suppliedCustomerName
+    || (phone ? `Khách ${phone}` : `Khách xem phòng ${viewingAddress}`);
+  const shortNoticeAppointment = timestamp - now < SHORT_NOTICE_MS;
+  const beforeStatus = shortNoticeAppointment
+    ? "EMAIL_MODE=SHORT_NOTICE; BEFORE_SKIPPED"
+    : "EMAIL_MODE=NORMAL; BEFORE_PENDING";
+  const afterStatus = "AFTER_PENDING";
+  const reminderMessage = shortNoticeAppointment
+    ? "Đã lưu lịch xem phòng. Hệ thống sẽ gửi email hỏi lại sau 2 tiếng."
+    : "Đã lưu lịch xem phòng. Hệ thống sẽ gửi email nhắc đúng giờ xem và email hỏi lại sau 5 tiếng.";
 
   return {
     value: {
@@ -26,6 +37,10 @@ export function validateSaleViewingInput(input, now = Date.now()) {
       viewingAddress,
       viewingAt: viewingAt.toISOString(),
       viewingTime: formatSheetViewingTime(viewingAt),
+      shortNoticeAppointment,
+      beforeStatus,
+      afterStatus,
+      reminderMessage,
     },
   };
 }
@@ -64,11 +79,17 @@ export async function handleSaleViewingCreate(request, env) {
     const result = await appendViewing(accessToken, env.SALE_SPREADSHEET_ID, appointment);
     return json({
       ok: true,
+      message: appointment.reminderMessage,
       viewing: {
-        ...appointment,
+        customerName: appointment.customerName,
+        phone: appointment.phone,
+        viewingAddress: appointment.viewingAddress,
+        viewingAt: appointment.viewingAt,
+        viewingTime: appointment.viewingTime,
         sourceRow: updatedRowNumber(result?.updates?.updatedRange),
-        beforeStatus: "",
-        afterStatus: "",
+        beforeStatus: appointment.beforeStatus,
+        afterStatus: appointment.afterStatus,
+        shortNoticeAppointment: appointment.shortNoticeAppointment,
       },
     }, 201);
   } catch (error) {
@@ -103,8 +124,8 @@ async function appendViewing(accessToken, spreadsheetId, appointment) {
           appointment.phone,
           appointment.viewingAddress,
           appointment.viewingTime,
-          "",
-          "",
+          appointment.beforeStatus,
+          appointment.afterStatus,
         ]],
       }),
     },
