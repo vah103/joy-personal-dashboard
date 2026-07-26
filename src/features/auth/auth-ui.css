@@ -69,6 +69,26 @@
 
 .joy-account-modal { width: min(480px, 100%); }
 
+.joy-account-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.joy-account-heading-actions > button {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #d8d4cd;
+  border-radius: 10px;
+  background: #fbfaf7;
+  color: #747b7d;
+  font-size: 20px;
+  line-height: 1;
+}
+
 .joy-account-identity {
   display: flex;
   align-items: center;
@@ -147,21 +167,25 @@
 }
 
 .joy-notification-button {
-  width: 44px;
-  min-width: 44px !important;
-  height: 38px;
+  width: 32px;
+  min-width: 32px !important;
+  height: 32px;
   padding: 0 !important;
   display: grid;
   place-items: center;
-  border-color: #526d78 !important;
-  background: #526d78 !important;
+  border: 1px solid #c9d1d4 !important;
+  border-radius: 10px !important;
+  background: #edf1f2 !important;
+  color: #526d78 !important;
   font-family: "Segoe UI Emoji", "Apple Color Emoji", sans-serif;
-  font-size: 15px !important;
+  font-size: 13px !important;
+  box-shadow: none !important;
 }
 
 .joy-notification-button[aria-pressed="true"] {
-  border-color: #536f61 !important;
-  background: #536f61 !important;
+  border-color: #c6d3ca !important;
+  background: #e8f0ea !important;
+  color: #536f61 !important;
 }
 
 .joy-notification-button:disabled {
