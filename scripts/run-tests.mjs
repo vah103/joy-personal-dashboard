@@ -53,6 +53,7 @@ const syntaxChecks = [
   "worker/task-delete.js",
   "src/features/tasks/task-reminders-events.js",
   "src/features/tasks/task-reminders.js",
+  "src/features/notifications/push-notifications.js",
   "src/pwa/sw.js",
   "scripts/build.mjs",
 ];
