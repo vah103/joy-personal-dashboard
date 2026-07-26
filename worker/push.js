@@ -9,8 +9,6 @@ const HIGH_PROBABILITY = 70;
 const VERY_HIGH_PROBABILITY = 80;
 const SUPPORTING_AMOUNT_MM = 0.3;
 const STRONG_AMOUNT_MM = 1;
-const ANY_RAIN_PROBABILITY = 40;
-const ANY_RAIN_AMOUNT_MM = 0.1;
 
 export function isPushRoute(pathname) {
   return pathname.startsWith("/api/push/");
@@ -166,7 +164,7 @@ async function processWeatherSummary(email, summary, env) {
       kind: summary.dailyKind,
       body: summary.dailyKind === "sunny"
         ? "It's a sunny day."
-        : "No rain is expected.",
+        : "No rain is expected, just chill.",
       tag: "hey-joy-weather-daily",
       topic: "hey-joy-weather-daily",
       ttl: 6 * 60 * 60,
@@ -333,7 +331,6 @@ function summarizeWeatherForecast(hourly, now) {
 
   const currentMinute = current.hour * 60 + current.minute;
   const strongHours = [];
-  const futureHours = [];
   const daylightHours = [];
 
   times.forEach((time, index) => {
@@ -353,7 +350,6 @@ function summarizeWeatherForecast(hourly, now) {
 
     if (startHour >= 6 && startHour < 18) daylightHours.push(entry);
     if (endHour * 60 <= currentMinute) return;
-    futureHours.push(entry);
     if (hasStrongRainSignal(entry)) strongHours.push(entry);
   });
 
@@ -377,7 +373,7 @@ function summarizeWeatherForecast(hourly, now) {
     };
   }
 
-  if (current.hour < DAILY_WEATHER_HOUR || futureHours.some(hasAnyRainSignal)) {
+  if (current.hour < DAILY_WEATHER_HOUR) {
     return {
       dateKey: current.dateKey,
       rainKey: "",
@@ -396,7 +392,7 @@ function summarizeWeatherForecast(hourly, now) {
     dateKey: current.dateKey,
     rainKey: "",
     rainWindowText: "",
-    dailyKind: isSunny ? "sunny" : "dry",
+    dailyKind: isSunny ? "sunny" : "chill",
   };
 }
 
@@ -404,11 +400,6 @@ function hasStrongRainSignal({ probability, amount, weatherCode }) {
   return (probability >= HIGH_PROBABILITY && amount >= SUPPORTING_AMOUNT_MM)
     || amount >= STRONG_AMOUNT_MM
     || (probability >= VERY_HIGH_PROBABILITY && isRainWeatherCode(weatherCode));
-}
-
-function hasAnyRainSignal({ probability, amount, weatherCode }) {
-  return amount >= ANY_RAIN_AMOUNT_MM
-    || (probability >= ANY_RAIN_PROBABILITY && isRainWeatherCode(weatherCode));
 }
 
 function isRainWeatherCode(code) {
