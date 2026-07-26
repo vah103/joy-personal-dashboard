@@ -50,6 +50,20 @@
     if (!list) return;
 
     list.addEventListener("click", (event) => {
+      const checkmark = event.target.closest?.(".checkmark");
+      if (checkmark) {
+        const input = checkmark.closest(".task-row")?.querySelector('input[type="checkbox"][data-task-id]');
+        if (!input || input.disabled) return;
+
+        // The visible square is a span placed over the real checkbox. Toggle the
+        // input explicitly so reminder row handlers cannot swallow the label click.
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        input.checked = !input.checked;
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+        return;
+      }
+
       const row = event.target.closest?.(".task-row");
       if (!row || event.target.closest('input[type="checkbox"], button, a')) return;
       // Task rows are labels, so cancel their default checkbox toggle when opening details.
