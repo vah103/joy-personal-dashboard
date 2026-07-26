@@ -193,6 +193,7 @@ function cleanCustomerName(text, removals) {
   }
   value = value
     .replace(/\b(?:hẹn|hen|đặt\s+lịch|dat\s+lich|lịch\s+xem|lich\s+xem|xem\s+phòng|xem\s+phong|khách|khach|qua|tại|tai|ở|o)\b/giu, " ")
+    .replace(/\b(?:hôm\s+nay|hom\s+nay|ngày\s+mai|ngay\s+mai|mai|ngày\s+kia|ngay\s+kia|mốt|mot|sáng|sang|trưa|trua|chiều|chieu|tối|toi|đêm|dem)\b/giu, " ")
     .replace(/[,:;|]+/g, " ")
     .replace(/\s{2,}/g, " ")
     .trim();
@@ -241,5 +242,6 @@ export function formatVietnamViewingTime(value) {
     hour12: false,
   }).formatToParts(new Date(timestamp));
   const part = (type) => parts.find((item) => item.type === type)?.value || "";
-  return `${part("weekday")}, ${part("day")}/${part("month")}/${part("year")} · ${part("hour")}:${part("minute")}`;
+  const weekday = part("weekday").replace(/^Thứ\s+/u, "Th ");
+  return `${weekday}, ${part("day")}/${part("month")}/${part("year")} · ${part("hour")}:${part("minute")}`;
 }
