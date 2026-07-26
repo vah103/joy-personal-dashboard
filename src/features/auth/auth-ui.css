@@ -140,6 +140,35 @@
   color: #6d7474;
 }
 
+.joy-notification-slot {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+}
+
+.joy-notification-button {
+  width: 44px;
+  min-width: 44px !important;
+  height: 38px;
+  padding: 0 !important;
+  display: grid;
+  place-items: center;
+  border-color: #526d78 !important;
+  background: #526d78 !important;
+  font-family: "Segoe UI Emoji", "Apple Color Emoji", sans-serif;
+  font-size: 15px !important;
+}
+
+.joy-notification-button[aria-pressed="true"] {
+  border-color: #536f61 !important;
+  background: #536f61 !important;
+}
+
+.joy-notification-button:disabled {
+  cursor: wait;
+  opacity: .72;
+}
+
 .joy-account-signout {
   width: 100%;
   margin-top: 16px;
