@@ -1,4 +1,19 @@
 (function installJoyTaskReminderEvents(root) {
+  const REMINDER_STORAGE_KEY = "joy-dashboard-task-reminders-v1";
+
+  function removeLocalReminder(taskId) {
+    try {
+      const stored = JSON.parse(root.localStorage.getItem(REMINDER_STORAGE_KEY) || "[]");
+      const list = Array.isArray(stored) ? stored : Object.values(stored || {});
+      root.localStorage.setItem(
+        REMINDER_STORAGE_KEY,
+        JSON.stringify(list.filter((item) => String(item?.taskId || "") !== String(taskId))),
+      );
+    } catch {
+      // The server still prevents completed tasks from being reminded.
+    }
+  }
+
   function start() {
     const list = document.querySelector("#task-list");
     if (!list) return;
@@ -9,6 +24,20 @@
       // Task rows are labels, so cancel their default checkbox toggle when opening details.
       event.preventDefault();
     }, true);
+
+    list.addEventListener("change", (event) => {
+      const input = event.target.closest?.("input[data-task-id]");
+      if (!input?.checked) return;
+      const taskId = String(input.dataset.taskId || "");
+      if (!taskId) return;
+      removeLocalReminder(taskId);
+      void root.fetch("/api/task-reminders/action", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId, action: "complete" }),
+      }).catch(() => null);
+    });
 
     const requestedTaskId = new URL(root.location.href).searchParams.get("task");
     if (!requestedTaskId) return;
