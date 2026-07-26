@@ -69,6 +69,7 @@ function parseRelativeTime(text, now) {
   return {
     timestamp: now + milliseconds,
     matchedText: relative[0],
+    matchedParts: [relative[0]],
     source: "relative",
   };
 }
@@ -134,7 +135,14 @@ function parseViewingTime(text, now) {
   const fallback = vietnamParts(now);
   const clock = parseClock(text, fallback);
   if (!clock) return null;
-  if (clock.isNow) return { timestamp: now, matchedText: clock.matchedText, source: "now" };
+  if (clock.isNow) {
+    return {
+      timestamp: now,
+      matchedText: clock.matchedText,
+      matchedParts: [clock.matchedText],
+      source: "now",
+    };
+  }
 
   const date = parseDate(text, fallback);
   let timestamp = vietnamTimestamp({
@@ -148,9 +156,11 @@ function parseViewingTime(text, now) {
     const tomorrow = addVietnamDays(date, 1);
     timestamp = vietnamTimestamp({ ...tomorrow, hour: clock.hour, minute: clock.minute });
   }
+  const matchedParts = [clock.matchedText, date.matchedText].filter(Boolean);
   return {
     timestamp,
-    matchedText: [clock.matchedText, date.matchedText].filter(Boolean).join(" "),
+    matchedText: matchedParts.join(" "),
+    matchedParts,
     source: "clock",
   };
 }
@@ -193,11 +203,10 @@ function cleanCustomerName(text, removals) {
   }
   value = value
     .replace(/\b(?:hẹn|hen|đặt\s+lịch|dat\s+lich|lịch\s+xem|lich\s+xem|xem\s+phòng|xem\s+phong|khách|khach|qua|tại|tai|ở|o)\b/giu, " ")
-    .replace(/\b(?:hôm\s+nay|hom\s+nay|ngày\s+mai|ngay\s+mai|mai|ngày\s+kia|ngay\s+kia|mốt|mot|sáng|sang|trưa|trua|chiều|chieu|tối|toi|đêm|dem)\b/giu, " ")
     .replace(/[,:;|]+/g, " ")
     .replace(/\s{2,}/g, " ")
     .trim();
-  const prefixMatch = value.match(/\b(?:anh|chị|chi|cô|co|chú|chu|bác|bac|em|bạn|ban)\s+[\p{L}][\p{L}\s.'-]{0,60}/iu);
+  const prefixMatch = value.match(/\b(?:anh|chị|chi|cô|co|chú|chu|bác|bac|em|bạn|ban)\s+[\p{L}][\p{L}.'-]*(?:\s+[\p{L}][\p{L}.'-]*){0,2}/iu);
   if (prefixMatch) return prefixMatch[0].trim();
   return value.split(/\s{2,}|\n/)[0].trim().slice(0, 80);
 }
@@ -209,7 +218,7 @@ export function parseSaleAppointmentInput(rawInput, now = Date.now()) {
   const address = extractAddress(text);
   const detectedName = cleanCustomerName(text, [
     phone.matchedText,
-    viewingTime?.matchedText || "",
+    ...(viewingTime?.matchedParts || [viewingTime?.matchedText || ""]),
     address.matchedText,
     address.address,
   ]);
