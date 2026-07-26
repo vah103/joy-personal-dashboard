@@ -49,7 +49,7 @@ const projectHubHead = [
   '    <link rel="stylesheet" href="greeting-layout.css?v=mobile-greeting-v2">\n',
   '    <link rel="stylesheet" href="task-reminders.css?v=joy-tasks-v1">\n',
   '    <link rel="stylesheet" href="room-summary.css?v=joy-room-summary-v1">\n',
-  '    <link rel="stylesheet" href="sales-assistant.css?v=joy-dashboard-sales-assistant-v1">\n',
+  '    <link rel="stylesheet" href="sales-assistant.css?v=joy-dashboard-sales-assistant-v2">\n',
 ].join("");
 
 const projectHubScripts = [
@@ -65,7 +65,7 @@ const projectHubScripts = [
   '    <script src="task-reminders-events.js?v=joy-task-checkbox-v2" defer></script>\n',
   '    <script src="task-reminders.js?v=joy-tasks-v1" defer></script>\n',
   '    <script src="task-natural-input.js?v=joy-natural-reminders-v1" defer></script>\n',
-  '    <script type="module" src="sales-assistant.js?v=joy-dashboard-sales-assistant-v1"></script>\n',
+  '    <script type="module" src="sales-assistant.js?v=joy-dashboard-sales-assistant-v2"></script>\n',
 ].join("");
 
 const sourceHtml = await readFile(resolve(dashboardPage, "index.html"), "utf8");
@@ -113,6 +113,7 @@ const copies = [
   [resolve(salePage, "room-summary.css"), "room-summary.css"],
   [resolve(salesFeatures, "sales-assistant.js"), "sales-assistant.js"],
   [resolve(salesFeatures, "sales-assistant.css"), "sales-assistant.css"],
+  [resolve(salesFeatures, "sale-appointment.js"), "sale-appointment.js"],
   [resolve(features, "project-details", "project-details.js"), "project-details.js"],
   [resolve(features, "project-details", "project-details.css"), "project-details.css"],
   [resolve(features, "project-details", "turtlebot4-art.webp"), "turtlebot4-art.webp"],
