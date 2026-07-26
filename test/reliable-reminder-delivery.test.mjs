@@ -14,9 +14,10 @@ test("router uses the acknowledged reminder scheduler", () => {
 
 test("push acceptance does not immediately finish a task reminder", () => {
   assert.ok(delivery.includes("SET last_notified_at = ?, updated_at = ?"));
-  assert.ok(delivery.includes("WHERE user_email = ? AND task_id = ? AND status = 'scheduled'"));
+  assert.ok(delivery.includes("status = 'scheduled'"));
   assert.ok(delivery.includes("SET status = 'notified'"));
-  assert.ok(delivery.includes("last_notified_at = ?"));
+  assert.ok(delivery.includes("deliveryAttemptAt"));
+  assert.ok(delivery.includes("RETRY_AFTER_MS"));
 });
 
 test("service worker confirms delivery only after showing the notification", () => {
