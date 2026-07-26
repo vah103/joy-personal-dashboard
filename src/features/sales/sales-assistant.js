@@ -137,7 +137,7 @@ async function initializeSalesAssistant() {
     }
   });
 
-  await import("../../pages/sale/room-summary.js");
+  await import("./room-summary.js?v=joy-room-summary-v1");
 }
 
 if (document.readyState === "loading") {
