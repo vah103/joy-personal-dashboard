@@ -61,6 +61,7 @@ const projectHubScripts = [
   '    <script src="greeting-layout.js?v=mobile-greeting-v2" defer></script>\n',
   '    <script src="task-reminders-events.js?v=joy-tasks-v1" defer></script>\n',
   '    <script src="task-reminders.js?v=joy-tasks-v1" defer></script>\n',
+  '    <script src="task-natural-input.js?v=joy-natural-reminders-v1" defer></script>\n',
 ].join("");
 
 const sourceHtml = await readFile(resolve(dashboardPage, "index.html"), "utf8");
@@ -109,6 +110,7 @@ const copies = [
   [resolve(features, "tasks", "todo-visibility.js"), "todo-visibility.js"],
   [resolve(features, "tasks", "task-reminders-events.js"), "task-reminders-events.js"],
   [resolve(features, "tasks", "task-reminders.js"), "task-reminders.js"],
+  [resolve(features, "tasks", "task-natural-input.js"), "task-natural-input.js"],
   [resolve(features, "tasks", "task-reminders.css"), "task-reminders.css"],
   [resolve(features, "auth", "auth-ui.js"), "auth-ui.js"],
   [resolve(features, "auth", "auth-ui.css"), "auth-ui.css"],
