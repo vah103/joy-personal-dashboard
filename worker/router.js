@@ -16,8 +16,12 @@ import {
 import {
   handleReminderDeliveryRequest,
   isReminderDeliveryRoute,
-  runReminderDeliverySchedule,
 } from "./reminder-delivery.js";
+import {
+  handleReminderWakeRequest,
+  isReminderWakeRoute,
+  runReminderDeliverySchedule,
+} from "./reminder-wake.js";
 import {
   handleTaskDeleteRequest,
   isTaskDeleteRoute,
@@ -38,6 +42,9 @@ export default {
     const pathname = new URL(request.url).pathname;
 
     try {
+      if (isReminderWakeRoute(pathname)) {
+        return handleReminderWakeRequest(request, env);
+      }
       if (isReminderDeliveryRoute(pathname)) {
         return handleReminderDeliveryRequest(request, env);
       }
