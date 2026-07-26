@@ -38,12 +38,10 @@ test("open tasks remain visible regardless of their date", () => {
 
 test("Cloudflare loads the display policy before the dashboard app", () => {
   const build = fs.readFileSync(new URL("../scripts/build.mjs", import.meta.url), "utf8");
-  assert.ok(build.includes('todo-display-policy.js?v=joy-task-window-v1'));
   assert.ok(build.includes('resolve(features, "tasks", "todo-display-policy.js")'));
-  assert.ok(
-    build.indexOf('todo-display-policy.js?v=joy-task-window-v1')
-      < build.indexOf('app.js?v=joy-dashboard-combined-v1'),
-  );
+  assert.ok(build.includes(
+    '\'<script src="todo-display-policy.js?v=joy-task-window-v1" defer></script>\\n    <script src="app.js?v=joy-dashboard-combined-v1" defer></script>\'',
+  ));
 });
 
 test("service worker omits unsupported notification actions on iPhone", () => {
