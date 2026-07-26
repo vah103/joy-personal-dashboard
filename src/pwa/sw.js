@@ -14,6 +14,10 @@ self.addEventListener("push", (event) => {
     data = { title: "Thông báo mới", body: event.data?.text() || "Bạn có thông báo mới." };
   }
 
+  event.waitUntil(showPushNotification(data));
+});
+
+async function showPushNotification(data) {
   const kind = String(data.data?.kind || "");
   const payloadTitle = typeof data.title === "string" ? data.title.trim() : "";
   let notificationTitle = payloadTitle
@@ -46,14 +50,31 @@ self.addEventListener("push", (event) => {
     options.actions = data.actions.slice(0, maxActions);
   }
 
-  event.waitUntil(
-    self.registration.showNotification(notificationTitle, options).catch((error) => {
-      console.warn("Hey Joy notification options were not fully supported", error);
-      delete options.actions;
-      return self.registration.showNotification(notificationTitle, options);
+  try {
+    await self.registration.showNotification(notificationTitle, options);
+  } catch (error) {
+    console.warn("Hey Joy notification options were not fully supported", error);
+    delete options.actions;
+    await self.registration.showNotification(notificationTitle, options);
+  }
+
+  if (!["task-reminder", "focus-reminder"].includes(kind)) return;
+  const deliveryAttemptAt = Number(data.data?.deliveryAttemptAt);
+  if (!Number.isFinite(deliveryAttemptAt) || deliveryAttemptAt <= 0) return;
+
+  await fetch("/api/task-reminders/delivery-ack", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      kind,
+      deliveryAttemptAt,
+      ...(data.data?.taskId ? { taskId: String(data.data.taskId) } : {}),
     }),
-  );
-});
+  }).catch((error) => {
+    console.warn("Hey Joy could not confirm reminder delivery", error);
+  });
+}
 
 self.addEventListener("notificationclick", (event) => {
   const notificationData = event.notification.data || {};
