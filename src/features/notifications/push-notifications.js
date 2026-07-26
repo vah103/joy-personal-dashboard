@@ -9,7 +9,8 @@
     || window.navigator.standalone === true;
   const isSupported = "serviceWorker" in navigator
     && "PushManager" in window
-    && "Notification" in window;
+    && "Notification" in window
+    && "showNotification" in ServiceWorkerRegistration.prototype;
 
   button.addEventListener("click", async (event) => {
     event.preventDefault();
@@ -36,38 +37,31 @@
         return;
       }
 
-      const registration = await ensureServiceWorker();
+      const registration = await ensureServiceWorker({ forceUpdate: true });
       const { publicKey } = await requestJson("/api/push/public-key");
-      let subscription = await registration.pushManager.getSubscription();
-      const savedPublicKey = readSavedPublicKey();
-
-      // A PushSubscription is permanently bound to the applicationServerKey
-      // used to create it. Recreate an old or unverified subscription whenever
-      // the server publishes a different VAPID public key.
-      if (subscription && savedPublicKey !== publicKey) {
-        await subscription.unsubscribe();
-        subscription = null;
-      }
-
-      if (!subscription) {
-        subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: base64UrlToUint8Array(publicKey),
-        });
-      }
+      const subscription = await rebuildSubscription(registration, publicKey);
 
       await requestJson("/api/push/subscribe", {
         method: "POST",
         body: JSON.stringify(subscription.toJSON()),
       });
-      await requestJson("/api/push/test", {
+
+      const localResult = await showLocalDiagnostic(registration);
+      const remoteResult = await requestJson("/api/push/test", {
         method: "POST",
         body: JSON.stringify({ endpoint: subscription.endpoint }),
       });
 
       savePublicKey(publicKey);
       setButtonState("on");
-      window.alert("Đã bật thông báo cho Hey Joy! Một thông báo thử sẽ xuất hiện trên iPhone.");
+      window.alert([
+        "Joy đã làm mới kết nối thông báo trên iPhone.",
+        localResult
+          ? "Kiểm tra hiển thị trực tiếp: đã tạo."
+          : "Kiểm tra hiển thị trực tiếp: iPhone không xác nhận.",
+        `Push từ server: Apple đã nhận ${Number(remoteResult.sent || 0)} thông báo.`,
+        "Hãy đóng Joy và kiểm tra Notification Center. Nếu vẫn không thấy, vào Settings → Notifications → Hey Joy! và bật Allow Notifications, Lock Screen, Notification Center và Banners.",
+      ].join("\n\n"));
     } catch (error) {
       console.error("Hey Joy push setup failed", error);
       setButtonState("off");
@@ -75,7 +69,7 @@
         window.alert("Hãy kết nối tài khoản Google trên iPhone trước, sau đó nhấn chuông thêm một lần nữa.");
         window.location.assign("/auth/start");
       } else if (error.message === "TEST_PUSH_NOT_DELIVERED") {
-        window.alert("Máy đã đăng ký nhận thông báo, nhưng khóa gửi của Hey Joy! chưa được Apple chấp nhận. Hãy cập nhật lại cặp khóa VAPID rồi thử lại.");
+        window.alert("Máy đã đăng ký nhận thông báo nhưng server chưa gửi được đến Apple. Joy sẽ cần kiểm tra lại subscription hoặc khóa VAPID.");
       } else {
         window.alert(`Chưa bật được thông báo: ${error.message || "Unknown error"}`);
       }
@@ -106,18 +100,71 @@
     }
   }
 
-  function ensureServiceWorker() {
-    return navigator.serviceWorker.register("/sw.js", {
+  async function ensureServiceWorker({ forceUpdate = false } = {}) {
+    const registration = await navigator.serviceWorker.register("/sw.js", {
       scope: "/",
       updateViaCache: "none",
-    }).then(() => navigator.serviceWorker.ready);
+    });
+
+    if (forceUpdate) {
+      await registration.update().catch(() => null);
+      await waitForActiveWorker(registration);
+    }
+
+    return navigator.serviceWorker.ready;
+  }
+
+  async function waitForActiveWorker(registration) {
+    const candidate = registration.installing || registration.waiting;
+    if (!candidate || candidate.state === "activated") return;
+
+    await new Promise((resolve) => {
+      const timeout = window.setTimeout(resolve, 5000);
+      candidate.addEventListener("statechange", () => {
+        if (candidate.state !== "activated") return;
+        window.clearTimeout(timeout);
+        resolve();
+      });
+    });
+  }
+
+  async function rebuildSubscription(registration, publicKey) {
+    const existing = await registration.pushManager.getSubscription();
+    if (existing) {
+      try {
+        await existing.unsubscribe();
+      } catch (error) {
+        console.warn("Hey Joy could not remove the old push subscription", error);
+      }
+    }
+
+    return registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: base64UrlToUint8Array(publicKey),
+    });
+  }
+
+  async function showLocalDiagnostic(registration) {
+    try {
+      await registration.showNotification("Đã hoạt động", {
+        body: "Joy có thể hiển thị thông báo trực tiếp trên iPhone.",
+        icon: "/joy-blue-icon.png?v=joy-topographic-blue-v1",
+        badge: "/joy-blue-icon.png?v=joy-topographic-blue-v1",
+        tag: "hey-joy-local-check",
+        data: { url: "/", kind: "test" },
+      });
+      return true;
+    } catch (error) {
+      console.warn("Hey Joy local notification check failed", error);
+      return false;
+    }
   }
 
   function setButtonState(state) {
     const states = {
-      on: ["✓", "Thông báo mưa đã bật", true],
-      off: ["🔔", isIos && !isStandalone() ? "Thêm Hey Joy! vào Home Screen để bật thông báo" : "Bật thông báo mưa", false],
-      busy: ["…", "Đang bật thông báo", false],
+      on: ["✓", "Thông báo Joy đã bật", true],
+      off: ["🔔", isIos && !isStandalone() ? "Thêm Hey Joy! vào Home Screen để bật thông báo" : "Bật hoặc sửa thông báo Joy", false],
+      busy: ["…", "Đang sửa kết nối thông báo", false],
       unsupported: ["–", "Trình duyệt chưa hỗ trợ thông báo", false],
     };
     const [label, title, pressed] = states[state] || states.off;
