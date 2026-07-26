@@ -56,7 +56,7 @@ const projectHubScripts = [
   '    <script src="project-hub-actions.js?v=turtlebot-hub-v3" defer></script>\n',
   '    <script src="project-data/ielts/ielts-card.js?v=ielts-card-v2" defer></script>\n',
   '    <script src="weather-status-ui.js?v=three-state-weather-v1" defer></script>\n',
-  '    <script src="push-notifications.js?v=rain-push-v3" defer></script>\n',
+  '    <script src="push-notifications.js?v=joy-current-device-v1" defer></script>\n',
   '    <script src="auth-ui.js?v=joy-google-account-v3" defer></script>\n',
   '    <script src="greeting-layout.js?v=mobile-greeting-v2" defer></script>\n',
   '    <script src="task-reminders-events.js?v=joy-tasks-v1" defer></script>\n',
