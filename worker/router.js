@@ -21,6 +21,11 @@ import {
   handleTaskImportRequest,
   isTaskImportRoute,
 } from "./task-sync.js";
+import {
+  handleTaskReminderRequest,
+  isTaskReminderRoute,
+  runTaskReminderSchedule,
+} from "./task-reminders.js";
 
 const PROTECTED_ASSETS = new Set(["/", "/index.html", "/sale-manager.html"]);
 
@@ -31,6 +36,9 @@ export default {
     try {
       if (isPushRoute(pathname)) {
         return handlePushRequest(request, env);
+      }
+      if (isTaskReminderRoute(pathname)) {
+        return handleTaskReminderRequest(request, env);
       }
       if (isGoogleAuthRoute(pathname)) {
         return handleGoogleAuthRequest(request, env);
@@ -81,5 +89,6 @@ export default {
       await app.scheduled(controller, env, ctx);
     }
     ctx.waitUntil(runRainPushSchedule(env));
+    ctx.waitUntil(runTaskReminderSchedule(env));
   },
 };
