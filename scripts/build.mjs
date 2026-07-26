@@ -46,6 +46,7 @@ const projectHubHead = [
   '    <link rel="stylesheet" href="mobile-notifications.css?v=iphone-rain-bell-v1">\n',
   '    <link rel="stylesheet" href="auth-ui.css?v=joy-google-account-v3">\n',
   '    <link rel="stylesheet" href="greeting-layout.css?v=mobile-greeting-v2">\n',
+  '    <link rel="stylesheet" href="task-reminders.css?v=joy-tasks-v1">\n',
 ].join("");
 
 const projectHubScripts = [
@@ -58,6 +59,7 @@ const projectHubScripts = [
   '    <script src="push-notifications.js?v=rain-push-v2" defer></script>\n',
   '    <script src="auth-ui.js?v=joy-google-account-v3" defer></script>\n',
   '    <script src="greeting-layout.js?v=mobile-greeting-v2" defer></script>\n',
+  '    <script src="task-reminders.js?v=joy-tasks-v1" defer></script>\n',
 ].join("");
 
 const sourceHtml = await readFile(resolve(dashboardPage, "index.html"), "utf8");
@@ -104,6 +106,8 @@ const copies = [
   [resolve(features, "finance", "finance.css"), "finance-demo.css"],
   [resolve(features, "weather", "weather-rain.js"), "weather-rain.js"],
   [resolve(features, "tasks", "todo-visibility.js"), "todo-visibility.js"],
+  [resolve(features, "tasks", "task-reminders.js"), "task-reminders.js"],
+  [resolve(features, "tasks", "task-reminders.css"), "task-reminders.css"],
   [resolve(features, "auth", "auth-ui.js"), "auth-ui.js"],
   [resolve(features, "auth", "auth-ui.css"), "auth-ui.css"],
   [resolve(features, "notifications", "push-notifications.js"), "push-notifications.js"],
