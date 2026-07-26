@@ -69,7 +69,10 @@
       <section class="modal joy-account-modal" role="dialog" aria-modal="true" aria-labelledby="joy-account-title">
         <div class="modal-heading">
           <div><p class="section-kicker">Google account</p><h2 id="joy-account-title">Joy account</h2></div>
-          <button type="button" aria-label="Close account settings" data-action="close-account">×</button>
+          <div class="joy-account-heading-actions">
+            <span class="joy-notification-slot" data-notification-slot></span>
+            <button type="button" aria-label="Close account settings" data-action="close-account">×</button>
+          </div>
         </div>
         <div class="joy-account-identity">
           <span class="joy-account-wolf"><img src="wolf-mark.svg?v=joy-summit-wolf" alt=""></span>
@@ -83,10 +86,6 @@
           <div class="joy-integration-row">
             <span><strong>Google Sheets</strong><small>Sales and finance data</small></span>
             <button type="button" data-integration-action="sheets">Checking…</button>
-          </div>
-          <div class="joy-integration-row joy-notification-row">
-            <span><strong>Notifications</strong><small>Weather alerts on this device</small></span>
-            <span class="joy-notification-slot" data-notification-slot></span>
           </div>
         </div>
         <button class="joy-account-signout" type="button" data-action="sign-out">Sign out of Joy</button>
