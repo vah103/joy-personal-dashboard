@@ -59,6 +59,7 @@ const projectHubScripts = [
   '    <script src="push-notifications.js?v=rain-push-v2" defer></script>\n',
   '    <script src="auth-ui.js?v=joy-google-account-v3" defer></script>\n',
   '    <script src="greeting-layout.js?v=mobile-greeting-v2" defer></script>\n',
+  '    <script src="task-reminders-events.js?v=joy-tasks-v1" defer></script>\n',
   '    <script src="task-reminders.js?v=joy-tasks-v1" defer></script>\n',
 ].join("");
 
@@ -106,6 +107,7 @@ const copies = [
   [resolve(features, "finance", "finance.css"), "finance-demo.css"],
   [resolve(features, "weather", "weather-rain.js"), "weather-rain.js"],
   [resolve(features, "tasks", "todo-visibility.js"), "todo-visibility.js"],
+  [resolve(features, "tasks", "task-reminders-events.js"), "task-reminders-events.js"],
   [resolve(features, "tasks", "task-reminders.js"), "task-reminders.js"],
   [resolve(features, "tasks", "task-reminders.css"), "task-reminders.css"],
   [resolve(features, "auth", "auth-ui.js"), "auth-ui.js"],
