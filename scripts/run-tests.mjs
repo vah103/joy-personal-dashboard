@@ -50,6 +50,7 @@ const compatibilityPaths = [
 const syntaxChecks = [
   "worker/task-reminders.js",
   "worker/reliable-reminder-delivery.js",
+  "worker/no-topic-reminder-schedule.js",
   "worker/push-subscription-cleanup.js",
   "worker/router.js",
   "worker/task-delete.js",
