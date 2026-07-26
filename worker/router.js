@@ -20,8 +20,8 @@ import {
 import {
   handleReliableReminderRequest,
   isReliableReminderRoute,
-  runReliableReminderSchedule,
 } from "./reliable-reminder-delivery.js";
+import { runNoTopicReminderSchedule } from "./no-topic-reminder-schedule.js";
 import {
   handleTaskDeleteRequest,
   isTaskDeleteRoute,
@@ -116,6 +116,6 @@ export default {
     });
 
     scheduleIndependentJob(ctx, "weather", () => runRainPushSchedule(env));
-    scheduleIndependentJob(ctx, "reminder", () => runReliableReminderSchedule(env));
+    scheduleIndependentJob(ctx, "reminder", () => runNoTopicReminderSchedule(env));
   },
 };
