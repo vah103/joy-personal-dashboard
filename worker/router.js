@@ -14,15 +14,6 @@ import {
   runRainPushSchedule,
 } from "./push.js";
 import {
-  handleReminderDeliveryRequest,
-  isReminderDeliveryRoute,
-} from "./reminder-delivery.js";
-import {
-  handleReminderWakeRequest,
-  isReminderWakeRoute,
-  runReminderDeliverySchedule,
-} from "./reminder-wake.js";
-import {
   handleTaskDeleteRequest,
   isTaskDeleteRoute,
 } from "./task-delete.js";
@@ -33,6 +24,7 @@ import {
 import {
   handleTaskReminderRequest,
   isTaskReminderRoute,
+  runTaskReminderSchedule,
 } from "./task-reminders.js";
 
 const PROTECTED_ASSETS = new Set(["/", "/index.html", "/sale-manager.html"]);
@@ -42,12 +34,6 @@ export default {
     const pathname = new URL(request.url).pathname;
 
     try {
-      if (isReminderWakeRoute(pathname)) {
-        return handleReminderWakeRequest(request, env);
-      }
-      if (isReminderDeliveryRoute(pathname)) {
-        return handleReminderDeliveryRequest(request, env);
-      }
       if (isPushRoute(pathname)) {
         return handlePushRequest(request, env);
       }
@@ -103,6 +89,6 @@ export default {
       await app.scheduled(controller, env, ctx);
     }
     ctx.waitUntil(runRainPushSchedule(env));
-    ctx.waitUntil(runReminderDeliverySchedule(env));
+    ctx.waitUntil(runTaskReminderSchedule(env));
   },
 };
