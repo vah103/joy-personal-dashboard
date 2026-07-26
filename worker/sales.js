@@ -1,5 +1,4 @@
 const VIETNAM_UTC_OFFSET_HOURS = 7;
-const CURRENT_VIEWING_GRACE_MS = 10 * 60 * 1000;
 
 export function parseSheetViewingTime(value) {
   const match = String(value || "").trim().match(
@@ -34,16 +33,11 @@ export function parseSheetViewingTime(value) {
 }
 
 export function normalizeUpcomingViewings(rows, now = Date.now()) {
-  const viewings = (Array.isArray(rows) ? rows : []).flatMap((row, index) => {
+  return (Array.isArray(rows) ? rows : []).flatMap((row, index) => {
     if (!Array.isArray(row)) return [];
     const [customerName, phone, viewingAddress, viewingTime, beforeStatus, afterStatus] = row;
     const viewingAt = parseSheetViewingTime(viewingTime);
-    if (
-      !customerName
-      || !viewingAddress
-      || viewingAt === null
-      || viewingAt < now - CURRENT_VIEWING_GRACE_MS
-    ) return [];
+    if (!customerName || !viewingAddress || viewingAt === null || viewingAt < now) return [];
 
     return [{
       sourceRow: index + 2,
@@ -56,6 +50,4 @@ export function normalizeUpcomingViewings(rows, now = Date.now()) {
       afterStatus: String(afterStatus || "").trim(),
     }];
   });
-
-  return viewings.sort((left, right) => left.viewingAt.localeCompare(right.viewingAt));
 }
