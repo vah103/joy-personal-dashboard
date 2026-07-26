@@ -41,6 +41,7 @@ const projectHubScripts = [
   '    <script src="project-hub-render.js?v=turtlebot-hub-v3" defer></script>\n',
   '    <script src="project-hub-actions.js?v=turtlebot-hub-v3" defer></script>\n',
   '    <script src="project-data/ielts/ielts-card.js?v=ielts-card-v2" defer></script>\n',
+  '    <script src="weather-status-ui.js?v=three-state-weather-v1" defer></script>\n',
   '    <script src="push-notifications.js?v=rain-push-v2" defer></script>\n',
   '    <script src="auth-ui.js?v=joy-google-account-v1" defer></script>\n',
 ].join("");
@@ -87,6 +88,7 @@ await Promise.all([
   cp(resolve(root, "turtlebot4-art.webp"), resolve(dist, "turtlebot4-art.webp")),
   cp(resolve(root, "styles.css"), resolve(dist, "styles.css")),
   cp(resolve(root, "weather-rain.js"), resolve(dist, "weather-rain.js")),
+  cp(resolve(root, "weather-status-ui.js"), resolve(dist, "weather-status-ui.js")),
   cp(resolve(root, "todo-visibility.js"), resolve(dist, "todo-visibility.js")),
   cp(resolve(root, "push-notifications.js"), resolve(dist, "push-notifications.js")),
   cp(resolve(root, "sw.js"), resolve(dist, "sw.js")),
