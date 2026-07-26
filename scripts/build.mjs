@@ -4,6 +4,9 @@ import { resolve } from "node:path";
 const root = resolve(import.meta.dirname, "..");
 const dist = resolve(root, "dist");
 const fonts = resolve(dist, "fonts");
+const authModule = resolve(root, "modules", "auth");
+const notificationModule = resolve(root, "modules", "notifications");
+const projectHubModule = resolve(root, "modules", "project-hub");
 
 const desktopFaviconLink = '    <link rel="icon" href="/joy-web-favicon.svg?v=joy-desktop-wolf-v2" type="image/svg+xml">';
 const blueFaviconLink = '    <link rel="icon" href="/joy-blue-icon.png?v=joy-topographic-blue-v1" type="image/png">';
@@ -76,31 +79,32 @@ const cloudflareSaleHtml = sourceSaleHtml
 await writeFile(resolve(dist, "index.html"), cloudflareHtml);
 await writeFile(resolve(dist, "login.html"), cloudflareLoginHtml);
 await writeFile(resolve(dist, "sale-manager.html"), cloudflareSaleHtml);
+
 await Promise.all([
   cp(resolve(root, "login.css"), resolve(dist, "login.css")),
-  cp(resolve(root, "auth-ui.js"), resolve(dist, "auth-ui.js")),
-  cp(resolve(root, "auth-ui.css"), resolve(dist, "auth-ui.css")),
   cp(resolve(root, "app.js"), resolve(dist, "app.js")),
   cp(resolve(root, "project-details.js"), resolve(dist, "project-details.js")),
   cp(resolve(root, "project-details.css"), resolve(dist, "project-details.css")),
-  cp(resolve(root, "turtlebot4-card-background.webp"), resolve(dist, "turtlebot4-card-background.webp")),
-  cp(resolve(root, "turtlebot4-illustration.svg"), resolve(dist, "turtlebot4-illustration.svg")),
   cp(resolve(root, "turtlebot4-art.webp"), resolve(dist, "turtlebot4-art.webp")),
   cp(resolve(root, "styles.css"), resolve(dist, "styles.css")),
   cp(resolve(root, "weather-rain.js"), resolve(dist, "weather-rain.js")),
-  cp(resolve(root, "weather-status-ui.js"), resolve(dist, "weather-status-ui.js")),
   cp(resolve(root, "todo-visibility.js"), resolve(dist, "todo-visibility.js")),
-  cp(resolve(root, "push-notifications.js"), resolve(dist, "push-notifications.js")),
   cp(resolve(root, "sw.js"), resolve(dist, "sw.js")),
-  cp(resolve(root, "mobile-notifications.css"), resolve(dist, "mobile-notifications.css")),
-  cp(resolve(root, "project-hub-performance.js"), resolve(dist, "project-hub-performance.js")),
-  cp(resolve(root, "project-hub-core.js"), resolve(dist, "project-hub-core.js")),
-  cp(resolve(root, "project-hub-render.js"), resolve(dist, "project-hub-render.js")),
-  cp(resolve(root, "project-hub-actions.js"), resolve(dist, "project-hub-actions.js")),
-  cp(resolve(root, "project-hub.css"), resolve(dist, "project-hub.css")),
-  cp(resolve(root, "turtlebot-card-art.css"), resolve(dist, "turtlebot-card-art.css")),
-  cp(resolve(root, "turtlebot4-card-background.webp"), resolve(dist, "turtlebot4-card-background.webp")),
   cp(resolve(root, "project-data"), resolve(dist, "project-data"), { recursive: true }),
+
+  cp(resolve(authModule, "auth-ui.js"), resolve(dist, "auth-ui.js")),
+  cp(resolve(authModule, "auth-ui.css"), resolve(dist, "auth-ui.css")),
+  cp(resolve(notificationModule, "push-notifications.js"), resolve(dist, "push-notifications.js")),
+  cp(resolve(notificationModule, "mobile-notifications.css"), resolve(dist, "mobile-notifications.css")),
+  cp(resolve(notificationModule, "weather-status-ui.js"), resolve(dist, "weather-status-ui.js")),
+  cp(resolve(projectHubModule, "project-hub-performance.js"), resolve(dist, "project-hub-performance.js")),
+  cp(resolve(projectHubModule, "project-hub-core.js"), resolve(dist, "project-hub-core.js")),
+  cp(resolve(projectHubModule, "project-hub-render.js"), resolve(dist, "project-hub-render.js")),
+  cp(resolve(projectHubModule, "project-hub-actions.js"), resolve(dist, "project-hub-actions.js")),
+  cp(resolve(projectHubModule, "project-hub.css"), resolve(dist, "project-hub.css")),
+  cp(resolve(projectHubModule, "turtlebot-card-art.css"), resolve(dist, "turtlebot-card-art.css")),
+  cp(resolve(projectHubModule, "turtlebot4-card-background.webp"), resolve(dist, "turtlebot4-card-background.webp")),
+
   cp(resolve(root, "sale-fonts", "nunito-latin-400-normal.woff2"), resolve(fonts, "nunito-latin-400-normal.woff2")),
   cp(resolve(root, "sale-fonts", "nunito-vietnamese-400-normal.woff2"), resolve(fonts, "nunito-vietnamese-400-normal.woff2")),
   cp(resolve(root, "sale-fonts", "nunito-latin-600-normal.woff2"), resolve(fonts, "nunito-latin-600-normal.woff2")),
@@ -113,8 +117,6 @@ await Promise.all([
   cp(resolve(root, "finance-demo.js"), resolve(dist, "finance-demo.js")),
   cp(resolve(root, "app-icon-64.png"), resolve(dist, "app-icon-64.png")),
   cp(resolve(root, "app-icon-192.png"), resolve(dist, "app-icon-192.png")),
-  cp(resolve(root, "app-icon-512.png"), resolve(dist, "app-icon-512.png")),
-  cp(resolve(root, "app-icon-old.svg"), resolve(dist, "app-icon-old.svg")),
   cp(resolve(root, "wolf-mark.svg"), resolve(dist, "wolf-mark.svg")),
   cp(resolve(root, "joy-blue-icon.png"), resolve(dist, "joy-blue-icon.png")),
   cp(resolve(root, "joy-web-favicon.svg"), resolve(dist, "joy-web-favicon.svg")),

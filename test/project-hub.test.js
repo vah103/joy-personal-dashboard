@@ -8,6 +8,8 @@ function read(path) {
   return fs.readFileSync(new URL(path, root), "utf8");
 }
 
+const projectHubPath = "modules/project-hub/";
+
 test("TurtleBot snapshot contains the complete roadmap", () => {
   const source = JSON.parse(read("project-data/turtlebot4/source.json"));
   assert.equal(source.project.id, "turtlebot4");
@@ -17,8 +19,8 @@ test("TurtleBot snapshot contains the complete roadmap", () => {
 });
 
 test("project hub exposes four working surfaces", () => {
-  const core = read("project-hub-core.js");
-  const render = read("project-hub-render.js");
+  const core = read(`${projectHubPath}project-hub-core.js`);
+  const render = read(`${projectHubPath}project-hub-render.js`);
   for (const tab of ["roadmap", "commands", "journal", "plan"]) {
     assert.ok(core.includes(`data-hub-tab=\"${tab}\"`));
   }
@@ -50,7 +52,7 @@ test("build includes project hub assets in order", () => {
 });
 
 test("project list observer cannot recurse through card text updates", () => {
-  const guard = read("project-hub-performance.js");
+  const guard = read(`${projectHubPath}project-hub-performance.js`);
   assert.ok(guard.includes('target.id === "project-list"'));
   assert.ok(guard.includes("subtree: false"));
   assert.ok(guard.includes("childList: true"));
@@ -58,8 +60,8 @@ test("project list observer cannot recurse through card text updates", () => {
 
 test("dashboard card keeps the original TurtleBot artwork separately from the popup", () => {
   const build = read("scripts/build.mjs");
-  const cardCss = read("turtlebot-card-art.css");
-  assert.ok(fs.existsSync(new URL("turtlebot4-card-background.webp", root)));
+  const cardCss = read(`${projectHubPath}turtlebot-card-art.css`);
+  assert.ok(fs.existsSync(new URL(`${projectHubPath}turtlebot4-card-background.webp`, root)));
   assert.ok(build.includes("turtlebot-card-art.css"));
   assert.ok(build.includes("turtlebot4-card-background.webp"));
   assert.ok(cardCss.includes("turtlebot4-card-background.webp"));

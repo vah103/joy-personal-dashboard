@@ -11,7 +11,7 @@ const authSource = fs.readFileSync(new URL("../worker/google-auth.js", import.me
 const routerSource = fs.readFileSync(new URL("../worker/router.js", import.meta.url), "utf8");
 const buildSource = fs.readFileSync(new URL("../scripts/build.mjs", import.meta.url), "utf8");
 const loginHtml = fs.readFileSync(new URL("../login.html", import.meta.url), "utf8");
-const accountUi = fs.readFileSync(new URL("../auth-ui.js", import.meta.url), "utf8");
+const accountUi = fs.readFileSync(new URL("../modules/auth/auth-ui.js", import.meta.url), "utf8");
 
 test("Joy exposes a dedicated Google login flow", () => {
   assert.equal(isGoogleAuthRoute("/auth/login"), true);
@@ -52,9 +52,9 @@ test("sign out preserves integrations while service disconnects are separate", (
 });
 
 test("Cloudflare build contains all authentication assets", () => {
-  for (const filename of ["login.html", "login.css", "auth-ui.js", "auth-ui.css"]) {
-    assert.ok(buildSource.includes(`resolve(root, "${filename}")`));
-  }
+  assert.ok(buildSource.includes('resolve(root, "login.css")'));
+  assert.ok(buildSource.includes('resolve(authModule, "auth-ui.js")'));
+  assert.ok(buildSource.includes('resolve(authModule, "auth-ui.css")'));
   assert.ok(buildSource.includes("auth-ui.css?v=joy-google-account-v1"));
   assert.ok(buildSource.includes("auth-ui.js?v=joy-google-account-v1"));
 });
