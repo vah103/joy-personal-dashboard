@@ -5,7 +5,7 @@ const root = resolve(import.meta.dirname, "..");
 const dist = resolve(root, "dist");
 const fonts = resolve(dist, "fonts");
 
-const desktopFaviconLink = '    <link rel="icon" href="/joy-web-favicon.svg?v=joy-desktop-wolf-v1" type="image/svg+xml">';
+const desktopFaviconLink = '    <link rel="icon" href="/joy-web-favicon.svg?v=joy-desktop-wolf-v2" type="image/svg+xml">';
 const blueFaviconLink = '    <link rel="icon" href="/joy-blue-icon.png?v=joy-topographic-blue-v1" type="image/png">';
 const legacySaleFaviconLink = '    <link rel="icon" href="app-icon-64.png?v=joy-original-wolf-v2" type="image/png" sizes="64x64">';
 
