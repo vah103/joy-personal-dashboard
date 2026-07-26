@@ -105,6 +105,8 @@ const copies = [
   [resolve(loginPage, "login.css"), "login.css"],
   [resolve(salePage, "sale-manager.js"), "sale-manager.js"],
   [resolve(salePage, "sale-manager.css"), "sale-manager.css"],
+  [resolve(salePage, "room-summary.js"), "room-summary.js"],
+  [resolve(salePage, "room-summary.css"), "room-summary.css"],
   [resolve(features, "project-details", "project-details.js"), "project-details.js"],
   [resolve(features, "project-details", "project-details.css"), "project-details.css"],
   [resolve(features, "project-details", "turtlebot4-art.webp"), "turtlebot4-art.webp"],
