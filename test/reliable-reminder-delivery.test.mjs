@@ -12,6 +12,16 @@ test("router uses the acknowledged reminder scheduler", () => {
   assert.ok(!router.includes("runTaskReminderSchedule"));
 });
 
+test("scheduled jobs cannot block one another", () => {
+  assert.ok(router.includes("function scheduleIndependentJob"));
+  assert.ok(router.includes('scheduleIndependentJob(ctx, "Gmail"'));
+  assert.ok(router.includes('scheduleIndependentJob(ctx, "weather"'));
+  assert.ok(router.includes('scheduleIndependentJob(ctx, "reminder"'));
+  assert.ok(router.includes("Promise.resolve()"));
+  assert.ok(router.includes(".catch((error) =>"));
+  assert.ok(!router.includes("await app.scheduled(controller, env, ctx);\n    }\n    ctx.waitUntil"));
+});
+
 test("push acceptance does not immediately finish a task reminder", () => {
   assert.ok(delivery.includes("SET last_notified_at = ?, updated_at = ?"));
   assert.ok(delivery.includes("status = 'scheduled'"));
