@@ -13,11 +13,22 @@
 
     const daypart = document.createElement("span");
     daypart.className = "greeting-daypart";
-    daypart.textContent = match[1];
 
     const name = document.createElement("span");
     name.className = "greeting-name";
-    name.textContent = match[2];
+
+    const animatedWords = [...greeting.querySelectorAll(":scope > .joy-motion-word")];
+    if (animatedWords.length === 3) {
+      daypart.append(
+        animatedWords[0],
+        document.createTextNode(" "),
+        animatedWords[1],
+      );
+      name.append(animatedWords[2]);
+    } else {
+      daypart.textContent = match[1];
+      name.textContent = match[2];
+    }
 
     greeting.replaceChildren(daypart, document.createTextNode(" "), name);
   }
