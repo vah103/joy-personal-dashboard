@@ -1,31 +1,30 @@
 # Joy Personal Dashboard
 
-A responsive personal dashboard for Vanh, covering Gmail, sales viewings, active projects, finance, weather notifications, and daily tasks.
-
-## Features
-
-- Secure Google sign-in with Gmail and Google Sheets connected separately.
-- Automatic Gmail, sales, finance, project, scratchpad, and task synchronization through Cloudflare.
-- TurtleBot4 and IELTS project dashboards.
-- Three-state weather updates: sunny, chill, or strong-rain warning.
-- Web Push notifications for the installed iPhone app.
-- Local browser fallback for temporary offline changes.
+A private Cloudflare-powered dashboard for Vanh, covering Gmail, Google Sheets sales and finance, active projects, tasks, weather, and Web Push notifications.
 
 ## Repository layout
 
-- Root HTML, CSS, and JavaScript files keep the GitHub Pages fallback compatible.
-- `modules/` contains production-only frontend modules grouped by feature.
-- `project-data/` contains TurtleBot4 and IELTS project assets and source data.
-- `worker/` contains the Cloudflare Worker API and scheduled jobs.
-- `migrations/` contains D1 database migrations.
-- `scripts/` contains the production build.
-- `test/` contains automated regression tests.
-- `docs/` contains setup and architecture notes.
+- `src/` — all frontend source code, pages, features, icons, fonts, and PWA files.
+- `project-data/` — TurtleBot4 and IELTS source data and project-specific assets.
+- `worker/` — Cloudflare Worker routes, API services, scheduled synchronization, and weather notifications.
+- `migrations/` — Cloudflare D1 database migrations.
+- `scripts/` — production build and test compatibility runner.
+- `test/` — automated regression tests.
+- `docs/` — deployment, structure, and archived project notes.
 
-See [`docs/REPOSITORY_STRUCTURE.md`](docs/REPOSITORY_STRUCTURE.md) for the detailed map.
+The repository is Cloudflare-first. `npm run build` generates the deployable frontend in `dist/`, which is intentionally ignored by Git. GitHub Pages is no longer used as a fallback.
 
-## Cloudflare architecture
+## Commands
 
-Cloudflare Workers serves the authenticated API and the built frontend. D1 stores sessions, encrypted integration tokens, cached Gmail metadata, and application data. Scheduled jobs synchronize external data and evaluate weather notifications.
+```bash
+npm test
+npm run build
+npm run dev
+npm run deploy
+```
 
-See [`docs/CLOUDFLARE_SETUP.md`](docs/CLOUDFLARE_SETUP.md) for the deployment procedure. Never commit OAuth secrets, refresh tokens, `.dev.vars`, `.env`, `dist/`, `.wrangler/`, or `node_modules/`.
+## Safety
+
+Never commit OAuth secrets, refresh tokens, `.dev.vars`, `.env`, `dist/`, `.wrangler/`, or `node_modules/`.
+
+See [`docs/REPOSITORY_STRUCTURE.md`](docs/REPOSITORY_STRUCTURE.md) for the detailed map and [`docs/CLOUDFLARE_SETUP.md`](docs/CLOUDFLARE_SETUP.md) for deployment setup.

@@ -2,11 +2,19 @@ import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
+const src = resolve(root, "src");
 const dist = resolve(root, "dist");
 const fonts = resolve(dist, "fonts");
-const authModule = resolve(root, "modules", "auth");
-const notificationModule = resolve(root, "modules", "notifications");
-const projectHubModule = resolve(root, "modules", "project-hub");
+
+const pages = resolve(src, "pages");
+const dashboardPage = resolve(pages, "dashboard");
+const loginPage = resolve(pages, "login");
+const salePage = resolve(pages, "sale");
+const features = resolve(src, "features");
+const assets = resolve(src, "assets");
+const icons = resolve(assets, "icons");
+const nunitoFonts = resolve(assets, "fonts", "nunito");
+const pwa = resolve(src, "pwa");
 
 const desktopFaviconLink = '    <link rel="icon" href="/joy-web-favicon.svg?v=joy-desktop-wolf-v2" type="image/svg+xml">';
 const blueFaviconLink = '    <link rel="icon" href="/joy-blue-icon.png?v=joy-topographic-blue-v1" type="image/png">';
@@ -38,6 +46,7 @@ const projectHubHead = [
   '    <link rel="stylesheet" href="mobile-notifications.css?v=iphone-rain-bell-v1">\n',
   '    <link rel="stylesheet" href="auth-ui.css?v=joy-google-account-v1">\n',
 ].join("");
+
 const projectHubScripts = [
   '    <script src="project-hub-performance.js?v=turtlebot-hub-v3" defer></script>\n',
   '    <script src="project-hub-core.js?v=turtlebot-hub-v3" defer></script>\n',
@@ -49,7 +58,7 @@ const projectHubScripts = [
   '    <script src="auth-ui.js?v=joy-google-account-v1" defer></script>\n',
 ].join("");
 
-const sourceHtml = await readFile(resolve(root, "index.html"), "utf8");
+const sourceHtml = await readFile(resolve(dashboardPage, "index.html"), "utf8");
 const cloudflareHtml = sourceHtml
   .replace(blueFaviconLink, desktopFaviconLink)
   .replace('<meta name="application-name" content="Joy">', '<meta name="application-name" content="Hey Joy!">')
@@ -63,10 +72,10 @@ const cloudflareHtml = sourceHtml
   )
   .replace("</body>", `${projectHubScripts}  </body>`);
 
-const sourceLoginHtml = await readFile(resolve(root, "login.html"), "utf8");
+const sourceLoginHtml = await readFile(resolve(loginPage, "index.html"), "utf8");
 const cloudflareLoginHtml = sourceLoginHtml.replace(blueFaviconLink, desktopFaviconLink);
 
-const sourceSaleHtml = await readFile(resolve(root, "sale-manager.html"), "utf8");
+const sourceSaleHtml = await readFile(resolve(salePage, "index.html"), "utf8");
 const cloudflareSaleHtml = sourceSaleHtml
   .replace(legacySaleFaviconLink, desktopFaviconLink)
   .replace('<meta name="description" content="Joy\'s private 2026 room sale workspace.">', '<meta name="description" content="Hey Joy! private 2026 room sale workspace.">')
@@ -80,47 +89,51 @@ await writeFile(resolve(dist, "index.html"), cloudflareHtml);
 await writeFile(resolve(dist, "login.html"), cloudflareLoginHtml);
 await writeFile(resolve(dist, "sale-manager.html"), cloudflareSaleHtml);
 
+const copies = [
+  [resolve(dashboardPage, "app.js"), "app.js"],
+  [resolve(dashboardPage, "styles.css"), "styles.css"],
+  [resolve(loginPage, "login.css"), "login.css"],
+  [resolve(salePage, "sale-manager.js"), "sale-manager.js"],
+  [resolve(salePage, "sale-manager.css"), "sale-manager.css"],
+  [resolve(features, "project-details", "project-details.js"), "project-details.js"],
+  [resolve(features, "project-details", "project-details.css"), "project-details.css"],
+  [resolve(features, "project-details", "turtlebot4-art.webp"), "turtlebot4-art.webp"],
+  [resolve(features, "finance", "finance.js"), "finance-demo.js"],
+  [resolve(features, "finance", "finance.css"), "finance-demo.css"],
+  [resolve(features, "weather", "weather-rain.js"), "weather-rain.js"],
+  [resolve(features, "tasks", "todo-visibility.js"), "todo-visibility.js"],
+  [resolve(features, "auth", "auth-ui.js"), "auth-ui.js"],
+  [resolve(features, "auth", "auth-ui.css"), "auth-ui.css"],
+  [resolve(features, "notifications", "push-notifications.js"), "push-notifications.js"],
+  [resolve(features, "notifications", "mobile-notifications.css"), "mobile-notifications.css"],
+  [resolve(features, "notifications", "weather-status-ui.js"), "weather-status-ui.js"],
+  [resolve(features, "project-hub", "project-hub-performance.js"), "project-hub-performance.js"],
+  [resolve(features, "project-hub", "project-hub-core.js"), "project-hub-core.js"],
+  [resolve(features, "project-hub", "project-hub-render.js"), "project-hub-render.js"],
+  [resolve(features, "project-hub", "project-hub-actions.js"), "project-hub-actions.js"],
+  [resolve(features, "project-hub", "project-hub.css"), "project-hub.css"],
+  [resolve(features, "project-hub", "turtlebot-card-art.css"), "turtlebot-card-art.css"],
+  [resolve(features, "project-hub", "turtlebot4-card-background.webp"), "turtlebot4-card-background.webp"],
+  [resolve(icons, "app-icon-64.png"), "app-icon-64.png"],
+  [resolve(icons, "app-icon-192.png"), "app-icon-192.png"],
+  [resolve(icons, "wolf-mark.svg"), "wolf-mark.svg"],
+  [resolve(icons, "joy-blue-icon.png"), "joy-blue-icon.png"],
+  [resolve(icons, "joy-web-favicon.svg"), "joy-web-favicon.svg"],
+  [resolve(pwa, "sw.js"), "sw.js"],
+  [resolve(pwa, "site.webmanifest"), "site.webmanifest"],
+];
+
 await Promise.all([
-  cp(resolve(root, "login.css"), resolve(dist, "login.css")),
-  cp(resolve(root, "app.js"), resolve(dist, "app.js")),
-  cp(resolve(root, "project-details.js"), resolve(dist, "project-details.js")),
-  cp(resolve(root, "project-details.css"), resolve(dist, "project-details.css")),
-  cp(resolve(root, "turtlebot4-art.webp"), resolve(dist, "turtlebot4-art.webp")),
-  cp(resolve(root, "styles.css"), resolve(dist, "styles.css")),
-  cp(resolve(root, "weather-rain.js"), resolve(dist, "weather-rain.js")),
-  cp(resolve(root, "todo-visibility.js"), resolve(dist, "todo-visibility.js")),
-  cp(resolve(root, "sw.js"), resolve(dist, "sw.js")),
+  ...copies.map(([source, destination]) => cp(source, resolve(dist, destination))),
   cp(resolve(root, "project-data"), resolve(dist, "project-data"), { recursive: true }),
-
-  cp(resolve(authModule, "auth-ui.js"), resolve(dist, "auth-ui.js")),
-  cp(resolve(authModule, "auth-ui.css"), resolve(dist, "auth-ui.css")),
-  cp(resolve(notificationModule, "push-notifications.js"), resolve(dist, "push-notifications.js")),
-  cp(resolve(notificationModule, "mobile-notifications.css"), resolve(dist, "mobile-notifications.css")),
-  cp(resolve(notificationModule, "weather-status-ui.js"), resolve(dist, "weather-status-ui.js")),
-  cp(resolve(projectHubModule, "project-hub-performance.js"), resolve(dist, "project-hub-performance.js")),
-  cp(resolve(projectHubModule, "project-hub-core.js"), resolve(dist, "project-hub-core.js")),
-  cp(resolve(projectHubModule, "project-hub-render.js"), resolve(dist, "project-hub-render.js")),
-  cp(resolve(projectHubModule, "project-hub-actions.js"), resolve(dist, "project-hub-actions.js")),
-  cp(resolve(projectHubModule, "project-hub.css"), resolve(dist, "project-hub.css")),
-  cp(resolve(projectHubModule, "turtlebot-card-art.css"), resolve(dist, "turtlebot-card-art.css")),
-  cp(resolve(projectHubModule, "turtlebot4-card-background.webp"), resolve(dist, "turtlebot4-card-background.webp")),
-
-  cp(resolve(root, "sale-fonts", "nunito-latin-400-normal.woff2"), resolve(fonts, "nunito-latin-400-normal.woff2")),
-  cp(resolve(root, "sale-fonts", "nunito-vietnamese-400-normal.woff2"), resolve(fonts, "nunito-vietnamese-400-normal.woff2")),
-  cp(resolve(root, "sale-fonts", "nunito-latin-600-normal.woff2"), resolve(fonts, "nunito-latin-600-normal.woff2")),
-  cp(resolve(root, "sale-fonts", "nunito-vietnamese-600-normal.woff2"), resolve(fonts, "nunito-vietnamese-600-normal.woff2")),
-  cp(resolve(root, "sale-fonts", "nunito-latin-700-normal.woff2"), resolve(fonts, "nunito-latin-700-normal.woff2")),
-  cp(resolve(root, "sale-fonts", "nunito-vietnamese-700-normal.woff2"), resolve(fonts, "nunito-vietnamese-700-normal.woff2")),
-  cp(resolve(root, "sale-manager.js"), resolve(dist, "sale-manager.js")),
-  cp(resolve(root, "sale-manager.css"), resolve(dist, "sale-manager.css")),
-  cp(resolve(root, "finance-demo.css"), resolve(dist, "finance-demo.css")),
-  cp(resolve(root, "finance-demo.js"), resolve(dist, "finance-demo.js")),
-  cp(resolve(root, "app-icon-64.png"), resolve(dist, "app-icon-64.png")),
-  cp(resolve(root, "app-icon-192.png"), resolve(dist, "app-icon-192.png")),
-  cp(resolve(root, "wolf-mark.svg"), resolve(dist, "wolf-mark.svg")),
-  cp(resolve(root, "joy-blue-icon.png"), resolve(dist, "joy-blue-icon.png")),
-  cp(resolve(root, "joy-web-favicon.svg"), resolve(dist, "joy-web-favicon.svg")),
-  cp(resolve(root, "site.webmanifest"), resolve(dist, "site.webmanifest")),
+  ...[
+    "nunito-latin-400-normal.woff2",
+    "nunito-vietnamese-400-normal.woff2",
+    "nunito-latin-600-normal.woff2",
+    "nunito-vietnamese-600-normal.woff2",
+    "nunito-latin-700-normal.woff2",
+    "nunito-vietnamese-700-normal.woff2",
+  ].map((file) => cp(resolve(nunitoFonts, file), resolve(fonts, file))),
   ...fontFiles.map(([family, file]) => cp(
     resolve(root, "node_modules", "@fontsource", family, "files", file),
     resolve(fonts, file),

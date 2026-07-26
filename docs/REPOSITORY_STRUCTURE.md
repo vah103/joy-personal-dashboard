@@ -2,27 +2,42 @@
 
 ```text
 joy-personal-dashboard/
-├── index.html, login.html, sale-manager.html  # Browser entry pages
-├── *.css / *.js                               # Base GitHub Pages-compatible frontend
-├── modules/                                   # Cloudflare-only frontend modules
-│   ├── auth/
-│   ├── notifications/
-│   └── project-hub/
-├── project-data/                              # IELTS and TurtleBot4 project data
-├── worker/                                    # Cloudflare Worker API and services
-├── migrations/                                # D1 database migrations
-├── scripts/                                   # Build and maintenance scripts
-├── test/                                      # Automated regression tests
-├── docs/                                      # Setup and architecture documentation
-├── site.webmanifest, sw.js                    # PWA and Web Push entry files
-├── package.json                               # Commands and dependencies
-└── wrangler.jsonc                             # Cloudflare deployment configuration
+├── src/
+│   ├── pages/
+│   │   ├── dashboard/          # Main dashboard HTML, CSS, and JavaScript
+│   │   ├── login/              # Google sign-in page
+│   │   └── sale/               # Sale workspace page
+│   ├── features/
+│   │   ├── auth/               # Account and integration controls
+│   │   ├── finance/            # Finance dashboard behavior and styling
+│   │   ├── notifications/      # Web Push client, mobile styling, weather status
+│   │   ├── project-details/    # Project detail modal
+│   │   ├── project-hub/        # TurtleBot4 Project Hub and card artwork
+│   │   ├── tasks/              # To-do visibility and deletion behavior
+│   │   └── weather/            # Dashboard weather forecast helper
+│   ├── assets/
+│   │   ├── icons/              # App icons, favicon, and wolf mark
+│   │   └── fonts/nunito/       # Bundled Sale workspace fonts
+│   └── pwa/                    # Manifest and service worker
+├── project-data/               # IELTS and TurtleBot4 data
+├── worker/                     # Cloudflare API and scheduled jobs
+├── migrations/                 # D1 schema migrations
+├── scripts/                    # Build and test runner
+├── test/                       # Regression tests
+├── docs/                       # Setup and architecture documentation
+├── package.json
+├── package-lock.json
+└── wrangler.jsonc
 ```
 
-## Why some frontend files remain at the root
+## Build behavior
 
-The base dashboard files remain at the repository root so the GitHub Pages fallback continues to work. Production-only features are grouped under `modules/` and copied into `dist/` during `npm run build`.
+`scripts/build.mjs` reads source files from `src/` and writes stable public filenames into `dist/`. This keeps existing browser URLs, service-worker paths, app icons, and Cloudflare asset routes unchanged after the repository reorganization.
 
-## Removed legacy files
+## Test compatibility
 
-The cleanup removed obsolete favicon/icon experiments, the unused TurtleBot illustration, and the superseded `worker/rain-push.js` implementation. The active app icons, service worker, database migrations, tests, project data, and Nunito font assets were retained.
+Some older regression tests intentionally inspect the previous root filenames. `scripts/run-tests.mjs` creates temporary local symlinks while tests run and removes them afterward. These compatibility files are never committed and do not clutter the repository.
+
+## Removed fallback
+
+The root GitHub Pages entry files and `.nojekyll` were removed. Production and development now use the Cloudflare build exclusively.
