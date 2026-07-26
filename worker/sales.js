@@ -34,7 +34,7 @@ export function parseSheetViewingTime(value) {
 }
 
 export function normalizeUpcomingViewings(rows, now = Date.now()) {
-  return (Array.isArray(rows) ? rows : []).flatMap((row, index) => {
+  const viewings = (Array.isArray(rows) ? rows : []).flatMap((row, index) => {
     if (!Array.isArray(row)) return [];
     const [customerName, phone, viewingAddress, viewingTime, beforeStatus, afterStatus] = row;
     const viewingAt = parseSheetViewingTime(viewingTime);
@@ -56,4 +56,6 @@ export function normalizeUpcomingViewings(rows, now = Date.now()) {
       afterStatus: String(afterStatus || "").trim(),
     }];
   });
+
+  return viewings.sort((left, right) => left.viewingAt.localeCompare(right.viewingAt));
 }
