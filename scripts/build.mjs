@@ -73,6 +73,10 @@ const cloudflareHtml = sourceHtml
   .replace('<p class="section-kicker" id="brief-title">Joy</p>', '<p class="section-kicker" id="brief-title">Hey Joy!</p>')
   .replace('site.webmanifest?v=joy-original-wolf-v2', 'site.webmanifest?v=joy-blue-wolf-v4')
   .replace(
+    '<script src="app.js?v=joy-dashboard-combined-v1" defer></script>',
+    '<script src="todo-display-policy.js?v=joy-task-window-v1" defer></script>\n    <script src="app.js?v=joy-dashboard-combined-v1" defer></script>',
+  )
+  .replace(
     "</head>",
     `${projectHubHead}    <meta name="joy-backend" content="cloudflare">\n  </head>`,
   )
@@ -108,6 +112,7 @@ const copies = [
   [resolve(features, "finance", "finance.css"), "finance-demo.css"],
   [resolve(features, "weather", "weather-rain.js"), "weather-rain.js"],
   [resolve(features, "tasks", "todo-visibility.js"), "todo-visibility.js"],
+  [resolve(features, "tasks", "todo-display-policy.js"), "todo-display-policy.js"],
   [resolve(features, "tasks", "task-reminders-events.js"), "task-reminders-events.js"],
   [resolve(features, "tasks", "task-reminders.js"), "task-reminders.js"],
   [resolve(features, "tasks", "task-natural-input.js"), "task-natural-input.js"],
