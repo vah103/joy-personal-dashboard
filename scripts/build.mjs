@@ -11,6 +11,7 @@ const dashboardPage = resolve(pages, "dashboard");
 const loginPage = resolve(pages, "login");
 const salePage = resolve(pages, "sale");
 const features = resolve(src, "features");
+const salesFeatures = resolve(features, "sales");
 const assets = resolve(src, "assets");
 const icons = resolve(assets, "icons");
 const nunitoFonts = resolve(assets, "fonts", "nunito");
@@ -47,6 +48,8 @@ const projectHubHead = [
   '    <link rel="stylesheet" href="auth-ui.css?v=joy-google-account-v3">\n',
   '    <link rel="stylesheet" href="greeting-layout.css?v=mobile-greeting-v2">\n',
   '    <link rel="stylesheet" href="task-reminders.css?v=joy-tasks-v1">\n',
+  '    <link rel="stylesheet" href="room-summary.css?v=joy-room-summary-v1">\n',
+  '    <link rel="stylesheet" href="sales-assistant.css?v=joy-dashboard-sales-assistant-v1">\n',
 ].join("");
 
 const projectHubScripts = [
@@ -62,6 +65,7 @@ const projectHubScripts = [
   '    <script src="task-reminders-events.js?v=joy-task-checkbox-v2" defer></script>\n',
   '    <script src="task-reminders.js?v=joy-tasks-v1" defer></script>\n',
   '    <script src="task-natural-input.js?v=joy-natural-reminders-v1" defer></script>\n',
+  '    <script type="module" src="sales-assistant.js?v=joy-dashboard-sales-assistant-v1"></script>\n',
 ].join("");
 
 const sourceHtml = await readFile(resolve(dashboardPage, "index.html"), "utf8");
@@ -107,6 +111,8 @@ const copies = [
   [resolve(salePage, "sale-manager.css"), "sale-manager.css"],
   [resolve(salePage, "room-summary.js"), "room-summary.js"],
   [resolve(salePage, "room-summary.css"), "room-summary.css"],
+  [resolve(salesFeatures, "sales-assistant.js"), "sales-assistant.js"],
+  [resolve(salesFeatures, "sales-assistant.css"), "sales-assistant.css"],
   [resolve(features, "project-details", "project-details.js"), "project-details.js"],
   [resolve(features, "project-details", "project-details.css"), "project-details.css"],
   [resolve(features, "project-details", "turtlebot4-art.webp"), "turtlebot4-art.webp"],
