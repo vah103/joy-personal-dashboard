@@ -10,6 +10,23 @@ const CREATE_TASK_DELETIONS_TABLE = `
   )
 `;
 
+const CREATE_TASK_REMINDERS_TABLE = `
+  CREATE TABLE IF NOT EXISTS task_reminders (
+    user_email TEXT NOT NULL,
+    task_id TEXT NOT NULL,
+    due_at INTEGER NOT NULL,
+    repeat_type TEXT NOT NULL DEFAULT 'once',
+    repeat_days TEXT NOT NULL DEFAULT '[]',
+    notification_enabled INTEGER NOT NULL DEFAULT 1,
+    snoozed_until INTEGER,
+    last_notified_at INTEGER,
+    status TEXT NOT NULL DEFAULT 'scheduled',
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (user_email, task_id)
+  )
+`;
+
 export function isTaskDeleteRoute(pathname) {
   return pathname === TASK_DELETE_PATH;
 }
@@ -30,7 +47,10 @@ export async function handleTaskDeleteRequest(request, env) {
       return json({ error: "INVALID_TASK_ID" }, 400);
     }
 
-    await env.DB.prepare(CREATE_TASK_DELETIONS_TABLE).run();
+    await env.DB.batch([
+      env.DB.prepare(CREATE_TASK_DELETIONS_TABLE),
+      env.DB.prepare(CREATE_TASK_REMINDERS_TABLE),
+    ]);
 
     const now = Date.now();
     const results = await env.DB.batch([
@@ -41,6 +61,10 @@ export async function handleTaskDeleteRequest(request, env) {
           deleted_at = excluded.deleted_at
       `).bind(session.user_email, id, now),
       env.DB.prepare(`
+        DELETE FROM task_reminders
+        WHERE task_id = ? AND user_email = ?
+      `).bind(id, session.user_email),
+      env.DB.prepare(`
         DELETE FROM tasks
         WHERE id = ? AND user_email = ?
       `).bind(id, session.user_email),
@@ -49,7 +73,7 @@ export async function handleTaskDeleteRequest(request, env) {
     return json({
       ok: true,
       id,
-      removed: Number(results[1]?.meta?.changes || 0) > 0,
+      removed: Number(results[2]?.meta?.changes || 0) > 0,
     });
   } catch (error) {
     console.error("Joy task deletion failed", error);
