@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-await import("../weather-rain.js");
+await import("../src/features/weather/weather-rain.js");
 
 const { summarizeRainForecast } = globalThis.JoyWeather;
 
@@ -111,12 +111,12 @@ test("uses the API timestamp as the end of the hourly interval", () => {
 
 test("weather assets and quiet-state hiding are wired correctly", () => {
   const html = fs.readFileSync(
-    new URL("../index.html", import.meta.url),
+    new URL("../src/pages/dashboard/index.html", import.meta.url),
     "utf8",
   );
 
   const app = fs.readFileSync(
-    new URL("../app.js", import.meta.url),
+    new URL("../src/pages/dashboard/app.js", import.meta.url),
     "utf8",
   );
 
@@ -128,5 +128,5 @@ test("weather assets and quiet-state hiding are wired correctly", () => {
   assert.ok(html.includes('id="weather-rain-notice"'));
   assert.ok(html.indexOf("weather-rain.js") < html.indexOf("app.js"));
   assert.ok(app.includes("weatherRainNotice.hidden"));
-  assert.ok(build.includes('resolve(root, "weather-rain.js")'));
+  assert.ok(build.includes('resolve(features, "weather", "weather-rain.js")'));
 });
