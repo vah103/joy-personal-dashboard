@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-await import("../todo-visibility.js");
+await import("../src/features/tasks/todo-visibility.js");
 
 const {
   shouldShowTask,
@@ -58,12 +58,12 @@ test("Vietnam date helper respects the configured timezone", () => {
 
 test("completed tasks are checked, struck through, and retain normal sorting", () => {
   const app = fs.readFileSync(
-    new URL("../app.js", import.meta.url),
+    new URL("../src/pages/dashboard/app.js", import.meta.url),
     "utf8",
   );
 
   const styles = fs.readFileSync(
-    new URL("../styles.css", import.meta.url),
+    new URL("../src/pages/dashboard/styles.css", import.meta.url),
     "utf8",
   );
 
@@ -90,12 +90,12 @@ test("completed tasks are checked, struck through, and retain normal sorting", (
 
 test("project deletion requires confirmation and preserves string ids", () => {
   const html = fs.readFileSync(
-    new URL("../index.html", import.meta.url),
+    new URL("../src/pages/dashboard/index.html", import.meta.url),
     "utf8",
   );
 
   const app = fs.readFileSync(
-    new URL("../app.js", import.meta.url),
+    new URL("../src/pages/dashboard/app.js", import.meta.url),
     "utf8",
   );
 
@@ -123,7 +123,7 @@ test("project deletion requires confirmation and preserves string ids", () => {
 
 test("todo helper is loaded before app and copied into dist", () => {
   const html = fs.readFileSync(
-    new URL("../index.html", import.meta.url),
+    new URL("../src/pages/dashboard/index.html", import.meta.url),
     "utf8",
   );
 
@@ -138,6 +138,6 @@ test("todo helper is loaded before app and copied into dist", () => {
   );
 
   assert.ok(
-    build.includes('resolve(root, "todo-visibility.js")'),
+    build.includes('resolve(features, "tasks", "todo-visibility.js")'),
   );
 });
