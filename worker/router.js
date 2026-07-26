@@ -33,6 +33,16 @@ import {
 
 const PROTECTED_ASSETS = new Set(["/", "/index.html", "/sale-manager.html"]);
 
+function scheduleIndependentJob(ctx, label, job) {
+  ctx.waitUntil(
+    Promise.resolve()
+      .then(job)
+      .catch((error) => {
+        console.error(`Joy ${label} scheduled job failed`, error);
+      }),
+  );
+}
+
 export default {
   async fetch(request, env, ctx) {
     const pathname = new URL(request.url).pathname;
@@ -88,14 +98,17 @@ export default {
     }
   },
 
-  async scheduled(controller, env, ctx) {
-    if (
-      typeof app.scheduled === "function"
-      && await hasEnabledGmailIntegration(env)
-    ) {
-      await app.scheduled(controller, env, ctx);
-    }
-    ctx.waitUntil(runRainPushSchedule(env));
-    ctx.waitUntil(runReliableReminderSchedule(env));
+  scheduled(controller, env, ctx) {
+    scheduleIndependentJob(ctx, "Gmail", async () => {
+      if (
+        typeof app.scheduled === "function"
+        && await hasEnabledGmailIntegration(env)
+      ) {
+        await app.scheduled(controller, env, ctx);
+      }
+    });
+
+    scheduleIndependentJob(ctx, "weather", () => runRainPushSchedule(env));
+    scheduleIndependentJob(ctx, "reminder", () => runReliableReminderSchedule(env));
   },
 };
