@@ -22,6 +22,8 @@ self.addEventListener("push", (event) => {
 
   if (kind === "test") notificationTitle = "Đã hoạt động";
   if (["rain", "dry", "chill", "sunny"].includes(kind)) notificationTitle = "Weather update";
+  if (kind === "task-reminder") notificationTitle = "Task reminder";
+  if (kind === "focus-reminder") notificationTitle = "Focus reminder";
   if (!notificationTitle) notificationTitle = "Thông báo mới";
 
   const notificationBody = kind === "test"
@@ -34,13 +36,28 @@ self.addEventListener("push", (event) => {
     badge: data.badge || "/joy-blue-icon.png?v=joy-topographic-blue-v1",
     tag: data.tag || "hey-joy-notification",
     renotify: Boolean(data.renotify),
+    actions: Array.isArray(data.actions) ? data.actions.slice(0, 3) : [],
     data: data.data || { url: "/" },
   }));
 });
 
 self.addEventListener("notificationclick", (event) => {
+  const notificationData = event.notification.data || {};
+  const kind = String(notificationData.kind || "");
+  const action = String(event.action || "");
   event.notification.close();
-  const targetUrl = new URL(event.notification.data?.url || "/", self.location.origin).href;
+
+  if (kind === "task-reminder" && action && notificationData.taskId) {
+    event.waitUntil(fetch("/api/task-reminders/action", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ taskId: notificationData.taskId, action }),
+    }).catch(() => null));
+    return;
+  }
+
+  const targetUrl = new URL(notificationData.url || "/", self.location.origin).href;
   event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
     const existing = clients.find((client) => client.url.startsWith(self.location.origin));
     if (existing && "focus" in existing) {
