@@ -14,6 +14,10 @@ import {
   runRainPushSchedule,
 } from "./push.js";
 import {
+  handlePushSubscriptionCleanup,
+  isPushSubscriptionCleanupRoute,
+} from "./push-subscription-cleanup.js";
+import {
   handleReliableReminderRequest,
   isReliableReminderRoute,
   runReliableReminderSchedule,
@@ -48,6 +52,9 @@ export default {
     const pathname = new URL(request.url).pathname;
 
     try {
+      if (isPushSubscriptionCleanupRoute(pathname)) {
+        return handlePushSubscriptionCleanup(request, env);
+      }
       if (isReliableReminderRoute(pathname)) {
         return handleReliableReminderRequest(request, env);
       }
