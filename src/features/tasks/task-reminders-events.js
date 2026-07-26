@@ -1,5 +1,36 @@
 (function installJoyTaskReminderEvents(root) {
   const REMINDER_STORAGE_KEY = "joy-dashboard-task-reminders-v1";
+  const nativeFetch = root.fetch.bind(root);
+
+  root.fetch = async function joyTaskReminderFetch(input, init = undefined) {
+    const request = typeof Request !== "undefined" && input instanceof Request ? input : null;
+    const requestUrl = request?.url || String(input || "");
+    const method = String(init?.method || request?.method || "GET").toUpperCase();
+    const url = new URL(requestUrl, root.location.href);
+    const response = await nativeFetch(input, init);
+
+    if (url.pathname !== "/api/task-reminders" || method !== "GET" || !response.ok) {
+      return response;
+    }
+
+    try {
+      const payload = await response.clone().json();
+      if (!Array.isArray(payload.reminders)) return response;
+      const headers = new Headers(response.headers);
+      headers.delete("content-length");
+      headers.delete("content-encoding");
+      return new Response(JSON.stringify({
+        ...payload,
+        reminders: payload.reminders.filter((item) => !item?.done),
+      }), {
+        status: response.status,
+        statusText: response.statusText,
+        headers,
+      });
+    } catch {
+      return response;
+    }
+  };
 
   function removeLocalReminder(taskId) {
     try {
