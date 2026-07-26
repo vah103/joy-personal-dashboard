@@ -24,7 +24,7 @@ test("parses a Vietnamese viewing appointment for tomorrow evening", () => {
   assert.equal(parsed.viewingAddress, "180 Phú Mỹ");
   assert.equal(parsed.viewingAt, "2026-07-28T13:00:00.000Z");
   assert.equal(parsed.valid, true);
-  assert.equal(formatVietnamViewingTime(parsed.viewingAt), "T3, 28/07/2026 · 20:00");
+  assert.equal(formatVietnamViewingTime(parsed.viewingAt), "Th 3, 28/07/2026 · 20:00");
 });
 
 test("parses relative appointments and treats giờ khách qua as now", () => {
@@ -39,8 +39,19 @@ test("parses relative appointments and treats giờ khách qua as now", () => {
     "chị Mai 0901234567 giờ khách qua xem phòng 12 Cầu Giấy",
     NOW,
   );
+  assert.equal(immediate.customerName, "chị Mai");
   assert.equal(immediate.viewingAt, "2026-07-27T02:00:00.000Z");
   assert.equal(immediate.viewingAddress, "12 Cầu Giấy");
+});
+
+test("finds an absolute time even when the phone number comes first", () => {
+  const parsed = parseSaleAppointmentInput(
+    "chị Hương 0988123456 mai 9h30 sáng xem phòng 45 Trần Bình",
+    NOW,
+  );
+  assert.equal(parsed.customerName, "chị Hương");
+  assert.equal(parsed.viewingAt, "2026-07-28T02:30:00.000Z");
+  assert.equal(parsed.viewingAddress, "45 Trần Bình");
 });
 
 test("validates and formats the six-column Appointments row", () => {
