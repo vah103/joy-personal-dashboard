@@ -5,6 +5,10 @@ const root = resolve(import.meta.dirname, "..");
 const dist = resolve(root, "dist");
 const fonts = resolve(dist, "fonts");
 
+const desktopFaviconLink = '    <link rel="icon" href="/joy-web-favicon.svg?v=joy-desktop-wolf-v1" type="image/svg+xml">';
+const blueFaviconLink = '    <link rel="icon" href="/joy-blue-icon.png?v=joy-topographic-blue-v1" type="image/png">';
+const legacySaleFaviconLink = '    <link rel="icon" href="app-icon-64.png?v=joy-original-wolf-v2" type="image/png" sizes="64x64">';
+
 const fontFiles = [
   ...[400, 500, 600, 700].flatMap((weight) => [
     `instrument-sans-latin-${weight}-normal.woff2`,
@@ -43,6 +47,7 @@ const projectHubScripts = [
 
 const sourceHtml = await readFile(resolve(root, "index.html"), "utf8");
 const cloudflareHtml = sourceHtml
+  .replace(blueFaviconLink, desktopFaviconLink)
   .replace('<meta name="application-name" content="Joy">', '<meta name="application-name" content="Hey Joy!">')
   .replace('<title>Joy — Personal Dashboard</title>', '<title>Hey Joy! — Personal Dashboard</title>')
   .replace('aria-label="Joy overview"', 'aria-label="Hey Joy! overview"')
@@ -54,8 +59,12 @@ const cloudflareHtml = sourceHtml
   )
   .replace("</body>", `${projectHubScripts}  </body>`);
 
+const sourceLoginHtml = await readFile(resolve(root, "login.html"), "utf8");
+const cloudflareLoginHtml = sourceLoginHtml.replace(blueFaviconLink, desktopFaviconLink);
+
 const sourceSaleHtml = await readFile(resolve(root, "sale-manager.html"), "utf8");
 const cloudflareSaleHtml = sourceSaleHtml
+  .replace(legacySaleFaviconLink, desktopFaviconLink)
   .replace('<meta name="description" content="Joy\'s private 2026 room sale workspace.">', '<meta name="description" content="Hey Joy! private 2026 room sale workspace.">')
   .replace('<title>Sale 2026 — Joy</title>', '<title>Sale 2026 — Hey Joy!</title>')
   .replace(
@@ -64,9 +73,9 @@ const cloudflareSaleHtml = sourceSaleHtml
   );
 
 await writeFile(resolve(dist, "index.html"), cloudflareHtml);
+await writeFile(resolve(dist, "login.html"), cloudflareLoginHtml);
 await writeFile(resolve(dist, "sale-manager.html"), cloudflareSaleHtml);
 await Promise.all([
-  cp(resolve(root, "login.html"), resolve(dist, "login.html")),
   cp(resolve(root, "login.css"), resolve(dist, "login.css")),
   cp(resolve(root, "auth-ui.js"), resolve(dist, "auth-ui.js")),
   cp(resolve(root, "auth-ui.css"), resolve(dist, "auth-ui.css")),
@@ -106,6 +115,7 @@ await Promise.all([
   cp(resolve(root, "app-icon-old.svg"), resolve(dist, "app-icon-old.svg")),
   cp(resolve(root, "wolf-mark.svg"), resolve(dist, "wolf-mark.svg")),
   cp(resolve(root, "joy-blue-icon.png"), resolve(dist, "joy-blue-icon.png")),
+  cp(resolve(root, "joy-web-favicon.svg"), resolve(dist, "joy-web-favicon.svg")),
   cp(resolve(root, "site.webmanifest"), resolve(dist, "site.webmanifest")),
   ...fontFiles.map(([family, file]) => cp(
     resolve(root, "node_modules", "@fontsource", family, "files", file),
