@@ -41,11 +41,7 @@
       const { publicKey } = await requestJson("/api/push/public-key");
       const subscription = await rebuildSubscription(registration, publicKey);
 
-      await requestJson("/api/push/subscribe", {
-        method: "POST",
-        body: JSON.stringify(subscription.toJSON()),
-      });
-
+      const cleanupResult = await registerCurrentSubscription(subscription);
       const localResult = await showLocalDiagnostic(registration);
       const remoteResult = await requestJson("/api/push/test", {
         method: "POST",
@@ -56,6 +52,9 @@
       setButtonState("on");
       window.alert([
         "Joy đã làm mới kết nối thông báo trên iPhone.",
+        cleanupResult.removed > 0
+          ? `Đã xóa ${cleanupResult.removed} kết nối cũ của thiết bị này.`
+          : "Không còn kết nối cũ trên thiết bị này.",
         localResult
           ? "Kiểm tra hiển thị trực tiếp: đã tạo."
           : "Kiểm tra hiển thị trực tiếp: iPhone không xác nhận.",
@@ -90,14 +89,23 @@
       const enabled = Notification.permission === "granted" && Boolean(subscription) && verifiedHere;
       setButtonState(enabled ? "on" : "off");
       if (enabled) {
-        await requestJson("/api/push/subscribe", {
-          method: "POST",
-          body: JSON.stringify(subscription.toJSON()),
-        }).catch(() => {});
+        await registerCurrentSubscription(subscription).catch(() => {});
       }
     } catch {
       setButtonState("off");
     }
+  }
+
+  async function registerCurrentSubscription(subscription) {
+    await requestJson("/api/push/subscribe", {
+      method: "POST",
+      body: JSON.stringify(subscription.toJSON()),
+    });
+
+    return requestJson("/api/push/cleanup-current", {
+      method: "POST",
+      body: JSON.stringify({ endpoint: subscription.endpoint }),
+    });
   }
 
   async function ensureServiceWorker({ forceUpdate = false } = {}) {
