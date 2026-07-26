@@ -1,0 +1,170 @@
+.sales-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sales-assistant-heading-button {
+  padding: 8px 11px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.sales-assistant-launch {
+  width: 100%;
+  margin-top: 14px;
+  padding: 14px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgba(90, 117, 125, 0.16);
+  border-radius: 15px;
+  color: #32474f;
+  background: linear-gradient(135deg, rgba(240, 246, 245, 0.96), rgba(228, 237, 238, 0.9));
+  text-align: left;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.76);
+}
+
+.sales-assistant-launch:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(45, 61, 66, 0.08), inset 0 1px rgba(255, 255, 255, 0.8);
+}
+
+.sales-assistant-launch-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: #40606b;
+  background: rgba(255, 255, 255, 0.68);
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.sales-assistant-launch-copy strong,
+.sales-assistant-launch-copy small {
+  display: block;
+}
+
+.sales-assistant-launch-copy strong {
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.sales-assistant-launch-copy small {
+  margin-top: 3px;
+  color: #728087;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.sales-assistant-launch-arrow {
+  color: #59737c;
+  font-size: 18px;
+}
+
+.sales-assistant-backdrop {
+  padding: 20px;
+  overflow-y: auto;
+  align-items: flex-start;
+}
+
+.sales-assistant-modal {
+  width: min(1120px, 100%);
+  max-height: calc(100vh - 40px);
+  margin: auto;
+  overflow-y: auto;
+  border-radius: 24px;
+}
+
+.sales-assistant-heading {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: rgba(249, 250, 251, 0.96);
+  backdrop-filter: blur(14px);
+}
+
+.sales-assistant-heading > div > span {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.sales-assistant-workspace {
+  background: #f5f7f7;
+}
+
+.sales-assistant-modal .sale-room-composer textarea {
+  font-family: "Nunito", ui-rounded, system-ui, sans-serif;
+}
+
+.sales-assistant-modal .primary-button,
+.sales-assistant-modal .secondary-button {
+  min-height: 42px;
+  padding: 0 15px;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sales-assistant-modal .primary-button {
+  border: 1px solid #435f68;
+  color: #fff;
+  background: #435f68;
+}
+
+.sales-assistant-modal .secondary-button {
+  border: 1px solid var(--border-strong);
+  color: #48636c;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.sales-assistant-modal .sale-room-preview-heading .secondary-button:disabled {
+  opacity: 0.45;
+}
+
+@media (max-width: 700px) {
+  .sales-heading-actions {
+    gap: 6px;
+  }
+
+  .sales-assistant-heading-button {
+    padding: 6px 9px;
+    font-size: 11px;
+  }
+
+  .sales-assistant-launch {
+    padding: 12px;
+  }
+
+  .sales-assistant-launch-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .sales-assistant-backdrop {
+    padding: 0;
+  }
+
+  .sales-assistant-modal {
+    width: 100%;
+    min-height: 100svh;
+    max-height: none;
+    border-radius: 0;
+  }
+
+  .sales-assistant-heading {
+    padding: 16px;
+  }
+
+  .sales-assistant-heading > div > span {
+    max-width: 270px;
+    font-size: 10px;
+  }
+}
