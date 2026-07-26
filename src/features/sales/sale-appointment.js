@@ -77,12 +77,15 @@ function parseClock(text, fallback) {
   const nowPhrase = text.match(/\b(?:giờ\s+khách\s+qua|gio\s+khach\s+qua|ngay\s+bây\s+giờ|ngay\s+bay\s+gio|bây\s+giờ|bay\s+gio|hiện\s+tại|hien\s+tai)\b/iu);
   if (nowPhrase) return { hour: fallback.hour, minute: fallback.minute, matchedText: nowPhrase[0], isNow: true };
 
-  const clock = text.match(/\b(\d{1,2})(?:\s*(?:h|giờ|gio|:|\.)\s*(\d{1,2})?)?\s*(sáng|sang|trưa|trua|chiều|chieu|tối|toi|đêm|dem)?\b/iu);
-  if (!clock || (!clock[0].match(/h|giờ|gio|:|\.|sáng|sang|trưa|trua|chiều|chieu|tối|toi|đêm|dem/iu))) return null;
+  const marked = text.match(/\b(\d{1,2})\s*(?:h|giờ|gio|:)\s*(\d{1,2})?\s*(sáng|sang|trưa|trua|chiều|chieu|tối|toi|đêm|dem)?\b/iu);
+  const dotted = marked ? null : text.match(/\b(\d{1,2})\.(\d{2})\s*(sáng|sang|trưa|trua|chiều|chieu|tối|toi|đêm|dem)?\b/iu);
+  const periodOnly = marked || dotted ? null : text.match(/\b(\d{1,2})\s*(sáng|sang|trưa|trua|chiều|chieu|tối|toi|đêm|dem)\b/iu);
+  const clock = marked || dotted || periodOnly;
+  if (!clock) return null;
 
   let hour = Number(clock[1]);
-  const minute = Number(clock[2] || 0);
-  const period = normalizeSearch(clock[3] || "");
+  const minute = periodOnly ? 0 : Number(clock[2] || 0);
+  const period = normalizeSearch(periodOnly ? clock[2] : clock[3] || "");
   if (hour > 23 || minute > 59) return null;
   if (["chieu", "toi", "dem"].includes(period) && hour < 12) hour += 12;
   if (period === "trua" && hour < 11) hour += 12;
@@ -99,10 +102,12 @@ function parseDate(text, fallback) {
     if (validVietnamDate(parts)) return { ...parts, matchedText: explicit[0] };
   }
 
-  const normalized = normalizeSearch(text);
-  if (/\b(?:ngay\s+kia|mot)\b/u.test(normalized)) return { ...addVietnamDays(fallback, 2), matchedText: normalized.includes("ngay kia") ? "ngày kia" : "mốt" };
-  if (/\b(?:ngay\s+mai|mai)\b/u.test(normalized)) return { ...addVietnamDays(fallback, 1), matchedText: normalized.includes("ngay mai") ? "ngày mai" : "mai" };
-  if (/\b(?:hom\s+nay|nay)\b/u.test(normalized)) return { ...fallback, matchedText: normalized.includes("hom nay") ? "hôm nay" : "nay" };
+  const dayAfterTomorrow = text.match(/\b(?:ngày\s+kia|ngay\s+kia|mốt|mot)\b/iu);
+  if (dayAfterTomorrow) return { ...addVietnamDays(fallback, 2), matchedText: dayAfterTomorrow[0] };
+  const tomorrow = text.match(/\b(?:ngày\s+mai|ngay\s+mai|mai)\b/iu);
+  if (tomorrow) return { ...addVietnamDays(fallback, 1), matchedText: tomorrow[0] };
+  const today = text.match(/\b(?:hôm\s+nay|hom\s+nay|nay)\b/iu);
+  if (today) return { ...fallback, matchedText: today[0] };
   return { ...fallback, matchedText: "" };
 }
 
@@ -145,12 +150,20 @@ function extractPhone(text) {
 
 function extractAddress(text) {
   const patterns = [
-    /(?:xem\s*(?:phòng|phong)?|qua|hẹn|hen)\s+(?:tại|tai|ở|o)?\s*([^,;\n]+)$/iu,
+    /(?:giờ\s+khách\s+qua|gio\s+khach\s+qua)\s*(?:xem\s*(?:phòng|phong))?\s*(?:tại|tai|ở|o)?\s*([^,;\n]+)$/iu,
+    /xem\s*(?:phòng|phong)?\s*(?:tại|tai|ở|o)?\s*([^,;\n]+)$/iu,
+    /(?:hẹn|hen)\s*(?:xem\s*(?:phòng|phong))?\s*(?:tại|tai|ở|o)?\s*([^,;\n]+)$/iu,
     /(?:địa\s*chỉ|dia\s*chi|đc|dc|tại|tai|ở|o)\s*[:\-]?\s*([^,;\n]+)$/iu,
   ];
   for (const pattern of patterns) {
     const match = text.match(pattern);
-    if (match?.[1]) return { address: match[1].trim().replace(/[.!?]+$/g, ""), matchedText: match[0] };
+    if (match?.[1]) {
+      const address = match[1]
+        .replace(/^(?:xem\s*(?:phòng|phong))\s*/iu, "")
+        .trim()
+        .replace(/[.!?]+$/g, "");
+      return { address, matchedText: match[0] };
+    }
   }
   return { address: "", matchedText: "" };
 }
