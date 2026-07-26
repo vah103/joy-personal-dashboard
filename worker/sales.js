@@ -1,4 +1,5 @@
 const VIETNAM_UTC_OFFSET_HOURS = 7;
+const CURRENT_VIEWING_GRACE_MS = 10 * 60 * 1000;
 
 export function parseSheetViewingTime(value) {
   const match = String(value || "").trim().match(
@@ -37,7 +38,12 @@ export function normalizeUpcomingViewings(rows, now = Date.now()) {
     if (!Array.isArray(row)) return [];
     const [customerName, phone, viewingAddress, viewingTime, beforeStatus, afterStatus] = row;
     const viewingAt = parseSheetViewingTime(viewingTime);
-    if (!customerName || !viewingAddress || viewingAt === null || viewingAt < now) return [];
+    if (
+      !customerName
+      || !viewingAddress
+      || viewingAt === null
+      || viewingAt < now - CURRENT_VIEWING_GRACE_MS
+    ) return [];
 
     return [{
       sourceRow: index + 2,
