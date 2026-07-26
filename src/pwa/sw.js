@@ -12,11 +12,17 @@ self.addEventListener("push", (event) => {
     return;
   }
 
+  const raw = event.data.text();
+  if (raw === "wake") {
+    event.waitUntil(showPendingServerNotifications());
+    return;
+  }
+
   let data = {};
   try {
-    data = event.data.json();
+    data = JSON.parse(raw);
   } catch {
-    data = { title: "Thông báo mới", body: event.data.text() || "Bạn có thông báo mới." };
+    data = { title: "Thông báo mới", body: raw || "Bạn có thông báo mới." };
   }
 
   event.waitUntil(showPayloadNotification(data));
