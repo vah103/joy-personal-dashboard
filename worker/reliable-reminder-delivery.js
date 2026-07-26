@@ -65,6 +65,22 @@ async function processTaskDeliveries(env) {
 
   for (const row of rows.results) {
     const attemptAt = Date.now();
+    const claim = await env.DB.prepare(`
+      UPDATE task_reminders
+      SET last_notified_at = ?, updated_at = ?
+      WHERE user_email = ? AND task_id = ?
+        AND status = 'scheduled'
+        AND notification_enabled = 1
+        AND (last_notified_at IS NULL OR last_notified_at <= ?)
+    `).bind(
+      attemptAt,
+      attemptAt,
+      row.user_email,
+      row.task_id,
+      attemptAt - RETRY_AFTER_MS,
+    ).run();
+    if (!Number(claim.meta?.changes || 0)) continue;
+
     const accepted = await sendPushToUser(row.user_email, {
       title: "Task reminder",
       body: String(row.title || "You have a task to do."),
@@ -89,12 +105,13 @@ async function processTaskDeliveries(env) {
       urgency: "high",
     });
 
-    if (!accepted) continue;
+    if (accepted) continue;
     await env.DB.prepare(`
       UPDATE task_reminders
-      SET last_notified_at = ?, updated_at = ?
-      WHERE user_email = ? AND task_id = ? AND status = 'scheduled'
-    `).bind(attemptAt, attemptAt, row.user_email, row.task_id).run();
+      SET last_notified_at = NULL, updated_at = ?
+      WHERE user_email = ? AND task_id = ?
+        AND status = 'scheduled' AND last_notified_at = ?
+    `).bind(Date.now(), row.user_email, row.task_id, attemptAt).run();
   }
 }
 
@@ -112,6 +129,20 @@ async function processFocusDeliveries(env) {
 
   for (const row of rows.results) {
     const attemptAt = Date.now();
+    const claim = await env.DB.prepare(`
+      UPDATE focus_reminders
+      SET updated_at = ?
+      WHERE user_email = ? AND enabled = 1
+        AND next_at IS NOT NULL AND next_at <= ?
+        AND updated_at <= ?
+    `).bind(
+      attemptAt,
+      row.user_email,
+      attemptAt,
+      attemptAt - RETRY_AFTER_MS,
+    ).run();
+    if (!Number(claim.meta?.changes || 0)) continue;
+
     const accepted = await sendPushToUser(row.user_email, {
       title: "Focus reminder",
       body: String(row.message || "Stay focused"),
@@ -129,12 +160,12 @@ async function processFocusDeliveries(env) {
       urgency: "normal",
     });
 
-    if (!accepted) continue;
+    if (accepted) continue;
     await env.DB.prepare(`
       UPDATE focus_reminders
       SET updated_at = ?
-      WHERE user_email = ? AND enabled = 1
-    `).bind(attemptAt, row.user_email).run();
+      WHERE user_email = ? AND enabled = 1 AND updated_at = ?
+    `).bind(attemptAt - RETRY_AFTER_MS, row.user_email, attemptAt).run();
   }
 }
 
