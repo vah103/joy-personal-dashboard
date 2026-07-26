@@ -49,6 +49,7 @@ const compatibilityPaths = [
 
 const syntaxChecks = [
   "worker/task-reminders.js",
+  "worker/reliable-reminder-delivery.js",
   "worker/router.js",
   "worker/task-delete.js",
   "src/features/tasks/task-reminders-events.js",
