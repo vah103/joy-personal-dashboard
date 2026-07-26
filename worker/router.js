@@ -23,6 +23,10 @@ import {
   runReliableReminderSchedule,
 } from "./reminder-delivery.js";
 import {
+  handleSaleViewingCreate,
+  isSaleViewingCreateRoute,
+} from "./sale-viewing-create.js";
+import {
   handleTaskDeleteRequest,
   isTaskDeleteRoute,
 } from "./task-delete.js";
@@ -84,6 +88,10 @@ export default {
       if (integration) {
         const denied = await guardGoogleIntegration(request, env, integration);
         if (denied) return denied;
+      }
+
+      if (isSaleViewingCreateRoute(pathname, request.method)) {
+        return handleSaleViewingCreate(request, env);
       }
 
       return app.fetch(request, env, ctx);
