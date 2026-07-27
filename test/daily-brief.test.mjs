@@ -41,7 +41,9 @@ test("Daily Brief is wired into the Worker and dashboard", async () => {
   assert.doesNotMatch(script, /data-brief-prev/);
   assert.doesNotMatch(script, /data-brief-counter/);
   assert.match(polish, /font-size: 8\.25px/);
-  assert.match(polish, /bottom: 7px/);
+  assert.match(polish, /position: static/);
+  assert.match(polish, /margin: 5px 0 0/);
+  assert.match(polish, /padding: 4px 0 0/);
   assert.match(styles, /\.joy-brief\.daily-brief-enabled/);
   assert.match(styles, /\.daily-brief-drawer-backdrop/);
 });
