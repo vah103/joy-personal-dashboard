@@ -4,9 +4,9 @@ const DAY_URLS = ["01-09","10-16","17-23","24-31"].map(range=>`/project-data/iel
 const API = "/api/ielts-core";
 const LOCAL = "joy-ielts-august-core-v1";
 const TZ = "Asia/Ho_Chi_Minh";
-const DONE = new Set(["completed", "minimum"]);
+const DONE = new Set(["completed", "completed-minimum"]);
 const LABEL = {writing:"Writing",speaking:"Speaking",reading:"Reading",listening:"Listening",review:"Review"};
-const STATUS = {pending:"Not started",progress:"In progress",completed:"Completed",minimum:"Minimum day",overdue:"Overdue",recovery:"Recovery"};
+const STATUS = {pending:"Not started",progress:"In progress",completed:"Completed","completed-minimum":"Minimum day",overdue:"Overdue",recovery:"Recovery"};
 const app = {plan:null,data:blank(),version:0,tab:"today",mode:"loading",timer:0};
 function blank(){return{strictMode:true,taskStates:{},prelaunch:{},storyBank:[],errorLogs:[],weeklyReviews:{},settings:{morningReminder:true,eveningReminder:true,weeklyReviewReminder:true}}}
 function normal(v){const b=blank();return{strictMode:v?.strictMode!==false,taskStates:obj(v?.taskStates),prelaunch:obj(v?.prelaunch),storyBank:Array.isArray(v?.storyBank)?v.storyBank.slice(-100):[],errorLogs:Array.isArray(v?.errorLogs)?v.errorLogs.slice(-500):[],weeklyReviews:obj(v?.weeklyReviews),settings:{...b.settings,...obj(v?.settings)}}}
@@ -19,7 +19,7 @@ function taskList(){return(app.plan?.days||[]).flatMap(d=>(d.tasks||[]).map((raw
 function day(k=key()){return app.plan?.days?.find(d=>d.date===k)}
 function state(t){const s=app.data.taskStates[t.id]?.status;if(s)return s;return t.date<key()?"overdue":"pending"}
 function done(t){return DONE.has(state(t))}
-function progress(tasks){return tasks.length?Math.round(tasks.reduce((n,t)=>n+(state(t)==="completed"?1:state(t)==="minimum"?0.45:0),0)/tasks.length*100):0}
+function progress(tasks){return tasks.length?Math.round(tasks.reduce((n,t)=>n+(state(t)==="completed"?1:state(t)==="completed-minimum"?0.45:0),0)/tasks.length*100):0}
 function overdue(){return taskList().filter(t=>t.date<key()&&!done(t)).sort((a,b)=>a.date.localeCompare(b.date))}
 function next(){return overdue()[0]||taskList().find(t=>t.date>=key()&&!done(t))}
 function localLoad(){try{const x=JSON.parse(localStorage.getItem(LOCAL));return{data:normal(x?.data),version:Number(x?.version||0)}}catch{return{data:blank(),version:0}}}
