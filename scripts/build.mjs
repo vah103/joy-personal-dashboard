@@ -42,6 +42,8 @@ const ieltsCoreSourceFiles = [
   "ielts-core-ui.js",
   "ielts-core-actions.js",
   "ielts-core-diagnostic.js",
+  "ielts-core-writing-review.js",
+  "ielts-core-writing-review-freshness.js",
 ];
 
 await rm(dist, { recursive: true, force: true });
@@ -54,7 +56,7 @@ const projectHubHead = [
   '    <link rel="stylesheet" href="project-data/ielts/ielts-card.css?v=ielts-card-v2">\n',
   '    <link rel="stylesheet" href="project-data/ielts/ielts-core.css?v=ielts-august-core-v3">\n',
   '    <link rel="stylesheet" href="project-data/ielts/ielts-core-polish.css?v=ielts-august-core-v3">\n',
-  '    <link rel="stylesheet" href="project-data/ielts/ielts-diagnostic.css?v=ielts-baseline-v1">\n',
+  '    <link rel="stylesheet" href="project-data/ielts/ielts-diagnostic.css?v=ielts-baseline-v2">\n',
   '    <link rel="stylesheet" href="mobile-notifications.css?v=iphone-rain-bell-v1">\n',
   '    <link rel="stylesheet" href="auth-ui.css?v=joy-google-account-v3">\n',
   '    <link rel="stylesheet" href="greeting-layout.css?v=joy-daily-brief-v4">\n',
@@ -68,8 +70,8 @@ const projectHubScripts = [
   '    <script src="project-hub-core.js?v=turtlebot-hub-v3" defer></script>\n',
   '    <script src="project-hub-render.js?v=turtlebot-hub-v3" defer></script>\n',
   '    <script src="project-hub-actions.js?v=turtlebot-hub-v3" defer></script>\n',
-  '    <script id="joy-ielts-core-bundle" data-loaded="true" src="project-data/ielts/ielts-core-bundle.js?v=ielts-august-core-v4" defer></script>\n',
-  '    <script src="project-data/ielts/ielts-card.js?v=ielts-card-v5" defer></script>\n',
+  '    <script id="joy-ielts-core-bundle" data-loaded="true" src="project-data/ielts/ielts-core-bundle.js?v=ielts-august-core-v5" defer></script>\n',
+  '    <script src="project-data/ielts/ielts-card.js?v=ielts-card-v6" defer></script>\n',
   '    <script src="weather-status-ui.js?v=three-state-weather-v1" defer></script>\n',
   '    <script src="push-notifications.js?v=joy-current-device-v1" defer></script>\n',
   '    <script src="auth-ui.js?v=joy-google-account-v3" defer></script>\n',

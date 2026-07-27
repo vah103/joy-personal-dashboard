@@ -2,18 +2,34 @@
   const CORE_STYLES = [
     ["joy-ielts-core-style", "project-data/ielts/ielts-core.css?v=ielts-august-core-v3"],
     ["joy-ielts-core-polish", "project-data/ielts/ielts-core-polish.css?v=ielts-august-core-v3"],
-    ["joy-ielts-diagnostic-style", "project-data/ielts/ielts-diagnostic.css?v=ielts-baseline-v1"],
+    ["joy-ielts-diagnostic-style", "project-data/ielts/ielts-diagnostic.css?v=ielts-baseline-v2"],
+    ["joy-ielts-writing-review-style", "project-data/ielts/ielts-writing-review.css?v=ielts-writing-review-v1"],
   ];
   const CORE_SCRIPT = [
     "joy-ielts-core-bundle",
-    "project-data/ielts/ielts-core-bundle.js?v=ielts-august-core-v4",
+    "project-data/ielts/ielts-core-bundle.js?v=ielts-august-core-v5",
   ];
+  const REWRITE_SCRIPT = [
+    "joy-ielts-writing-rewrite",
+    "project-data/ielts/ielts-core-writing-rewrite.js?v=ielts-writing-rewrite-v1",
+  ];
+
+  function ensureCoreStyles() {
+    CORE_STYLES.forEach(([id, href]) => {
+      if (document.querySelector(`#${id}`)) return;
+      const link = document.createElement("link");
+      link.id = id;
+      link.rel = "stylesheet";
+      link.href = href;
+      document.head.append(link);
+    });
+  }
 
   function loadScript(id, src) {
     return new Promise((resolve, reject) => {
       const existing = document.querySelector(`#${id}`);
       if (existing) {
-        if (window.JoyIELTS || existing.dataset.loaded === "true") resolve();
+        if (existing.dataset.loaded === "true") resolve();
         else {
           existing.addEventListener("load", resolve, { once: true });
           existing.addEventListener("error", reject, { once: true });
@@ -35,20 +51,13 @@
   }
 
   async function loadAugustCore() {
-    if (window.JoyIELTS) return true;
-
-    CORE_STYLES.forEach(([id, href]) => {
-      if (document.querySelector(`#${id}`)) return;
-      const link = document.createElement("link");
-      link.id = id;
-      link.rel = "stylesheet";
-      link.href = href;
-      document.head.append(link);
-    });
+    ensureCoreStyles();
 
     try {
-      await loadScript(...CORE_SCRIPT);
-      return Boolean(window.JoyIELTS);
+      if (!window.JoyIELTS) await loadScript(...CORE_SCRIPT);
+      if (!window.JoyIELTS) return false;
+      await loadScript(...REWRITE_SCRIPT);
+      return true;
     } catch (error) {
       console.error("Joy could not load IELTS August Core", error);
       const source = document.querySelector(".ielts-project-card .ielts-project-source");
@@ -120,6 +129,7 @@
     });
   }
 
+  ensureCoreStyles();
   const projectList = document.querySelector("#project-list");
   if (projectList) {
     new MutationObserver(enhanceIeltsCard).observe(projectList, { childList: true });
