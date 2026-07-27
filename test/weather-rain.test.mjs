@@ -6,7 +6,7 @@ await import("../src/features/weather/weather-rain.js");
 
 const { summarizeRainForecast } = globalThis.JoyWeather;
 
-test("reports a one-hour strong rain window", () => {
+test("reports rain only when probability reaches 80 percent", () => {
   const result = summarizeRainForecast({
     time: [
       "2026-07-23T19:00",
@@ -14,15 +14,15 @@ test("reports a one-hour strong rain window", () => {
       "2026-07-23T21:00",
     ],
     precipitation_probability: [40, 82, 45],
-    precipitation: [0.1, 1.2, 0.1],
-    weather_code: [51, 63, 51],
+    precipitation: [0.1, 0.1, 0.1],
+    weather_code: [0, 0, 0],
   }, new Date("2026-07-23T17:00:00+07:00"));
 
   assert.equal(result.state, "rain");
-  assert.equal(result.text, "Strong rain signal: 19:00–20:00");
+  assert.equal(result.text, "Rain probability is at least 80%: 19:00–20:00");
 });
 
-test("keeps the full variable-length strong window", () => {
+test("keeps the full consecutive 80 percent window", () => {
   const result = summarizeRainForecast({
     time: [
       "2026-07-23T19:00",
@@ -31,34 +31,32 @@ test("keeps the full variable-length strong window", () => {
       "2026-07-23T22:00",
       "2026-07-23T23:00",
     ],
-    precipitation_probability: [75, 82, 78, 74, 35],
-    precipitation: [0.5, 1.4, 1.1, 0.4, 0.1],
-    weather_code: [61, 63, 63, 61, 51],
+    precipitation_probability: [80, 82, 88, 84, 35],
   }, new Date("2026-07-23T17:00:00+07:00"));
 
   assert.equal(
     result.text,
-    "Strong rain signal: 18:00–22:00",
+    "Rain probability is at least 80%: 18:00–22:00",
   );
 });
 
-test("does not notify for weak rain signals", () => {
+test("returns no rain expected below 80 percent even with a large amount", () => {
   const result = summarizeRainForecast({
     time: [
       "2026-07-23T19:00",
       "2026-07-23T20:00",
       "2026-07-23T21:00",
     ],
-    precipitation_probability: [45, 55, 65],
-    precipitation: [0.1, 0.2, 0.2],
-    weather_code: [51, 51, 61],
+    precipitation_probability: [45, 79, 65],
+    precipitation: [5, 5, 5],
+    weather_code: [95, 95, 95],
   }, new Date("2026-07-23T17:00:00+07:00"));
 
   assert.equal(result.state, "quiet");
-  assert.equal(result.text, "");
+  assert.equal(result.text, "No rain is expected.");
 });
 
-test("a weak hour separates two strong windows", () => {
+test("a 79 percent hour separates two rain windows", () => {
   const result = summarizeRainForecast({
     time: [
       "2026-07-23T19:00",
@@ -66,32 +64,28 @@ test("a weak hour separates two strong windows", () => {
       "2026-07-23T21:00",
       "2026-07-23T22:00",
     ],
-    precipitation_probability: [80, 45, 85, 82],
-    precipitation: [1.2, 0.1, 1.4, 0.8],
-    weather_code: [63, 51, 63, 63],
+    precipitation_probability: [80, 79, 85, 82],
   }, new Date("2026-07-23T17:00:00+07:00"));
 
   assert.equal(
     result.text,
-    "Strong rain signal: 18:00–19:00 and 20:00–22:00",
+    "Rain probability is at least 80%: 18:00–19:00 and 20:00–22:00",
   );
 });
 
-test("ignores strong rain intervals that have already ended", () => {
+test("ignores 80 percent rain intervals that have already ended", () => {
   const result = summarizeRainForecast({
     time: [
       "2026-07-23T08:00",
       "2026-07-23T19:00",
       "2026-07-23T20:00",
     ],
-    precipitation_probability: [90, 75, 80],
-    precipitation: [2, 0.5, 1],
-    weather_code: [63, 61, 63],
+    precipitation_probability: [90, 79, 80],
   }, new Date("2026-07-23T12:00:00+07:00"));
 
   assert.equal(
     result.text,
-    "Strong rain signal: 18:00–20:00",
+    "Rain probability is at least 80%: 19:00–20:00",
   );
 });
 
@@ -99,29 +93,33 @@ test("uses the API timestamp as the end of the hourly interval", () => {
   const result = summarizeRainForecast({
     time: ["2026-07-23T18:00"],
     precipitation_probability: [85],
-    precipitation: [1.2],
-    weather_code: [63],
   }, new Date("2026-07-23T17:05:00+07:00"));
 
   assert.equal(
     result.text,
-    "Strong rain signal: 17:00–18:00",
+    "Rain probability is at least 80%: 17:00–18:00",
   );
 });
 
-test("weather assets and quiet-state hiding are wired correctly", () => {
+test("weather UI and push use the same 80 percent policy", () => {
   const html = fs.readFileSync(
     new URL("../src/pages/dashboard/index.html", import.meta.url),
     "utf8",
   );
-
   const app = fs.readFileSync(
     new URL("../src/pages/dashboard/app.js", import.meta.url),
     "utf8",
   );
-
   const build = fs.readFileSync(
     new URL("../scripts/build.mjs", import.meta.url),
+    "utf8",
+  );
+  const statusUi = fs.readFileSync(
+    new URL("../src/features/notifications/weather-status-ui.js", import.meta.url),
+    "utf8",
+  );
+  const push = fs.readFileSync(
+    new URL("../worker/push.js", import.meta.url),
     "utf8",
   );
 
@@ -129,4 +127,10 @@ test("weather assets and quiet-state hiding are wired correctly", () => {
   assert.ok(html.indexOf("weather-rain.js") < html.indexOf("app.js"));
   assert.ok(app.includes("weatherRainNotice.hidden"));
   assert.ok(build.includes('resolve(features, "weather", "weather-rain.js")'));
+  assert.match(statusUi, /RAIN_PROBABILITY_THRESHOLD = 80/);
+  assert.match(statusUi, /No rain is expected\./);
+  assert.doesNotMatch(statusUi, /sunnyHours|It’s a sunny day/);
+  assert.match(push, /RAIN_PROBABILITY_THRESHOLD = 80/);
+  assert.match(push, /No rain is expected\./);
+  assert.doesNotMatch(push, /HIGH_PROBABILITY|STRONG_AMOUNT_MM|sunnyHours/);
 });
