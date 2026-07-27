@@ -62,7 +62,7 @@ const projectHubScripts = [
   '    <script src="push-notifications.js?v=joy-current-device-v1" defer></script>\n',
   '    <script src="auth-ui.js?v=joy-google-account-v3" defer></script>\n',
   '    <script src="greeting-layout.js?v=joy-daily-brief-v4" defer></script>\n',
-  '    <script src="daily-brief-polish.js?v=joy-daily-brief-polish-v1" defer></script>\n',
+  '    <script src="daily-brief-polish.js?v=joy-daily-brief-polish-v2" defer></script>\n',
   '    <script src="task-reminders-events.js?v=joy-task-checkbox-v2" defer></script>\n',
   '    <script src="task-reminders.js?v=joy-tasks-v1" defer></script>\n',
   '    <script src="task-natural-input.js?v=joy-natural-reminders-v1" defer></script>\n',
