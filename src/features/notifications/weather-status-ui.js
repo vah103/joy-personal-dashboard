@@ -106,7 +106,7 @@
       ));
       return {
         state: "rain",
-        text: `Rain is expected in Hanoi at ${windows.join(" and ")} (80%+).`,
+        text: `Rain is expected in Hanoi at ${windows.join(" and ")}.`,
       };
     }
 
