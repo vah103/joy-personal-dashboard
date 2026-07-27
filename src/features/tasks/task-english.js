@@ -1,5 +1,5 @@
 (function installJoyTaskEnglish(root) {
-  const CACHE_KEY = "joy-task-english-cache-v3";
+  const CACHE_KEY = "joy-task-english-cache-v4";
   const REQUEST_TIMEOUT_MS = 15_000;
 
   function clean(value) {
@@ -61,6 +61,56 @@
     }
 
     return original;
+  }
+
+  function cleanReminderTitle(text) {
+    const title = String(text || "")
+      .replace(/\b(nhắc|nhac|remind)\s+(tôi|toi|me)\s*/gi, "")
+      .replace(/\b(hằng ngày|hang ngay|mỗi ngày|moi ngay|every day|daily|hằng tuần|hang tuan|mỗi tuần|moi tuan|every week|weekly)\b/gi, "")
+      .replace(/\b(hôm nay|hom nay|ngày mai|ngay mai|mai|ngày kia|ngay kia|mốt|mot|today|tomorrow)\b/gi, "")
+      .replace(/\b(thứ\s*[2-7]|thu\s*[2-7]|thứ hai|thu hai|thứ ba|thu ba|thứ tư|thu tu|thứ năm|thu nam|thứ sáu|thu sau|thứ bảy|thu bay|chủ nhật|chu nhat|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/gi, "")
+      .replace(/\b\d+(?:[.,]\d+)?\s*(phút|phut|p|min|mins|minute|minutes|tiếng|tieng|giờ|gio|hour|hours|h)(?:\s*rưỡi|\s*ruoi)?\s*(nữa|nua|later|from now)?\b/gi, "")
+      .replace(/\b([01]?\d|2[0-3])\s*(h|giờ|gio|:)(?:\s*[0-5]?\d)?\s*(sáng|sang|chiều|chieu|tối|toi|am|pm)?\b/gi, "")
+      .replace(/\b([1-9]|1[0-2])\s*(sáng|sang|chiều|chieu|tối|toi|am|pm)\b/gi, "")
+      .replace(/\b(vào|vao|lúc|luc|at|on)\b/gi, " ")
+      .replace(/\s+/g, " ")
+      .replace(/^[,;:\-\s]+|[,;:\-\s]+$/g, "")
+      .trim();
+    return title || clean(text);
+  }
+
+  function hasReminderIntent(text) {
+    const plain = removeTones(String(text || "").toLowerCase());
+    return /\b(nhac|remind|reminder|hang ngay|moi ngay|every day|daily|hang tuan|moi tuan|every week|weekly)\b/.test(plain)
+      || /\b\d+(?:[.,]\d+)?\s*(?:phut|p|min|mins|minute|minutes|tieng|gio|hour|hours|h)(?:\s*ruoi)?\s*(?:nua|later|from now)\b/.test(plain)
+      || /\b(?:hom nay|ngay mai|mai|ngay kia|today|tomorrow|thu [2-7]|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/.test(plain)
+      || /\b(?:[01]?\d|2[0-3])\s*(?:h|gio|:)(?:\s*[0-5]?\d)?\s*(?:sang|chieu|toi|am|pm)?\b/.test(plain);
+  }
+
+  function replaceAction(original, action, translated) {
+    const source = String(original || "");
+    const target = String(action || "");
+    const index = source.toLocaleLowerCase("vi").indexOf(target.toLocaleLowerCase("vi"));
+    if (index < 0) return translated;
+    return `${source.slice(0, index)}${translated}${source.slice(index + target.length)}`
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function prepareSubmission(original) {
+    const composerOpen = document.querySelector("#joy-reminder-toggle")?.getAttribute("aria-expanded") === "true";
+    const reminderIntent = composerOpen || hasReminderIntent(original);
+    if (!reminderIntent) {
+      return { taskText: original, rebuild: (translated) => translated };
+    }
+
+    const taskText = cleanReminderTitle(original);
+    return {
+      taskText,
+      rebuild: composerOpen
+        ? (translated) => translated
+        : (translated) => replaceAction(original, taskText, translated),
+    };
   }
 
   function readCache() {
@@ -159,6 +209,7 @@
       const submitter = event.submitter || form.querySelector('button[type="submit"]');
       const originalButtonText = submitter?.textContent || "";
       const wasReadOnly = input.readOnly;
+      const plan = prepareSubmission(original);
 
       form.setAttribute("aria-busy", "true");
       input.readOnly = true;
@@ -168,7 +219,7 @@
         submitter.title = "Joy is writing this task in natural English";
       }
 
-      const title = await rewrite(original);
+      const translatedTask = await rewrite(plan.taskText);
 
       input.readOnly = wasReadOnly;
       form.removeAttribute("aria-busy");
@@ -179,14 +230,14 @@
       }
       busy = false;
 
-      if (looksVietnamese(title)) {
+      if (looksVietnamese(translatedTask)) {
         input.value = original;
         input.focus();
         showStatus("Joy could not translate this task yet · it was not added");
         return;
       }
 
-      input.value = title || original;
+      input.value = plan.rebuild(translatedTask);
       input.dispatchEvent(new Event("input", { bubbles: true }));
 
       bypassNextSubmit = true;
@@ -198,7 +249,7 @@
     }, true);
   }
 
-  root.JoyTaskEnglish = { rewrite, fallbackEnglish };
+  root.JoyTaskEnglish = { rewrite, fallbackEnglish, prepareSubmission };
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", start, { once: true });
