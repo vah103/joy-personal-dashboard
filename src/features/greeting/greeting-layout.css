@@ -34,3 +34,418 @@
     white-space: nowrap;
   }
 }
+
+.joy-brief.daily-brief-enabled {
+  position: relative;
+  min-width: 0;
+  min-height: 112px;
+  padding: 16px 18px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 12% 15%, rgba(188, 211, 221, 0.32), transparent 35%),
+    linear-gradient(118deg, rgba(241, 247, 249, 0.97), rgba(239, 237, 231, 0.96));
+}
+
+.joy-brief.daily-brief-enabled::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 0 70%, rgba(255, 255, 255, 0.24));
+}
+
+.daily-brief-enabled .brief-icon {
+  position: relative;
+  z-index: 1;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 7px 16px rgba(49, 68, 78, 0.08);
+}
+
+.daily-brief-enabled .joy-message {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.daily-brief-stack {
+  position: relative;
+  min-width: 0;
+  min-height: 62px;
+  display: grid;
+  align-items: center;
+}
+
+.daily-brief-slide {
+  min-width: 0;
+  grid-area: 1 / 1;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.daily-brief-slide.is-active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.daily-brief-overview .section-kicker {
+  margin-bottom: 2px;
+  font-size: 11px;
+}
+
+.joy-brief.daily-brief-enabled .daily-brief-overview #brief-copy {
+  margin: 0;
+  display: -webkit-box;
+  overflow: hidden;
+  color: #3f4a52;
+  font-size: 12px;
+  line-height: 1.42;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.daily-brief-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-bottom: 2px;
+}
+
+.daily-brief-tag {
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  border: 1px solid rgba(82, 111, 124, 0.18);
+  border-radius: 999px;
+  background: rgba(227, 238, 242, 0.7);
+  color: #3f6170;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+}
+
+.daily-brief-tag[data-category="politics"] {
+  background: rgba(227, 232, 236, 0.78);
+  color: #50616c;
+}
+
+.daily-brief-tag[data-category="economy"] {
+  background: rgba(225, 235, 229, 0.78);
+  color: #4f6c5b;
+}
+
+.daily-brief-tag[data-category="tech"] {
+  background: rgba(222, 235, 240, 0.82);
+  color: #426779;
+}
+
+.daily-brief-source {
+  min-width: 0;
+  overflow: hidden;
+  color: #7b8388;
+  font-size: 8.5px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.daily-brief-headline {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  color: #28353b;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 900;
+  line-height: 1.28;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.daily-brief-headline:hover,
+.daily-brief-headline:focus-visible {
+  color: #3b6575;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.daily-brief-summary {
+  margin: 2px 0 0;
+  display: -webkit-box;
+  overflow: hidden;
+  color: #5f696e;
+  font-size: 10px;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.daily-brief-status {
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  margin: 0;
+  color: #7b8489;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.daily-brief-controls {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  align-self: center;
+}
+
+.daily-brief-arrow {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #63747c;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.daily-brief-arrow:hover,
+.daily-brief-arrow:focus-visible {
+  background: rgba(255, 255, 255, 0.56);
+  color: #314f5c;
+}
+
+.daily-brief-counter {
+  min-width: 27px;
+  color: #7b858a;
+  font-size: 8.5px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.daily-brief-progress {
+  position: absolute;
+  z-index: 2;
+  left: 18px;
+  right: 18px;
+  bottom: 0;
+  height: 2px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(68, 94, 105, 0.08);
+}
+
+.daily-brief-progress i {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  background: rgba(72, 108, 120, 0.48);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.daily-brief-progress i.is-running {
+  animation: daily-brief-progress var(--daily-brief-duration, 9000ms) linear forwards;
+}
+
+@keyframes daily-brief-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+body.daily-brief-drawer-open {
+  overflow: hidden;
+}
+
+.daily-brief-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 160;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(29, 35, 39, 0.28);
+  backdrop-filter: blur(5px);
+}
+
+.daily-brief-drawer {
+  width: min(430px, 94vw);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid #d2d9dc;
+  background: #f7f9f9;
+  box-shadow: -24px 0 60px rgba(27, 36, 41, 0.13);
+  animation: daily-brief-drawer-in 220ms ease-out;
+}
+
+@keyframes daily-brief-drawer-in {
+  from { transform: translateX(22px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.daily-brief-drawer-heading {
+  padding: 26px 24px 20px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #dfe4e5;
+  background: linear-gradient(145deg, #edf4f5, #f2f1ec);
+}
+
+.daily-brief-drawer-heading p {
+  margin: 0 0 8px;
+  color: #4c6d78;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+
+.daily-brief-drawer-heading h2 {
+  margin: 0;
+  color: #26343a;
+  font-size: 21px;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+}
+
+.daily-brief-drawer-heading button {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  padding: 0;
+  border: 1px solid #d0dadd;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #59686e;
+  font-size: 22px;
+}
+
+.daily-brief-drawer-body {
+  min-height: 0;
+  padding: 22px 24px 26px;
+  overflow-y: auto;
+}
+
+.daily-brief-drawer-body section + section {
+  margin-top: 22px;
+}
+
+.daily-brief-drawer-body h3 {
+  margin: 0 0 7px;
+  color: #394c54;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.daily-brief-drawer-body p,
+.daily-brief-drawer-body li {
+  color: #566268;
+  font-size: 13px;
+  line-height: 1.58;
+}
+
+.daily-brief-drawer-body p {
+  margin: 0;
+}
+
+.daily-brief-drawer-body ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.daily-brief-drawer-body li + li {
+  margin-top: 7px;
+}
+
+.daily-brief-drawer-footer {
+  margin-top: 28px;
+  padding-top: 18px;
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid #dde3e4;
+}
+
+.daily-brief-drawer-footer span {
+  color: #798287;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.daily-brief-drawer-footer a {
+  width: fit-content;
+  padding: 10px 13px;
+  border: 1px solid #bfcdd2;
+  border-radius: 10px;
+  background: #edf4f5;
+  color: #365b69;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.daily-brief-drawer-footer a:hover {
+  background: #e3eef0;
+}
+
+@media (max-width: 760px) {
+  .joy-brief.daily-brief-enabled {
+    min-height: 108px;
+    padding: 14px;
+    gap: 10px;
+  }
+
+  .daily-brief-enabled .brief-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .daily-brief-controls {
+    gap: 0;
+  }
+
+  .daily-brief-arrow {
+    width: 20px;
+    height: 24px;
+  }
+
+  .daily-brief-counter {
+    min-width: 23px;
+    font-size: 8px;
+  }
+
+  .daily-brief-summary {
+    -webkit-line-clamp: 2;
+  }
+
+  .daily-brief-drawer-heading,
+  .daily-brief-drawer-body {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .daily-brief-slide,
+  .daily-brief-drawer,
+  .daily-brief-progress i {
+    animation: none !important;
+    transition: none !important;
+  }
+}
