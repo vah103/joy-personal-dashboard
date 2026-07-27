@@ -5,6 +5,10 @@ import {
   runDailyBriefSchedule,
 } from "./daily-brief-policy.js";
 import {
+  handleFinanceLedgerRequest,
+  isFinanceLedgerRoute,
+} from "./finance-with-seed.js";
+import {
   handleIeltsDiagnosticReviewRequest,
   isIeltsDiagnosticReviewRoute,
 } from "./ielts-diagnostic-review.js";
@@ -76,6 +80,9 @@ export default {
     try {
       if (isDailyBriefRoute(pathname)) {
         return handleDailyBriefRequest(request, env, ctx);
+      }
+      if (isFinanceLedgerRoute(pathname)) {
+        return handleFinanceLedgerRequest(request, env);
       }
       if (isPushSubscriptionCleanupRoute(pathname)) {
         return handlePushSubscriptionCleanup(request, env);
