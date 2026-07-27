@@ -45,6 +45,14 @@ const ieltsCoreSourceFiles = [
   "core-diagnostic.js",
   "core-writing-review.js",
   "core-writing-rewrite.js",
+  "i18n-vi-base.js",
+  "i18n-vi-days-01-09.js",
+  "i18n-vi-days-10-16.js",
+  "i18n-vi-days-17-23.js",
+  "i18n-vi-days-24-31.js",
+  "i18n-vi-plan-runtime.js",
+  "i18n-vi-ui-text.js",
+  "i18n-vi-hooks.js",
 ];
 
 await rm(dist, { recursive: true, force: true });
@@ -71,8 +79,8 @@ const projectHubScripts = [
   '    <script src="project-hub-core.js?v=turtlebot-hub-v3" defer></script>\n',
   '    <script src="project-hub-render.js?v=turtlebot-hub-v3" defer></script>\n',
   '    <script src="project-hub-actions.js?v=turtlebot-hub-v3" defer></script>\n',
-  '    <script id="joy-ielts-core-bundle" data-loaded="true" src="project-data/ielts/ielts-core-bundle.js?v=ielts-august-core-v6" defer></script>\n',
-  '    <script src="project-data/ielts/ielts-card.js?v=ielts-card-v7" defer></script>\n',
+  '    <script id="joy-ielts-core-bundle" data-loaded="true" src="project-data/ielts/ielts-core-bundle.js?v=ielts-august-core-v7" defer></script>\n',
+  '    <script src="project-data/ielts/ielts-card.js?v=ielts-card-v8" defer></script>\n',
   '    <script src="weather-status-ui.js?v=rain-threshold-80-v5" defer></script>\n',
   '    <script src="push-notifications.js?v=joy-current-device-v1" defer></script>\n',
   '    <script src="auth-ui.js?v=joy-google-account-v3" defer></script>\n',
