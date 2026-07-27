@@ -12,17 +12,12 @@
 
     const daypart = document.createElement("span");
     daypart.className = "greeting-daypart";
-
     const name = document.createElement("span");
     name.className = "greeting-name";
 
     const animatedWords = [...greeting.querySelectorAll(":scope > .joy-motion-word")];
     if (animatedWords.length === 3) {
-      daypart.append(
-        animatedWords[0],
-        document.createTextNode(" "),
-        animatedWords[1],
-      );
+      daypart.append(animatedWords[0], document.createTextNode(" "), animatedWords[1]);
       name.append(animatedWords[2]);
     } else {
       daypart.textContent = match[1];
@@ -33,9 +28,7 @@
   }
 
   formatGreeting();
-
-  const observer = new MutationObserver(formatGreeting);
-  observer.observe(greeting, {
+  new MutationObserver(formatGreeting).observe(greeting, {
     childList: true,
     characterData: true,
     subtree: true,
@@ -61,7 +54,7 @@
     transitioning: false,
   };
 
-  installV2Styles();
+  installStyles();
 
   const sourceState = document.createElement("div");
   sourceState.className = "daily-brief-source-state";
@@ -70,7 +63,6 @@
 
   const storySlide = document.createElement("div");
   storySlide.className = "daily-brief-slide daily-brief-story-slide is-active";
-  storySlide.dataset.slideType = "story";
   storySlide.innerHTML = `
     <div class="daily-brief-meta">
       <span class="daily-brief-tag" data-brief-tag>DAILY BRIEF</span>
@@ -96,14 +88,12 @@
   const personalStatus = document.createElement("p");
   personalStatus.className = "daily-brief-personal";
   personalStatus.hidden = true;
-
   message.replaceChildren(sourceState, slideStack, personalStatus);
 
   const controls = document.createElement("div");
   controls.className = "daily-brief-controls";
   controls.innerHTML = `
     <button type="button" class="daily-brief-arrow" data-brief-prev aria-label="Previous update">‹</button>
-    <span class="daily-brief-counter" data-brief-counter>1/1</span>
     <button type="button" class="daily-brief-arrow" data-brief-next aria-label="Next update">›</button>
   `;
   card.append(controls);
@@ -113,28 +103,24 @@
   const source = storySlide.querySelector("[data-brief-source]");
   const headline = storySlide.querySelector("[data-brief-open]");
   const summary = storySlide.querySelector("[data-brief-summary]");
-  const counter = controls.querySelector("[data-brief-counter]");
   const emptyTitle = emptySlide.querySelector("[data-brief-empty-title]");
   const emptyCopy = emptySlide.querySelector("[data-brief-empty-copy]");
 
   card.classList.add("daily-brief-enabled", "daily-brief-news-first");
   renderPersonalStatus();
 
-  const personalObserver = new MutationObserver(renderPersonalStatus);
-  personalObserver.observe(briefCopy, {
+  new MutationObserver(renderPersonalStatus).observe(briefCopy, {
     childList: true,
     characterData: true,
     subtree: true,
   });
 
-  function installV2Styles() {
-    if (document.querySelector("#joy-daily-brief-v2-styles")) return;
+  function installStyles() {
+    if (document.querySelector("#joy-daily-brief-v3-styles")) return;
     const style = document.createElement("style");
-    style.id = "joy-daily-brief-v2-styles";
+    style.id = "joy-daily-brief-v3-styles";
     style.textContent = `
-      .joy-brief.daily-brief-news-first {
-        min-height: 118px;
-      }
+      .joy-brief.daily-brief-news-first { min-height: 118px; }
       .daily-brief-news-first .daily-brief-stack {
         min-height: 66px;
         display: block;
@@ -160,9 +146,7 @@
         display: grid;
         align-content: center;
       }
-      .daily-brief-news-first .daily-brief-empty[hidden] {
-        display: none !important;
-      }
+      .daily-brief-news-first .daily-brief-empty[hidden] { display: none !important; }
       .daily-brief-empty span {
         color: #4c6d78;
         font-size: 8px;
@@ -180,37 +164,32 @@
         font-size: 9.5px;
       }
       .daily-brief-personal {
-        min-height: 15px;
-        margin: 7px 0 0;
-        padding-top: 6px;
+        min-height: 11px;
+        margin: 5px 0 0;
+        padding-top: 4px;
         overflow: hidden;
-        border-top: 1px solid rgba(92, 112, 120, .12);
-        color: #879095;
-        font-size: 8.5px;
-        font-weight: 800;
-        line-height: 1.2;
+        border-top: 1px solid rgba(92, 112, 120, .07);
+        color: rgba(91, 105, 111, .56);
+        font-size: 7.25px;
+        font-weight: 650;
+        line-height: 1.15;
+        letter-spacing: .01em;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
-      .daily-brief-personal b {
-        color: #738188;
-        font-weight: 900;
+      .daily-brief-news-first .daily-brief-controls { gap: 5px; }
+      .daily-brief-news-first .daily-brief-arrow {
+        width: 22px;
+        height: 24px;
       }
-      .daily-brief-progress {
-        display: none !important;
-      }
+      .daily-brief-progress,
+      .daily-brief-counter { display: none !important; }
       @media (max-width: 760px) {
-        .joy-brief.daily-brief-news-first {
-          min-height: 116px;
-        }
-        .daily-brief-personal {
-          font-size: 8px;
-        }
+        .joy-brief.daily-brief-news-first { min-height: 114px; }
+        .daily-brief-personal { font-size: 7px; }
       }
       @media (prefers-reduced-motion: reduce) {
-        .daily-brief-news-first .daily-brief-story-slide {
-          transition: none !important;
-        }
+        .daily-brief-news-first .daily-brief-story-slide { transition: none !important; }
       }
     `;
     document.head.append(style);
@@ -256,11 +235,9 @@
   function renderPersonalStatus() {
     const text = briefCopy.textContent.replace(/\s+/g, " ").trim();
     const items = [];
-
     const viewingMatch = text.match(/(\d+)\s+upcoming\s+viewings?/i);
     const taskMatch = text.match(/(\d+)\s+open\s+tasks?/i);
     const emailMatch = text.match(/(\d+)\s+new\s+emails?/i);
-
     const viewings = Number(viewingMatch?.[1] || 0);
     const tasks = Number(taskMatch?.[1] || 0);
     const emails = Number(emailMatch?.[1] || 0);
@@ -270,13 +247,7 @@
     if (emails > 0) items.push(`${emails} new email${emails === 1 ? "" : "s"}`);
 
     personalStatus.hidden = items.length === 0;
-    personalStatus.innerHTML = items.length
-      ? `<b>Hey Joy!</b> · ${items.join(" · ")}`
-      : "";
-  }
-
-  function totalSlides() {
-    return Math.max(1, state.stories.length);
+    personalStatus.textContent = items.length ? `Hey Joy! · ${items.join(" · ")}` : "";
   }
 
   function activeStory() {
@@ -296,7 +267,6 @@
   function renderCurrent({ animate = false, restart = true } = {}) {
     const story = activeStory();
     const hasStories = Boolean(story);
-
     storySlide.hidden = !hasStories;
     emptySlide.hidden = hasStories;
     card.classList.toggle("showing-news", hasStories);
@@ -306,7 +276,6 @@
       else populateStory(story);
     }
 
-    counter.textContent = `${state.index + 1}/${totalSlides()}`;
     controls.hidden = state.stories.length <= 1;
     if (restart) restartRotation();
   }
@@ -322,7 +291,6 @@
       storySlide.classList.add("is-entering");
       void storySlide.offsetWidth;
       storySlide.classList.remove("is-entering");
-
       window.setTimeout(() => {
         state.transitioning = false;
       }, TRANSITION_MS);
@@ -342,8 +310,7 @@
 
   function goTo(index) {
     if (state.transitioning || state.stories.length <= 1) return;
-    const total = state.stories.length;
-    state.index = ((index % total) + total) % total;
+    state.index = ((index % state.stories.length) + state.stories.length) % state.stories.length;
     renderCurrent({ animate: true });
   }
 
@@ -379,9 +346,8 @@
       });
       if (!response.ok) throw new Error(`Daily Brief returned ${response.status}`);
       const payload = await response.json();
-      const stories = Array.isArray(payload.stories) ? payload.stories : [];
       const currentId = activeStory()?.id;
-      state.stories = stories.filter(validStory);
+      state.stories = (Array.isArray(payload.stories) ? payload.stories : []).filter(validStory);
       state.loaded = true;
 
       if (currentId) {
@@ -395,7 +361,7 @@
         emptyTitle.textContent = "No major updates right now.";
         emptyCopy.textContent = "Joy will add a story when it is genuinely important and worth your attention.";
       }
-      renderCurrent({ restart: true });
+      renderCurrent();
     } catch (error) {
       console.warn("Joy Daily Brief could not load", error);
       state.loaded = true;
@@ -424,8 +390,7 @@
     drawer.querySelector("[data-drawer-summary]").textContent = story.summary || "No summary available.";
     drawer.querySelector("[data-drawer-why]").textContent = story.whyItMatters || "Joy marked this as a notable development.";
     drawer.querySelector("[data-drawer-source]").textContent = `${story.sourceName || "Source"} · ${relativeTime(story.publishedAt)} ago`;
-    const link = drawer.querySelector("[data-drawer-link]");
-    link.href = story.articleUrl;
+    drawer.querySelector("[data-drawer-link]").href = story.articleUrl;
 
     const points = Array.isArray(story.keyPoints) ? story.keyPoints.filter(Boolean).slice(0, 3) : [];
     const pointsSection = drawer.querySelector("[data-drawer-points-section]");
