@@ -33,6 +33,13 @@
   function fallbackEnglish(value) {
     const original = clean(value);
     const normalized = removeTones(original.toLowerCase()).replace(/[.!?]+$/, "");
+    const actionOnly = normalized
+      .replace(/\d+(?:[.,]\d+)?\s*(?:phut|p|min|mins|minute|minutes|tieng|gio|hour|hours|h)(?:\s*ruoi)?\s*(?:nua|later|from now)?/gi, " ")
+      .replace(/(?:nhac\s+(?:toi|me)|hang ngay|moi ngay|every day|daily|hang tuan|moi tuan|every week|weekly)/gi, " ")
+      .replace(/(?:hom nay|ngay mai|mai|ngay kia|mot|today|tomorrow)/gi, " ")
+      .replace(/\b(?:vao|luc|at|on)\b/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
     const exact = {
       "an com": "Eat a meal.",
       "uong nuoc": "Drink water.",
@@ -46,17 +53,18 @@
       "tap gym": "Work out at the gym.",
       "tap the duc": "Exercise.",
     };
-    if (exact[normalized]) return exact[normalized];
+    if (exact[actionOnly] || exact[normalized]) return exact[actionOnly] || exact[normalized];
 
-    const toothpaste = normalized.match(/^mua kem danh rang\s+(.+)$/);
+    const toothpaste = actionOnly.match(/^mua kem danh rang\s+(.+)$/);
     if (toothpaste) {
-      const originalBrand = original.split(/\s+/).slice(4).join(" ");
+      const originalBrand = cleanReminderTitle(original).split(/\s+/).slice(4).join(" ");
       return `Buy ${titleCase(originalBrand || toothpaste[1])} toothpaste.`;
     }
 
-    const study = normalized.match(/^(?:hoc|on)\s+(.+)$/);
+    const study = actionOnly.match(/^(?:hoc|on)\s+(.+)$/);
     if (study) {
-      const tail = original.replace(/^\s*(?:học|ôn)\s+/i, "");
+      const cleanedOriginal = cleanReminderTitle(original);
+      const tail = cleanedOriginal.replace(/^\s*(?:học|ôn)\s+/i, "");
       if (tail && !looksVietnamese(tail)) return sentence(`Study ${tail}`);
     }
 
@@ -65,14 +73,14 @@
 
   function cleanReminderTitle(text) {
     const title = String(text || "")
-      .replace(/\b(nhắc|nhac|remind)\s+(tôi|toi|me)\s*/gi, "")
-      .replace(/\b(hằng ngày|hang ngay|mỗi ngày|moi ngay|every day|daily|hằng tuần|hang tuan|mỗi tuần|moi tuan|every week|weekly)\b/gi, "")
-      .replace(/\b(hôm nay|hom nay|ngày mai|ngay mai|mai|ngày kia|ngay kia|mốt|mot|today|tomorrow)\b/gi, "")
-      .replace(/\b(thứ\s*[2-7]|thu\s*[2-7]|thứ hai|thu hai|thứ ba|thu ba|thứ tư|thu tu|thứ năm|thu nam|thứ sáu|thu sau|thứ bảy|thu bay|chủ nhật|chu nhat|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/gi, "")
-      .replace(/\b\d+(?:[.,]\d+)?\s*(phút|phut|p|min|mins|minute|minutes|tiếng|tieng|giờ|gio|hour|hours|h)(?:\s*rưỡi|\s*ruoi)?\s*(nữa|nua|later|from now)?\b/gi, "")
-      .replace(/\b([01]?\d|2[0-3])\s*(h|giờ|gio|:)(?:\s*[0-5]?\d)?\s*(sáng|sang|chiều|chieu|tối|toi|am|pm)?\b/gi, "")
-      .replace(/\b([1-9]|1[0-2])\s*(sáng|sang|chiều|chieu|tối|toi|am|pm)\b/gi, "")
-      .replace(/\b(vào|vao|lúc|luc|at|on)\b/gi, " ")
+      .replace(/\d+(?:[.,]\d+)?\s*(?:phút|phut|p|min|mins|minute|minutes|tiếng|tieng|giờ|gio|hour|hours|h)(?:\s*(?:rưỡi|ruoi))?\s*(?:nữa|nua|later|from now)?/gi, " ")
+      .replace(/(?:nhắc|nhac|remind)\s+(?:tôi|toi|me)\s*/gi, " ")
+      .replace(/(?:hằng ngày|hang ngay|mỗi ngày|moi ngay|every day|daily|hằng tuần|hang tuan|mỗi tuần|moi tuan|every week|weekly)/gi, " ")
+      .replace(/(?:hôm nay|hom nay|ngày mai|ngay mai|mai|ngày kia|ngay kia|mốt|mot|today|tomorrow)/gi, " ")
+      .replace(/(?:thứ\s*[2-7]|thu\s*[2-7]|thứ hai|thu hai|thứ ba|thu ba|thứ tư|thu tu|thứ năm|thu nam|thứ sáu|thu sau|thứ bảy|thu bay|chủ nhật|chu nhat|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/gi, " ")
+      .replace(/([01]?\d|2[0-3])\s*(?:h|giờ|gio|:)(?:\s*[0-5]?\d)?\s*(?:sáng|sang|chiều|chieu|tối|toi|am|pm)?/gi, " ")
+      .replace(/([1-9]|1[0-2])\s*(?:sáng|sang|chiều|chieu|tối|toi|am|pm)/gi, " ")
+      .replace(/(?:^|\s)(?:vào|vao|lúc|luc|at|on)(?=\s|$)/gi, " ")
       .replace(/\s+/g, " ")
       .replace(/^[,;:\-\s]+|[,;:\-\s]+$/g, "")
       .trim();
