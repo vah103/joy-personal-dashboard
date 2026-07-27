@@ -78,6 +78,7 @@ const syntaxChecks = [
   "project-data/ielts/ielts-core-diagnostic.js",
   "project-data/ielts/ielts-core-writing-review.js",
   "project-data/ielts/ielts-core-writing-review-freshness.js",
+  "project-data/ielts/ielts-core-writing-rewrite.js",
   "scripts/build.mjs",
 ];
 
