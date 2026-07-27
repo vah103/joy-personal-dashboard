@@ -5,22 +5,26 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 const read = (path) => fs.readFileSync(new URL(path, root), "utf8");
 
-test("IELTS bundle includes the Writing AI reviewer and freshness guard", () => {
+test("IELTS includes the Writing AI reviewer, freshness guard and adaptive rewrite", () => {
   const model = read("project-data/ielts/ielts-core-model.js");
   const ui = read("project-data/ielts/ielts-core-ui.js");
   const actions = read("project-data/ielts/ielts-core-actions.js");
   const diagnostic = read("project-data/ielts/ielts-core-diagnostic.js");
   const reviewer = read("project-data/ielts/ielts-core-writing-review.js");
   const freshness = read("project-data/ielts/ielts-core-writing-review-freshness.js");
+  const rewrite = read("project-data/ielts/ielts-core-writing-rewrite.js");
   const build = read("scripts/build.mjs");
   const card = read("project-data/ielts/ielts-card.js");
   const router = read("worker/router.js");
-  const css = read("project-data/ielts/ielts-writing-review.css");
+  const reviewCss = read("project-data/ielts/ielts-writing-review.css");
+  const rewriteCss = read("project-data/ielts/ielts-writing-rewrite.css");
 
   assert.match(build, /ielts-core-writing-review\.js/);
   assert.match(build, /ielts-core-writing-review-freshness\.js/);
   assert.match(build, /ielts-august-core-v5/);
   assert.match(card, /ielts-writing-review\.css\?v=ielts-writing-review-v1/);
+  assert.match(card, /ielts-core-writing-rewrite\.js\?v=ielts-writing-rewrite-v1/);
+  assert.match(card, /REWRITE_SCRIPT/);
   assert.match(card, /ensureCoreStyles/);
   assert.match(router, /isIeltsDiagnosticReviewRoute/);
   assert.match(router, /handleIeltsDiagnosticReviewRequest/);
@@ -31,10 +35,16 @@ test("IELTS bundle includes the Writing AI reviewer and freshness guard", () => 
   assert.match(reviewer, /reviewFingerprint/);
   assert.match(reviewer, /Essay changed · review again/);
   assert.match(freshness, /return null/);
-  assert.match(css, /writing-review-summary/);
-  assert.match(css, /review-criteria/);
+  assert.match(rewrite, /Required adaptive mission/);
+  assert.match(rewrite, /deadlineHours/);
+  assert.match(rewrite, /Minimum 100 words/);
+  assert.match(rewrite, /todayWithWritingRewrite/);
+  assert.match(rewrite, /coachWithWritingRewrite/);
+  assert.match(reviewCss, /writing-review-summary/);
+  assert.match(reviewCss, /review-criteria/);
+  assert.match(rewriteCss, /writing-rewrite-mission/);
 
   assert.doesNotThrow(() => new Function(
-    `(function(){${model}\n${ui}\n${actions}\n${diagnostic}\n${reviewer}\n${freshness}\n})();`,
+    `(function(){${model}\n${ui}\n${actions}\n${diagnostic}\n${reviewer}\n${freshness}\n${rewrite}\n})();`,
   ));
 });
