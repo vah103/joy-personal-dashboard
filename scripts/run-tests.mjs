@@ -77,7 +77,6 @@ const syntaxChecks = [
   "src/features/project-hub/project-hub-core.js",
   "src/features/project-hub/project-hub-render.js",
   "src/features/project-hub/project-hub-actions.js",
-  "project-data/turtlebot4/project-state-v2.js",
   "src/features/ielts/card.js",
   "src/features/ielts/core-model.js",
   "src/features/ielts/core-ui.js",
