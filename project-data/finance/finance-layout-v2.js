@@ -74,15 +74,21 @@
     if (!list) return;
 
     list.classList.add("finance-category-table");
-    const rows = [...list.children];
-    rows.sort((left, right) => {
+    const currentRows = [...list.children];
+    const desiredRows = [...currentRows].sort((left, right) => {
       const leftLabel = left.querySelector("b")?.textContent.trim() || "";
       const rightLabel = right.querySelector("b")?.textContent.trim() || "";
       const leftIndex = CATEGORY_ORDER.indexOf(leftLabel);
       const rightIndex = CATEGORY_ORDER.indexOf(rightLabel);
       return (leftIndex === -1 ? 999 : leftIndex) - (rightIndex === -1 ? 999 : rightIndex);
     });
-    rows.forEach((row) => list.append(row));
+
+    const needsReorder = desiredRows.some((row, index) => currentRows[index] !== row);
+    if (!needsReorder) return;
+
+    const fragment = document.createDocumentFragment();
+    desiredRows.forEach((row) => fragment.append(row));
+    list.append(fragment);
   }
 
   function transformWorkspace() {
@@ -98,7 +104,9 @@
     annualCards?.classList.add("finance-bento-annual");
 
     const breakdownTitle = content.querySelector(".finance-breakdown h3");
-    if (breakdownTitle) breakdownTitle.textContent = "Expenses by category";
+    if (breakdownTitle && breakdownTitle.textContent !== "Expenses by category") {
+      breakdownTitle.textContent = "Expenses by category";
+    }
 
     arrangeCategoryCells();
   }
