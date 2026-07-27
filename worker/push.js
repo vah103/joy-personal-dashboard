@@ -2,13 +2,10 @@ import { buildPushPayload } from "@block65/webcrypto-web-push";
 
 const SESSION_COOKIE = "__Host-joy_session";
 const PLACE_NAME = "Hanoi";
-const WEATHER_ENDPOINT = "https://api.open-meteo.com/v1/forecast?latitude=21.0285&longitude=105.8542&hourly=precipitation_probability,precipitation,weather_code&timezone=Asia%2FHo_Chi_Minh&forecast_days=1";
+const WEATHER_ENDPOINT = "https://api.open-meteo.com/v1/forecast?latitude=21.0285&longitude=105.8542&hourly=precipitation_probability&timezone=Asia%2FHo_Chi_Minh&forecast_days=1";
 const CHECK_EVERY_MINUTES = 5;
 const DAILY_WEATHER_HOUR = 7;
-const HIGH_PROBABILITY = 70;
-const VERY_HIGH_PROBABILITY = 80;
-const SUPPORTING_AMOUNT_MM = 0.3;
-const STRONG_AMOUNT_MM = 1;
+const RAIN_PROBABILITY_THRESHOLD = 80;
 
 export function isPushRoute(pathname) {
   return pathname.startsWith("/api/push/");
@@ -151,7 +148,7 @@ async function processWeatherSummary(email, summary, env) {
   if (summary.rainKey && summary.rainKey !== state.rainKey) {
     pending.push({
       kind: "rain",
-      body: `Heavy rain is expected in ${PLACE_NAME} at ${summary.rainWindowText}.`,
+      body: `Rain is expected in ${PLACE_NAME} at ${summary.rainWindowText} (80%+).`,
       tag: "hey-joy-rain",
       topic: "hey-joy-rain",
       ttl: 30 * 60,
@@ -161,10 +158,8 @@ async function processWeatherSummary(email, summary, env) {
 
   if (summary.dailyKind && state.dailyDate !== summary.dateKey) {
     pending.push({
-      kind: summary.dailyKind,
-      body: summary.dailyKind === "sunny"
-        ? "It's a sunny day."
-        : "No rain is expected, just chill.",
+      kind: "chill",
+      body: "No rain is expected.",
       tag: "hey-joy-weather-daily",
       topic: "hey-joy-weather-daily",
       ttl: 6 * 60 * 60,
@@ -313,12 +308,6 @@ function summarizeWeatherForecast(hourly, now) {
   const probabilities = Array.isArray(hourly?.precipitation_probability)
     ? hourly.precipitation_probability
     : [];
-  const precipitation = Array.isArray(hourly?.precipitation)
-    ? hourly.precipitation
-    : [];
-  const weatherCodes = Array.isArray(hourly?.weather_code)
-    ? hourly.weather_code
-    : [];
   const current = vietnamClock(now);
   if (!times.length) {
     return {
@@ -330,8 +319,7 @@ function summarizeWeatherForecast(hourly, now) {
   }
 
   const currentMinute = current.hour * 60 + current.minute;
-  const strongHours = [];
-  const daylightHours = [];
+  const rainHours = [];
 
   times.forEach((time, index) => {
     const value = String(time || "");
@@ -340,22 +328,17 @@ function summarizeWeatherForecast(hourly, now) {
     const endHour = Number(value.slice(11, 13));
     if (!Number.isInteger(endHour) || endHour <= 0) return;
     const startHour = endHour - 1;
-    const entry = {
-      startHour,
-      endHour,
-      probability: Number(probabilities[index] || 0),
-      amount: Number(precipitation[index] || 0),
-      weatherCode: Number(weatherCodes[index]),
-    };
-
-    if (startHour >= 6 && startHour < 18) daylightHours.push(entry);
     if (endHour * 60 <= currentMinute) return;
-    if (hasStrongRainSignal(entry)) strongHours.push(entry);
+
+    const probability = Number(probabilities[index] || 0);
+    if (hasRainSignal({ probability })) {
+      rainHours.push({ startHour, endHour, probability });
+    }
   });
 
-  if (strongHours.length) {
+  if (rainHours.length) {
     const groups = [];
-    strongHours.forEach((entry) => {
+    rainHours.forEach((entry) => {
       const group = groups.at(-1);
       const previous = group?.at(-1);
       if (!previous || entry.startHour !== previous.endHour) groups.push([entry]);
@@ -382,30 +365,16 @@ function summarizeWeatherForecast(hourly, now) {
     };
   }
 
-  const sunnyHours = daylightHours.filter(({ weatherCode }) => (
-    weatherCode === 0 || weatherCode === 1
-  )).length;
-  const isSunny = daylightHours.length >= 4
-    && sunnyHours >= Math.ceil(daylightHours.length / 2);
-
   return {
     dateKey: current.dateKey,
     rainKey: "",
     rainWindowText: "",
-    dailyKind: isSunny ? "sunny" : "chill",
+    dailyKind: "chill",
   };
 }
 
-function hasStrongRainSignal({ probability, amount, weatherCode }) {
-  return (probability >= HIGH_PROBABILITY && amount >= SUPPORTING_AMOUNT_MM)
-    || amount >= STRONG_AMOUNT_MM
-    || (probability >= VERY_HIGH_PROBABILITY && isRainWeatherCode(weatherCode));
-}
-
-function isRainWeatherCode(code) {
-  return (code >= 51 && code <= 67)
-    || (code >= 80 && code <= 82)
-    || (code >= 95 && code <= 99);
+function hasRainSignal({ probability }) {
+  return Number(probability || 0) >= RAIN_PROBABILITY_THRESHOLD;
 }
 
 function vietnamClock(now) {
