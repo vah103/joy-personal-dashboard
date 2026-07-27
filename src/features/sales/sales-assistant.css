@@ -13,14 +13,14 @@
 
 .sales-assistant-launch {
   width: 100%;
-  margin-top: 14px;
-  padding: 14px;
+  margin-top: 10px;
+  padding: 9px 11px;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 12px;
+  gap: 9px;
   border: 1px solid rgba(90, 117, 125, 0.16);
-  border-radius: 15px;
+  border-radius: 12px;
   color: #32474f;
   background: linear-gradient(135deg, rgba(240, 246, 245, 0.96), rgba(228, 237, 238, 0.9));
   text-align: left;
@@ -29,31 +29,31 @@
 
 .sales-assistant-launch:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 22px rgba(45, 61, 66, 0.08), inset 0 1px rgba(255, 255, 255, 0.8);
+  box-shadow: 0 8px 18px rgba(45, 61, 66, 0.07), inset 0 1px rgba(255, 255, 255, 0.8);
 }
 
 .sales-assistant-launch-icon {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   display: grid;
   place-items: center;
-  border-radius: 12px;
+  border-radius: 9px;
   color: #40606b;
   background: rgba(255, 255, 255, 0.68);
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 800;
 }
 
 .sales-assistant-launch-copy strong,
 .sales-assistant-launch-copy small { display: block; }
-.sales-assistant-launch-copy strong { font-size: 13px; line-height: 1.2; }
+.sales-assistant-launch-copy strong { font-size: 12px; line-height: 1.15; }
 .sales-assistant-launch-copy small {
   margin-top: 3px;
   color: #728087;
   font-size: 10px;
   line-height: 1.35;
 }
-.sales-assistant-launch-arrow { color: #59737c; font-size: 18px; }
+.sales-assistant-launch-arrow { color: #59737c; font-size: 15px; }
 
 .sales-assistant-backdrop {
   padding: 20px;
@@ -274,8 +274,8 @@
 @media (max-width: 700px) {
   .sales-heading-actions { gap: 6px; }
   .sales-assistant-heading-button { padding: 6px 9px; font-size: 11px; }
-  .sales-assistant-launch { padding: 12px; }
-  .sales-assistant-launch-icon { width: 36px; height: 36px; }
+  .sales-assistant-launch { margin-top: 8px; padding: 8px 10px; gap: 8px; }
+  .sales-assistant-launch-icon { width: 30px; height: 30px; border-radius: 8px; font-size: 16px; }
   .sales-assistant-backdrop { padding: 0; }
   .sales-assistant-modal {
     width: 100%;
