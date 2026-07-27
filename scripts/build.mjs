@@ -60,7 +60,7 @@ await mkdir(dist, { recursive: true });
 await mkdir(fonts, { recursive: true });
 
 const projectHubHead = [
-  '    <link rel="stylesheet" href="project-hub.css?v=turtlebot-hub-v3">\n',
+  '    <link rel="stylesheet" href="project-hub.css?v=turtlebot-hub-v4">\n',
   '    <link rel="stylesheet" href="turtlebot-card-art.css?v=restored-card-v6">\n',
   '    <link rel="stylesheet" href="project-data/ielts/ielts-card.css?v=ielts-card-v2">\n',
   '    <link rel="stylesheet" href="project-data/ielts/ielts-core.css?v=ielts-august-core-v3">\n',
@@ -72,13 +72,15 @@ const projectHubHead = [
   '    <link rel="stylesheet" href="task-reminders.css?v=joy-tasks-v1">\n',
   '    <link rel="stylesheet" href="room-summary.css?v=joy-room-summary-v1">\n',
   '    <link rel="stylesheet" href="sales-assistant.css?v=joy-dashboard-sales-assistant-v4">\n',
+  '    <link rel="stylesheet" href="project-data/finance/finance-layout-v2.css?v=joy-finance-ledger-v3">\n',
 ].join("");
 
 const projectHubScripts = [
-  '    <script src="project-hub-performance.js?v=turtlebot-hub-v3" defer></script>\n',
-  '    <script src="project-hub-core.js?v=turtlebot-hub-v3" defer></script>\n',
-  '    <script src="project-hub-render.js?v=turtlebot-hub-v3" defer></script>\n',
-  '    <script src="project-hub-actions.js?v=turtlebot-hub-v3" defer></script>\n',
+  '    <script src="project-hub-performance.js?v=turtlebot-hub-v4" defer></script>\n',
+  '    <script src="project-hub-core.js?v=turtlebot-hub-v4" defer></script>\n',
+  '    <script src="project-hub-render.js?v=turtlebot-hub-v4" defer></script>\n',
+  '    <script src="project-hub-actions.js?v=turtlebot-hub-v4" defer></script>\n',
+  '    <script src="project-data/turtlebot4/project-state-v2.js?v=turtlebot-project-state-v2-direct" defer></script>\n',
   '    <script id="joy-ielts-core-bundle" data-loaded="true" src="project-data/ielts/ielts-core-bundle.js?v=ielts-august-core-v7" defer></script>\n',
   '    <script src="project-data/ielts/ielts-card.js?v=ielts-card-v8" defer></script>\n',
   '    <script src="weather-status-ui.js?v=rain-threshold-80-v5" defer></script>\n',
@@ -91,11 +93,14 @@ const projectHubScripts = [
   '    <script src="task-reminders.js?v=joy-tasks-v1" defer></script>\n',
   '    <script src="task-natural-input.js?v=joy-natural-reminders-v1" defer></script>\n',
   '    <script type="module" src="sales-assistant.js?v=joy-dashboard-sales-assistant-v4"></script>\n',
+  '    <script src="project-data/finance/finance-layout-v2.js?v=joy-finance-ledger-v3" defer></script>\n',
 ].join("");
 
 const sourceHtml = await readFile(resolve(dashboardPage, "index.html"), "utf8");
 const cloudflareHtml = sourceHtml
   .replace(blueFaviconLink, desktopFaviconLink)
+  .replace('finance-demo.css?v=joy-character-motion-v5', 'finance-demo.css?v=joy-finance-ledger-v3')
+  .replace('finance-demo.js?v=joy-character-motion-v4', 'finance-demo.js?v=joy-finance-ledger-v3')
   .replace('<meta name="application-name" content="Joy">', '<meta name="application-name" content="Hey Joy!">')
   .replace('<title>Joy — Personal Dashboard</title>', '<title>Hey Joy! — Personal Dashboard</title>')
   .replace('aria-label="Joy overview"', 'aria-label="Hey Joy! overview"')
