@@ -9,6 +9,10 @@
     "joy-ielts-core-bundle",
     "project-data/ielts/ielts-core-bundle.js?v=ielts-august-core-v5",
   ];
+  const REWRITE_SCRIPT = [
+    "joy-ielts-writing-rewrite",
+    "project-data/ielts/ielts-core-writing-rewrite.js?v=ielts-writing-rewrite-v1",
+  ];
 
   function ensureCoreStyles() {
     CORE_STYLES.forEach(([id, href]) => {
@@ -25,7 +29,7 @@
     return new Promise((resolve, reject) => {
       const existing = document.querySelector(`#${id}`);
       if (existing) {
-        if (window.JoyIELTS || existing.dataset.loaded === "true") resolve();
+        if (existing.dataset.loaded === "true") resolve();
         else {
           existing.addEventListener("load", resolve, { once: true });
           existing.addEventListener("error", reject, { once: true });
@@ -48,11 +52,12 @@
 
   async function loadAugustCore() {
     ensureCoreStyles();
-    if (window.JoyIELTS) return true;
 
     try {
-      await loadScript(...CORE_SCRIPT);
-      return Boolean(window.JoyIELTS);
+      if (!window.JoyIELTS) await loadScript(...CORE_SCRIPT);
+      if (!window.JoyIELTS) return false;
+      await loadScript(...REWRITE_SCRIPT);
+      return true;
     } catch (error) {
       console.error("Joy could not load IELTS August Core", error);
       const source = document.querySelector(".ielts-project-card .ielts-project-source");
