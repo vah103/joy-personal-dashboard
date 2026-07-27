@@ -77,17 +77,24 @@ const syntaxChecks = [
   "src/features/project-hub/project-hub-core.js",
   "src/features/project-hub/project-hub-render.js",
   "src/features/project-hub/project-hub-actions.js",
-  "project-data/turtlebot4/project-state-v2.js",
+  "src/features/ielts/card.js",
+  "src/features/ielts/core-model.js",
+  "src/features/ielts/core-ui.js",
+  "src/features/ielts/core-actions.js",
+  "src/features/ielts/core-diagnostic.js",
+  "src/features/ielts/core-writing-review.js",
+  "src/features/ielts/core-writing-rewrite.js",
+  "src/features/ielts/i18n-vi-base.js",
+  "src/features/ielts/i18n-vi-days-01-09.js",
+  "src/features/ielts/i18n-vi-days-10-16.js",
+  "src/features/ielts/i18n-vi-days-17-23.js",
+  "src/features/ielts/i18n-vi-days-24-31.js",
+  "src/features/ielts/i18n-vi-plan-runtime.js",
+  "src/features/ielts/i18n-vi-ui-text.js",
+  "src/features/ielts/i18n-vi-hooks.js",
   "src/pwa/sw.js",
-  "project-data/ielts/ielts-card.js",
-  "project-data/ielts/ielts-core-model.js",
-  "project-data/ielts/ielts-core-ui.js",
-  "project-data/ielts/ielts-core-actions.js",
-  "project-data/ielts/ielts-core-diagnostic.js",
-  "project-data/ielts/ielts-core-writing-review.js",
-  "project-data/ielts/ielts-core-writing-review-freshness.js",
-  "project-data/ielts/ielts-core-writing-rewrite.js",
   "scripts/build.mjs",
+  "scripts/validate-ielts-sources.mjs",
 ];
 
 const created = [];
@@ -103,10 +110,7 @@ async function exists(path) {
 }
 
 function runNode(args) {
-  const child = spawn(process.execPath, args, {
-    cwd: root,
-    stdio: "inherit",
-  });
+  const child = spawn(process.execPath, args, { cwd: root, stdio: "inherit" });
   return new Promise((resolveExit, reject) => {
     child.once("error", reject);
     child.once("exit", (code, signal) => {
@@ -136,9 +140,7 @@ try {
     }
   }
 
-  if (!process.exitCode) {
-    process.exitCode = await runNode(["--test"]);
-  }
+  if (!process.exitCode) process.exitCode = await runNode(["--test"]);
 } finally {
   await Promise.allSettled(created.reverse().map((path) => rm(path, { recursive: true, force: true })));
 }

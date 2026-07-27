@@ -5,14 +5,16 @@ A private Cloudflare-powered dashboard for Vanh, covering Gmail, Google Sheets s
 ## Repository layout
 
 - `src/` — all frontend source code, pages, features, icons, fonts, and PWA files.
-- `project-data/` — TurtleBot4 and IELTS source data and project-specific assets.
+- `project-data/` — public curriculum/data files and project-specific assets for TurtleBot4 and IELTS.
 - `worker/` — Cloudflare Worker routes, API services, scheduled synchronization, and weather notifications.
 - `migrations/` — Cloudflare D1 database migrations.
-- `scripts/` — production build and test compatibility runner.
+- `scripts/` — production build, source validation, and test compatibility runner.
 - `test/` — automated regression tests.
 - `docs/` — deployment, structure, and archived project notes.
 
 The repository is Cloudflare-first. `npm run build` generates the deployable frontend in `dist/`, which is intentionally ignored by Git. GitHub Pages is no longer used as a fallback.
+
+Feature source belongs under `src/features/`. Stable public data and project assets belong under `project-data/`. Generated browser bundles are written only to `dist/`.
 
 ## Commands
 

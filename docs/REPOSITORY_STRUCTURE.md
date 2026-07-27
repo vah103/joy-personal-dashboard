@@ -10,19 +10,24 @@ joy-personal-dashboard/
 │   ├── features/
 │   │   ├── auth/               # Account and integration controls
 │   │   ├── finance/            # Finance dashboard behavior and styling
+│   │   ├── greeting/           # Daily Brief layout and polish
+│   │   ├── ielts/              # IELTS Coach source, baseline, AI review, and rewrite
 │   │   ├── notifications/      # Web Push client, mobile styling, weather status
 │   │   ├── project-details/    # Project detail modal
 │   │   ├── project-hub/        # TurtleBot4 Project Hub and card artwork
-│   │   ├── tasks/              # To-do visibility and deletion behavior
+│   │   ├── sales/              # Sales assistant and appointment behavior
+│   │   ├── tasks/              # To-do visibility, English rewrite, and reminders
 │   │   └── weather/            # Dashboard weather forecast helper
 │   ├── assets/
 │   │   ├── icons/              # App icons, favicon, and wolf mark
-│   │   └── fonts/nunito/       # Bundled Sale workspace fonts
+│   │   └── fonts/nunito/       # Bundled Nunito font files
 │   └── pwa/                    # Manifest and service worker
-├── project-data/               # IELTS and TurtleBot4 data
+├── project-data/
+│   ├── ielts/                  # Public curriculum JSON, styles, and card artwork
+│   └── turtlebot4/             # TurtleBot4 project data and public assets
 ├── worker/                     # Cloudflare API and scheduled jobs
 ├── migrations/                 # D1 schema migrations
-├── scripts/                    # Build and test runner
+├── scripts/                    # Build, source validation, and test runner
 ├── test/                       # Regression tests
 ├── docs/                       # Setup and architecture documentation
 ├── package.json
@@ -32,7 +37,9 @@ joy-personal-dashboard/
 
 ## Build behavior
 
-`scripts/build.mjs` reads source files from `src/` and writes stable public filenames into `dist/`. This keeps existing browser URLs, service-worker paths, app icons, and Cloudflare asset routes unchanged after the repository reorganization.
+`scripts/build.mjs` reads source files from `src/` and writes stable public filenames into `dist/`. This keeps existing browser URLs, service-worker paths, app icons, and Cloudflare asset routes unchanged after repository reorganization.
+
+The IELTS source is maintained in `src/features/ielts/`. Its core files are combined into one isolated browser bundle during the build, while curriculum JSON and public styles remain in `project-data/ielts/`.
 
 ## Test compatibility
 

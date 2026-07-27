@@ -5,26 +5,29 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 const read = (path) => fs.readFileSync(new URL(path, root), "utf8");
 
-test("IELTS includes the Writing AI reviewer, freshness guard and adaptive rewrite", () => {
-  const model = read("project-data/ielts/ielts-core-model.js");
-  const ui = read("project-data/ielts/ielts-core-ui.js");
-  const actions = read("project-data/ielts/ielts-core-actions.js");
-  const diagnostic = read("project-data/ielts/ielts-core-diagnostic.js");
-  const reviewer = read("project-data/ielts/ielts-core-writing-review.js");
-  const freshness = read("project-data/ielts/ielts-core-writing-review-freshness.js");
-  const rewrite = read("project-data/ielts/ielts-core-writing-rewrite.js");
+test("IELTS includes the consolidated Writing AI reviewer, Vietnamese feedback and adaptive rewrite", () => {
+  const model = read("src/features/ielts/core-model.js");
+  const ui = read("src/features/ielts/core-ui.js");
+  const actions = read("src/features/ielts/core-actions.js");
+  const diagnostic = read("src/features/ielts/core-diagnostic.js");
+  const reviewer = read("src/features/ielts/core-writing-review.js");
+  const rewrite = read("src/features/ielts/core-writing-rewrite.js");
   const build = read("scripts/build.mjs");
-  const card = read("project-data/ielts/ielts-card.js");
+  const card = read("src/features/ielts/card.js");
   const router = read("worker/router.js");
+  const worker = read("worker/ielts-diagnostic-review.js");
   const reviewCss = read("project-data/ielts/ielts-writing-review.css");
   const rewriteCss = read("project-data/ielts/ielts-writing-rewrite.css");
 
-  assert.match(build, /ielts-core-writing-review\.js/);
-  assert.match(build, /ielts-core-writing-review-freshness\.js/);
-  assert.match(build, /ielts-august-core-v5/);
+  assert.match(build, /core-writing-review\.js/);
+  assert.match(build, /core-writing-rewrite\.js/);
+  assert.match(build, /i18n-vi-hooks\.js/);
+  assert.doesNotMatch(build, /core-writing-review-freshness\.js/);
+  assert.match(build, /ielts-august-core-v7/);
   assert.match(card, /ielts-writing-review\.css\?v=ielts-writing-review-v1/);
-  assert.match(card, /ielts-core-writing-rewrite\.js\?v=ielts-writing-rewrite-v1/);
-  assert.match(card, /REWRITE_SCRIPT/);
+  assert.match(card, /ielts-writing-rewrite\.css\?v=ielts-writing-rewrite-v1/);
+  assert.doesNotMatch(card, /REWRITE_SCRIPT/);
+  assert.doesNotMatch(card, /ielts-core-writing-rewrite\.js\?v=/);
   assert.match(card, /ensureCoreStyles/);
   assert.match(router, /isIeltsDiagnosticReviewRoute/);
   assert.match(router, /handleIeltsDiagnosticReviewRequest/);
@@ -34,17 +37,20 @@ test("IELTS includes the Writing AI reviewer, freshness guard and adaptive rewri
   assert.match(reviewer, /writing-diagnostic-ai-v1/);
   assert.match(reviewer, /reviewFingerprint/);
   assert.match(reviewer, /Essay changed · review again/);
-  assert.match(freshness, /return null/);
+  assert.match(reviewer, /diagnosticBandWithWritingFreshness/);
+  assert.match(reviewer, /return null/);
   assert.match(rewrite, /Required adaptive mission/);
   assert.match(rewrite, /deadlineHours/);
   assert.match(rewrite, /Minimum 100 words/);
   assert.match(rewrite, /todayWithWritingRewrite/);
   assert.match(rewrite, /coachWithWritingRewrite/);
+  assert.match(worker, /Write every explanation, finding, pattern and uncertainty in clear Vietnamese/);
+  assert.match(worker, /Đây là band đầu vào do AI ước lượng/);
   assert.match(reviewCss, /writing-review-summary/);
   assert.match(reviewCss, /review-criteria/);
   assert.match(rewriteCss, /writing-rewrite-mission/);
 
   assert.doesNotThrow(() => new Function(
-    `(function(){${model}\n${ui}\n${actions}\n${diagnostic}\n${reviewer}\n${freshness}\n${rewrite}\n})();`,
+    `(function(){${model}\n${ui}\n${actions}\n${diagnostic}\n${reviewer}\n${rewrite}\n})();`,
   ));
 });

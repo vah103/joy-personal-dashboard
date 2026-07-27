@@ -250,3 +250,12 @@ document.addEventListener("click", (event) => {
 
 window.JoyIELTS.reviewWritingDiagnostic = runWritingReview;
 window.JoyIELTS.getWritingReview = () => structuredClone(app.data.diagnostics.writing.review);
+
+const diagnosticBandBeforeWritingFreshness = diagnosticBand;
+diagnosticBand = function diagnosticBandWithWritingFreshness(skill) {
+  if (skill === "writing") {
+    const diagnostic = app.data.diagnostics?.writing;
+    if (diagnostic?.review && !writingReviewFresh(diagnostic)) return null;
+  }
+  return diagnosticBandBeforeWritingFreshness(skill);
+};
