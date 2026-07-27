@@ -43,6 +43,7 @@ const ieltsCoreSourceFiles = [
   "ielts-core-actions.js",
   "ielts-core-diagnostic.js",
   "ielts-core-writing-review.js",
+  "ielts-core-writing-review-freshness.js",
 ];
 
 await rm(dist, { recursive: true, force: true });
