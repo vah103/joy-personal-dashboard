@@ -20,12 +20,17 @@ test("new to-do items are rewritten into natural English before saving", async (
   assert.match(worker, /env\.AI\.run/);
   assert.match(worker, /concise imperative structure/);
   assert.match(worker, /Remind me to/);
+  assert.match(worker, /Return only the final English task sentence/);
+  assert.match(worker, /extractAiText/);
+  assert.doesNotMatch(worker, /json_schema/);
   assert.match(router, /isTaskEnglishRoute/);
   assert.match(router, /handleTaskEnglishRequest/);
   assert.match(helper, /addEventListener\("submit"/);
   assert.match(helper, /event\.stopImmediatePropagation\(\)/);
   assert.match(helper, /form\.requestSubmit/);
   assert.match(helper, /\/api\/tasks\/english/);
-  assert.match(build, /task-english\.js\?v=joy-task-english-v1/);
+  assert.match(helper, /REQUEST_TIMEOUT_MS = 12_000/);
+  assert.match(helper, /joy-task-english-cache-v2/);
+  assert.match(build, /task-english\.js\?v=joy-task-english-v2/);
   assert.match(build, /resolve\(features, "tasks", "task-english\.js"\)/);
 });
