@@ -87,6 +87,8 @@ const projectHubScripts = [
 const sourceHtml = await readFile(resolve(dashboardPage, "index.html"), "utf8");
 const cloudflareHtml = sourceHtml
   .replace(blueFaviconLink, desktopFaviconLink)
+  .replace('finance-demo.css?v=joy-character-motion-v5', 'finance-demo.css?v=joy-finance-ledger-v1')
+  .replace('finance-demo.js?v=joy-character-motion-v4', 'finance-demo.js?v=joy-finance-ledger-v1')
   .replace('<meta name="application-name" content="Joy">', '<meta name="application-name" content="Hey Joy!">')
   .replace('<title>Joy — Personal Dashboard</title>', '<title>Hey Joy! — Personal Dashboard</title>')
   .replace('aria-label="Joy overview"', 'aria-label="Hey Joy! overview"')
