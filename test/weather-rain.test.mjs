@@ -19,7 +19,7 @@ test("reports rain only when probability reaches 80 percent", () => {
   }, new Date("2026-07-23T17:00:00+07:00"));
 
   assert.equal(result.state, "rain");
-  assert.equal(result.text, "Rain probability is at least 80%: 19:00–20:00");
+  assert.equal(result.text, "Rain is expected in Hanoi at 19:00–20:00.");
 });
 
 test("keeps the full consecutive 80 percent window", () => {
@@ -36,7 +36,7 @@ test("keeps the full consecutive 80 percent window", () => {
 
   assert.equal(
     result.text,
-    "Rain probability is at least 80%: 18:00–22:00",
+    "Rain is expected in Hanoi at 18:00–22:00.",
   );
 });
 
@@ -69,7 +69,7 @@ test("a 79 percent hour separates two rain windows", () => {
 
   assert.equal(
     result.text,
-    "Rain probability is at least 80%: 18:00–19:00 and 20:00–22:00",
+    "Rain is expected in Hanoi at 18:00–19:00 and 20:00–22:00.",
   );
 });
 
@@ -85,7 +85,7 @@ test("ignores 80 percent rain intervals that have already ended", () => {
 
   assert.equal(
     result.text,
-    "Rain probability is at least 80%: 19:00–20:00",
+    "Rain is expected in Hanoi at 19:00–20:00.",
   );
 });
 
@@ -97,7 +97,7 @@ test("uses the API timestamp as the end of the hourly interval", () => {
 
   assert.equal(
     result.text,
-    "Rain probability is at least 80%: 17:00–18:00",
+    "Rain is expected in Hanoi at 17:00–18:00.",
   );
 });
 
@@ -127,12 +127,14 @@ test("weather keeps sunny and no-rain states while rain requires 80 percent", ()
   assert.ok(html.indexOf("weather-rain.js") < html.indexOf("app.js"));
   assert.ok(app.includes("weatherRainNotice.hidden"));
   assert.ok(build.includes('resolve(features, "weather", "weather-rain.js")'));
-  assert.ok(build.includes("rain-threshold-80-v3"));
-  assert.ok(build.includes("joy-rain-notice-v3"));
+  assert.ok(build.includes("rain-threshold-80-v5"));
+  assert.ok(build.includes("joy-rain-notice-v4"));
   assert.match(statusUi, /RAIN_PROBABILITY_THRESHOLD = 80/);
   assert.match(statusUi, /sunnyHours/);
   assert.match(statusUi, /It’s a sunny day\./);
   assert.match(statusUi, /No rain is expected\./);
+  assert.match(statusUi, /replace\(\/\\s\*\\\(80%\\\+\\\)\\\.\?\/gi/);
+  assert.doesNotMatch(statusUi, /\(80%\+\)\./);
   assert.match(push, /RAIN_PROBABILITY_THRESHOLD = 80/);
   assert.match(push, /dailyKind: isSunny \? "sunny" : "chill"/);
   assert.match(push, /It's a sunny day\./);
