@@ -29,13 +29,15 @@ test("Daily Brief is wired into the Worker and dashboard", async () => {
   assert.match(router, /daily-brief-policy\.js/);
   assert.match(router, /runDailyBriefSchedule/);
   assert.match(wrangler, /"ai"\s*:\s*\{\s*"binding"\s*:\s*"AI"/s);
-  assert.match(build, /greeting-layout\.css\?v=joy-daily-brief-v2/);
-  assert.match(build, /greeting-layout\.js\?v=joy-daily-brief-v2/);
+  assert.match(build, /greeting-layout\.css\?v=joy-daily-brief-v3/);
+  assert.match(build, /greeting-layout\.js\?v=joy-daily-brief-v3/);
   assert.match(script, /window\.fetch\("\/api\/daily-brief"/);
   assert.match(script, /daily-brief-drawer/);
   assert.match(script, /const ROTATION_MS = 20_000/);
   assert.match(script, /daily-brief-personal/);
-  assert.match(script, /translateY\(-18px\)/);
+  assert.match(script, /font-size: 6\.25px/);
+  assert.match(script, /data-brief-next/);
+  assert.doesNotMatch(script, /data-brief-prev/);
   assert.doesNotMatch(script, /data-brief-counter/);
   assert.match(styles, /\.joy-brief\.daily-brief-enabled/);
   assert.match(styles, /\.daily-brief-drawer-backdrop/);
