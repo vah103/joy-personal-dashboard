@@ -19,7 +19,7 @@ function taskList(){return(app.plan?.days||[]).flatMap(d=>(d.tasks||[]).map((raw
 function day(k=key()){return app.plan?.days?.find(d=>d.date===k)}
 function state(t){const s=app.data.taskStates[t.id]?.status;if(s)return s;return t.date<key()?"overdue":"pending"}
 function done(t){return DONE.has(state(t))}
-function progress(tasks){return tasks.length?Math.round(tasks.reduce((n,t)=>n+(state(t)==="completed"?1:state(t)==="completed-minimum"?.45:0),0)/tasks.length*100):0}
+function progress(tasks){return tasks.length?Math.round(tasks.reduce((n,t)=>n+(state(t)==="completed"?1:state(t)==="completed-minimum"?0.45:0),0)/tasks.length*100):0}
 function overdue(){return taskList().filter(t=>t.date<key()&&!done(t)).sort((a,b)=>a.date.localeCompare(b.date))}
 function next(){return overdue()[0]||taskList().find(t=>t.date>=key()&&!done(t))}
 function localLoad(){try{const x=JSON.parse(localStorage.getItem(LOCAL));return{data:normal(x?.data),version:Number(x?.version||0)}}catch{return{data:blank(),version:0}}}
