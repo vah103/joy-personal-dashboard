@@ -26,14 +26,6 @@ export async function handleTaskEnglishRequest(request, env) {
       return json({ title: original, changed: false, ai: false });
     }
 
-    const schema = {
-      type: "object",
-      properties: {
-        title: { type: "string", minLength: 1, maxLength: 500 },
-      },
-      required: ["title"],
-    };
-
     const messages = [
       {
         role: "system",
@@ -43,7 +35,7 @@ Convert Vietnamese or imperfect English into one natural, grammatically correct 
 
 Preserve the user's exact meaning, names, project names, acronyms, URLs, dates, times, quantities, and technical terms. Do not add details, explanations, advice, or a second task. Do not use filler such as "I need to", "Please", or "Remember to" unless the original explicitly asks for a reminder. If the original asks to be reminded, retain a natural "Remind me to ..." structure so reminder detection still works.
 
-Keep the result short and suitable for display as one to-do item. Return only the requested JSON field.`,
+Keep the result short and suitable for display as one to-do item. Return only the final English task sentence, without quotes, markdown, JSON, labels, or explanation.`,
       },
       {
         role: "user",
@@ -55,16 +47,9 @@ Keep the result short and suitable for display as one to-do item. Return only th
       messages,
       temperature: 0.05,
       max_tokens: 160,
-      response_format: {
-        type: "json_schema",
-        json_schema: schema,
-      },
     });
 
-    const payload = typeof result?.response === "string"
-      ? JSON.parse(result.response)
-      : result?.response;
-    const title = normalizeEnglishTitle(payload?.title, original);
+    const title = normalizeEnglishTitle(extractAiText(result), original);
 
     return json({
       title,
@@ -75,6 +60,34 @@ Keep the result short and suitable for display as one to-do item. Return only th
     console.error("Joy task English rewrite failed", error);
     return json({ error: "TASK_ENGLISH_FAILED" }, 500);
   }
+}
+
+function extractAiText(result) {
+  const value = result?.response ?? result?.result ?? result?.text ?? "";
+  if (value && typeof value === "object") {
+    return value.title ?? value.response ?? value.text ?? "";
+  }
+
+  const text = String(value || "").trim();
+  if (!text) return "";
+
+  const unfenced = text
+    .replace(/^```(?:json|text)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+
+  try {
+    const parsed = JSON.parse(unfenced);
+    if (parsed && typeof parsed === "object") {
+      return parsed.title ?? parsed.response ?? parsed.text ?? unfenced;
+    }
+  } catch {
+    // Plain text is the preferred response format.
+  }
+
+  return unfenced
+    .replace(/^\s*(?:title|task|answer)\s*:\s*/i, "")
+    .trim();
 }
 
 function normalizeEnglishTitle(value, fallback) {
