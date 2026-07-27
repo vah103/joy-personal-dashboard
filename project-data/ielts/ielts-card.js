@@ -3,6 +3,7 @@
     ["joy-ielts-core-style", "project-data/ielts/ielts-core.css?v=ielts-august-core-v3"],
     ["joy-ielts-core-polish", "project-data/ielts/ielts-core-polish.css?v=ielts-august-core-v3"],
     ["joy-ielts-diagnostic-style", "project-data/ielts/ielts-diagnostic.css?v=ielts-baseline-v2"],
+    ["joy-ielts-writing-review-style", "project-data/ielts/ielts-writing-review.css?v=ielts-writing-review-v1"],
   ];
   const CORE_SCRIPT = [
     "joy-ielts-core-bundle",
