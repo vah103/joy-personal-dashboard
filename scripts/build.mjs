@@ -16,6 +16,7 @@ const assets = resolve(src, "assets");
 const icons = resolve(assets, "icons");
 const nunitoFonts = resolve(assets, "fonts", "nunito");
 const pwa = resolve(src, "pwa");
+const ieltsData = resolve(root, "project-data", "ielts");
 
 const desktopFaviconLink = '    <link rel="icon" href="/joy-web-favicon.svg?v=joy-desktop-wolf-v2" type="image/svg+xml">';
 const blueFaviconLink = '    <link rel="icon" href="/joy-blue-icon.png?v=joy-topographic-blue-v1" type="image/png">';
@@ -36,6 +37,12 @@ const fontFiles = [
   ].map((file) => ["quicksand", file]),
 ];
 
+const ieltsCoreSourceFiles = [
+  "ielts-core-model.js",
+  "ielts-core-ui.js",
+  "ielts-core-actions.js",
+];
+
 await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
 await mkdir(fonts, { recursive: true });
@@ -44,8 +51,8 @@ const projectHubHead = [
   '    <link rel="stylesheet" href="project-hub.css?v=turtlebot-hub-v3">\n',
   '    <link rel="stylesheet" href="turtlebot-card-art.css?v=restored-card-v6">\n',
   '    <link rel="stylesheet" href="project-data/ielts/ielts-card.css?v=ielts-card-v2">\n',
-  '    <link rel="stylesheet" href="project-data/ielts/ielts-core.css?v=ielts-august-core-v2">\n',
-  '    <link rel="stylesheet" href="project-data/ielts/ielts-core-polish.css?v=ielts-august-core-v2">\n',
+  '    <link rel="stylesheet" href="project-data/ielts/ielts-core.css?v=ielts-august-core-v3">\n',
+  '    <link rel="stylesheet" href="project-data/ielts/ielts-core-polish.css?v=ielts-august-core-v3">\n',
   '    <link rel="stylesheet" href="mobile-notifications.css?v=iphone-rain-bell-v1">\n',
   '    <link rel="stylesheet" href="auth-ui.css?v=joy-google-account-v3">\n',
   '    <link rel="stylesheet" href="greeting-layout.css?v=joy-daily-brief-v4">\n',
@@ -59,10 +66,8 @@ const projectHubScripts = [
   '    <script src="project-hub-core.js?v=turtlebot-hub-v3" defer></script>\n',
   '    <script src="project-hub-render.js?v=turtlebot-hub-v3" defer></script>\n',
   '    <script src="project-hub-actions.js?v=turtlebot-hub-v3" defer></script>\n',
-  '    <script id="joy-ielts-core-model" data-loaded="true" src="project-data/ielts/ielts-core-model.js?v=ielts-august-core-v2" defer></script>\n',
-  '    <script id="joy-ielts-core-ui" data-loaded="true" src="project-data/ielts/ielts-core-ui.js?v=ielts-august-core-v2" defer></script>\n',
-  '    <script id="joy-ielts-core-actions" data-loaded="true" src="project-data/ielts/ielts-core-actions.js?v=ielts-august-core-v2" defer></script>\n',
-  '    <script src="project-data/ielts/ielts-card.js?v=ielts-card-v3" defer></script>\n',
+  '    <script id="joy-ielts-core-bundle" data-loaded="true" src="project-data/ielts/ielts-core-bundle.js?v=ielts-august-core-v3" defer></script>\n',
+  '    <script src="project-data/ielts/ielts-card.js?v=ielts-card-v4" defer></script>\n',
   '    <script src="weather-status-ui.js?v=three-state-weather-v1" defer></script>\n',
   '    <script src="push-notifications.js?v=joy-current-device-v1" defer></script>\n',
   '    <script src="auth-ui.js?v=joy-google-account-v3" defer></script>\n',
@@ -172,5 +177,20 @@ await Promise.all([
     resolve(fonts, file),
   )),
 ]);
+
+const ieltsCoreParts = await Promise.all(
+  ieltsCoreSourceFiles.map((file) => readFile(resolve(ieltsData, file), "utf8")),
+);
+const ieltsCoreBundle = [
+  "(function registerIeltsAugustCore() {",
+  "  if (window.JoyIELTS) return;",
+  ...ieltsCoreParts,
+  "})();",
+  "",
+].join("\n");
+await writeFile(
+  resolve(dist, "project-data", "ielts", "ielts-core-bundle.js"),
+  ieltsCoreBundle,
+);
 
 console.log("Hey Joy! frontend built for Cloudflare");
