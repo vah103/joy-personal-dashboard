@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { summarizeFinanceTransactions, validateFinanceTransaction } from "../worker/finance-ledger.js";
+import { buildFinanceTrackerSeed } from "../worker/finance-with-seed.js";
 
 function tx(overrides) {
   const occurred_on = overrides.occurred_on || "2026-01-01";
@@ -66,4 +67,28 @@ test("Transaction validation accepts the requested category model", () => {
   });
   assert.equal(result.error, undefined);
   assert.equal(result.value.amount, 70_000);
+});
+
+test("Imported 2026 Finance Tracker keeps every monthly closing balance", () => {
+  const rows = buildFinanceTrackerSeed().map((transaction, index) => ({
+    id: transaction.id,
+    occurred_on: transaction.occurredOn,
+    year: 2026,
+    month: transaction.month,
+    type: transaction.type,
+    category: transaction.category,
+    subcategory: "",
+    amount: transaction.amount,
+    status: transaction.status,
+    note: transaction.note,
+    source: "sheet-import",
+    created_at: index,
+    updated_at: index,
+  }));
+  const summary = summarizeFinanceTransactions(rows, { year: 2026, selectedMonth: "2026-07" });
+  assert.deepEqual(
+    summary.months.map((month) => month.projected.remaining),
+    [280_000, 5_380_000, 7_140_000, 3_210_000, 5_430_000, -1_620_000, 2_510_000, 6_140_000, 10_640_000, 11_240_000, 15_740_000, 20_240_000],
+  );
+  assert.equal(summary.annual.projectedYearEnd, 20_240_000);
 });
