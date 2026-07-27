@@ -1,3 +1,11 @@
+if (!document.querySelector("#joy-ielts-writing-rewrite-style")) {
+  const link = document.createElement("link");
+  link.id = "joy-ielts-writing-rewrite-style";
+  link.rel = "stylesheet";
+  link.href = "project-data/ielts/ielts-writing-rewrite.css?v=ielts-writing-rewrite-v1";
+  document.head.append(link);
+}
+
 function ensureWritingRewriteAssignment() {
   const diagnostic = app.data.diagnostics?.writing;
   if (!writingReviewFresh(diagnostic)) return null;
