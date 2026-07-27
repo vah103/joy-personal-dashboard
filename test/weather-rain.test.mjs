@@ -101,7 +101,7 @@ test("uses the API timestamp as the end of the hourly interval", () => {
   );
 });
 
-test("weather UI and push use the same 80 percent policy", () => {
+test("weather keeps sunny and no-rain states while rain requires 80 percent", () => {
   const html = fs.readFileSync(
     new URL("../src/pages/dashboard/index.html", import.meta.url),
     "utf8",
@@ -127,10 +127,14 @@ test("weather UI and push use the same 80 percent policy", () => {
   assert.ok(html.indexOf("weather-rain.js") < html.indexOf("app.js"));
   assert.ok(app.includes("weatherRainNotice.hidden"));
   assert.ok(build.includes('resolve(features, "weather", "weather-rain.js")'));
+  assert.ok(build.includes("rain-threshold-80-v3"));
+  assert.ok(build.includes("joy-rain-notice-v3"));
   assert.match(statusUi, /RAIN_PROBABILITY_THRESHOLD = 80/);
+  assert.match(statusUi, /sunnyHours/);
+  assert.match(statusUi, /It’s a sunny day\./);
   assert.match(statusUi, /No rain is expected\./);
-  assert.doesNotMatch(statusUi, /sunnyHours|It’s a sunny day/);
   assert.match(push, /RAIN_PROBABILITY_THRESHOLD = 80/);
-  assert.match(push, /No rain is expected\./);
-  assert.doesNotMatch(push, /HIGH_PROBABILITY|STRONG_AMOUNT_MM|sunnyHours/);
+  assert.match(push, /dailyKind: isSunny \? "sunny" : "chill"/);
+  assert.match(push, /It's a sunny day\./);
+  assert.doesNotMatch(push, /HIGH_PROBABILITY|STRONG_AMOUNT_MM/);
 });
