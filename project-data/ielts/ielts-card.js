@@ -1,5 +1,8 @@
 (() => {
-  const CORE_STYLE_ID = "joy-ielts-core-style";
+  const CORE_STYLES = [
+    ["joy-ielts-core-style", "project-data/ielts/ielts-core.css?v=ielts-august-core-v1"],
+    ["joy-ielts-core-polish", "project-data/ielts/ielts-core-polish.css?v=ielts-august-core-v1"],
+  ];
   const CORE_SCRIPT_IDS = [
     ["joy-ielts-core-model", "project-data/ielts/ielts-core-model.js?v=ielts-august-core-v1"],
     ["joy-ielts-core-ui", "project-data/ielts/ielts-core-ui.js?v=ielts-august-core-v1"],
@@ -28,13 +31,14 @@
   }
 
   async function loadAugustCore() {
-    if (!document.querySelector(`#${CORE_STYLE_ID}`)) {
+    CORE_STYLES.forEach(([id, href]) => {
+      if (document.querySelector(`#${id}`)) return;
       const link = document.createElement("link");
-      link.id = CORE_STYLE_ID;
+      link.id = id;
       link.rel = "stylesheet";
-      link.href = "project-data/ielts/ielts-core.css?v=ielts-august-core-v1";
+      link.href = href;
       document.head.append(link);
-    }
+    });
 
     try {
       for (const [id, src] of CORE_SCRIPT_IDS) await loadScript(id, src);
