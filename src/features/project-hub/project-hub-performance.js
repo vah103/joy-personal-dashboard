@@ -31,7 +31,7 @@
     script.async = false;
 
     const syncCurrentStage = () => {
-      if (!window.hubState?.projectState || typeof getStages !== "function" || typeof effectiveStage !== "function") return;
+      if (typeof hubState === "undefined" || !hubState.projectState || typeof getStages !== "function" || typeof effectiveStage !== "function") return;
       const included = new Set(hubState.projectState.scope?.includedStageIds || []);
       const stages = getStages().map(effectiveStage).filter((stage) => !included.size || included.has(stage.id));
       if (!stages.length) return;
