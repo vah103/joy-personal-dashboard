@@ -85,7 +85,7 @@
   slideStack.className = "daily-brief-stack";
   slideStack.append(storySlide, emptySlide);
 
-  const personalStatus = document.createElement("p");
+  const personalStatus = document.createElement("div");
   personalStatus.className = "daily-brief-personal";
   personalStatus.hidden = true;
   message.replaceChildren(sourceState, slideStack, personalStatus);
@@ -115,9 +115,9 @@
   });
 
   function installStyles() {
-    if (document.querySelector("#joy-daily-brief-v4-styles")) return;
+    if (document.querySelector("#joy-daily-brief-v5-styles")) return;
     const style = document.createElement("style");
-    style.id = "joy-daily-brief-v4-styles";
+    style.id = "joy-daily-brief-v5-styles";
     style.textContent = `
       .joy-brief.daily-brief-news-first {
         min-height: 112px;
@@ -170,20 +170,21 @@
         color: #6f797e;
         font-size: 9.5px;
       }
-      .daily-brief-personal {
+      .joy-brief.daily-brief-news-first .joy-message > .daily-brief-personal {
         position: absolute;
         left: 0;
         right: 0;
-        bottom: -1px;
+        bottom: 1px;
+        display: block;
         min-height: 0;
         margin: 0;
         padding: 0;
         overflow: hidden;
         border: 0;
-        color: rgba(91, 105, 111, .36);
-        font-size: 6.25px;
+        color: rgba(91, 105, 111, .42);
+        font-size: 7px !important;
         font-weight: 600;
-        line-height: 1;
+        line-height: 1 !important;
         letter-spacing: .005em;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -215,7 +216,9 @@
           min-width: 16px;
           height: 18px;
         }
-        .daily-brief-personal { font-size: 6px; }
+        .joy-brief.daily-brief-news-first .joy-message > .daily-brief-personal {
+          font-size: 6.5px !important;
+        }
       }
       @media (prefers-reduced-motion: reduce) {
         .daily-brief-news-first .daily-brief-story-slide { transition: none !important; }
