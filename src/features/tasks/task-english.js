@@ -1,9 +1,15 @@
 (function installJoyTaskEnglish(root) {
-  const CACHE_KEY = "joy-task-english-cache-v1";
-  const REQUEST_TIMEOUT_MS = 4_500;
+  const CACHE_KEY = "joy-task-english-cache-v2";
+  const REQUEST_TIMEOUT_MS = 12_000;
 
   function clean(value) {
     return String(value || "").replace(/\s+/g, " ").trim();
+  }
+
+  function looksVietnamese(value) {
+    const text = ` ${clean(value).toLowerCase()} `;
+    return /[ăâđêôơưàáạảãằắặẳẵầấậẩẫèéẹẻẽềếệểễìíịỉĩòóọỏõồốộổỗờớợởỡùúụủũừứựửữỳýỵỷỹ]/i.test(text)
+      || /\b(?:ăn|uống|mua|học|làm|gọi|đi|đọc|viết|hoàn thành|nhắc|giặt|phơi|quần áo|nước giặt|kem đánh răng|hôm nay|ngày mai)\b/i.test(text);
   }
 
   function readCache() {
@@ -45,16 +51,23 @@
         body: JSON.stringify({ text: original }),
         signal: controller.signal,
       });
-      if (!response.ok) return original;
+      if (!response.ok) {
+        console.warn("Joy task English request failed", response.status);
+        return original;
+      }
 
       const payload = await response.json();
       const title = clean(payload?.title);
       if (!title || title.length > 500) return original;
 
-      cache[original] = title;
-      writeCache(cache);
+      const changed = payload?.changed === true || title !== original;
+      if (changed || !looksVietnamese(original)) {
+        cache[original] = title;
+        writeCache(cache);
+      }
       return title;
-    } catch {
+    } catch (error) {
+      console.warn("Joy task English rewrite was unavailable", error);
       return original;
     } finally {
       root.clearTimeout(timeout);
