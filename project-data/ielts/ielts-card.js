@@ -2,11 +2,11 @@
   const CORE_STYLES = [
     ["joy-ielts-core-style", "project-data/ielts/ielts-core.css?v=ielts-august-core-v3"],
     ["joy-ielts-core-polish", "project-data/ielts/ielts-core-polish.css?v=ielts-august-core-v3"],
-    ["joy-ielts-diagnostic-style", "project-data/ielts/ielts-diagnostic.css?v=ielts-baseline-v1"],
+    ["joy-ielts-diagnostic-style", "project-data/ielts/ielts-diagnostic.css?v=ielts-baseline-v2"],
   ];
   const CORE_SCRIPT = [
     "joy-ielts-core-bundle",
-    "project-data/ielts/ielts-core-bundle.js?v=ielts-august-core-v4",
+    "project-data/ielts/ielts-core-bundle.js?v=ielts-august-core-v5",
   ];
 
   function loadScript(id, src) {
