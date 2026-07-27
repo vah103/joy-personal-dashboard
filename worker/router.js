@@ -41,6 +41,10 @@ import {
   isTaskDeleteRoute,
 } from "./task-delete.js";
 import {
+  handleTaskEnglishRequest,
+  isTaskEnglishRoute,
+} from "./task-english.js";
+import {
   handleTaskImportRequest,
   isTaskImportRoute,
 } from "./task-sync.js";
@@ -80,6 +84,9 @@ export default {
       }
       if (isTaskReminderRoute(pathname)) {
         return handleTaskReminderRequest(request, env);
+      }
+      if (isTaskEnglishRoute(pathname)) {
+        return handleTaskEnglishRequest(request, env);
       }
       if (isGoogleAuthRoute(pathname)) {
         return handleGoogleAuthRequest(request, env);
