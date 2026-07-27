@@ -1,153 +1,515 @@
+const financePanel = document.querySelector("#finance");
 const financeData = document.querySelector("#finance-data");
 const financePrivacyToggle = document.querySelector("[data-action='toggle-finance-privacy']");
-const financePeriod = document.querySelector("#finance-period");
-const financeSource = document.querySelector("#finance-source");
-const financeSyncState = document.querySelector("#finance-sync-state");
-const financeMonths = document.querySelector("#finance-months");
-const financeValues = [...document.querySelectorAll("[data-finance-value]")];
-const financeComparison = document.querySelector("#finance-comparison");
-const financeSaleProgress = document.querySelector("#finance-sale-progress");
-const financeSaleShare = document.querySelector("#finance-sale-share");
-const financeSaleCount = document.querySelector("#finance-sale-count");
-const financeSaleStatus = document.querySelector("#finance-sale-status");
 const FINANCE_CLOUD_BACKEND = document.querySelector('meta[name="joy-backend"]')?.content === "cloudflare";
+const FINANCE_YEAR = 2026;
 const FINANCE_REVEAL_MS = 60_000;
 
+const FALLBACK_CATEGORIES = {
+  income: [
+    { id: "sale", label: "Sale", subcategories: [] },
+    { id: "allowance", label: "Allowance", subcategories: [] },
+    { id: "carryover", label: "Carryover", subcategories: [] },
+    { id: "other-income", label: "Other income", subcategories: [] },
+  ],
+  expense: [
+    { id: "home", label: "House", subcategories: ["Rent", "Services", "Household shopping", "Other home expense"] },
+    { id: "meals", label: "Meals", subcategories: ["Home meals", "Eating out", "Reward after closing a room", "Other meals"] },
+    { id: "transportation", label: "Transportation", subcategories: ["Fuel", "Ride-hailing", "Other transportation"] },
+    { id: "clothing", label: "Clothing", subcategories: [] },
+    { id: "dating", label: "Dating", subcategories: [] },
+    { id: "hanging-out", label: "Hanging out", subcategories: ["Friends", "Family", "Other"] },
+    { id: "haircare", label: "Haircare", subcategories: ["Haircut", "Hair products", "Other haircare"] },
+    { id: "money-leaks", label: "Money leaks", subcategories: ["Snacks", "Random purchases", "Mistakes", "Lost money", "Other money leaks"] },
+    { id: "other", label: "Other", subcategories: [] },
+  ],
+};
+
+let financeSummary = null;
+let financeCategories = FALLBACK_CATEGORIES;
+let selectedMonth = vietnamMonthKey();
+let monthTransactions = [];
 let financeValuesHidden = true;
-let financePrivacyTimer;
+let privacyTimer;
+let workspaceView = "month";
+let editingTransactionId = "";
 
-function setFinancePrivacy(hidden, { announce = false } = {}) {
-  if (!financeData || !financePrivacyToggle) return;
-  financeValuesHidden = hidden;
-  window.clearTimeout(financePrivacyTimer);
-
-  financeData.classList.toggle("finance-values-hidden", hidden);
-  financePrivacyToggle.setAttribute("aria-pressed", String(hidden));
-  financePrivacyToggle.setAttribute("aria-label", hidden ? "Show finance amounts" : "Hide finance amounts");
-  financeValues.forEach((element) => {
-    element.textContent = hidden ? element.dataset.financeMask : element.dataset.financeValue;
-  });
-
-  if (!hidden) financePrivacyTimer = window.setTimeout(() => setFinancePrivacy(true), FINANCE_REVEAL_MS);
-  if (announce) showFinanceToast(hidden ? "Finance amounts hidden" : "Finance amounts visible for 60 seconds");
-}
-
-function renderFinance(payload) {
-  const current = payload?.current || {};
-  const months = Array.isArray(payload?.months) ? payload.months : [];
-  financePeriod.textContent = current.label || "2026";
-
-  ["remaining", "income", "expenses"].forEach((field) => {
-    const element = document.querySelector(`[data-finance-field="${field}"]`);
-    if (!element) return;
-    element.dataset.financeValue = formatCompactVnd(current[field]);
-  });
-
-  const sale = payload?.sale || {};
-  const goldValue = document.querySelector('[data-finance-field="gold"]');
-  if (goldValue) goldValue.dataset.financeValue = `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 2 }).format(Number(payload?.gold?.chi || 0))} chỉ`;
-  const saleValue = document.querySelector('[data-finance-field="sale"]');
-  if (saleValue) saleValue.dataset.financeValue = formatCompactVnd(sale.income);
-  const share = current.income > 0 ? Math.min(100, Math.max(0, (Number(sale.income || 0) / current.income) * 100)) : 0;
-  if (financeSaleProgress) financeSaleProgress.style.width = `${share.toFixed(1)}%`;
-  if (financeSaleShare) financeSaleShare.innerHTML = `${Math.round(share)}% <small>of monthly income</small>`;
-  if (financeSaleCount) financeSaleCount.textContent = `${Number(sale.count || 0)} ${Number(sale.count || 0) === 1 ? "entry" : "entries"}`;
-  if (financeSaleStatus) financeSaleStatus.textContent = Number(sale.count || 0) ? "Live from Sale" : "No entries yet";
-
-  renderFinanceComparison(months, current.key);
-
-  if (payload?.spreadsheetUrl) {
-    document.querySelectorAll(".finance-sheet-link").forEach((link) => {
-      link.href = payload.spreadsheetUrl;
+function mountFinance() {
+  if (!financePanel || !financeData) return;
+  const titleLink = financePanel.querySelector(".panel-title-button");
+  if (titleLink) {
+    titleLink.href = "#finance";
+    titleLink.removeAttribute("target");
+    titleLink.removeAttribute("rel");
+    titleLink.addEventListener("click", (event) => {
+      event.preventDefault();
+      openFinanceWorkspace("month");
     });
   }
 
-  renderFinanceChart(months, current.key);
-  financeSource.textContent = `Live · ${payload?.source || "Finance Tracker"}`;
-  financeSyncState.hidden = true;
+  const headingActions = financePanel.querySelector(".finance-heading-actions");
+  if (headingActions) {
+    headingActions.innerHTML = `
+      <span class="finance-period" id="finance-period">2026</span>
+      <button class="quiet-link finance-add-expense" type="button" data-finance-add="expense">+ Expense</button>
+      <button class="quiet-link" type="button" data-finance-open>View details ↗</button>
+      ${financePrivacyToggle?.outerHTML || ""}
+    `;
+  }
+
+  financeData.innerHTML = `
+    <div class="finance-sync-state" id="finance-sync-state" hidden></div>
+    <div class="finance-overview">
+      <button class="finance-available" type="button" data-finance-open>
+        <span>Available this month</span>
+        <strong data-finance-field="remaining" data-finance-value="0 ₫" data-finance-mask="● ● ● ●">● ● ● ●</strong>
+        <small id="finance-balance-note"><i>↗</i><b>Actual balance</b></small>
+      </button>
+      <button class="finance-overview-stat" type="button" data-finance-open><span class="finance-stat-icon income" aria-hidden="true">▰</span><span><small>Income</small><strong data-finance-field="income" data-finance-value="0 ₫" data-finance-mask="● ● ●">● ● ●</strong><em>Includes Carryover</em></span></button>
+      <button class="finance-overview-stat" type="button" data-finance-open><span class="finance-stat-icon expense" aria-hidden="true">↓</span><span><small>Expenses</small><strong data-finance-field="expenses" data-finance-value="0 ₫" data-finance-mask="● ● ●">● ● ●</strong><em>Actual this month</em></span></button>
+      <button class="finance-overview-stat" type="button" data-finance-year><span class="finance-stat-icon forecast" aria-hidden="true">◎</span><span><small>Year-end</small><strong data-finance-field="year-end" data-finance-value="0 ₫" data-finance-mask="● ● ●">● ● ●</strong><em>Projected December balance</em></span></button>
+    </div>
+    <div class="finance-lower-grid">
+      <button class="finance-pulse" type="button" data-finance-year>
+        <span class="finance-pulse-heading"><strong>2026 balance path</strong><small>Actual + planned</small></span>
+        <span class="finance-chart-visual"><svg viewBox="0 0 600 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="finance-live-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6f99a8" stop-opacity=".28"/><stop offset="1" stop-color="#6f99a8" stop-opacity="0"/></linearGradient></defs><path class="finance-grid-line" d="M14 24H586M14 75H586M14 126H586M14 154H586"/><path class="finance-series-area" data-finance-area d=""/><polyline class="finance-series finance-series-remaining" data-finance-series="remaining" points=""/><g data-finance-points></g></svg></span>
+        <span class="finance-months" id="finance-months" aria-hidden="true"></span>
+      </button>
+      <div class="finance-category-card">
+        <span class="finance-pulse-heading"><strong>Top expenses</strong><small id="finance-category-period">This month</small></span>
+        <div class="finance-category-list" id="finance-category-list"></div>
+        <button class="finance-quick-add" type="button" data-finance-add="expense">+ Add expense</button>
+      </div>
+    </div>
+    <p class="finance-demo-note" id="finance-source">Loading Joy Finance…</p>
+  `;
+
+  document.body.insertAdjacentHTML("beforeend", financeWorkspaceMarkup());
+  bindFinanceEvents();
+  setFinancePrivacy(true);
+  loadFinanceSummary();
+}
+
+function financeWorkspaceMarkup() {
+  if (document.querySelector("#finance-workspace")) return "";
+  return `
+    <div class="finance-workspace-backdrop" id="finance-workspace" hidden>
+      <section class="finance-workspace" role="dialog" aria-modal="true" aria-labelledby="finance-workspace-title">
+        <header class="finance-workspace-header">
+          <div><p class="section-kicker">Joy Finance</p><h2 id="finance-workspace-title">Finance 2026</h2></div>
+          <div class="finance-workspace-actions"><button type="button" data-finance-add="income">+ Income</button><button class="primary" type="button" data-finance-add="expense">+ Expense</button><button class="close" type="button" data-finance-close aria-label="Close Finance">×</button></div>
+        </header>
+        <nav class="finance-tabs" aria-label="Finance views"><button class="active" type="button" data-finance-tab="month">Month</button><button type="button" data-finance-tab="year">Year</button></nav>
+        <div class="finance-workspace-content" id="finance-workspace-content"></div>
+      </section>
+    </div>
+    <div class="finance-entry-backdrop" id="finance-entry-modal" hidden>
+      <section class="finance-entry-modal" role="dialog" aria-modal="true" aria-labelledby="finance-entry-title">
+        <header><div><p class="section-kicker">Joy Finance</p><h2 id="finance-entry-title">Add expense</h2></div><button type="button" data-finance-entry-close aria-label="Close transaction form">×</button></header>
+        <form id="finance-entry-form">
+          <input name="id" type="hidden">
+          <input name="type" type="hidden" value="expense">
+          <div class="finance-type-switch"><button type="button" class="active" data-entry-type="expense">Expense</button><button type="button" data-entry-type="income">Income</button></div>
+          <label class="finance-amount-label"><span>Amount</span><div><input name="amount" type="number" min="1" step="1000" inputmode="numeric" placeholder="0" required><b>₫</b></div></label>
+          <div class="finance-form-grid">
+            <label>Date<input name="occurred_on" type="date" required></label>
+            <label>Status<select name="status"><option value="actual">Actual</option><option value="planned">Planned</option></select></label>
+            <label>Category<select name="category" required></select></label>
+            <label id="finance-subcategory-label">Detail<select name="subcategory"></select></label>
+          </div>
+          <label>Note<input name="note" type="text" maxlength="300" placeholder="Optional note"></label>
+          <div class="finance-form-actions"><button type="button" class="secondary-button" data-finance-entry-close>Cancel</button><button type="submit" class="primary-button">Save transaction</button></div>
+        </form>
+      </section>
+    </div>
+  `;
+}
+
+function bindFinanceEvents() {
+  document.querySelectorAll("[data-finance-open]").forEach((button) => button.addEventListener("click", () => openFinanceWorkspace("month")));
+  document.querySelectorAll("[data-finance-year]").forEach((button) => button.addEventListener("click", () => openFinanceWorkspace("year")));
+  document.querySelectorAll("[data-finance-add]").forEach((button) => button.addEventListener("click", () => openEntryForm(button.dataset.financeAdd)));
+  document.querySelectorAll("[data-finance-close]").forEach((button) => button.addEventListener("click", closeFinanceWorkspace));
+  document.querySelectorAll("[data-finance-entry-close]").forEach((button) => button.addEventListener("click", closeEntryForm));
+  document.querySelectorAll("[data-finance-tab]").forEach((button) => button.addEventListener("click", () => switchWorkspaceView(button.dataset.financeTab)));
+  document.querySelectorAll("[data-entry-type]").forEach((button) => button.addEventListener("click", () => setEntryType(button.dataset.entryType)));
+  document.querySelector("#finance-entry-form")?.addEventListener("submit", saveFinanceTransaction);
+  document.querySelector("#finance-entry-form [name='category']")?.addEventListener("change", updateSubcategories);
+  document.querySelector("#finance-workspace")?.addEventListener("click", (event) => { if (event.target.id === "finance-workspace") closeFinanceWorkspace(); });
+  document.querySelector("#finance-entry-modal")?.addEventListener("click", (event) => { if (event.target.id === "finance-entry-modal") closeEntryForm(); });
+  document.querySelector("[data-action='toggle-finance-privacy']")?.addEventListener("click", () => setFinancePrivacy(!financeValuesHidden, { announce: true }));
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") setFinancePrivacy(true); });
+}
+
+async function loadFinanceSummary() {
+  if (!financeData) return;
+  if (!FINANCE_CLOUD_BACKEND) {
+    showFinanceError("Joy Finance needs the Cloudflare backend.");
+    return;
+  }
+  try {
+    const payload = await financeFetch(`/api/finance/summary?year=${FINANCE_YEAR}&month=${selectedMonth}`);
+    financeSummary = payload;
+    financeCategories = payload.categories || FALLBACK_CATEGORIES;
+    selectedMonth = payload.selectedMonth || selectedMonth;
+    renderFinanceDashboard();
+    if (!document.querySelector("#finance-workspace")?.hidden) await renderFinanceWorkspace();
+  } catch (error) {
+    showFinanceError(error.message === "AUTH_REQUIRED" ? "Sign in to use Joy Finance." : "Joy Finance could not load.");
+  }
+}
+
+function renderFinanceDashboard() {
+  const current = financeSummary?.current;
+  if (!current) return;
+  const values = {
+    remaining: current.actual.remaining,
+    income: current.actual.income,
+    expenses: current.actual.expenses,
+    "year-end": financeSummary.annual.projectedYearEnd,
+  };
+  Object.entries(values).forEach(([field, value]) => setMoneyValue(document.querySelector(`[data-finance-field="${field}"]`), value));
+  const period = document.querySelector("#finance-period");
+  if (period) period.textContent = current.label;
+  const source = document.querySelector("#finance-source");
+  if (source) source.textContent = "Joy is now the source of truth · Carryover is excluded from annual income";
+  const categoryPeriod = document.querySelector("#finance-category-period");
+  if (categoryPeriod) categoryPeriod.textContent = current.label;
+  renderCategoryList(current.categories || []);
+  renderFinanceChart(financeSummary.months || []);
+  document.querySelector("#finance-sync-state")?.setAttribute("hidden", "");
   setFinancePrivacy(financeValuesHidden);
 }
 
-function renderFinanceChart(allMonths, currentKey) {
-  const months = allMonths.filter((month) => !currentKey || month.key <= currentKey);
-  const allValues = months.map((month) => Number(month?.remaining || 0));
-  const minimum = Math.min(0, ...allValues);
-  const maximum = Math.max(1, ...allValues);
-  const span = maximum - minimum || 1;
-  const width = 572;
-  const height = 118;
-  const left = 14;
-  const top = 18;
+function renderCategoryList(categories) {
+  const container = document.querySelector("#finance-category-list");
+  if (!container) return;
+  const top = categories.slice(0, 4);
+  if (!top.length) {
+    container.innerHTML = '<p class="finance-empty">No expenses recorded yet.</p>';
+    return;
+  }
+  const maximum = Math.max(...top.map((category) => Number(category.amount || 0)), 1);
+  container.innerHTML = top.map((category) => `
+    <div class="finance-category-row"><span><b>${escapeHtml(category.label)}</b><small data-finance-value="${formatVnd(category.amount)}" data-finance-mask="● ●">${financeValuesHidden ? "● ●" : formatVnd(category.amount)}</small></span><i><em style="width:${Math.max(8, (category.amount / maximum) * 100)}%"></em></i></div>
+  `).join("");
+}
 
-  const coordinates = months.map((month, index) => {
-    const x = left + (months.length <= 1 ? width : (index / (months.length - 1)) * width);
-    const y = top + ((maximum - Number(month?.remaining || 0)) / span) * height;
-    return { x, y };
-  });
+function renderFinanceChart(months) {
+  const values = months.map((month) => Number(month.projected?.remaining || 0));
+  const minimum = Math.min(0, ...values);
+  const maximum = Math.max(1, ...values);
+  const span = maximum - minimum || 1;
+  const coordinates = months.map((month, index) => ({
+    x: 14 + (index / Math.max(1, months.length - 1)) * 572,
+    y: 18 + ((maximum - Number(month.projected?.remaining || 0)) / span) * 118,
+  }));
   const points = coordinates.map(({ x, y }) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
   document.querySelector('[data-finance-series="remaining"]')?.setAttribute("points", points);
   const area = document.querySelector("[data-finance-area]");
-  if (area) { const line = coordinates.map(({ x, y }) => `L${x.toFixed(1)} ${y.toFixed(1)}`).join(" "); area.setAttribute("d", coordinates.length ? `M${coordinates[0].x.toFixed(1)} 154 ${line} L${coordinates.at(-1).x.toFixed(1)} 154Z` : ""); }
-  const pointGroup = document.querySelector("[data-finance-points]");
-  if (pointGroup) pointGroup.replaceChildren(...coordinates.map(({ x, y }, index) => { const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle"); circle.setAttribute("cx", x.toFixed(1)); circle.setAttribute("cy", y.toFixed(1)); circle.setAttribute("r", index === coordinates.length - 1 ? "5" : "3.5"); circle.setAttribute("class", `finance-point${index === coordinates.length - 1 ? " is-current" : ""}`); return circle; }));
-
-  financeMonths.replaceChildren(...months.map((month) => {
-    const label = document.createElement("i");
-    label.textContent = month.shortLabel || "";
-    if (month.key === currentKey) label.classList.add("is-current");
-    return label;
-  }));
-  const chartPeriod = document.querySelector("#finance-chart-period");
-  if (chartPeriod && months.length) {
-    chartPeriod.textContent = `${months[0].label.split(" ")[0]} – ${months.at(-1).label}`;
-  }
+  if (area && coordinates.length) area.setAttribute("d", `M${coordinates[0].x.toFixed(1)} 154 ${coordinates.map(({ x, y }) => `L${x.toFixed(1)} ${y.toFixed(1)}`).join(" ")} L${coordinates.at(-1).x.toFixed(1)} 154Z`);
+  const group = document.querySelector("[data-finance-points]");
+  if (group) group.innerHTML = coordinates.map(({ x, y }, index) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${months[index]?.key === selectedMonth ? 5 : 3.5}" class="finance-point${months[index]?.key === selectedMonth ? " is-current" : ""}"></circle>`).join("");
+  const labels = document.querySelector("#finance-months");
+  if (labels) labels.innerHTML = months.map((month) => `<i class="${month.key === selectedMonth ? "is-current" : ""}">${month.shortLabel}</i>`).join("");
 }
 
-function renderFinanceComparison(months, currentKey) {
-  if (!financeComparison) return;
-  const index = months.findIndex((month) => month.key === currentKey);
-  const current = Number(months[index]?.remaining || 0);
-  const previous = Number(months[index - 1]?.remaining || 0);
-  const hasBaseline = index > 0 && previous !== 0;
-  const percent = hasBaseline ? ((current - previous) / Math.abs(previous)) * 100 : 0;
-  const positive = percent >= 0;
-  financeComparison.classList.toggle("is-negative", !positive);
-  financeComparison.querySelector("i").textContent = positive ? "↗" : "↘";
-  financeComparison.querySelector("b").textContent = hasBaseline ? `${positive ? "+" : ""}${Math.round(percent)}%` : "—";
-  financeComparison.lastChild.textContent = ` compared with ${index > 0 ? months[index - 1].shortLabel : "last month"}`;
+async function openFinanceWorkspace(view = "month") {
+  workspaceView = view;
+  const workspace = document.querySelector("#finance-workspace");
+  if (!workspace) return;
+  workspace.hidden = false;
+  document.body.classList.add("finance-modal-open");
+  await renderFinanceWorkspace();
 }
 
-async function loadFinance() {
-  if (!financeData) return;
-  if (!FINANCE_CLOUD_BACKEND) {
-    financeSource.textContent = "Connect Joy to load Finance Tracker";
+function closeFinanceWorkspace() {
+  const workspace = document.querySelector("#finance-workspace");
+  if (workspace) workspace.hidden = true;
+  document.body.classList.remove("finance-modal-open");
+}
+
+function switchWorkspaceView(view) {
+  workspaceView = view === "year" ? "year" : "month";
+  renderFinanceWorkspace();
+}
+
+async function renderFinanceWorkspace() {
+  const content = document.querySelector("#finance-workspace-content");
+  if (!content) return;
+  document.querySelectorAll("[data-finance-tab]").forEach((button) => button.classList.toggle("active", button.dataset.financeTab === workspaceView));
+  if (!financeSummary) {
+    content.innerHTML = '<p class="finance-loading">Loading Finance…</p>';
     return;
   }
-
-  try {
-    const response = await fetch("/api/finance/summary", {
-      credentials: "same-origin",
-      headers: { Accept: "application/json" },
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw Object.assign(new Error(payload.error || "FINANCE_SYNC_FAILED"), { code: payload.error });
-    renderFinance(payload);
-  } catch (error) {
-    financeSyncState.hidden = false;
-    financeSyncState.innerHTML = error.code === "AUTH_REQUIRED" || error.code === "SHEETS_AUTHORIZATION_REQUIRED"
-      ? '<strong>Finance is not connected</strong><a href="/auth/start">Connect Google</a>'
-      : '<strong>Finance could not sync</strong><button type="button" data-finance-retry>Try again</button>';
-    financeSource.textContent = "Finance Tracker unavailable";
-    financeSyncState.querySelector("[data-finance-retry]")?.addEventListener("click", loadFinance, { once: true });
+  if (workspaceView === "year") {
+    renderYearView(content);
+    return;
   }
+  await loadMonthTransactions();
+  renderMonthView(content);
+}
+
+async function loadMonthTransactions() {
+  const payload = await financeFetch(`/api/finance/transactions?year=${FINANCE_YEAR}&month=${selectedMonth}`);
+  monthTransactions = payload.transactions || [];
+}
+
+function renderMonthView(content) {
+  const month = financeSummary.months.find((item) => item.key === selectedMonth) || financeSummary.current;
+  const categories = aggregateMonthCategories(monthTransactions);
+  content.innerHTML = `
+    <div class="finance-month-toolbar"><button type="button" data-month-shift="-1" aria-label="Previous month">‹</button><div><small>Monthly detail</small><strong>${escapeHtml(month.label)}</strong></div><button type="button" data-month-shift="1" aria-label="Next month">›</button></div>
+    <div class="finance-detail-cards">
+      ${detailCard("Carryover", month.projected.carryover, "Shown inside Income")}
+      ${detailCard("New income", month.projected.newIncome, "Sale, Allowance and Other")}
+      ${detailCard("Expenses", month.projected.expenses, "Actual + planned")}
+      ${detailCard("Closing balance", month.projected.remaining, "Projected")}
+    </div>
+    <div class="finance-detail-grid">
+      <section class="finance-breakdown"><header><div><small>Expenses</small><h3>Category breakdown</h3></div><button type="button" data-finance-add="expense">+ Add</button></header>${renderBreakdown(categories)}</section>
+      <section class="finance-transactions"><header><div><small>${monthTransactions.length} entries</small><h3>Transactions</h3></div><button type="button" data-finance-add="income">+ Income</button></header><div>${renderTransactions(monthTransactions)}</div></section>
+    </div>
+  `;
+  content.querySelectorAll("[data-month-shift]").forEach((button) => button.addEventListener("click", () => shiftMonth(Number(button.dataset.monthShift))));
+  content.querySelectorAll("[data-finance-add]").forEach((button) => button.addEventListener("click", () => openEntryForm(button.dataset.financeAdd)));
+  content.querySelectorAll("[data-finance-edit]").forEach((button) => button.addEventListener("click", () => editFinanceTransaction(button.dataset.financeEdit)));
+  content.querySelectorAll("[data-finance-delete]").forEach((button) => button.addEventListener("click", () => removeFinanceTransaction(button.dataset.financeDelete)));
+  setFinancePrivacy(financeValuesHidden);
+}
+
+function renderYearView(content) {
+  const annual = financeSummary.annual;
+  content.innerHTML = `
+    <div class="finance-year-hero"><div><small>Projected December balance</small><strong data-finance-value="${formatVnd(annual.projectedYearEnd)}" data-finance-mask="● ● ● ●">${financeValuesHidden ? "● ● ● ●" : formatVnd(annual.projectedYearEnd)}</strong><p>Carryover remains visible each month, but is excluded from annual income.</p></div></div>
+    <div class="finance-detail-cards finance-annual-cards">
+      ${detailCard("Annual income", annual.projectedIncome, "Excludes Carryover")}
+      ${detailCard("Annual expenses", annual.projectedExpenses, "Actual + planned")}
+      ${detailCard("Current balance", annual.currentBalance, "Actual through selected month")}
+    </div>
+    <div class="finance-year-table"><div class="finance-year-row head"><span>Month</span><span>Carryover</span><span>New income</span><span>Expenses</span><span>Closing</span><span>Status</span></div>${financeSummary.months.map((month) => `
+      <button class="finance-year-row" type="button" data-year-month="${month.key}"><span><b>${month.shortLabel}</b><small>${month.label.split(" ")[1]}</small></span><span data-finance-value="${formatVnd(month.projected.carryover)}" data-finance-mask="● ●">${financeValuesHidden ? "● ●" : formatVnd(month.projected.carryover)}</span><span data-finance-value="${formatVnd(month.projected.newIncome)}" data-finance-mask="● ●">${financeValuesHidden ? "● ●" : formatVnd(month.projected.newIncome)}</span><span data-finance-value="${formatVnd(month.projected.expenses)}" data-finance-mask="● ●">${financeValuesHidden ? "● ●" : formatVnd(month.projected.expenses)}</span><span data-finance-value="${formatVnd(month.projected.remaining)}" data-finance-mask="● ●">${financeValuesHidden ? "● ●" : formatVnd(month.projected.remaining)}</span><span class="finance-status ${month.status}">${month.status === "in-progress" ? "In progress" : capitalize(month.status)}</span></button>
+    `).join("")}</div>
+  `;
+  content.querySelectorAll("[data-year-month]").forEach((button) => button.addEventListener("click", async () => {
+    selectedMonth = button.dataset.yearMonth;
+    workspaceView = "month";
+    await loadFinanceSummary();
+  }));
+  setFinancePrivacy(financeValuesHidden);
+}
+
+function detailCard(label, amount, note) {
+  return `<article><small>${label}</small><strong data-finance-value="${formatVnd(amount)}" data-finance-mask="● ● ●">${financeValuesHidden ? "● ● ●" : formatVnd(amount)}</strong><p>${note}</p></article>`;
+}
+
+function renderBreakdown(categories) {
+  if (!categories.length) return '<p class="finance-empty">No expense entries in this month.</p>';
+  const max = Math.max(...categories.map((category) => category.amount), 1);
+  return `<div class="finance-breakdown-list">${categories.map((category) => `<div><span><b>${escapeHtml(category.label)}</b><small>${category.count} ${category.count === 1 ? "entry" : "entries"}</small></span><span><strong data-finance-value="${formatVnd(category.amount)}" data-finance-mask="● ●">${financeValuesHidden ? "● ●" : formatVnd(category.amount)}</strong><i><em style="width:${Math.max(6, category.amount / max * 100)}%"></em></i></span></div>`).join("")}</div>`;
+}
+
+function renderTransactions(transactions) {
+  if (!transactions.length) return '<p class="finance-empty">No transactions yet. Add the first one directly in Joy.</p>';
+  return transactions.map((transaction) => {
+    const category = categoryLabel(transaction.type, transaction.category);
+    const detail = [transaction.subcategory, transaction.note].filter(Boolean).join(" · ");
+    return `<article class="finance-transaction-row"><button type="button" data-finance-edit="${transaction.id}"><i class="${transaction.type}">${transaction.type === "income" ? "+" : "−"}</i><span><b>${escapeHtml(category)}</b><small>${escapeHtml(detail || formatDate(transaction.occurred_on))}</small></span><strong data-finance-value="${transaction.type === "income" ? "+" : "−"}${formatVnd(transaction.amount)}" data-finance-mask="● ●">${financeValuesHidden ? "● ●" : `${transaction.type === "income" ? "+" : "−"}${formatVnd(transaction.amount)}`}</strong><em class="finance-status ${transaction.status}">${capitalize(transaction.status)}</em></button><button class="finance-delete" type="button" data-finance-delete="${transaction.id}" aria-label="Delete transaction">×</button></article>`;
+  }).join("");
+}
+
+function aggregateMonthCategories(transactions) {
+  const map = new Map();
+  transactions.filter((transaction) => transaction.type === "expense").forEach((transaction) => {
+    const current = map.get(transaction.category) || { id: transaction.category, label: categoryLabel("expense", transaction.category), amount: 0, count: 0 };
+    current.amount += Number(transaction.amount || 0);
+    current.count += 1;
+    map.set(transaction.category, current);
+  });
+  return [...map.values()].sort((a, b) => b.amount - a.amount);
+}
+
+async function shiftMonth(direction) {
+  const date = new Date(`${selectedMonth}-01T00:00:00Z`);
+  date.setUTCMonth(date.getUTCMonth() + direction);
+  if (date.getUTCFullYear() !== FINANCE_YEAR) return;
+  selectedMonth = `${FINANCE_YEAR}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+  await loadFinanceSummary();
+}
+
+function openEntryForm(type = "expense", transaction = null) {
+  const modal = document.querySelector("#finance-entry-modal");
+  const form = document.querySelector("#finance-entry-form");
+  if (!modal || !form) return;
+  editingTransactionId = transaction?.id || "";
+  form.reset();
+  form.elements.id.value = editingTransactionId;
+  form.elements.occurred_on.value = transaction?.occurred_on || defaultDateForSelectedMonth();
+  form.elements.amount.value = transaction?.amount || "";
+  form.elements.status.value = transaction?.status || (selectedMonth > vietnamMonthKey() ? "planned" : "actual");
+  form.elements.note.value = transaction?.note || "";
+  setEntryType(transaction?.type || type, transaction?.category, transaction?.subcategory);
+  document.querySelector("#finance-entry-title").textContent = transaction ? "Edit transaction" : `Add ${type}`;
+  modal.hidden = false;
+  window.setTimeout(() => form.elements.amount.focus(), 30);
+}
+
+function closeEntryForm() {
+  const modal = document.querySelector("#finance-entry-modal");
+  if (modal) modal.hidden = true;
+  editingTransactionId = "";
+}
+
+function setEntryType(type, selectedCategory = "", selectedSubcategory = "") {
+  const form = document.querySelector("#finance-entry-form");
+  if (!form) return;
+  const safeType = type === "income" ? "income" : "expense";
+  form.elements.type.value = safeType;
+  document.querySelectorAll("[data-entry-type]").forEach((button) => button.classList.toggle("active", button.dataset.entryType === safeType));
+  const categorySelect = form.elements.category;
+  categorySelect.innerHTML = financeCategories[safeType].map((category) => `<option value="${category.id}">${escapeHtml(category.label)}</option>`).join("");
+  categorySelect.value = selectedCategory && financeCategories[safeType].some((category) => category.id === selectedCategory) ? selectedCategory : financeCategories[safeType][0].id;
+  updateSubcategories(selectedSubcategory);
+  const title = document.querySelector("#finance-entry-title");
+  if (title && !editingTransactionId) title.textContent = `Add ${safeType}`;
+}
+
+function updateSubcategories(selected = "") {
+  const form = document.querySelector("#finance-entry-form");
+  if (!form) return;
+  const type = form.elements.type.value;
+  const category = financeCategories[type].find((item) => item.id === form.elements.category.value);
+  const options = category?.subcategories || [];
+  const select = form.elements.subcategory;
+  const label = document.querySelector("#finance-subcategory-label");
+  select.innerHTML = '<option value="">No detail</option>' + options.map((option) => `<option value="${escapeHtml(option)}">${escapeHtml(option)}</option>`).join("");
+  if (selected && options.includes(selected)) select.value = selected;
+  label.classList.toggle("is-muted", !options.length);
+}
+
+async function saveFinanceTransaction(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const submit = form.querySelector("button[type='submit']");
+  submit.disabled = true;
+  const payload = Object.fromEntries(new FormData(form));
+  payload.amount = Number(payload.amount);
+  delete payload.id;
+  const wasEditing = Boolean(editingTransactionId);
+  try {
+    await financeFetch(editingTransactionId ? `/api/finance/transactions/${encodeURIComponent(editingTransactionId)}` : "/api/finance/transactions", {
+      method: editingTransactionId ? "PATCH" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    closeEntryForm();
+    showFinanceToast(wasEditing ? "Transaction updated" : "Transaction added");
+    await loadFinanceSummary();
+  } catch (error) {
+    showFinanceToast(financeErrorMessage(error.message));
+  } finally {
+    submit.disabled = false;
+  }
+}
+
+function editFinanceTransaction(id) {
+  const transaction = monthTransactions.find((item) => item.id === id);
+  if (transaction) openEntryForm(transaction.type, transaction);
+}
+
+async function removeFinanceTransaction(id) {
+  if (!window.confirm("Delete this finance transaction?")) return;
+  try {
+    await financeFetch(`/api/finance/transactions/${encodeURIComponent(id)}`, { method: "DELETE" });
+    showFinanceToast("Transaction deleted");
+    await loadFinanceSummary();
+  } catch {
+    showFinanceToast("Could not delete transaction");
+  }
+}
+
+function setFinancePrivacy(hidden, { announce = false } = {}) {
+  financeValuesHidden = hidden;
+  window.clearTimeout(privacyTimer);
+  document.querySelectorAll("#finance-data, #finance-workspace-content").forEach((element) => element.classList.toggle("finance-values-hidden", hidden));
+  const toggle = document.querySelector("[data-action='toggle-finance-privacy']");
+  toggle?.setAttribute("aria-pressed", String(hidden));
+  toggle?.setAttribute("aria-label", hidden ? "Show finance amounts" : "Hide finance amounts");
+  document.querySelectorAll("[data-finance-value]").forEach((element) => { element.textContent = hidden ? element.dataset.financeMask : element.dataset.financeValue; });
+  if (!hidden) privacyTimer = window.setTimeout(() => setFinancePrivacy(true), FINANCE_REVEAL_MS);
+  if (announce) showFinanceToast(hidden ? "Finance amounts hidden" : "Finance amounts visible for 60 seconds");
+}
+
+function setMoneyValue(element, amount) {
+  if (!element) return;
+  element.dataset.financeValue = formatCompactVnd(amount);
+  element.textContent = financeValuesHidden ? element.dataset.financeMask : element.dataset.financeValue;
+}
+
+function showFinanceError(message) {
+  const state = document.querySelector("#finance-sync-state");
+  if (!state) return;
+  state.hidden = false;
+  state.innerHTML = `<strong>${escapeHtml(message)}</strong><button type="button" data-finance-retry>Try again</button>`;
+  state.querySelector("[data-finance-retry]")?.addEventListener("click", loadFinanceSummary, { once: true });
+  const source = document.querySelector("#finance-source");
+  if (source) source.textContent = "Joy Finance unavailable";
+}
+
+async function financeFetch(path, options = {}) {
+  const response = await fetch(path, { credentials: "same-origin", headers: { Accept: "application/json", ...(options.headers || {}) }, ...options });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || "FINANCE_REQUEST_FAILED");
+  return payload;
+}
+
+function categoryLabel(type, categoryId) {
+  return financeCategories[type]?.find((category) => category.id === categoryId)?.label || categoryId;
+}
+
+function defaultDateForSelectedMonth() {
+  const today = vietnamDate();
+  return today.startsWith(selectedMonth) ? today : `${selectedMonth}-01`;
+}
+
+function vietnamDate() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+}
+
+function vietnamMonthKey() {
+  return vietnamDate().slice(0, 7);
 }
 
 function formatCompactVnd(value) {
   const amount = Number(value || 0);
-  if (Math.abs(amount) >= 1_000_000) {
-    return `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 2 }).format(amount / 1_000_000)} tr ₫`;
-  }
-  return `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(amount)} ₫`;
+  if (Math.abs(amount) >= 1_000_000) return `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 2 }).format(amount / 1_000_000)} tr ₫`;
+  return formatVnd(amount);
+}
+
+function formatVnd(value) {
+  return `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(Number(value || 0))} ₫`;
+}
+
+function formatDate(value) {
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short" }).format(date);
+}
+
+function financeErrorMessage(code) {
+  const messages = {
+    FINANCE_AMOUNT_INVALID: "Enter a valid amount.",
+    FINANCE_DATE_INVALID: "Choose a valid date.",
+    FINANCE_CATEGORY_INVALID: "Choose a category.",
+  };
+  return messages[code] || "Joy could not save this transaction.";
+}
+
+function capitalize(value) {
+  return String(value || "").replace(/(^|-)\w/g, (match) => match.replace("-", " ").toUpperCase());
+}
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>'\"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '\"': "&quot;" })[character]);
 }
 
 function showFinanceToast(message) {
@@ -158,43 +520,4 @@ function showFinanceToast(message) {
   window.setTimeout(() => { toast.hidden = true; }, 2200);
 }
 
-function animateGreetingCharacters() {
-  const greeting = document.querySelector("#greeting");
-  if (!greeting || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  const text = greeting.textContent.trim();
-  if (!text) return;
-  greeting.setAttribute("aria-label", text);
-  greeting.classList.add("joy-characters-ready");
-  let characterIndex = 0;
-  const content = document.createDocumentFragment();
-  text.split(" ").forEach((word, wordIndex, words) => {
-    const wordElement = document.createElement("span");
-    wordElement.className = "joy-motion-word";
-    wordElement.setAttribute("aria-hidden", "true");
-    Array.from(word).forEach((character) => {
-      const characterElement = document.createElement("span");
-      characterElement.className = "joy-motion-character";
-      characterElement.style.setProperty("--joy-character-index", characterIndex);
-      characterElement.textContent = character;
-      wordElement.append(characterElement);
-      characterIndex += 1;
-    });
-    content.append(wordElement);
-    if (wordIndex < words.length - 1) content.append(document.createTextNode(" "));
-  });
-  greeting.replaceChildren(content);
-}
-
-financePrivacyToggle?.addEventListener("click", (event) => {
-  event.preventDefault();
-  event.stopPropagation();
-  setFinancePrivacy(!financeValuesHidden, { announce: true });
-});
-
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "hidden" && !financeValuesHidden) setFinancePrivacy(true);
-});
-
-setFinancePrivacy(true);
-animateGreetingCharacters();
-loadFinance();
+mountFinance();
