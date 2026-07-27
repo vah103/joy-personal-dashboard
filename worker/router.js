@@ -5,6 +5,10 @@ import {
   runDailyBriefSchedule,
 } from "./daily-brief-policy.js";
 import {
+  handleIeltsDiagnosticReviewRequest,
+  isIeltsDiagnosticReviewRoute,
+} from "./ielts-diagnostic-review.js";
+import {
   handleIeltsCoreRequest,
   isIeltsCoreRoute,
   runIeltsSchedule,
@@ -87,6 +91,9 @@ export default {
       }
       if (isTaskEnglishRoute(pathname)) {
         return handleTaskEnglishRequest(request, env);
+      }
+      if (isIeltsDiagnosticReviewRoute(pathname)) {
+        return handleIeltsDiagnosticReviewRequest(request, env);
       }
       if (isGoogleAuthRoute(pathname)) {
         return handleGoogleAuthRequest(request, env);
