@@ -2,10 +2,11 @@
   const CORE_STYLES = [
     ["joy-ielts-core-style", "project-data/ielts/ielts-core.css?v=ielts-august-core-v3"],
     ["joy-ielts-core-polish", "project-data/ielts/ielts-core-polish.css?v=ielts-august-core-v3"],
+    ["joy-ielts-diagnostic-style", "project-data/ielts/ielts-diagnostic.css?v=ielts-baseline-v1"],
   ];
   const CORE_SCRIPT = [
     "joy-ielts-core-bundle",
-    "project-data/ielts/ielts-core-bundle.js?v=ielts-august-core-v3",
+    "project-data/ielts/ielts-core-bundle.js?v=ielts-august-core-v4",
   ];
 
   function loadScript(id, src) {
@@ -76,7 +77,7 @@
     card.dataset.ieltsOpenBound = "true";
     card.addEventListener("click", openCoach, true);
     card.addEventListener("keydown", (event) => {
-      if (!['Enter', ' '].includes(event.key)) return;
+      if (!["Enter", " "].includes(event.key)) return;
       void openCoach(event);
     }, true);
   }
