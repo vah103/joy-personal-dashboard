@@ -1,6 +1,6 @@
 (function installJoyTaskEnglish(root) {
-  const CACHE_KEY = "joy-task-english-cache-v4";
-  const REQUEST_TIMEOUT_MS = 15_000;
+  const CACHE_KEY = "joy-task-english-cache-v5";
+  const REQUEST_TIMEOUT_MS = 10_000;
 
   function clean(value) {
     return String(value || "").replace(/\s+/g, " ").trim();
@@ -17,7 +17,7 @@
   function looksVietnamese(value) {
     const text = ` ${clean(value).toLowerCase()} `;
     return /[ăâđêôơưàáạảãằắặẳẵầấậẩẫèéẹẻẽềếệểễìíịỉĩòóọỏõồốộổỗờớợởỡùúụủũừứựửữỳýỵỷỹ]/i.test(text)
-      || /\b(?:ăn|uống|mua|học|làm|gọi|đi|đọc|viết|hoàn thành|nhắc|giặt|phơi|quần áo|nước giặt|kem đánh răng|hôm nay|ngày mai)\b/i.test(text);
+      || /\b(?:ăn|uống|mua|học|làm|gọi|đi|đọc|viết|hoàn thành|nhắc|giặt|phơi|cắt|móng|tắm|rửa|đánh|cạo|quần áo|nước giặt|kem đánh răng|hôm nay|ngày mai)\b/i.test(text);
   }
 
   function sentence(value) {
@@ -47,6 +47,15 @@
       "giat quan ao": "Do the laundry.",
       "mua nuoc giat": "Buy laundry detergent.",
       "mua kem danh rang": "Buy toothpaste.",
+      "cat mong tay": "Trim your nails.",
+      "cat mong chan": "Trim your toenails.",
+      "cat mong": "Trim your nails.",
+      "cat toc": "Get a haircut.",
+      "danh rang": "Brush your teeth.",
+      "rua mat": "Wash your face.",
+      "goi dau": "Wash your hair.",
+      "tam": "Take a shower.",
+      "cao rau": "Shave.",
       "di ngu": "Go to sleep.",
       "don phong": "Clean the room.",
       "don nha": "Clean the house.",
@@ -155,6 +164,13 @@
 
     const cache = readCache();
     if (cache[original]) return cache[original];
+
+    const localTitle = fallbackEnglish(original);
+    if (localTitle !== original && !looksVietnamese(localTitle)) {
+      cache[original] = localTitle;
+      writeCache(cache);
+      return localTitle;
+    }
 
     const controller = new AbortController();
     const timeout = root.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
