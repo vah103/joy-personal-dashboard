@@ -3,7 +3,7 @@ import {
   handleDailyBriefRequest,
   isDailyBriefRoute,
   runDailyBriefSchedule,
-} from "./daily-brief.js";
+} from "./daily-brief-policy.js";
 import { handleProjectHubRequest, isProjectHubRoute } from "./project-hub.js";
 import {
   guardGoogleIntegration,
