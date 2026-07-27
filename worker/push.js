@@ -2,7 +2,7 @@ import { buildPushPayload } from "@block65/webcrypto-web-push";
 
 const SESSION_COOKIE = "__Host-joy_session";
 const PLACE_NAME = "Hanoi";
-const WEATHER_ENDPOINT = "https://api.open-meteo.com/v1/forecast?latitude=21.0285&longitude=105.8542&hourly=precipitation_probability&timezone=Asia%2FHo_Chi_Minh&forecast_days=1";
+const WEATHER_ENDPOINT = "https://api.open-meteo.com/v1/forecast?latitude=21.0285&longitude=105.8542&hourly=precipitation_probability,weather_code&timezone=Asia%2FHo_Chi_Minh&forecast_days=1";
 const CHECK_EVERY_MINUTES = 5;
 const DAILY_WEATHER_HOUR = 7;
 const RAIN_PROBABILITY_THRESHOLD = 80;
@@ -158,8 +158,10 @@ async function processWeatherSummary(email, summary, env) {
 
   if (summary.dailyKind && state.dailyDate !== summary.dateKey) {
     pending.push({
-      kind: "chill",
-      body: "No rain is expected.",
+      kind: summary.dailyKind,
+      body: summary.dailyKind === "sunny"
+        ? "It's a sunny day."
+        : "No rain is expected.",
       tag: "hey-joy-weather-daily",
       topic: "hey-joy-weather-daily",
       ttl: 6 * 60 * 60,
@@ -308,6 +310,9 @@ function summarizeWeatherForecast(hourly, now) {
   const probabilities = Array.isArray(hourly?.precipitation_probability)
     ? hourly.precipitation_probability
     : [];
+  const weatherCodes = Array.isArray(hourly?.weather_code)
+    ? hourly.weather_code
+    : [];
   const current = vietnamClock(now);
   if (!times.length) {
     return {
@@ -320,6 +325,7 @@ function summarizeWeatherForecast(hourly, now) {
 
   const currentMinute = current.hour * 60 + current.minute;
   const rainHours = [];
+  const daylightHours = [];
 
   times.forEach((time, index) => {
     const value = String(time || "");
@@ -328,6 +334,12 @@ function summarizeWeatherForecast(hourly, now) {
     const endHour = Number(value.slice(11, 13));
     if (!Number.isInteger(endHour) || endHour <= 0) return;
     const startHour = endHour - 1;
+    const weatherCode = Number(weatherCodes[index]);
+
+    if (startHour >= 6 && startHour < 18) {
+      daylightHours.push({ startHour, endHour, weatherCode });
+    }
+
     if (endHour * 60 <= currentMinute) return;
 
     const probability = Number(probabilities[index] || 0);
@@ -365,11 +377,17 @@ function summarizeWeatherForecast(hourly, now) {
     };
   }
 
+  const sunnyHours = daylightHours.filter(({ weatherCode }) => (
+    weatherCode === 0 || weatherCode === 1
+  )).length;
+  const isSunny = daylightHours.length >= 4
+    && sunnyHours >= Math.ceil(daylightHours.length / 2);
+
   return {
     dateKey: current.dateKey,
     rainKey: "",
     rainWindowText: "",
-    dailyKind: "chill",
+    dailyKind: isSunny ? "sunny" : "chill",
   };
 }
 
