@@ -2,12 +2,9 @@
   const notice = document.querySelector("#weather-rain-notice");
   if (!notice) return;
 
-  const ENDPOINT = "https://api.open-meteo.com/v1/forecast?latitude=21.0285&longitude=105.8542&hourly=precipitation_probability,precipitation,weather_code&timezone=Asia%2FHo_Chi_Minh&forecast_days=1";
+  const ENDPOINT = "https://api.open-meteo.com/v1/forecast?latitude=21.0285&longitude=105.8542&hourly=precipitation_probability&timezone=Asia%2FHo_Chi_Minh&forecast_days=1";
   const REFRESH_MS = 15 * 60_000;
-  const HIGH_PROBABILITY = 70;
-  const VERY_HIGH_PROBABILITY = 80;
-  const SUPPORTING_AMOUNT_MM = 0.3;
-  const STRONG_AMOUNT_MM = 1;
+  const RAIN_PROBABILITY_THRESHOLD = 80;
 
   let currentStatus = null;
 
@@ -67,16 +64,9 @@
     const probabilities = Array.isArray(hourly?.precipitation_probability)
       ? hourly.precipitation_probability
       : [];
-    const precipitation = Array.isArray(hourly?.precipitation)
-      ? hourly.precipitation
-      : [];
-    const weatherCodes = Array.isArray(hourly?.weather_code)
-      ? hourly.weather_code
-      : [];
     const current = vietnamClock(now);
     const currentMinute = current.hour * 60 + current.minute;
-    const strongHours = [];
-    const daylightHours = [];
+    const rainHours = [];
 
     times.forEach((time, index) => {
       const value = String(time || "");
@@ -85,22 +75,17 @@
       const endHour = Number(value.slice(11, 13));
       if (!Number.isInteger(endHour) || endHour <= 0) return;
       const startHour = endHour - 1;
-      const entry = {
-        startHour,
-        endHour,
-        probability: Number(probabilities[index] || 0),
-        amount: Number(precipitation[index] || 0),
-        weatherCode: Number(weatherCodes[index]),
-      };
-
-      if (startHour >= 6 && startHour < 18) daylightHours.push(entry);
       if (endHour * 60 <= currentMinute) return;
-      if (hasStrongRainSignal(entry)) strongHours.push(entry);
+
+      const probability = Number(probabilities[index] || 0);
+      if (probability >= RAIN_PROBABILITY_THRESHOLD) {
+        rainHours.push({ startHour, endHour, probability });
+      }
     });
 
-    if (strongHours.length) {
+    if (rainHours.length) {
       const groups = [];
-      strongHours.forEach((entry) => {
+      rainHours.forEach((entry) => {
         const group = groups.at(-1);
         const previous = group?.at(-1);
         if (!previous || entry.startHour !== previous.endHour) groups.push([entry]);
@@ -111,31 +96,11 @@
       ));
       return {
         state: "rain",
-        text: `Heavy rain is expected in Hanoi at ${windows.join(" and ")}.`,
+        text: `Rain is expected in Hanoi at ${windows.join(" and ")} (80%+).`,
       };
     }
 
-    const sunnyHours = daylightHours.filter(({ weatherCode }) => (
-      weatherCode === 0 || weatherCode === 1
-    )).length;
-    const isSunny = daylightHours.length >= 4
-      && sunnyHours >= Math.ceil(daylightHours.length / 2);
-
-    return isSunny
-      ? { state: "sunny", text: "It’s a sunny day." }
-      : { state: "chill", text: "No rain is expected, just chill." };
-  }
-
-  function hasStrongRainSignal({ probability, amount, weatherCode }) {
-    return (probability >= HIGH_PROBABILITY && amount >= SUPPORTING_AMOUNT_MM)
-      || amount >= STRONG_AMOUNT_MM
-      || (probability >= VERY_HIGH_PROBABILITY && isRainWeatherCode(weatherCode));
-  }
-
-  function isRainWeatherCode(code) {
-    return (code >= 51 && code <= 67)
-      || (code >= 80 && code <= 82)
-      || (code >= 95 && code <= 99);
+    return { state: "chill", text: "No rain is expected." };
   }
 
   function vietnamClock(now) {
