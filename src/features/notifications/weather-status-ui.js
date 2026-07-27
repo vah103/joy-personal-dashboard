@@ -34,18 +34,30 @@
       });
       if (!response.ok) throw new Error(`Weather service returned ${response.status}`);
       const payload = await response.json();
-      currentStatus = summarizeWeather(payload?.hourly, new Date());
+      currentStatus = normalizeStatus(summarizeWeather(payload?.hourly, new Date()));
       applyStatus(currentStatus);
     } catch {
       // Keep the existing dashboard weather UI when the forecast service is unavailable.
     }
   }
 
+  function normalizeStatus(status) {
+    return {
+      ...status,
+      text: String(status?.text || "")
+        .replace(/\s*\(80%\+\)\.?/gi, "")
+        .replace(/\s+([.,!?])/g, "$1")
+        .trim(),
+    };
+  }
+
   function applyStatus(status) {
+    const cleanStatus = normalizeStatus(status);
+    currentStatus = cleanStatus;
     observer.disconnect();
     notice.hidden = false;
-    notice.textContent = status.text;
-    notice.dataset.state = status.state;
+    notice.textContent = cleanStatus.text;
+    notice.dataset.state = cleanStatus.state;
     startObserving();
   }
 
