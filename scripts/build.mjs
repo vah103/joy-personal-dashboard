@@ -12,11 +12,12 @@ const loginPage = resolve(pages, "login");
 const salePage = resolve(pages, "sale");
 const features = resolve(src, "features");
 const salesFeatures = resolve(features, "sales");
+const ieltsFeature = resolve(features, "ielts");
 const assets = resolve(src, "assets");
 const icons = resolve(assets, "icons");
 const nunitoFonts = resolve(assets, "fonts", "nunito");
 const pwa = resolve(src, "pwa");
-const ieltsData = resolve(root, "project-data", "ielts");
+const ieltsPublicDir = resolve(dist, "project-data", "ielts");
 
 const desktopFaviconLink = '    <link rel="icon" href="/joy-web-favicon.svg?v=joy-desktop-wolf-v2" type="image/svg+xml">';
 const blueFaviconLink = '    <link rel="icon" href="/joy-blue-icon.png?v=joy-topographic-blue-v1" type="image/png">';
@@ -38,12 +39,12 @@ const fontFiles = [
 ];
 
 const ieltsCoreSourceFiles = [
-  "ielts-core-model.js",
-  "ielts-core-ui.js",
-  "ielts-core-actions.js",
-  "ielts-core-diagnostic.js",
-  "ielts-core-writing-review.js",
-  "ielts-core-writing-review-freshness.js",
+  "core-model.js",
+  "core-ui.js",
+  "core-actions.js",
+  "core-diagnostic.js",
+  "core-writing-review.js",
+  "core-writing-rewrite.js",
 ];
 
 await rm(dist, { recursive: true, force: true });
@@ -70,8 +71,8 @@ const projectHubScripts = [
   '    <script src="project-hub-core.js?v=turtlebot-hub-v3" defer></script>\n',
   '    <script src="project-hub-render.js?v=turtlebot-hub-v3" defer></script>\n',
   '    <script src="project-hub-actions.js?v=turtlebot-hub-v3" defer></script>\n',
-  '    <script id="joy-ielts-core-bundle" data-loaded="true" src="project-data/ielts/ielts-core-bundle.js?v=ielts-august-core-v5" defer></script>\n',
-  '    <script src="project-data/ielts/ielts-card.js?v=ielts-card-v6" defer></script>\n',
+  '    <script id="joy-ielts-core-bundle" data-loaded="true" src="project-data/ielts/ielts-core-bundle.js?v=ielts-august-core-v6" defer></script>\n',
+  '    <script src="project-data/ielts/ielts-card.js?v=ielts-card-v7" defer></script>\n',
   '    <script src="weather-status-ui.js?v=rain-threshold-80-v5" defer></script>\n',
   '    <script src="push-notifications.js?v=joy-current-device-v1" defer></script>\n',
   '    <script src="auth-ui.js?v=joy-google-account-v3" defer></script>\n',
@@ -159,6 +160,7 @@ const copies = [
   [resolve(features, "project-hub", "project-hub.css"), "project-hub.css"],
   [resolve(features, "project-hub", "turtlebot-card-art.css"), "turtlebot-card-art.css"],
   [resolve(features, "project-hub", "turtlebot4-card-background.webp"), "turtlebot4-card-background.webp"],
+  [resolve(ieltsFeature, "card.js"), "project-data/ielts/ielts-card.js"],
   [resolve(icons, "app-icon-64.png"), "app-icon-64.png"],
   [resolve(icons, "app-icon-192.png"), "app-icon-192.png"],
   [resolve(icons, "wolf-mark.svg"), "wolf-mark.svg"],
@@ -168,9 +170,9 @@ const copies = [
   [resolve(pwa, "site.webmanifest"), "site.webmanifest"],
 ];
 
+await cp(resolve(root, "project-data"), resolve(dist, "project-data"), { recursive: true });
 await Promise.all([
   ...copies.map(([source, destination]) => cp(source, resolve(dist, destination))),
-  cp(resolve(root, "project-data"), resolve(dist, "project-data"), { recursive: true }),
   ...[
     "nunito-latin-400-normal.woff2",
     "nunito-vietnamese-400-normal.woff2",
@@ -186,7 +188,7 @@ await Promise.all([
 ]);
 
 const ieltsCoreParts = await Promise.all(
-  ieltsCoreSourceFiles.map((file) => readFile(resolve(ieltsData, file), "utf8")),
+  ieltsCoreSourceFiles.map((file) => readFile(resolve(ieltsFeature, file), "utf8")),
 );
 const ieltsCoreBundle = [
   "(function registerIeltsAugustCore() {",
@@ -195,9 +197,6 @@ const ieltsCoreBundle = [
   "})();",
   "",
 ].join("\n");
-await writeFile(
-  resolve(dist, "project-data", "ielts", "ielts-core-bundle.js"),
-  ieltsCoreBundle,
-);
+await writeFile(resolve(ieltsPublicDir, "ielts-core-bundle.js"), ieltsCoreBundle);
 
 console.log("Hey Joy! frontend built for Cloudflare");
