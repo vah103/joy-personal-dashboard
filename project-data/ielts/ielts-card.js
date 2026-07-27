@@ -1,4 +1,54 @@
 (() => {
+  const CORE_STYLES = [
+    ["joy-ielts-core-style", "project-data/ielts/ielts-core.css?v=ielts-august-core-v1"],
+    ["joy-ielts-core-polish", "project-data/ielts/ielts-core-polish.css?v=ielts-august-core-v1"],
+  ];
+  const CORE_SCRIPT_IDS = [
+    ["joy-ielts-core-model", "project-data/ielts/ielts-core-model.js?v=ielts-august-core-v1"],
+    ["joy-ielts-core-ui", "project-data/ielts/ielts-core-ui.js?v=ielts-august-core-v1"],
+    ["joy-ielts-core-actions", "project-data/ielts/ielts-core-actions.js?v=ielts-august-core-v1"],
+  ];
+
+  function loadScript(id, src) {
+    return new Promise((resolve, reject) => {
+      const existing = document.querySelector(`#${id}`);
+      if (existing) {
+        if (existing.dataset.loaded === "true") resolve();
+        else existing.addEventListener("load", resolve, { once: true });
+        return;
+      }
+      const script = document.createElement("script");
+      script.id = id;
+      script.src = src;
+      script.async = false;
+      script.addEventListener("load", () => {
+        script.dataset.loaded = "true";
+        resolve();
+      }, { once: true });
+      script.addEventListener("error", reject, { once: true });
+      document.body.append(script);
+    });
+  }
+
+  async function loadAugustCore() {
+    CORE_STYLES.forEach(([id, href]) => {
+      if (document.querySelector(`#${id}`)) return;
+      const link = document.createElement("link");
+      link.id = id;
+      link.rel = "stylesheet";
+      link.href = href;
+      document.head.append(link);
+    });
+
+    try {
+      for (const [id, src] of CORE_SCRIPT_IDS) await loadScript(id, src);
+    } catch (error) {
+      console.error("Joy could not load IELTS August Core", error);
+      const source = document.querySelector(".ielts-project-card .ielts-project-source");
+      if (source) source.textContent = "August Core unavailable · refresh Joy";
+    }
+  }
+
   function enhanceIeltsCard() {
     document.querySelectorAll("#project-list .project-card").forEach((card) => {
       const title = card.querySelector(".project-top > strong");
@@ -6,17 +56,10 @@
 
       card.classList.add("ielts-project-card");
 
-      /* IELTS dashboard progress override */
-      const progressValue = card.querySelector(".project-top span");
-      const progressFill = card.querySelector(".progress-track span");
-
-      if (progressValue) progressValue.textContent = "32%";
-      if (progressFill) progressFill.style.width = "32%";
-
       if (!card.querySelector(".ielts-subtitle")) {
         const subtitle = document.createElement("small");
         subtitle.className = "ielts-subtitle";
-        subtitle.textContent = "Band 7.0 target project";
+        subtitle.textContent = "August Intensive · Personal IELTS Coach";
         title.insertAdjacentElement("afterend", subtitle);
       }
 
@@ -30,7 +73,7 @@
       if (!card.querySelector(".ielts-project-source")) {
         const source = document.createElement("small");
         source.className = "ielts-project-source";
-        source.textContent = "Study log live · Open project hub";
+        source.textContent = "Loading August Core…";
         card.append(source);
       }
     });
@@ -38,10 +81,9 @@
 
   const projectList = document.querySelector("#project-list");
   if (projectList) {
-    new MutationObserver(enhanceIeltsCard).observe(projectList, {
-      childList: true,
-    });
+    new MutationObserver(enhanceIeltsCard).observe(projectList, { childList: true });
   }
 
   enhanceIeltsCard();
+  void loadAugustCore();
 })();

@@ -4,6 +4,11 @@ import {
   isDailyBriefRoute,
   runDailyBriefSchedule,
 } from "./daily-brief-policy.js";
+import {
+  handleIeltsCoreRequest,
+  isIeltsCoreRoute,
+  runIeltsSchedule,
+} from "./ielts-core.js";
 import { handleProjectHubRequest, isProjectHubRoute } from "./project-hub.js";
 import {
   guardGoogleIntegration,
@@ -85,6 +90,9 @@ export default {
       if (isProjectHubRoute(pathname)) {
         return handleProjectHubRequest(request, env);
       }
+      if (isIeltsCoreRoute(pathname)) {
+        return handleIeltsCoreRequest(request, env);
+      }
       if (isTaskDeleteRoute(pathname)) {
         return handleTaskDeleteRequest(request, env);
       }
@@ -134,5 +142,6 @@ export default {
     scheduleIndependentJob(ctx, "weather", () => runRainPushSchedule(env));
     scheduleIndependentJob(ctx, "reminder", () => runReliableReminderSchedule(env));
     scheduleIndependentJob(ctx, "Daily Brief", () => runDailyBriefSchedule(env));
+    scheduleIndependentJob(ctx, "IELTS", () => runIeltsSchedule(env));
   },
 };

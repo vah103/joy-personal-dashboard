@@ -58,6 +58,7 @@ const syntaxChecks = [
   "worker/push-subscription-cleanup.js",
   "worker/sale-viewing-create.js",
   "worker/router.js",
+  "worker/ielts-core.js",
   "worker/task-delete.js",
   "src/pages/sale/room-summary.js",
   "src/features/sales/sale-appointment.js",
@@ -66,6 +67,10 @@ const syntaxChecks = [
   "src/features/tasks/task-reminders.js",
   "src/features/notifications/push-notifications.js",
   "src/pwa/sw.js",
+  "project-data/ielts/ielts-card.js",
+  "project-data/ielts/ielts-core-model.js",
+  "project-data/ielts/ielts-core-ui.js",
+  "project-data/ielts/ielts-core-actions.js",
   "scripts/build.mjs",
 ];
 
