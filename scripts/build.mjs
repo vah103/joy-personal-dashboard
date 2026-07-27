@@ -72,7 +72,7 @@ const projectHubScripts = [
   '    <script src="project-hub-actions.js?v=turtlebot-hub-v3" defer></script>\n',
   '    <script id="joy-ielts-core-bundle" data-loaded="true" src="project-data/ielts/ielts-core-bundle.js?v=ielts-august-core-v5" defer></script>\n',
   '    <script src="project-data/ielts/ielts-card.js?v=ielts-card-v6" defer></script>\n',
-  '    <script src="weather-status-ui.js?v=three-state-weather-v1" defer></script>\n',
+  '    <script src="weather-status-ui.js?v=rain-threshold-80-v2" defer></script>\n',
   '    <script src="push-notifications.js?v=joy-current-device-v1" defer></script>\n',
   '    <script src="auth-ui.js?v=joy-google-account-v3" defer></script>\n',
   '    <script src="greeting-layout.js?v=joy-daily-brief-v4" defer></script>\n',
@@ -92,6 +92,7 @@ const cloudflareHtml = sourceHtml
   .replace('aria-label="Joy overview"', 'aria-label="Hey Joy! overview"')
   .replace('<p class="section-kicker" id="brief-title">Joy</p>', '<p class="section-kicker" id="brief-title">Hey Joy!</p>')
   .replace('site.webmanifest?v=joy-original-wolf-v2', 'site.webmanifest?v=joy-blue-wolf-v4')
+  .replace('weather-rain.js?v=joy-rain-notice-v2', 'weather-rain.js?v=rain-threshold-80-v3')
   .replace(
     '<script src="app.js?v=joy-dashboard-combined-v1" defer></script>',
     '<script src="todo-display-policy.js?v=joy-task-window-v1" defer></script>\n    <script src="app.js?v=joy-dashboard-combined-v1" defer></script>',
