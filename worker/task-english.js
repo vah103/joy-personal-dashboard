@@ -1,5 +1,5 @@
 const TASK_ENGLISH_PATH = "/api/tasks/english";
-const DEFAULT_AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+const DEFAULT_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
 
 export function isTaskEnglishRoute(pathname) {
   return pathname === TASK_ENGLISH_PATH;
@@ -25,13 +25,19 @@ export async function handleTaskEnglishRequest(request, env) {
     const messages = [
       {
         role: "system",
-        content: `You edit one item for a personal English to-do list.
+        content: `Translate one personal to-do item into natural English.
 
-Convert Vietnamese or imperfect English into one natural, grammatically correct English sentence. Use a concise imperative structure that begins with a clear action verb whenever the input is an action. Use sentence case and end with suitable punctuation.
+The input may be Vietnamese or imperfect English. Return one concise, grammatically correct English task sentence. Begin with a clear action verb when it is an action. Use sentence case and suitable punctuation.
 
-Preserve the user's exact meaning, names, project names, acronyms, URLs, dates, times, quantities, and technical terms. Do not add details, explanations, advice, or a second task. Do not use filler such as "I need to", "Please", or "Remember to" unless the original explicitly asks for a reminder. If the original asks to be reminded, retain a natural "Remind me to ..." structure so reminder detection still works.
+Preserve the exact meaning, names, project names, acronyms, URLs, dates, times, quantities, and technical terms. Do not add details, explanations, advice, labels, markdown, quotation marks, or a second task. If the input explicitly asks for a reminder, retain a natural "Remind me to ..." structure.
 
-Keep the result short and suitable for display as one to-do item. Return only the final English task sentence, without quotes, markdown, JSON, labels, or explanation.`,
+Examples:
+ăn cơm -> Eat a meal.
+cắt móng tay -> Trim your nails.
+mua kem đánh răng Sensodyne -> Buy Sensodyne toothpaste.
+hoàn thành báo cáo TurtleBot4 -> Complete the TurtleBot4 report.
+
+Return only the final English task sentence.`,
       },
       {
         role: "user",
@@ -41,8 +47,8 @@ Keep the result short and suitable for display as one to-do item. Return only th
 
     const result = await env.AI.run(env.TASK_ENGLISH_AI_MODEL || DEFAULT_AI_MODEL, {
       messages,
-      temperature: 0.05,
-      max_tokens: 160,
+      temperature: 0,
+      max_tokens: 64,
     });
 
     const title = normalizeEnglishTitle(extractAiText(result), original);
@@ -82,7 +88,7 @@ function extractAiText(result) {
   }
 
   return unfenced
-    .replace(/^\s*(?:title|task|answer)\s*:\s*/i, "")
+    .replace(/^\s*(?:title|task|answer|translation)\s*:\s*/i, "")
     .trim();
 }
 
