@@ -8,7 +8,7 @@ async function source(path) {
   return readFile(new URL(path, root), "utf8");
 }
 
-test("new to-do items are rewritten into natural English before saving", async () => {
+test("new to-do items and reminder titles are rewritten into natural English", async () => {
   const [worker, router, helper, build] = await Promise.all([
     source("worker/task-english.js"),
     source("worker/router.js"),
@@ -31,10 +31,14 @@ test("new to-do items are rewritten into natural English before saving", async (
   assert.match(helper, /form\.requestSubmit/);
   assert.match(helper, /\/api\/tasks\/english/);
   assert.match(helper, /REQUEST_TIMEOUT_MS = 15_000/);
-  assert.match(helper, /joy-task-english-cache-v3/);
+  assert.match(helper, /joy-task-english-cache-v4/);
+  assert.match(helper, /function cleanReminderTitle/);
+  assert.match(helper, /function prepareSubmission/);
+  assert.match(helper, /composerOpen/);
+  assert.match(helper, /replaceAction/);
   assert.match(helper, /"an com": "Eat a meal\."/);
   assert.match(helper, /"mua nuoc giat": "Buy laundry detergent\."/);
   assert.match(helper, /it was not added/);
-  assert.match(build, /task-english\.js\?v=joy-task-english-v3/);
+  assert.match(build, /task-english\.js\?v=joy-task-english-v4/);
   assert.match(build, /resolve\(features, "tasks", "task-english\.js"\)/);
 });
