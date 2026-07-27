@@ -32,7 +32,7 @@ test("Daily Brief is wired into the Worker and dashboard", async () => {
   assert.match(wrangler, /"ai"\s*:\s*\{\s*"binding"\s*:\s*"AI"/s);
   assert.match(build, /greeting-layout\.css\?v=joy-daily-brief-v4/);
   assert.match(build, /greeting-layout\.js\?v=joy-daily-brief-v4/);
-  assert.match(build, /daily-brief-polish\.js\?v=joy-daily-brief-polish-v1/);
+  assert.match(build, /daily-brief-polish\.js\?v=joy-daily-brief-polish-v2/);
   assert.match(script, /window\.fetch\("\/api\/daily-brief"/);
   assert.match(script, /daily-brief-drawer/);
   assert.match(script, /const ROTATION_MS = 20_000/);
