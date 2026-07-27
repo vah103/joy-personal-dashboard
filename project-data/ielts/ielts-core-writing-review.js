@@ -34,6 +34,24 @@ function writingReviewNormal(value) {
   };
 }
 
+function writingFingerprint(diagnostic) {
+  const source = `${diagnostic?.task1Text || ""}\u241e${diagnostic?.task2Text || ""}\u241e${diagnostic?.task1Minutes || 0}\u241e${diagnostic?.task2Minutes || 0}`;
+  let hash = 2166136261;
+  for (let index = 0; index < source.length; index += 1) {
+    hash ^= source.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `${(hash >>> 0).toString(16)}-${source.length}`;
+}
+
+function writingReviewFresh(diagnostic) {
+  return Boolean(
+    diagnostic?.review
+    && diagnostic.reviewFingerprint
+    && diagnostic.reviewFingerprint === writingFingerprint(diagnostic)
+  );
+}
+
 const diagnosticNormalBeforeWritingReview = diagnosticNormal;
 diagnosticNormal = function diagnosticNormalWithWritingReview(value) {
   const normalized = diagnosticNormalBeforeWritingReview(value);
@@ -41,6 +59,7 @@ diagnosticNormal = function diagnosticNormalWithWritingReview(value) {
   normalized.writing.review = writingReviewNormal(source.writing?.review);
   normalized.writing.reviewedAt = Number(source.writing?.reviewedAt || 0);
   normalized.writing.reviewMethod = String(source.writing?.reviewMethod || "").slice(0, 100);
+  normalized.writing.reviewFingerprint = String(source.writing?.reviewFingerprint || "").slice(0, 100);
   return normalized;
 };
 
@@ -50,18 +69,24 @@ diagnosticCard = function diagnosticCardWithWritingReview(skill) {
   if (skill !== "writing") return original;
   const diagnostic = app.data.diagnostics.writing;
   if (!diagnosticDone(diagnostic)) return original;
-  const hasReview = Boolean(diagnostic.review);
-  const button = `<button class="diagnostic-ai-button" data-writing-review="${hasReview ? "view" : "run"}">${hasReview ? "View Joy AI review" : "Review with Joy AI"}</button>`;
+  const fresh = writingReviewFresh(diagnostic);
+  const stale = Boolean(diagnostic.review && !fresh);
+  const button = `<button class="diagnostic-ai-button" data-writing-review="${fresh ? "view" : "run"}">${fresh ? "View Joy AI review" : stale ? "Essay changed · review again" : "Review with Joy AI"}</button>`;
   return original.replace("</article>", `${button}</article>`);
 };
 
 const baselineBeforeWritingReview = baseline;
 baseline = function baselineWithWritingReview() {
   baselineBeforeWritingReview();
-  const review = app.data.diagnostics.writing.review;
+  const diagnostic = app.data.diagnostics.writing;
+  const review = diagnostic.review;
   if (!review) return;
   const summary = document.querySelector("#ielts-body .baseline-summary");
   if (!summary || document.querySelector("#ielts-body .writing-review-summary")) return;
+  if (!writingReviewFresh(diagnostic)) {
+    summary.insertAdjacentHTML("beforebegin", `<section class="writing-review-summary stale"><header><span><small>Joy AI diagnostic review</small><h3>Review is outdated</h3></span><strong>Essay changed</strong></header><p>The saved band belongs to an earlier version of the diagnostic. Run the reviewer again before using it as your baseline.</p><footer><small>Joy will not treat the old score as current evidence.</small><button data-writing-review="run">Review current version</button></footer></section>`);
+    return;
+  }
   summary.insertAdjacentHTML("beforebegin", writingReviewSummary(review));
 };
 
@@ -95,6 +120,7 @@ async function runWritingReview() {
   sync("AI reviewing…");
 
   try {
+    const fingerprint = writingFingerprint(diagnostic);
     const payload = await req(WRITING_REVIEW_API, {
       method: "POST",
       body: JSON.stringify({
@@ -109,8 +135,10 @@ async function runWritingReview() {
 
     const review = writingReviewNormal(payload.review);
     if (!review) throw new Error("INVALID_WRITING_REVIEW");
+    if (fingerprint !== writingFingerprint(diagnostic)) throw new Error("DIAGNOSTIC_CHANGED_DURING_REVIEW");
 
     diagnostic.review = review;
+    diagnostic.reviewFingerprint = fingerprint;
     diagnostic.estimatedBand = review.overallBand;
     diagnostic.status = "reviewed";
     diagnostic.reviewedAt = Number(payload.reviewedAt || Date.now());
@@ -124,7 +152,9 @@ async function runWritingReview() {
     console.error("Joy Writing diagnostic review failed", error);
     const message = error.message === "AI_UNAVAILABLE"
       ? "Joy AI is unavailable right now. Your diagnostic remains saved."
-      : "Joy could not complete the Writing review. Try again without resubmitting the essay.";
+      : error.message === "DIAGNOSTIC_CHANGED_DURING_REVIEW"
+        ? "The essay changed during review. Save it and run the reviewer again."
+        : "Joy could not complete the Writing review. Try again without resubmitting the essay.";
     toast(message);
   } finally {
     writingReviewBusy = false;
@@ -153,8 +183,10 @@ function mergeWritingDiagnosticErrors(review) {
 }
 
 function openWritingReview() {
-  const review = app.data.diagnostics.writing.review;
-  if (!review) {
+  const diagnostic = app.data.diagnostics.writing;
+  const review = diagnostic.review;
+  if (!review || !writingReviewFresh(diagnostic)) {
+    toast(review ? "This review is outdated because the essay changed." : "Run the Writing review first.");
     runWritingReview();
     return;
   }
