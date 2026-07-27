@@ -1,6 +1,6 @@
 const CLOUD = document.querySelector('meta[name="joy-backend"]')?.content === "cloudflare";
-const PLAN_URL = "/project-data/ielts/august-2026.json?v=2026.08.1";
-const DAY_URLS = ["01-09","10-16","17-23","24-31"].map(range=>`/project-data/ielts/august-days-${range}.json?v=2026.08.1`);
+const PLAN_URL = "/project-data/ielts/august-2026.json?v=2026.08.2";
+const DAY_URLS = ["01-09","10-16","17-23","24-31"].map(range=>`/project-data/ielts/august-days-${range}.json?v=2026.08.2`);
 const API = "/api/ielts-core";
 const LOCAL = "joy-ielts-august-core-v1";
 const TZ = "Asia/Ho_Chi_Minh";
