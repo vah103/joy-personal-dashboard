@@ -7,10 +7,10 @@ const read = (path) => fs.readFileSync(new URL(path, root), "utf8");
 
 test("IELTS Core exposes a persisted learner profile and four-skill diagnostic", () => {
   const plan = JSON.parse(read("project-data/ielts/august-2026.json"));
-  const model = read("project-data/ielts/ielts-core-model.js");
-  const ui = read("project-data/ielts/ielts-core-ui.js");
-  const actions = read("project-data/ielts/ielts-core-actions.js");
-  const diagnostic = read("project-data/ielts/ielts-core-diagnostic.js");
+  const model = read("src/features/ielts/core-model.js");
+  const ui = read("src/features/ielts/core-ui.js");
+  const actions = read("src/features/ielts/core-actions.js");
+  const diagnostic = read("src/features/ielts/core-diagnostic.js");
 
   assert.equal(plan.version, "2026.08.2");
   assert.ok(plan.prelaunch.some((item) => item.id === "prep-profile"));
