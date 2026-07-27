@@ -49,7 +49,7 @@ const projectHubHead = [
   '    <link rel="stylesheet" href="greeting-layout.css?v=mobile-greeting-v2">\n',
   '    <link rel="stylesheet" href="task-reminders.css?v=joy-tasks-v1">\n',
   '    <link rel="stylesheet" href="room-summary.css?v=joy-room-summary-v1">\n',
-  '    <link rel="stylesheet" href="sales-assistant.css?v=joy-dashboard-sales-assistant-v2">\n',
+  '    <link rel="stylesheet" href="sales-assistant.css?v=joy-dashboard-sales-assistant-v3">\n',
 ].join("");
 
 const projectHubScripts = [
@@ -65,7 +65,7 @@ const projectHubScripts = [
   '    <script src="task-reminders-events.js?v=joy-task-checkbox-v2" defer></script>\n',
   '    <script src="task-reminders.js?v=joy-tasks-v1" defer></script>\n',
   '    <script src="task-natural-input.js?v=joy-natural-reminders-v1" defer></script>\n',
-  '    <script type="module" src="sales-assistant.js?v=joy-dashboard-sales-assistant-v2"></script>\n',
+  '    <script type="module" src="sales-assistant.js?v=joy-dashboard-sales-assistant-v3"></script>\n',
 ].join("");
 
 const sourceHtml = await readFile(resolve(dashboardPage, "index.html"), "utf8");
