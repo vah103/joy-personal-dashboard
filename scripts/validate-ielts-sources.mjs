@@ -2,21 +2,18 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
-const ieltsDir = resolve(root, "project-data", "ielts");
+const ieltsDir = resolve(root, "src", "features", "ielts");
 
 const bundledSources = [
-  "ielts-core-model.js",
-  "ielts-core-ui.js",
-  "ielts-core-actions.js",
-  "ielts-core-diagnostic.js",
-  "ielts-core-writing-review.js",
-  "ielts-core-writing-review-freshness.js",
+  "core-model.js",
+  "core-ui.js",
+  "core-actions.js",
+  "core-diagnostic.js",
+  "core-writing-review.js",
+  "core-writing-rewrite.js",
 ];
 
-const standaloneSources = [
-  "ielts-card.js",
-  "ielts-core-writing-rewrite.js",
-];
+const standaloneSources = ["card.js"];
 
 const bundledParts = await Promise.all(
   bundledSources.map((file) => readFile(resolve(ieltsDir, file), "utf8")),
