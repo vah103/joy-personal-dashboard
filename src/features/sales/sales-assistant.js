@@ -107,8 +107,7 @@ function createAssistantLaunchers() {
     launch.innerHTML = `
       <span class="sales-assistant-launch-icon" aria-hidden="true">＋</span>
       <span class="sales-assistant-launch-copy">
-        <strong>Hẹn khách xem phòng</strong>
-        <small>Nhập một câu → kiểm tra → lưu vào Sheet</small>
+        <strong>Schedule a viewing</strong>
       </span>
       <span class="sales-assistant-launch-arrow" aria-hidden="true">→</span>
     `;
