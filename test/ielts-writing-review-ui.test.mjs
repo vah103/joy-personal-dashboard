@@ -5,7 +5,7 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 const read = (path) => fs.readFileSync(new URL(path, root), "utf8");
 
-test("IELTS includes the consolidated Writing AI reviewer, freshness guard and adaptive rewrite", () => {
+test("IELTS includes the consolidated Writing AI reviewer, Vietnamese feedback and adaptive rewrite", () => {
   const model = read("src/features/ielts/core-model.js");
   const ui = read("src/features/ielts/core-ui.js");
   const actions = read("src/features/ielts/core-actions.js");
@@ -15,13 +15,15 @@ test("IELTS includes the consolidated Writing AI reviewer, freshness guard and a
   const build = read("scripts/build.mjs");
   const card = read("src/features/ielts/card.js");
   const router = read("worker/router.js");
+  const worker = read("worker/ielts-diagnostic-review.js");
   const reviewCss = read("project-data/ielts/ielts-writing-review.css");
   const rewriteCss = read("project-data/ielts/ielts-writing-rewrite.css");
 
   assert.match(build, /core-writing-review\.js/);
   assert.match(build, /core-writing-rewrite\.js/);
+  assert.match(build, /i18n-vi-hooks\.js/);
   assert.doesNotMatch(build, /core-writing-review-freshness\.js/);
-  assert.match(build, /ielts-august-core-v6/);
+  assert.match(build, /ielts-august-core-v7/);
   assert.match(card, /ielts-writing-review\.css\?v=ielts-writing-review-v1/);
   assert.match(card, /ielts-writing-rewrite\.css\?v=ielts-writing-rewrite-v1/);
   assert.doesNotMatch(card, /REWRITE_SCRIPT/);
@@ -42,6 +44,8 @@ test("IELTS includes the consolidated Writing AI reviewer, freshness guard and a
   assert.match(rewrite, /Minimum 100 words/);
   assert.match(rewrite, /todayWithWritingRewrite/);
   assert.match(rewrite, /coachWithWritingRewrite/);
+  assert.match(worker, /Write every explanation, finding, pattern and uncertainty in clear Vietnamese/);
+  assert.match(worker, /Đây là band đầu vào do AI ước lượng/);
   assert.match(reviewCss, /writing-review-summary/);
   assert.match(reviewCss, /review-criteria/);
   assert.match(rewriteCss, /writing-rewrite-mission/);
