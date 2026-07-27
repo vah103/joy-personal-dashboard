@@ -11,6 +11,14 @@ const bundledSources = [
   "core-diagnostic.js",
   "core-writing-review.js",
   "core-writing-rewrite.js",
+  "i18n-vi-base.js",
+  "i18n-vi-days-01-09.js",
+  "i18n-vi-days-10-16.js",
+  "i18n-vi-days-17-23.js",
+  "i18n-vi-days-24-31.js",
+  "i18n-vi-plan-runtime.js",
+  "i18n-vi-ui-text.js",
+  "i18n-vi-hooks.js",
 ];
 
 const standaloneSources = ["card.js"];
@@ -26,9 +34,7 @@ const bundle = [
 ].join("\n");
 
 try {
-  // Compile only. The function is intentionally not executed in Node.
   new Function(bundle);
-
   for (const file of standaloneSources) {
     const source = await readFile(resolve(ieltsDir, file), "utf8");
     new Function(source);
