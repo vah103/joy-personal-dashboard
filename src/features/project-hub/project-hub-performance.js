@@ -22,4 +22,13 @@
     const modal = document.querySelector("#turtlebot-hub-modal");
     if (!modal || modal.hidden) document.body.classList.remove("hub-modal-open");
   });
+
+  window.addEventListener("DOMContentLoaded", () => {
+    if (document.querySelector('script[data-turtlebot-vietnamese="true"]')) return;
+    const script = document.createElement("script");
+    script.src = "/project-data/turtlebot4/project-state-v2-vi.js?v=turtlebot-vi-v1";
+    script.dataset.turtlebotVietnamese = "true";
+    script.defer = true;
+    document.body.append(script);
+  });
 })();
