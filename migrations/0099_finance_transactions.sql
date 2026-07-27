@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS finance_transactions (
   type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
   category TEXT NOT NULL,
   subcategory TEXT NOT NULL DEFAULT '',
-  amount INTEGER NOT NULL CHECK (amount > 0),
+  amount INTEGER NOT NULL CHECK (amount != 0),
   status TEXT NOT NULL DEFAULT 'actual' CHECK (status IN ('actual', 'planned')),
   note TEXT NOT NULL DEFAULT '',
   source TEXT NOT NULL DEFAULT 'joy',
@@ -22,3 +22,10 @@ ON finance_transactions (user_email, year, month, deleted_at, occurred_on DESC);
 
 CREATE INDEX IF NOT EXISTS finance_transactions_user_status_idx
 ON finance_transactions (user_email, status, deleted_at, updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS finance_imports (
+  user_email TEXT NOT NULL,
+  import_key TEXT NOT NULL,
+  imported_at INTEGER NOT NULL,
+  PRIMARY KEY (user_email, import_key)
+);
