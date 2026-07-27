@@ -1,8 +1,40 @@
 function translateIeltsText(value) {
-  let text = String(value ?? "");
+  const text = String(value ?? "");
   if (UI_TEXT_VI.has(text)) return UI_TEXT_VI.get(text);
+
+  const exact = {
+    "Synced": "Đã đồng bộ",
+    "Local only": "Chỉ lưu trên thiết bị",
+    "Connecting…": "Đang kết nối…",
+    "Saving…": "Đang lưu…",
+    "Local": "Lưu cục bộ",
+    "Offline": "Ngoại tuyến",
+    "D1 synced · Open August Coach": "Đã đồng bộ D1 · Mở IELTS Coach tháng 8",
+    "Local mode · Open August Coach": "Chế độ cục bộ · Mở IELTS Coach tháng 8",
+    "Prepare August Intensive": "Chuẩn bị đợt tăng tốc tháng 8",
+    "Review August evidence": "Xem lại bằng chứng tháng 8",
+    "Complete August review": "Hoàn thành tổng kết tháng 8",
+    "Build learner baseline": "Xây dựng mức đầu vào người học",
+    "Complete learner profile": "Hoàn thiện Hồ sơ người học",
+    "The August system is ready.": "Hệ thống học tháng 8 đã sẵn sàng.",
+    "Strict Mode keeps unfinished work visible.": "Chế độ nghiêm ngặt luôn giữ bài chưa hoàn thành ở trạng thái hiển thị.",
+    "Open Recovery": "Mở phần học bù",
+    "Back-translation first, then independent writing": "Ban đầu dịch ngược, sau đó tự viết độc lập",
+    "One original Task 1 table and one Task 2 discussion essay under a 60-minute limit.": "Một Task 1 dạng bảng và một Task 2 dạng Discussion trong giới hạn 60 phút.",
+    "Record externally for now, then save Part 1 notes, a Part 2 transcript and Part 3 evidence.": "Hiện tại hãy thu âm bên ngoài, sau đó lưu ghi chú Part 1, transcript Part 2 và bằng chứng Part 3.",
+    "Use one trusted full test without a dictionary; Joy records score, time and weak question types.": "Làm một full test đáng tin cậy, không dùng từ điển; Joy sẽ lưu điểm, thời gian và dạng câu còn yếu.",
+    "Use one trusted full test without pausing; Joy records score, time and error patterns.": "Làm một full test đáng tin cậy, không tạm dừng; Joy sẽ lưu điểm, thời gian và kiểu lỗi.",
+    "Complete one full Academic Reading test in 60 minutes without a dictionary.": "Hoàn thành một bài Academic Reading đầy đủ trong 60 phút, không dùng từ điển.",
+    "Complete one full IELTS Listening test once, without pausing or replaying.": "Làm một bài IELTS Listening đầy đủ một lần, không tạm dừng hoặc nghe lại.",
+    "Save the exact source so the result can be checked later.": "Lưu chính xác nguồn đề để có thể kiểm tra kết quả về sau.",
+    "Writing and Speaking will remain unscored until reviewed.": "Writing và Speaking sẽ chưa có band cho tới khi được chấm.",
+    "Reading and Listening conversions are approximate; Writing and Speaking bands must come from a later review rather than self-invention.": "Band quy đổi của Reading và Listening chỉ mang tính gần đúng; band Writing và Speaking phải đến từ phần chấm sau đó, không được tự đặt.",
+  };
+  if (exact[text]) return exact[text];
+
   return text
     .replace(/^(\d+) days until August$/, "Còn $1 ngày đến tháng 8")
+    .replace(/^(\d+\/\d+) required missions complete$/, "Đã hoàn thành $1 nhiệm vụ bắt buộc")
     .replace(/^(\d+) required missions complete$/, "Đã hoàn thành $1 nhiệm vụ bắt buộc")
     .replace(/^(\d+) overdue missions$/, "$1 nhiệm vụ quá hạn")
     .replace(/^(\d+) overdue mission\(s\) need recovery\.$/, "$1 nhiệm vụ quá hạn cần được học bù.")
@@ -12,12 +44,29 @@ function translateIeltsText(value) {
     .replace(/^Day (\d+): /, "Ngày $1: ")
     .replace(/^Day (\d+) · /, "Ngày $1 · ")
     .replace(/^Week (\d+) · /, "Tuần $1 · ")
+    .replace(/^(\d+)% complete$/, "Đã hoàn thành $1%")
+    .replace(/^(\d+\/\d+) missions$/, "$1 nhiệm vụ")
     .replace(/^(\d+) missions$/, "$1 nhiệm vụ")
     .replace(/^(\d+) occurrence\(s\)$/, "$1 lần xuất hiện")
     .replace(/^Today (\d+\/\d+)$/, "Hôm nay $1")
     .replace(/^Starts 1 Aug$/, "Bắt đầu 1/8")
     .replace(/^Speaking (\d+)$/, "Speaking $1")
     .replace(/^(\d+) overdue$/, "$1 quá hạn")
+    .replace(/^Complete (Writing|Speaking|Reading|Listening) diagnostic$/, "Hoàn thành bài đầu vào $1")
+    .replace(/^Target ([\d.]+) overall · Writing ([\d.]+) in August · expected test (.+)$/, "Mục tiêu Overall $1 · Writing $2 trong tháng 8 · dự kiến thi $3")
+    .replace(/^(\d+) min morning · (\d+) min evening · (\d+) min daily Speaking$/, "$1 phút buổi sáng · $2 phút buổi tối · $3 phút Speaking hằng ngày")
+    .replace(/^(Writing|Speaking|Reading|Listening) is the lowest measured skill\.$/, "$1 hiện là kỹ năng có mức đo thấp nhất.")
+    .replace(/^(\d+)\/4 diagnostic results saved\.$/, "Đã lưu $1/4 kết quả đầu vào.")
+    .replace(/^(\d+) words saved$/, "Đã lưu $1 từ")
+    .replace(/^(low|medium|high) confidence$/, (_, level) => confidenceLabel(level))
+    .replace(/^(Task|Coherence|Vocabulary|Grammar) · (high|medium|low)$/, (_, category, level) => `${errorCategoryLabel(category)} · ${severityLabel(level)}`)
+    .replace(/^(Task 1|Task 2|Both) rewrite$/, (_, task) => `Viết lại ${rewriteTaskLabel(task)}`)
+    .replace(/^Adaptive mission · due (.+)$/, "Nhiệm vụ thích ứng · hạn $1")
+    .replace(/^Required rewrite · within (\d+) hours$/, "Bài viết lại bắt buộc · trong vòng $1 giờ")
+    .replace(/^(\d+) words · (\d+) minutes$/, "$1 từ · $2 phút")
+    .replace(/^Writing baseline reviewed: estimated band ([\d.]+)\.$/, "Đã chấm đầu vào Writing: band ước tính $1.")
+    .replace(/^(Writing|Speaking|Reading|Listening) baseline saved\.$/, "Đã lưu đầu vào $1.")
+    .replace(/^Due (.+)\. Feedback is not complete until you produce a corrected version\.$/, "Hạn $1. Phần chữa bài chỉ hoàn tất khi bạn nộp phiên bản đã sửa.")
     .replace(/^Due /, "Hạn ")
     .replace(/^within 48 hours$/, "trong vòng 48 giờ")
     .replace(/^confidence$/, "độ tin cậy")
@@ -132,6 +181,9 @@ rewriteDueLabel = function rewriteDueLabelVietnamese(plan) {
   return new Intl.DateTimeFormat(IELTS_LANGUAGE, { timeZone: TZ, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
     .format(new Date(plan.dueAt));
 };
+
+translateIeltsDom(document.querySelector("#ielts-modal") || document);
+translateIeltsDom(document.querySelector("#project-list") || document);
 
 const observer = new MutationObserver(() => {
   translateIeltsDom(document.querySelector("#ielts-modal") || document);
