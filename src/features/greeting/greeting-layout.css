@@ -179,7 +179,7 @@
   text-underline-offset: 3px;
 }
 
-.daily-brief-summary {
+.joy-brief.daily-brief-enabled .daily-brief-summary {
   margin: 2px 0 0;
   display: -webkit-box;
   overflow: hidden;
@@ -190,7 +190,7 @@
   -webkit-line-clamp: 1;
 }
 
-.daily-brief-status {
+.joy-brief.daily-brief-enabled .daily-brief-status {
   position: absolute;
   left: 0;
   bottom: -1px;
@@ -430,7 +430,7 @@ body.daily-brief-drawer-open {
     font-size: 8px;
   }
 
-  .daily-brief-summary {
+  .joy-brief.daily-brief-enabled .daily-brief-summary {
     -webkit-line-clamp: 2;
   }
 
