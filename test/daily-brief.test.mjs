@@ -33,7 +33,9 @@ test("Daily Brief is wired into the Worker and dashboard", async () => {
   assert.match(build, /greeting-layout\.js\?v=joy-daily-brief-v1/);
   assert.match(script, /window\.fetch\("\/api\/daily-brief"/);
   assert.match(script, /daily-brief-drawer/);
-  assert.match(script, /const ROTATION_MS = 9000/);
+  assert.match(script, /const ROTATION_MS = 20_000/);
+  assert.match(script, /daily-brief-personal/);
+  assert.match(script, /translateY\(-18px\)/);
   assert.match(styles, /\.joy-brief\.daily-brief-enabled/);
   assert.match(styles, /\.daily-brief-drawer-backdrop/);
 });
