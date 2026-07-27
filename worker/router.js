@@ -1,4 +1,9 @@
 import app from "./index.js";
+import {
+  handleDailyBriefRequest,
+  isDailyBriefRoute,
+  runDailyBriefSchedule,
+} from "./daily-brief.js";
 import { handleProjectHubRequest, isProjectHubRoute } from "./project-hub.js";
 import {
   guardGoogleIntegration,
@@ -56,6 +61,9 @@ export default {
     const pathname = new URL(request.url).pathname;
 
     try {
+      if (isDailyBriefRoute(pathname)) {
+        return handleDailyBriefRequest(request, env, ctx);
+      }
       if (isPushSubscriptionCleanupRoute(pathname)) {
         return handlePushSubscriptionCleanup(request, env);
       }
@@ -125,5 +133,6 @@ export default {
 
     scheduleIndependentJob(ctx, "weather", () => runRainPushSchedule(env));
     scheduleIndependentJob(ctx, "reminder", () => runReliableReminderSchedule(env));
+    scheduleIndependentJob(ctx, "Daily Brief", () => runDailyBriefSchedule(env));
   },
 };
