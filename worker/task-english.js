@@ -1,4 +1,3 @@
-const SESSION_COOKIE = "__Host-joy_session";
 const TASK_ENGLISH_PATH = "/api/tasks/english";
 const DEFAULT_AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 
@@ -11,9 +10,6 @@ export async function handleTaskEnglishRequest(request, env) {
     if (request.method !== "POST") {
       return json({ error: "METHOD_NOT_ALLOWED" }, 405, { Allow: "POST" });
     }
-
-    const session = await getSession(request, env);
-    if (!session) return json({ error: "AUTH_REQUIRED" }, 401);
     if (!isSameOrigin(request)) return json({ error: "INVALID_ORIGIN" }, 403);
 
     const body = await readJson(request);
@@ -105,42 +101,9 @@ function cleanTaskText(value) {
     .trim();
 }
 
-async function getSession(request, env) {
-  const token = readCookies(request)[SESSION_COOKIE];
-  if (!token) return null;
-  const tokenHash = await sha256Hex(token);
-  return env.DB.prepare(`
-    SELECT user_email, expires_at
-    FROM sessions
-    WHERE token_hash = ? AND expires_at > ?
-  `).bind(tokenHash, Date.now()).first();
-}
-
-function readCookies(request) {
-  return Object.fromEntries(
-    (request.headers.get("Cookie") || "")
-      .split(";")
-      .map((part) => {
-        const [name, ...rest] = part.trim().split("=");
-        return [name, rest.join("=")];
-      })
-      .filter(([name]) => name),
-  );
-}
-
 function isSameOrigin(request) {
   const origin = request.headers.get("Origin");
   return !origin || origin === new URL(request.url).origin;
-}
-
-async function sha256Hex(value) {
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(value),
-  );
-  return [...new Uint8Array(digest)]
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
 }
 
 async function readJson(request) {
