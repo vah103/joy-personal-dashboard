@@ -10,6 +10,17 @@
     "project-data/ielts/ielts-core-bundle.js?v=ielts-august-core-v5",
   ];
 
+  function ensureCoreStyles() {
+    CORE_STYLES.forEach(([id, href]) => {
+      if (document.querySelector(`#${id}`)) return;
+      const link = document.createElement("link");
+      link.id = id;
+      link.rel = "stylesheet";
+      link.href = href;
+      document.head.append(link);
+    });
+  }
+
   function loadScript(id, src) {
     return new Promise((resolve, reject) => {
       const existing = document.querySelector(`#${id}`);
@@ -36,16 +47,8 @@
   }
 
   async function loadAugustCore() {
+    ensureCoreStyles();
     if (window.JoyIELTS) return true;
-
-    CORE_STYLES.forEach(([id, href]) => {
-      if (document.querySelector(`#${id}`)) return;
-      const link = document.createElement("link");
-      link.id = id;
-      link.rel = "stylesheet";
-      link.href = href;
-      document.head.append(link);
-    });
 
     try {
       await loadScript(...CORE_SCRIPT);
@@ -121,6 +124,7 @@
     });
   }
 
+  ensureCoreStyles();
   const projectList = document.querySelector("#project-list");
   if (projectList) {
     new MutationObserver(enhanceIeltsCard).observe(projectList, { childList: true });
