@@ -8,7 +8,6 @@
     const match = greeting.textContent
       .trim()
       .match(/^(Good\s+(?:morning|afternoon|evening),)\s+(Vanh\.)$/i);
-
     if (!match) return;
 
     const daypart = document.createElement("span");
@@ -50,25 +49,28 @@
   const briefCopy = document.querySelector("#brief-copy");
   if (!card || !message || !briefTitle || !briefCopy) return;
 
-  const ROTATION_MS = 9000;
+  const ROTATION_MS = 20_000;
   const REFRESH_MS = 15 * 60 * 1000;
+  const TRANSITION_MS = 220;
   const state = {
     stories: [],
     index: 0,
     timer: null,
     paused: false,
     loaded: false,
+    transitioning: false,
   };
 
-  const overview = document.createElement("div");
-  overview.className = "daily-brief-slide daily-brief-overview is-active";
-  overview.dataset.slideType = "overview";
-  overview.append(briefTitle, briefCopy);
+  installV2Styles();
+
+  const sourceState = document.createElement("div");
+  sourceState.className = "daily-brief-source-state";
+  sourceState.hidden = true;
+  sourceState.append(briefTitle, briefCopy);
 
   const storySlide = document.createElement("div");
-  storySlide.className = "daily-brief-slide daily-brief-story-slide";
+  storySlide.className = "daily-brief-slide daily-brief-story-slide is-active";
   storySlide.dataset.slideType = "story";
-  storySlide.hidden = true;
   storySlide.innerHTML = `
     <div class="daily-brief-meta">
       <span class="daily-brief-tag" data-brief-tag>DAILY BRIEF</span>
@@ -78,14 +80,24 @@
     <p class="daily-brief-summary" data-brief-summary></p>
   `;
 
-  const status = document.createElement("p");
-  status.className = "daily-brief-status";
-  status.textContent = "Checking important updates…";
+  const emptySlide = document.createElement("div");
+  emptySlide.className = "daily-brief-empty";
+  emptySlide.hidden = true;
+  emptySlide.innerHTML = `
+    <span>JOY DAILY BRIEF</span>
+    <strong data-brief-empty-title>Checking important updates…</strong>
+    <p data-brief-empty-copy>Joy only shows news that is important enough to interrupt your day.</p>
+  `;
 
   const slideStack = document.createElement("div");
   slideStack.className = "daily-brief-stack";
-  slideStack.append(overview, storySlide, status);
-  message.replaceChildren(slideStack);
+  slideStack.append(storySlide, emptySlide);
+
+  const personalStatus = document.createElement("p");
+  personalStatus.className = "daily-brief-personal";
+  personalStatus.hidden = true;
+
+  message.replaceChildren(sourceState, slideStack, personalStatus);
 
   const controls = document.createElement("div");
   controls.className = "daily-brief-controls";
@@ -96,21 +108,113 @@
   `;
   card.append(controls);
 
-  const progress = document.createElement("span");
-  progress.className = "daily-brief-progress";
-  progress.setAttribute("aria-hidden", "true");
-  progress.innerHTML = "<i></i>";
-  card.append(progress);
-
   const drawer = createDrawer();
   const tag = storySlide.querySelector("[data-brief-tag]");
   const source = storySlide.querySelector("[data-brief-source]");
   const headline = storySlide.querySelector("[data-brief-open]");
   const summary = storySlide.querySelector("[data-brief-summary]");
   const counter = controls.querySelector("[data-brief-counter]");
-  const progressFill = progress.querySelector("i");
+  const emptyTitle = emptySlide.querySelector("[data-brief-empty-title]");
+  const emptyCopy = emptySlide.querySelector("[data-brief-empty-copy]");
 
-  card.classList.add("daily-brief-enabled");
+  card.classList.add("daily-brief-enabled", "daily-brief-news-first");
+  renderPersonalStatus();
+
+  const personalObserver = new MutationObserver(renderPersonalStatus);
+  personalObserver.observe(briefCopy, {
+    childList: true,
+    characterData: true,
+    subtree: true,
+  });
+
+  function installV2Styles() {
+    if (document.querySelector("#joy-daily-brief-v2-styles")) return;
+    const style = document.createElement("style");
+    style.id = "joy-daily-brief-v2-styles";
+    style.textContent = `
+      .joy-brief.daily-brief-news-first {
+        min-height: 118px;
+      }
+      .daily-brief-news-first .daily-brief-stack {
+        min-height: 66px;
+        display: block;
+        overflow: hidden;
+      }
+      .daily-brief-news-first .daily-brief-story-slide {
+        position: relative;
+        opacity: 1;
+        transform: translateY(0);
+        transition: opacity ${TRANSITION_MS}ms ease, transform ${TRANSITION_MS}ms ease;
+      }
+      .daily-brief-news-first .daily-brief-story-slide.is-leaving {
+        opacity: 0;
+        transform: translateY(-18px);
+      }
+      .daily-brief-news-first .daily-brief-story-slide.is-entering {
+        opacity: 0;
+        transform: translateY(18px);
+        transition: none;
+      }
+      .daily-brief-news-first .daily-brief-empty {
+        min-height: 62px;
+        display: grid;
+        align-content: center;
+      }
+      .daily-brief-news-first .daily-brief-empty[hidden] {
+        display: none !important;
+      }
+      .daily-brief-empty span {
+        color: #4c6d78;
+        font-size: 8px;
+        font-weight: 900;
+        letter-spacing: .1em;
+      }
+      .daily-brief-empty strong {
+        margin-top: 4px;
+        color: #334248;
+        font-size: 12.5px;
+      }
+      .daily-brief-empty p {
+        margin: 3px 0 0;
+        color: #6f797e;
+        font-size: 9.5px;
+      }
+      .daily-brief-personal {
+        min-height: 15px;
+        margin: 7px 0 0;
+        padding-top: 6px;
+        overflow: hidden;
+        border-top: 1px solid rgba(92, 112, 120, .12);
+        color: #879095;
+        font-size: 8.5px;
+        font-weight: 800;
+        line-height: 1.2;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .daily-brief-personal b {
+        color: #738188;
+        font-weight: 900;
+      }
+      .daily-brief-progress {
+        display: none !important;
+      }
+      @media (max-width: 760px) {
+        .joy-brief.daily-brief-news-first {
+          min-height: 116px;
+        }
+        .daily-brief-personal {
+          font-size: 8px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .daily-brief-news-first .daily-brief-story-slide {
+          transition: none !important;
+        }
+      }
+    `;
+    document.head.append(style);
+  }
 
   function createDrawer() {
     const backdrop = document.createElement("div");
@@ -149,38 +253,80 @@
     return backdrop;
   }
 
+  function renderPersonalStatus() {
+    const text = briefCopy.textContent.replace(/\s+/g, " ").trim();
+    const items = [];
+
+    const viewingMatch = text.match(/(\d+)\s+upcoming\s+viewings?/i);
+    const taskMatch = text.match(/(\d+)\s+open\s+tasks?/i);
+    const emailMatch = text.match(/(\d+)\s+new\s+emails?/i);
+
+    const viewings = Number(viewingMatch?.[1] || 0);
+    const tasks = Number(taskMatch?.[1] || 0);
+    const emails = Number(emailMatch?.[1] || 0);
+
+    if (viewings > 0) items.push(`${viewings} viewing${viewings === 1 ? "" : "s"}`);
+    if (tasks > 0) items.push(`${tasks} task${tasks === 1 ? "" : "s"}`);
+    if (emails > 0) items.push(`${emails} new email${emails === 1 ? "" : "s"}`);
+
+    personalStatus.hidden = items.length === 0;
+    personalStatus.innerHTML = items.length
+      ? `<b>Hey Joy!</b> · ${items.join(" · ")}`
+      : "";
+  }
+
   function totalSlides() {
-    return 1 + state.stories.length;
+    return Math.max(1, state.stories.length);
   }
 
   function activeStory() {
-    if (state.index === 0) return null;
-    return state.stories[state.index - 1] || null;
+    return state.stories[state.index] || null;
   }
 
-  function renderSlide({ restart = true } = {}) {
-    const story = activeStory();
-    const isOverview = !story;
+  function populateStory(story) {
+    if (!story) return;
+    tag.textContent = `${story.category || "NEWS"} · ${story.scope || "WORLD"}`;
+    tag.dataset.category = String(story.category || "GENERAL").toLowerCase();
+    source.textContent = `${story.sourceName || "Trusted source"} · ${relativeTime(story.publishedAt)}`;
+    headline.textContent = story.title || "Important update";
+    summary.textContent = story.summary || "Open to read Joy's summary.";
+    headline.dataset.storyId = story.id || "";
+  }
 
-    overview.hidden = !isOverview;
-    overview.classList.toggle("is-active", isOverview);
-    storySlide.hidden = isOverview;
-    storySlide.classList.toggle("is-active", !isOverview);
-    card.classList.toggle("showing-news", !isOverview);
+  function renderCurrent({ animate = false, restart = true } = {}) {
+    const story = activeStory();
+    const hasStories = Boolean(story);
+
+    storySlide.hidden = !hasStories;
+    emptySlide.hidden = hasStories;
+    card.classList.toggle("showing-news", hasStories);
 
     if (story) {
-      tag.textContent = `${story.category || "NEWS"} · ${story.scope || "WORLD"}`;
-      tag.dataset.category = String(story.category || "GENERAL").toLowerCase();
-      source.textContent = `${story.sourceName || "Trusted source"} · ${relativeTime(story.publishedAt)}`;
-      headline.textContent = story.title || "Important update";
-      summary.textContent = story.summary || "Open to read Joy's summary.";
-      headline.dataset.storyId = story.id || "";
+      if (animate) animateStoryChange(story);
+      else populateStory(story);
     }
 
     counter.textContent = `${state.index + 1}/${totalSlides()}`;
-    controls.hidden = totalSlides() <= 1;
-    progress.hidden = totalSlides() <= 1;
+    controls.hidden = state.stories.length <= 1;
     if (restart) restartRotation();
+  }
+
+  function animateStoryChange(story) {
+    if (state.transitioning) return;
+    state.transitioning = true;
+    storySlide.classList.add("is-leaving");
+
+    window.setTimeout(() => {
+      populateStory(story);
+      storySlide.classList.remove("is-leaving");
+      storySlide.classList.add("is-entering");
+      void storySlide.offsetWidth;
+      storySlide.classList.remove("is-entering");
+
+      window.setTimeout(() => {
+        state.transitioning = false;
+      }, TRANSITION_MS);
+    }, TRANSITION_MS);
   }
 
   function relativeTime(value) {
@@ -195,25 +341,21 @@
   }
 
   function goTo(index) {
-    const total = totalSlides();
+    if (state.transitioning || state.stories.length <= 1) return;
+    const total = state.stories.length;
     state.index = ((index % total) + total) % total;
-    renderSlide();
+    renderCurrent({ animate: true });
   }
 
   function restartRotation() {
     window.clearTimeout(state.timer);
-    progressFill.classList.remove("is-running");
-    void progressFill.offsetWidth;
-    if (state.paused || totalSlides() <= 1) return;
-    progressFill.style.setProperty("--daily-brief-duration", `${ROTATION_MS}ms`);
-    progressFill.classList.add("is-running");
+    if (state.paused || state.stories.length <= 1) return;
     state.timer = window.setTimeout(() => goTo(state.index + 1), ROTATION_MS);
   }
 
   function pauseRotation() {
     state.paused = true;
     window.clearTimeout(state.timer);
-    progressFill.classList.remove("is-running");
   }
 
   function resumeRotation() {
@@ -222,9 +364,12 @@
   }
 
   async function loadStories({ silent = false } = {}) {
-    if (!silent) {
-      status.hidden = false;
-      status.textContent = "Checking important updates…";
+    if (!silent && !state.loaded) {
+      storySlide.hidden = true;
+      emptySlide.hidden = false;
+      emptyTitle.textContent = "Checking important updates…";
+      emptyCopy.textContent = "Joy only shows news that is important enough to interrupt your day.";
+      controls.hidden = true;
     }
 
     try {
@@ -235,21 +380,33 @@
       if (!response.ok) throw new Error(`Daily Brief returned ${response.status}`);
       const payload = await response.json();
       const stories = Array.isArray(payload.stories) ? payload.stories : [];
+      const currentId = activeStory()?.id;
       state.stories = stories.filter(validStory);
       state.loaded = true;
-      if (state.index >= totalSlides()) state.index = 0;
-      status.hidden = state.stories.length > 0;
-      status.textContent = state.stories.length
-        ? ""
-        : "No major updates right now.";
-      renderSlide();
+
+      if (currentId) {
+        const preservedIndex = state.stories.findIndex((story) => story.id === currentId);
+        state.index = preservedIndex >= 0 ? preservedIndex : 0;
+      } else if (state.index >= state.stories.length) {
+        state.index = 0;
+      }
+
+      if (!state.stories.length) {
+        emptyTitle.textContent = "No major updates right now.";
+        emptyCopy.textContent = "Joy will add a story when it is genuinely important and worth your attention.";
+      }
+      renderCurrent({ restart: true });
     } catch (error) {
       console.warn("Joy Daily Brief could not load", error);
       state.loaded = true;
-      status.hidden = false;
-      status.textContent = "Daily Brief is temporarily unavailable.";
+      state.stories = [];
+      state.index = 0;
+      storySlide.hidden = true;
+      emptySlide.hidden = false;
+      emptyTitle.textContent = "Daily Brief is temporarily unavailable.";
+      emptyCopy.textContent = "Joy will try again automatically.";
       controls.hidden = true;
-      progress.hidden = true;
+      window.clearTimeout(state.timer);
     }
   }
 
@@ -318,7 +475,6 @@
     }
   });
 
-  renderSlide({ restart: false });
   loadStories();
   window.setInterval(() => loadStories({ silent: true }), REFRESH_MS);
 })();
