@@ -9,12 +9,14 @@ test("dashboard build loads the visible Sale Assistant", async () => {
     readFile(new URL("../src/features/sales/sales-assistant.css", import.meta.url), "utf8"),
   ]);
 
-  assert.match(build, /sales-assistant\.css\?v=joy-dashboard-sales-assistant-v2/);
-  assert.match(build, /type="module" src="sales-assistant\.js\?v=joy-dashboard-sales-assistant-v2"/);
+  assert.match(build, /sales-assistant\.css\?v=joy-dashboard-sales-assistant-v3/);
+  assert.match(build, /type="module" src="sales-assistant\.js\?v=joy-dashboard-sales-assistant-v3"/);
   assert.match(build, /room-summary\.css\?v=joy-room-summary-v1/);
   assert.match(build, /sale-appointment\.js/);
   assert.match(script, /Hẹn khách xem phòng/);
   assert.match(script, /Tóm tắt phòng/);
+  assert.match(script, /<strong>Schedule a viewing<\/strong>/);
+  assert.doesNotMatch(script, /Nhập một câu → kiểm tra → lưu vào Sheet/);
   assert.match(script, /data-action = "open-sales-assistant"|dataset\.action = "open-sales-assistant"/);
   assert.match(script, /import\("\.\/room-summary\.js\?v=joy-room-summary-v1"\)/);
   assert.match(styles, /\.sales-assistant-launch/);
