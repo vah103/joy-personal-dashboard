@@ -22,4 +22,13 @@
     const modal = document.querySelector("#turtlebot-hub-modal");
     if (!modal || modal.hidden) document.body.classList.remove("hub-modal-open");
   });
+
+  window.addEventListener("DOMContentLoaded", () => {
+    if (document.querySelector('script[data-turtlebot-project-state-v2="true"]')) return;
+    const script = document.createElement("script");
+    script.src = "/project-data/turtlebot4/project-state-v2.js?v=turtlebot-project-state-v2";
+    script.dataset.turtlebotProjectStateV2 = "true";
+    script.async = false;
+    document.body.append(script);
+  });
 })();
