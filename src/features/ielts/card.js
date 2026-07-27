@@ -8,7 +8,7 @@
   ];
   const CORE_SCRIPT = [
     "joy-ielts-core-bundle",
-    "project-data/ielts/ielts-core-bundle.js?v=ielts-august-core-v6",
+    "project-data/ielts/ielts-core-bundle.js?v=ielts-august-core-v7",
   ];
 
   function ensureCoreStyles() {
@@ -20,6 +20,12 @@
       link.href = href;
       document.head.append(link);
     });
+    if (!document.querySelector("#joy-ielts-vietnamese-labels")) {
+      const style = document.createElement("style");
+      style.id = "joy-ielts-vietnamese-labels";
+      style.textContent = '.projects-panel .project-card.ielts-project-card .project-top span::after{content:"Tiến độ"}';
+      document.head.append(style);
+    }
   }
 
   function loadScript(id, src) {
@@ -33,7 +39,6 @@
         }
         return;
       }
-
       const script = document.createElement("script");
       script.id = id;
       script.src = src;
@@ -50,14 +55,13 @@
   async function loadAugustCore() {
     ensureCoreStyles();
     if (window.JoyIELTS) return true;
-
     try {
       await loadScript(...CORE_SCRIPT);
       return Boolean(window.JoyIELTS);
     } catch (error) {
-      console.error("Joy could not load IELTS August Core", error);
+      console.error("Joy không thể tải IELTS Coach tháng 8", error);
       const source = document.querySelector(".ielts-project-card .ielts-project-source");
-      if (source) source.textContent = "August Core unavailable · refresh Joy";
+      if (source) source.textContent = "IELTS Coach chưa khả dụng · hãy tải lại Joy";
       return false;
     }
   }
@@ -66,71 +70,68 @@
     event?.preventDefault();
     event?.stopImmediatePropagation();
     event?.stopPropagation();
-
     const ready = await loadAugustCore();
     if (ready) {
       window.JoyIELTS.open();
       return;
     }
-
     const source = document.querySelector(".ielts-project-card .ielts-project-source");
-    if (source) source.textContent = "August Core could not start";
+    if (source) source.textContent = "Không thể khởi động IELTS Coach";
   }
 
-  function bindOpenHandler(card) {
-    if (card.dataset.ieltsOpenBound === "true") return;
-    card.dataset.ieltsOpenBound = "true";
-    card.addEventListener("click", openCoach, true);
-    card.addEventListener("keydown", (event) => {
+  function bindOpenHandler(cardElement) {
+    if (cardElement.dataset.ieltsOpenBound === "true") return;
+    cardElement.dataset.ieltsOpenBound = "true";
+    cardElement.addEventListener("click", openCoach, true);
+    cardElement.addEventListener("keydown", (event) => {
       if (!["Enter", " "].includes(event.key)) return;
       void openCoach(event);
     }, true);
   }
 
+  function localizeCardLabels(cardElement) {
+    const labels = cardElement.querySelectorAll("dl dt");
+    if (labels[0]) labels[0].textContent = "TRỌNG TÂM HIỆN TẠI";
+    if (labels[1]) labels[1].textContent = "BƯỚC TIẾP THEO";
+  }
+
   function enhanceIeltsCard() {
-    document.querySelectorAll("#project-list .project-card").forEach((card) => {
-      const title = card.querySelector(".project-top > strong");
+    document.querySelectorAll("#project-list .project-card").forEach((cardElement) => {
+      const title = cardElement.querySelector(".project-top > strong");
       if (title?.textContent.trim().toLowerCase() !== "ielts") return;
+      cardElement.classList.add("ielts-project-card");
+      cardElement.classList.remove("project-card-has-details");
+      cardElement.removeAttribute("data-project-detail-key");
+      cardElement.tabIndex = 0;
+      cardElement.setAttribute("role", "button");
+      cardElement.setAttribute("aria-label", "Mở IELTS Coach tháng 8");
+      bindOpenHandler(cardElement);
+      localizeCardLabels(cardElement);
 
-      card.classList.add("ielts-project-card");
-      card.classList.remove("project-card-has-details");
-      card.removeAttribute("data-project-detail-key");
-      card.tabIndex = 0;
-      card.setAttribute("role", "button");
-      card.setAttribute("aria-label", "Open IELTS August Coach");
-      bindOpenHandler(card);
-
-      if (!card.querySelector(".ielts-subtitle")) {
+      if (!cardElement.querySelector(".ielts-subtitle")) {
         const subtitle = document.createElement("small");
         subtitle.className = "ielts-subtitle";
-        subtitle.textContent = "August Intensive · Personal IELTS Coach";
+        subtitle.textContent = "Tăng tốc tháng 8 · Trợ lý IELTS cá nhân";
         title.insertAdjacentElement("afterend", subtitle);
       }
-
-      if (!card.querySelector(".ielts-target-pill")) {
+      if (!cardElement.querySelector(".ielts-target-pill")) {
         const pill = document.createElement("span");
         pill.className = "ielts-target-pill";
-        pill.textContent = "Target Band 7.0";
-        card.append(pill);
+        pill.textContent = "Mục tiêu Band 7.0";
+        cardElement.append(pill);
       }
-
-      if (!card.querySelector(".ielts-project-source")) {
+      if (!cardElement.querySelector(".ielts-project-source")) {
         const source = document.createElement("small");
         source.className = "ielts-project-source";
-        source.textContent = window.JoyIELTS
-          ? "August Core ready · Open coach"
-          : "Loading August Core…";
-        card.append(source);
+        source.textContent = window.JoyIELTS ? "IELTS Coach đã sẵn sàng · Bấm để mở" : "Đang tải IELTS Coach…";
+        cardElement.append(source);
       }
     });
   }
 
   ensureCoreStyles();
   const projectList = document.querySelector("#project-list");
-  if (projectList) {
-    new MutationObserver(enhanceIeltsCard).observe(projectList, { childList: true });
-  }
-
+  if (projectList) new MutationObserver(enhanceIeltsCard).observe(projectList, { childList: true });
   enhanceIeltsCard();
   void loadAugustCore().then(() => enhanceIeltsCard());
 })();
