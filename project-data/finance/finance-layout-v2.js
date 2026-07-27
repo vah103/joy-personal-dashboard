@@ -1,30 +1,18 @@
 (() => {
-  const YEAR = 2026;
-  const INCOME = [
-    ["sale", "Sale"],
-    ["allowance", "Allowance"],
-    ["carryover", "Carryover"],
-    ["other-income", "Other income"],
-  ];
+  const INCOME = ["Sale", "Allowance", "Carryover", "Other income"];
   const EXPENSES = [
-    ["home", "House"],
-    ["meals", "Meals"],
-    ["transportation", "Transportation"],
-    ["clothing", "Clothing"],
-    ["dating", "Dating"],
-    ["hanging-out", "Hanging out"],
-    ["haircare", "Haircare"],
-    ["money-leaks", "Money leaks"],
-    ["other", "Other"],
+    "House",
+    "Meals",
+    "Transportation",
+    "Clothing",
+    "Dating",
+    "Hanging out",
+    "Haircare",
+    "Money leaks",
+    "Other",
   ];
-  const MONTHS = new Map([
-    ["January", "01"], ["February", "02"], ["March", "03"], ["April", "04"],
-    ["May", "05"], ["June", "06"], ["July", "07"], ["August", "08"],
-    ["September", "09"], ["October", "10"], ["November", "11"], ["December", "12"],
-  ]);
 
   let queued = false;
-  let requestVersion = 0;
 
   function escapeHtml(value) {
     return String(value ?? "").replace(/[&<>"']/g, (char) => ({
@@ -32,36 +20,55 @@
     })[char]);
   }
 
+  function parseVnd(value) {
+    const text = String(value || "");
+    const digits = text.replace(/[^\d]/g, "");
+    const amount = Number(digits || 0);
+    return /[-−]/.test(text) ? -amount : amount;
+  }
+
   function formatVnd(value) {
     return `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(Number(value || 0))} ₫`;
   }
 
-  function monthKeyFromHeading() {
-    const text = document.querySelector("#finance-workspace-content .finance-month-toolbar strong")?.textContent.trim() || "";
-    const [monthName, year] = text.split(/\s+/);
-    const month = MONTHS.get(monthName);
-    return month && Number(year) === YEAR ? `${YEAR}-${month}` : "";
+  function detailValues(content) {
+    const values = new Map();
+    content.querySelectorAll(".finance-detail-cards article").forEach((article) => {
+      const label = article.querySelector("small")?.textContent.trim();
+      const amount = article.querySelector("strong")?.dataset.financeValue;
+      if (label) values.set(label, parseVnd(amount));
+    });
+    return values;
   }
 
-  async function getJson(path) {
-    const response = await fetch(path, { credentials: "same-origin", headers: { Accept: "application/json" } });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(payload.error || "FINANCE_REQUEST_FAILED");
-    return payload;
-  }
+  function transactionTotals(section) {
+    const income = new Map(INCOME.map((label) => [label, 0]));
+    const expenses = new Map(EXPENSES.map((label) => [label, 0]));
+    let actual = false;
+    let planned = false;
 
-  function categoryTotal(transactions, type, category) {
-    return transactions
-      .filter((item) => item.type === type && item.category === category)
-      .reduce((sum, item) => sum + Number(item.amount || 0), 0);
-  }
+    section.querySelectorAll(".finance-transaction-row").forEach((row) => {
+      const editButton = row.querySelector("[data-finance-edit]");
+      const label = editButton?.querySelector("span b")?.textContent.trim() || "";
+      const amount = Math.abs(parseVnd(editButton?.querySelector("strong")?.dataset.financeValue));
+      const isIncome = Boolean(editButton?.querySelector("i.income"));
+      const status = editButton?.querySelector(".finance-status")?.textContent.trim().toLowerCase();
 
-  function statusText(transactions) {
-    const planned = transactions.some((item) => item.status === "planned");
-    const actual = transactions.some((item) => item.status === "actual");
-    if (planned && actual) return "Actual + planned";
-    if (planned) return "Planned";
-    return "Actual";
+      if (status === "actual") actual = true;
+      if (status === "planned") planned = true;
+
+      if (isIncome && label !== "Carryover" && income.has(label)) {
+        income.set(label, income.get(label) + amount);
+      } else if (!isIncome && expenses.has(label)) {
+        expenses.set(label, expenses.get(label) + amount);
+      }
+    });
+
+    return {
+      income,
+      expenses,
+      status: actual && planned ? "Actual + planned" : planned ? "Planned" : "Actual",
+    };
   }
 
   function rowCell(label, value, side, empty = false) {
@@ -71,47 +78,42 @@
     `;
   }
 
-  function ledgerRows(month, transactions) {
-    const incomeRows = INCOME.map(([id, label]) => ({
-      label,
-      value: id === "carryover" ? Number(month.projected.carryover || 0) : categoryTotal(transactions, "income", id),
-    }));
-    const expenseRows = EXPENSES.map(([id, label]) => ({ label, value: categoryTotal(transactions, "expense", id) }));
-    const length = Math.max(incomeRows.length, expenseRows.length);
-
+  function ledgerRows(totals, carryover) {
+    totals.income.set("Carryover", carryover);
+    const length = Math.max(INCOME.length, EXPENSES.length);
     return Array.from({ length }, (_, index) => {
-      const income = incomeRows[index];
-      const expense = expenseRows[index];
+      const incomeLabel = INCOME[index];
+      const expenseLabel = EXPENSES[index];
       return `
         <div class="finance-sheet-ledger-row">
-          ${income ? rowCell(income.label, income.value, "income") : rowCell("", 0, "income", true)}
-          ${expense ? rowCell(expense.label, expense.value, "expense") : rowCell("", 0, "expense", true)}
+          ${incomeLabel ? rowCell(incomeLabel, totals.income.get(incomeLabel), "income") : rowCell("", 0, "income", true)}
+          ${expenseLabel ? rowCell(expenseLabel, totals.expenses.get(expenseLabel), "expense") : rowCell("", 0, "expense", true)}
         </div>
       `;
     }).join("");
   }
 
-  function sheetMarkup(month, transactions) {
+  function sheetMarkup({ monthLabel, carryover, newIncome, expenses, closing, totals }) {
     return `
-      <section class="finance-sheet-board" aria-label="${escapeHtml(month.label)} finance table">
+      <section class="finance-sheet-board" aria-label="${escapeHtml(monthLabel)} finance table">
         <div class="finance-sheet-title-row">
-          <div class="finance-sheet-month-name">${escapeHtml(month.label)}</div>
+          <div class="finance-sheet-month-name">${escapeHtml(monthLabel)}</div>
           <div class="finance-sheet-closing-label">Closing balance</div>
-          <div class="finance-sheet-closing-value">${formatVnd(month.projected.remaining)}</div>
+          <div class="finance-sheet-closing-value">${formatVnd(closing)}</div>
         </div>
         <div class="finance-sheet-summary-row">
           <div>Income</div>
-          <strong>${formatVnd(month.projected.income)}</strong>
+          <strong>${formatVnd(carryover + newIncome)}</strong>
           <div>Expenses</div>
-          <strong>${formatVnd(month.projected.expenses)}</strong>
+          <strong>${formatVnd(expenses)}</strong>
         </div>
         <div class="finance-sheet-section-row">
           <div><span>Income details</span><button type="button" data-sheet-add="income">+ Add</button></div>
           <div><span>Expense categories</span><button type="button" data-sheet-add="expense">+ Add</button></div>
         </div>
-        <div class="finance-sheet-ledger">${ledgerRows(month, transactions)}</div>
+        <div class="finance-sheet-ledger">${ledgerRows(totals, carryover)}</div>
         <footer class="finance-sheet-footnote">
-          <span>${statusText(transactions)}</span>
+          <span>${escapeHtml(totals.status)}</span>
           <span>Carryover is included in monthly Income but excluded from annual income.</span>
         </footer>
       </section>
@@ -122,54 +124,56 @@
     document.querySelector(`#finance-workspace [data-finance-add="${type}"]`)?.click();
   }
 
-  async function rebuildMonth(content) {
-    const toolbar = content.querySelector(".finance-month-toolbar");
-    const transactionsSection = content.querySelector(".finance-transactions");
-    const key = monthKeyFromHeading();
-    if (!toolbar || !transactionsSection || !key) return;
-    if (content.dataset.sheetMonth === key && content.querySelector(".finance-sheet-board")) {
-      revealAmounts(content);
-      return;
-    }
-
-    const version = ++requestVersion;
-    try {
-      const [summary, ledger] = await Promise.all([
-        getJson(`/api/finance/summary?year=${YEAR}&month=${key}`),
-        getJson(`/api/finance/transactions?year=${YEAR}&month=${key}`),
-      ]);
-      if (version !== requestVersion || !content.isConnected) return;
-      const month = summary.months?.find((item) => item.key === key) || summary.current;
-      const transactions = ledger.transactions || [];
-      const holder = document.createElement("div");
-      holder.innerHTML = sheetMarkup(month, transactions);
-      const board = holder.firstElementChild;
-      board.querySelector('[data-sheet-add="income"]')?.addEventListener("click", () => triggerAdd("income"));
-      board.querySelector('[data-sheet-add="expense"]')?.addEventListener("click", () => triggerAdd("expense"));
-
-      toolbar.classList.add("finance-sheet-month-toolbar");
-      transactionsSection.classList.add("finance-sheet-transactions");
-      const transactionTitle = transactionsSection.querySelector("h3");
-      if (transactionTitle) transactionTitle.textContent = "Transaction history";
-      content.replaceChildren(toolbar, board, transactionsSection);
-      content.dataset.sheetMonth = key;
-      revealAmounts(content);
-    } catch {
-      content.dataset.sheetMonth = "";
-    }
+  function keepTransactionAmountsVisible(section) {
+    section.querySelectorAll("[data-finance-value]").forEach((element) => {
+      const value = element.dataset.financeValue;
+      if (value) element.textContent = value;
+      element.removeAttribute("data-finance-value");
+      element.removeAttribute("data-finance-mask");
+    });
   }
 
-  function revealAmounts(content) {
-    content.classList.remove("finance-values-hidden");
-    content.querySelectorAll("[data-finance-value]").forEach((element) => {
-      if (element.dataset.financeValue) element.textContent = element.dataset.financeValue;
+  function rebuildMonth(content) {
+    if (content.querySelector(".finance-sheet-board")) return;
+
+    const toolbar = content.querySelector(".finance-month-toolbar");
+    const transactionsSection = content.querySelector(".finance-transactions");
+    const monthLabel = toolbar?.querySelector("strong")?.textContent.trim() || "";
+    const values = detailValues(content);
+    if (!toolbar || !transactionsSection || !monthLabel || !values.size) return;
+
+    const totals = transactionTotals(transactionsSection);
+    const holder = document.createElement("div");
+    holder.innerHTML = sheetMarkup({
+      monthLabel,
+      carryover: values.get("Carryover") || 0,
+      newIncome: values.get("New income") || 0,
+      expenses: values.get("Expenses") || 0,
+      closing: values.get("Closing balance") || 0,
+      totals,
     });
+    const board = holder.firstElementChild;
+    if (!board) return;
+
+    board.querySelector('[data-sheet-add="income"]')?.addEventListener("click", () => triggerAdd("income"));
+    board.querySelector('[data-sheet-add="expense"]')?.addEventListener("click", () => triggerAdd("expense"));
+
+    toolbar.classList.add("finance-sheet-month-toolbar");
+    transactionsSection.classList.add("finance-sheet-transactions");
+    const transactionTitle = transactionsSection.querySelector("h3");
+    if (transactionTitle) transactionTitle.textContent = "Transaction history";
+    keepTransactionAmountsVisible(transactionsSection);
+
+    content.classList.remove("finance-values-hidden");
+    content.replaceChildren(toolbar, board, transactionsSection);
+    content.dataset.sheetMonth = monthLabel;
   }
 
   function styleYear(content) {
     content.classList.add("finance-sheet-year-view");
-    content.querySelector(".finance-annual-cards")?.classList.remove("finance-bento-annual");
-    revealAmounts(content);
+    content.querySelectorAll("[data-finance-value]").forEach((element) => {
+      if (element.dataset.financeValue) element.textContent = element.dataset.financeValue;
+    });
   }
 
   function replaceDashboardRanking() {
