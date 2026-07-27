@@ -80,6 +80,14 @@ const syntaxChecks = [
   "src/features/ielts/core-diagnostic.js",
   "src/features/ielts/core-writing-review.js",
   "src/features/ielts/core-writing-rewrite.js",
+  "src/features/ielts/i18n-vi-base.js",
+  "src/features/ielts/i18n-vi-days-01-09.js",
+  "src/features/ielts/i18n-vi-days-10-16.js",
+  "src/features/ielts/i18n-vi-days-17-23.js",
+  "src/features/ielts/i18n-vi-days-24-31.js",
+  "src/features/ielts/i18n-vi-plan-runtime.js",
+  "src/features/ielts/i18n-vi-ui-text.js",
+  "src/features/ielts/i18n-vi-hooks.js",
   "src/pwa/sw.js",
   "scripts/build.mjs",
   "scripts/validate-ielts-sources.mjs",
@@ -98,10 +106,7 @@ async function exists(path) {
 }
 
 function runNode(args) {
-  const child = spawn(process.execPath, args, {
-    cwd: root,
-    stdio: "inherit",
-  });
+  const child = spawn(process.execPath, args, { cwd: root, stdio: "inherit" });
   return new Promise((resolveExit, reject) => {
     child.once("error", reject);
     child.once("exit", (code, signal) => {
@@ -131,9 +136,7 @@ try {
     }
   }
 
-  if (!process.exitCode) {
-    process.exitCode = await runNode(["--test"]);
-  }
+  if (!process.exitCode) process.exitCode = await runNode(["--test"]);
 } finally {
   await Promise.allSettled(created.reverse().map((path) => rm(path, { recursive: true, force: true })));
 }
