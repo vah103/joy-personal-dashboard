@@ -8,14 +8,20 @@ function read(path) {
   return fs.readFileSync(new URL(path, root), "utf8");
 }
 
-test("IELTS dashboard card uses the real document artwork and stays responsive", () => {
+test("IELTS dashboard card loads the August Coach and stays responsive", () => {
   const build = read("scripts/build.mjs");
   const css = read("project-data/ielts/ielts-card.css");
   const script = read("project-data/ielts/ielts-card.js");
+  const actions = read("project-data/ielts/ielts-core-actions.js");
   const image = new URL("../project-data/ielts/ielts-card-background.webp", import.meta.url);
 
   assert.ok(build.includes("project-data/ielts/ielts-card.css?v=ielts-card-v2"));
-  assert.ok(build.includes("project-data/ielts/ielts-card.js?v=ielts-card-v2"));
+  assert.ok(build.includes("project-data/ielts/ielts-core.css?v=ielts-august-core-v2"));
+  assert.ok(build.includes("project-data/ielts/ielts-core-polish.css?v=ielts-august-core-v2"));
+  assert.ok(build.includes("project-data/ielts/ielts-core-model.js?v=ielts-august-core-v2"));
+  assert.ok(build.includes("project-data/ielts/ielts-core-ui.js?v=ielts-august-core-v2"));
+  assert.ok(build.includes("project-data/ielts/ielts-core-actions.js?v=ielts-august-core-v2"));
+  assert.ok(build.includes("project-data/ielts/ielts-card.js?v=ielts-card-v3"));
   assert.ok(fs.existsSync(image));
   assert.ok(fs.statSync(image).size > 50_000);
 
@@ -26,8 +32,10 @@ test("IELTS dashboard card uses the real document artwork and stays responsive",
 
   assert.ok(script.includes('card.classList.add("ielts-project-card")'));
   assert.ok(script.includes("Target Band 7.0"));
-  assert.ok(script.includes('if (progressValue) progressValue.textContent = "32%"'));
-  assert.ok(script.includes('progressFill.style.width = "32%"'));
+  assert.ok(script.includes("if (window.JoyIELTS) return"));
+  assert.ok(script.includes("Loading August Core"));
   assert.ok(script.includes("childList: true"));
   assert.ok(!script.includes("subtree: true"));
+  assert.ok(actions.includes("stopImmediatePropagation"));
+  assert.ok(actions.includes("},true);"));
 });
