@@ -2,7 +2,7 @@
   const notice = document.querySelector("#weather-rain-notice");
   if (!notice) return;
 
-  const ENDPOINT = "https://api.open-meteo.com/v1/forecast?latitude=21.0285&longitude=105.8542&hourly=precipitation_probability&timezone=Asia%2FHo_Chi_Minh&forecast_days=1";
+  const ENDPOINT = "https://api.open-meteo.com/v1/forecast?latitude=21.0285&longitude=105.8542&hourly=precipitation_probability,weather_code&timezone=Asia%2FHo_Chi_Minh&forecast_days=1";
   const REFRESH_MS = 15 * 60_000;
   const RAIN_PROBABILITY_THRESHOLD = 80;
 
@@ -64,9 +64,13 @@
     const probabilities = Array.isArray(hourly?.precipitation_probability)
       ? hourly.precipitation_probability
       : [];
+    const weatherCodes = Array.isArray(hourly?.weather_code)
+      ? hourly.weather_code
+      : [];
     const current = vietnamClock(now);
     const currentMinute = current.hour * 60 + current.minute;
     const rainHours = [];
+    const daylightHours = [];
 
     times.forEach((time, index) => {
       const value = String(time || "");
@@ -75,6 +79,12 @@
       const endHour = Number(value.slice(11, 13));
       if (!Number.isInteger(endHour) || endHour <= 0) return;
       const startHour = endHour - 1;
+      const weatherCode = Number(weatherCodes[index]);
+
+      if (startHour >= 6 && startHour < 18) {
+        daylightHours.push({ startHour, endHour, weatherCode });
+      }
+
       if (endHour * 60 <= currentMinute) return;
 
       const probability = Number(probabilities[index] || 0);
@@ -100,7 +110,15 @@
       };
     }
 
-    return { state: "chill", text: "No rain is expected." };
+    const sunnyHours = daylightHours.filter(({ weatherCode }) => (
+      weatherCode === 0 || weatherCode === 1
+    )).length;
+    const isSunny = daylightHours.length >= 4
+      && sunnyHours >= Math.ceil(daylightHours.length / 2);
+
+    return isSunny
+      ? { state: "sunny", text: "It’s a sunny day." }
+      : { state: "chill", text: "No rain is expected." };
   }
 
   function vietnamClock(now) {
