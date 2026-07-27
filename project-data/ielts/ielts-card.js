@@ -1,12 +1,12 @@
 (() => {
   const CORE_STYLES = [
-    ["joy-ielts-core-style", "project-data/ielts/ielts-core.css?v=ielts-august-core-v1"],
-    ["joy-ielts-core-polish", "project-data/ielts/ielts-core-polish.css?v=ielts-august-core-v1"],
+    ["joy-ielts-core-style", "project-data/ielts/ielts-core.css?v=ielts-august-core-v2"],
+    ["joy-ielts-core-polish", "project-data/ielts/ielts-core-polish.css?v=ielts-august-core-v2"],
   ];
   const CORE_SCRIPT_IDS = [
-    ["joy-ielts-core-model", "project-data/ielts/ielts-core-model.js?v=ielts-august-core-v1"],
-    ["joy-ielts-core-ui", "project-data/ielts/ielts-core-ui.js?v=ielts-august-core-v1"],
-    ["joy-ielts-core-actions", "project-data/ielts/ielts-core-actions.js?v=ielts-august-core-v1"],
+    ["joy-ielts-core-model", "project-data/ielts/ielts-core-model.js?v=ielts-august-core-v2"],
+    ["joy-ielts-core-ui", "project-data/ielts/ielts-core-ui.js?v=ielts-august-core-v2"],
+    ["joy-ielts-core-actions", "project-data/ielts/ielts-core-actions.js?v=ielts-august-core-v2"],
   ];
 
   function loadScript(id, src) {
@@ -31,6 +31,8 @@
   }
 
   async function loadAugustCore() {
+    if (window.JoyIELTS) return;
+
     CORE_STYLES.forEach(([id, href]) => {
       if (document.querySelector(`#${id}`)) return;
       const link = document.createElement("link");
@@ -73,7 +75,9 @@
       if (!card.querySelector(".ielts-project-source")) {
         const source = document.createElement("small");
         source.className = "ielts-project-source";
-        source.textContent = "Loading August Core…";
+        source.textContent = window.JoyIELTS
+          ? "August Core ready · Open coach"
+          : "Loading August Core…";
         card.append(source);
       }
     });
