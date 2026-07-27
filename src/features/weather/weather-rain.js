@@ -1,14 +1,6 @@
 (function registerJoyWeather(root) {
   const TIME_ZONE = "Asia/Ho_Chi_Minh";
-
-  /*
-   * Conservative dashboard thresholds.
-   * Weak or uncertain rain signals are intentionally not announced.
-   */
-  const HIGH_PROBABILITY = 70;
-  const VERY_HIGH_PROBABILITY = 80;
-  const SUPPORTING_AMOUNT_MM = 0.3;
-  const STRONG_AMOUNT_MM = 1;
+  const RAIN_PROBABILITY_THRESHOLD = 80;
 
   function vietnamClock(now) {
     const parts = new Intl.DateTimeFormat("en-CA", {
@@ -31,34 +23,12 @@
     };
   }
 
-  function isRainWeatherCode(code) {
-    return (code >= 51 && code <= 67)
-      || (code >= 80 && code <= 82)
-      || (code >= 95 && code <= 99);
-  }
-
   function hourLabel(hour) {
     return `${String(Math.max(0, Math.min(24, hour))).padStart(2, "0")}:00`;
   }
 
-  function hasStrongRainSignal({
-    probability,
-    amount,
-    weatherCode,
-  }) {
-    const meaningfulHighProbability =
-      probability >= HIGH_PROBABILITY
-      && amount >= SUPPORTING_AMOUNT_MM;
-
-    const strongRainAmount = amount >= STRONG_AMOUNT_MM;
-
-    const veryHighSupportedProbability =
-      probability >= VERY_HIGH_PROBABILITY
-      && isRainWeatherCode(weatherCode);
-
-    return meaningfulHighProbability
-      || strongRainAmount
-      || veryHighSupportedProbability;
+  function hasRainSignal({ probability }) {
+    return Number(probability || 0) >= RAIN_PROBABILITY_THRESHOLD;
   }
 
   function summarizeRainForecast(hourly, now = new Date()) {
@@ -71,26 +41,16 @@
         ? hourly.precipitation_probability
         : [];
 
-    const precipitation =
-      Array.isArray(hourly?.precipitation)
-        ? hourly.precipitation
-        : [];
-
-    const weatherCodes =
-      Array.isArray(hourly?.weather_code)
-        ? hourly.weather_code
-        : [];
-
     if (!times.length) {
       return {
         state: "quiet",
-        text: "",
+        text: "No rain is expected.",
       };
     }
 
     const current = vietnamClock(now);
     const currentMinute = current.hour * 60 + current.minute;
-    const strongHours = [];
+    const rainHours = [];
 
     times.forEach((time, index) => {
       const value = String(time || "");
@@ -114,25 +74,23 @@
         startHour,
         endHour,
         probability: Number(probabilities[index] || 0),
-        amount: Number(precipitation[index] || 0),
-        weatherCode: Number(weatherCodes[index]),
       };
 
-      if (hasStrongRainSignal(entry)) {
-        strongHours.push(entry);
+      if (hasRainSignal(entry)) {
+        rainHours.push(entry);
       }
     });
 
-    if (!strongHours.length) {
+    if (!rainHours.length) {
       return {
         state: "quiet",
-        text: "",
+        text: "No rain is expected.",
       };
     }
 
     const groups = [];
 
-    strongHours.forEach((entry) => {
+    rainHours.forEach((entry) => {
       const currentGroup = groups.at(-1);
       const previous = currentGroup?.at(-1);
 
@@ -152,7 +110,7 @@
 
     return {
       state: "rain",
-      text: `Strong rain signal: ${windows.join(" and ")}`,
+      text: `Rain probability is at least 80%: ${windows.join(" and ")}`,
     };
   }
 
