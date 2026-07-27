@@ -247,7 +247,7 @@
     const noteInput = form.querySelector('.finance-ledger-note-field input');
     const selectedSubcategory = form.querySelector("[data-ledger-subcategory].is-selected")?.dataset.ledgerSubcategory || "";
     const error = form.querySelector(".finance-ledger-error");
-    const submit = form.querySelector("button[type="submit"]");
+    const submit = form.querySelector('button[type="submit"]');
     const monthKey = form.closest(".finance-ledger-board")?.dataset.monthKey || document.querySelector(".finance-ledger-board")?.dataset.monthKey || "";
     const amount = Number(amountInput?.value || 0);
     const type = item.dataset.type;
