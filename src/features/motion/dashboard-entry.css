@@ -1,0 +1,108 @@
+/* Dashboard entry motion is isolated from Finance so feature changes cannot remove it. */
+@keyframes joy-enter-left {
+  from { opacity: 0; transform: translateX(-34px); filter: blur(4px); }
+  to { opacity: 1; transform: translateX(0); filter: blur(0); }
+}
+
+@keyframes joy-enter-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes joy-enter-soft {
+  from { opacity: 0; transform: translateY(26px) scale(.965); filter: blur(5px); }
+  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+@keyframes joy-greeting-run {
+  0% { opacity: 0; transform: translate3d(-72px,10px,0); filter: blur(9px); }
+  68% { opacity: 1; transform: translate3d(7px,0,0); filter: blur(0); }
+  84% { transform: translate3d(-2px,0,0); }
+  100% { opacity: 1; transform: translate3d(0,0,0); filter: blur(0); }
+}
+
+@keyframes joy-label-drop {
+  from { opacity: 0; transform: translateY(-10px); letter-spacing: .28em; }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes joy-avatar-pop {
+  0% { opacity: 0; transform: scale(.55) rotate(-12deg); }
+  68% { opacity: 1; transform: scale(1.1) rotate(3deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0); }
+}
+
+@keyframes joy-character-arrive {
+  0% { opacity: 0; transform: translate3d(-14px,16px,0) rotate(-3deg); filter: blur(4px); }
+  72% { opacity: 1; transform: translate3d(2px,-1px,0) rotate(.35deg); filter: blur(0); }
+  100% { opacity: 1; transform: translate3d(0,0,0) rotate(0); filter: blur(0); }
+}
+
+@keyframes joy-finance-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+.sidebar { animation: joy-enter-left 620ms cubic-bezier(.2,.75,.25,1) both; }
+.topbar { animation: joy-enter-up 560ms 70ms cubic-bezier(.2,.75,.25,1) both; }
+.weather-card { animation: joy-enter-soft 560ms 150ms cubic-bezier(.2,.75,.25,1) both; }
+.joy-brief { animation: joy-enter-soft 560ms 220ms cubic-bezier(.2,.75,.25,1) both; }
+.projects-panel { animation: joy-enter-soft 620ms 280ms cubic-bezier(.2,.75,.25,1) both; }
+.todo-panel { animation: joy-enter-soft 620ms 340ms cubic-bezier(.2,.75,.25,1) both; }
+.finance-panel { animation: joy-enter-soft 620ms 400ms cubic-bezier(.2,.75,.25,1) both; }
+.sales-panel { animation: joy-enter-soft 620ms 460ms cubic-bezier(.2,.75,.25,1) both; }
+.email-panel { animation: joy-enter-soft 620ms 520ms cubic-bezier(.2,.75,.25,1) both; }
+
+#today-label { animation: joy-label-drop 620ms 160ms cubic-bezier(.2,.8,.25,1) both; }
+#greeting { animation: none; }
+.joy-motion-word { display: inline-block; white-space: nowrap; }
+.joy-motion-character {
+  display: inline-block;
+  opacity: 0;
+  will-change: transform, opacity, filter;
+  animation: joy-character-arrive 680ms cubic-bezier(.2,.82,.25,1) both;
+  animation-delay: calc(240ms + var(--joy-character-index) * 58ms);
+}
+
+.header-avatar { animation: joy-avatar-pop 720ms 620ms cubic-bezier(.2,.85,.25,1) both; }
+.header-actions .icon-button { animation: joy-avatar-pop 620ms 520ms cubic-bezier(.2,.85,.25,1) both; }
+.brand { animation: joy-greeting-run 900ms 100ms cubic-bezier(.16,.8,.2,1) both; }
+.finance-series-remaining {
+  stroke-dasharray: 900;
+  stroke-dashoffset: 900;
+  animation: joy-finance-draw 1100ms 700ms ease-out forwards;
+}
+
+.nav-item, .panel, .weather-card, .joy-brief {
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .topbar,
+  .weather-card,
+  .joy-brief,
+  .projects-panel,
+  .todo-panel,
+  .finance-panel,
+  .sales-panel,
+  .email-panel,
+  .finance-series-remaining,
+  #today-label,
+  #greeting,
+  .joy-motion-character,
+  .header-avatar,
+  .header-actions .icon-button,
+  .brand {
+    animation: none !important;
+  }
+
+  .nav-item, .panel, .weather-card, .joy-brief {
+    transition: none !important;
+  }
+
+  .joy-motion-character {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
