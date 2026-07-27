@@ -60,6 +60,7 @@ const syntaxChecks = [
   "worker/sale-viewing-create.js",
   "worker/router.js",
   "worker/ielts-core.js",
+  "worker/ielts-diagnostic-review.js",
   "worker/task-delete.js",
   "worker/task-english.js",
   "src/pages/sale/room-summary.js",
@@ -75,6 +76,8 @@ const syntaxChecks = [
   "project-data/ielts/ielts-core-ui.js",
   "project-data/ielts/ielts-core-actions.js",
   "project-data/ielts/ielts-core-diagnostic.js",
+  "project-data/ielts/ielts-core-writing-review.js",
+  "project-data/ielts/ielts-core-writing-review-freshness.js",
   "scripts/build.mjs",
 ];
 
