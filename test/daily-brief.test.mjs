@@ -9,7 +9,7 @@ async function source(path) {
 }
 
 test("Daily Brief is wired into the Worker and dashboard", async () => {
-  const [service, policy, router, wrangler, build, script, styles] = await Promise.all([
+  const [service, policy, router, wrangler, build, script, styles, polish] = await Promise.all([
     source("worker/daily-brief.js"),
     source("worker/daily-brief-policy.js"),
     source("worker/router.js"),
@@ -17,6 +17,7 @@ test("Daily Brief is wired into the Worker and dashboard", async () => {
     source("scripts/build.mjs"),
     source("src/features/greeting/greeting-layout.js"),
     source("src/features/greeting/greeting-layout.css"),
+    source("src/features/greeting/daily-brief-polish.js"),
   ]);
 
   assert.match(service, /const DAILY_BRIEF_PATH = "\/api\/daily-brief"/);
@@ -29,16 +30,18 @@ test("Daily Brief is wired into the Worker and dashboard", async () => {
   assert.match(router, /daily-brief-policy\.js/);
   assert.match(router, /runDailyBriefSchedule/);
   assert.match(wrangler, /"ai"\s*:\s*\{\s*"binding"\s*:\s*"AI"/s);
-  assert.match(build, /greeting-layout\.css\?v=joy-daily-brief-v3/);
-  assert.match(build, /greeting-layout\.js\?v=joy-daily-brief-v3/);
+  assert.match(build, /greeting-layout\.css\?v=joy-daily-brief-v4/);
+  assert.match(build, /greeting-layout\.js\?v=joy-daily-brief-v4/);
+  assert.match(build, /daily-brief-polish\.js\?v=joy-daily-brief-polish-v1/);
   assert.match(script, /window\.fetch\("\/api\/daily-brief"/);
   assert.match(script, /daily-brief-drawer/);
   assert.match(script, /const ROTATION_MS = 20_000/);
   assert.match(script, /daily-brief-personal/);
-  assert.match(script, /font-size: 6\.25px/);
   assert.match(script, /data-brief-next/);
   assert.doesNotMatch(script, /data-brief-prev/);
   assert.doesNotMatch(script, /data-brief-counter/);
+  assert.match(polish, /font-size: 8\.25px/);
+  assert.match(polish, /bottom: 7px/);
   assert.match(styles, /\.joy-brief\.daily-brief-enabled/);
   assert.match(styles, /\.daily-brief-drawer-backdrop/);
 });
