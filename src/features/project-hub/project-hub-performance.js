@@ -29,6 +29,30 @@
     script.src = "/project-data/turtlebot4/project-state-v2.js?v=turtlebot-project-state-v2";
     script.dataset.turtlebotProjectStateV2 = "true";
     script.async = false;
+
+    const syncCurrentStage = () => {
+      if (!window.hubState?.projectState || typeof getStages !== "function" || typeof effectiveStage !== "function") return;
+      const included = new Set(hubState.projectState.scope?.includedStageIds || []);
+      const stages = getStages().map(effectiveStage).filter((stage) => !included.size || included.has(stage.id));
+      if (!stages.length) return;
+      const configuredId = hubState.projectState.project?.currentStageId;
+      const configuredIndex = Math.max(0, stages.findIndex((stage) => stage.id === configuredId));
+      const next = stages.slice(configuredIndex).find((stage) => stage.progress < 100)
+        || stages.find((stage) => stage.progress < 100)
+        || stages.at(-1);
+      if (next?.id) hubState.projectState.project.currentStageId = next.id;
+    };
+
+    script.addEventListener("load", () => {
+      const apply = () => {
+        syncCurrentStage();
+        if (typeof updateTurtleBotCard === "function") updateTurtleBotCard();
+        if (typeof renderHub === "function" && !document.querySelector("#turtlebot-hub-modal")?.hidden) renderHub();
+      };
+      setTimeout(apply, 0);
+      document.addEventListener("change", () => setTimeout(apply, 0));
+    });
+
     document.body.append(script);
   });
 })();
