@@ -1,4 +1,25 @@
 (() => {
+  const CORE_STYLE_ID = "joy-ielts-core-style";
+  const CORE_SCRIPT_ID = "joy-ielts-core-script";
+
+  function loadAugustCore() {
+    if (!document.querySelector(`#${CORE_STYLE_ID}`)) {
+      const link = document.createElement("link");
+      link.id = CORE_STYLE_ID;
+      link.rel = "stylesheet";
+      link.href = "project-data/ielts/ielts-core.css?v=ielts-august-core-v1";
+      document.head.append(link);
+    }
+
+    if (!document.querySelector(`#${CORE_SCRIPT_ID}`)) {
+      const script = document.createElement("script");
+      script.id = CORE_SCRIPT_ID;
+      script.src = "project-data/ielts/ielts-core.js?v=ielts-august-core-v1";
+      script.defer = true;
+      document.body.append(script);
+    }
+  }
+
   function enhanceIeltsCard() {
     document.querySelectorAll("#project-list .project-card").forEach((card) => {
       const title = card.querySelector(".project-top > strong");
@@ -6,17 +27,10 @@
 
       card.classList.add("ielts-project-card");
 
-      /* IELTS dashboard progress override */
-      const progressValue = card.querySelector(".project-top span");
-      const progressFill = card.querySelector(".progress-track span");
-
-      if (progressValue) progressValue.textContent = "32%";
-      if (progressFill) progressFill.style.width = "32%";
-
       if (!card.querySelector(".ielts-subtitle")) {
         const subtitle = document.createElement("small");
         subtitle.className = "ielts-subtitle";
-        subtitle.textContent = "Band 7.0 target project";
+        subtitle.textContent = "August Intensive · Personal IELTS Coach";
         title.insertAdjacentElement("afterend", subtitle);
       }
 
@@ -30,7 +44,7 @@
       if (!card.querySelector(".ielts-project-source")) {
         const source = document.createElement("small");
         source.className = "ielts-project-source";
-        source.textContent = "Study log live · Open project hub";
+        source.textContent = "Loading August Core…";
         card.append(source);
       }
     });
@@ -44,4 +58,5 @@
   }
 
   enhanceIeltsCard();
+  loadAugustCore();
 })();
