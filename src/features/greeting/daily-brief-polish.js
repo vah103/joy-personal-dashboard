@@ -1,5 +1,5 @@
 (() => {
-  const styleId = "joy-daily-brief-polish-v2";
+  const styleId = "joy-daily-brief-polish-v3";
   if (document.getElementById(styleId)) return;
 
   const style = document.createElement("style");
@@ -57,6 +57,26 @@
       font-size: 13px !important;
     }
 
+    .daily-brief-tag[data-category="ai"] {
+      background: rgba(216, 233, 240, .88) !important;
+      color: #315f72 !important;
+    }
+
+    .daily-brief-tag[data-category="robotics"] {
+      background: rgba(222, 232, 236, .88) !important;
+      color: #405f6c !important;
+    }
+
+    .daily-brief-tag[data-category="money"] {
+      background: rgba(225, 235, 228, .9) !important;
+      color: #456a54 !important;
+    }
+
+    .daily-brief-tag[data-category="markets"] {
+      background: rgba(235, 232, 222, .9) !important;
+      color: #6d6045 !important;
+    }
+
     @media (max-width: 760px) {
       html body .joy-brief.daily-brief-news-first {
         min-height: 94px !important;
@@ -83,4 +103,17 @@
   `;
 
   document.head.append(style);
+
+  const drawer = document.querySelector(".daily-brief-drawer");
+  const sections = drawer ? [...drawer.querySelectorAll(".daily-brief-drawer-body > section")] : [];
+  const headings = [
+    "What happened",
+    "Money, opportunity & risk",
+    "What to watch",
+  ];
+
+  sections.slice(0, headings.length).forEach((section, index) => {
+    const heading = section.querySelector("h3");
+    if (heading) heading.textContent = headings[index];
+  });
 })();
