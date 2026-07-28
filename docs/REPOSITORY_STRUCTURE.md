@@ -14,7 +14,7 @@ joy-personal-dashboard/
 │   │   ├── ielts/              # IELTS Coach source, baseline, AI review, and rewrite
 │   │   ├── notifications/      # Web Push client, mobile styling, weather status
 │   │   ├── project-details/    # Project detail modal
-│   │   ├── project-hub/        # TurtleBot4 Project Hub and card artwork
+│   │   ├── project-hub/        # TurtleBot4 Project Hub and card artwork only
 │   │   ├── sales/              # Sales assistant and appointment behavior
 │   │   ├── tasks/              # To-do visibility, English rewrite, and reminders
 │   │   └── weather/            # Dashboard weather forecast helper
@@ -24,10 +24,12 @@ joy-personal-dashboard/
 │   └── pwa/                    # Manifest and service worker
 ├── project-data/
 │   ├── ielts/                  # Public curriculum JSON, styles, and card artwork
-│   └── turtlebot4/             # TurtleBot4 project data and public assets
-├── worker/                     # Cloudflare API and scheduled jobs
-├── migrations/                 # D1 schema migrations
-├── scripts/                    # Build, source validation, and test runner
+│   ├── turtlebot4/             # TurtleBot4 project data and public assets
+│   ├── vocabulary/             # Stable Vocabulary browser bundle
+│   └── speaking/               # Stable Say it browser bundle
+├── worker/                     # Cloudflare APIs and scheduled jobs
+├── migrations/                 # Append-only D1 schema migrations
+├── scripts/                    # Build, injection, validation, cache, and test runner
 ├── test/                       # Regression tests
 ├── docs/                       # Setup and architecture documentation
 ├── package.json
@@ -37,13 +39,19 @@ joy-personal-dashboard/
 
 ## Build behavior
 
-`scripts/build.mjs` reads source files from `src/` and writes stable public filenames into `dist/`. This keeps existing browser URLs, service-worker paths, app icons, and Cloudflare asset routes unchanged after repository reorganization.
+`scripts/build.mjs` reads source files from `src/` and writes stable public filenames into `dist/`. The IELTS core files are combined into one isolated browser bundle during that build.
 
-The IELTS source is maintained in `src/features/ielts/`. Its core files are combined into one isolated browser bundle during the build, while curriculum JSON and public styles remain in `project-data/ielts/`.
+`scripts/inject-language-tools.mjs` then attaches Vocabulary and Say it directly to the dashboard. Their order is deliberate: Vocabulary creates the widget headings first, then Say it adds its action. Neither tool is owned or loaded by Project Hub.
+
+`scripts/cache-bust-turtlebot-plan.mjs` performs the final TurtleBot-specific cache update. Build stages remain separate so a feature cannot silently become responsible for an unrelated feature.
+
+## Stable public assets
+
+`project-data/` is copied recursively into `dist/project-data/`. Files in this directory are either public project data or browser assets with stable deployed URLs. New reusable source should normally be created under `src/features/`; do not add a new cross-feature loader merely to preserve an old URL.
 
 ## Test compatibility
 
-Some older regression tests intentionally inspect the previous root filenames. `scripts/run-tests.mjs` creates temporary local symlinks while tests run and removes them afterward. These compatibility files are never committed and do not clutter the repository.
+Some older regression tests intentionally inspect previous root filenames. `scripts/run-tests.mjs` creates temporary local symlinks while tests run and removes them afterward. These compatibility files are never committed and do not clutter the repository.
 
 ## Removed fallback
 
