@@ -8,6 +8,7 @@ const replacements = [
   ["project-hub-performance.js?v=turtlebot-hub-v5", "project-hub-performance.js?v=turtlebot-read-only-plan-v1"],
   ["finance-amount-shortcut-v1.js?v=joy-finance-amount-shortcut-v1", "finance-amount-shortcut-v1.js?v=joy-finance-amount-shortcut-v2"],
 ];
+const turtleBotTabsScript = '    <script src="project-data/turtlebot4/project-hub-tabs-v1.js?v=turtlebot-hub-tabs-v1" defer></script>\n';
 
 let html = await readFile(indexPath, "utf8");
 for (const [oldReference, newReference] of replacements) {
@@ -15,6 +16,11 @@ for (const [oldReference, newReference] of replacements) {
     throw new Error(`Build asset reference was not found in dist/index.html: ${oldReference}`);
   }
   html = html.replaceAll(oldReference, newReference);
+}
+
+if (!html.includes("project-hub-tabs-v1.js?v=turtlebot-hub-tabs-v1")) {
+  if (!html.includes("</body>")) throw new Error("Closing body tag was not found in dist/index.html");
+  html = html.replace("</body>", `${turtleBotTabsScript}  </body>`);
 }
 
 await writeFile(indexPath, html);
