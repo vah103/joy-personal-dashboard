@@ -8,8 +8,9 @@ const loaderPath = resolve(root, "dist", "project-hub-performance.js");
 const oldIndexReferences = [
   "project-hub-performance.js?v=turtlebot-hub-v5",
   "project-hub-performance.js?v=turtlebot-read-only-plan-v1",
+  "project-hub-performance.js?v=turtlebot-reference-no-progress-v2",
 ];
-const newIndexReference = "project-hub-performance.js?v=turtlebot-reference-no-progress-v2";
+const newIndexReference = "project-hub-performance.js?v=turtlebot-tabs-cleanup-v3";
 
 const html = await readFile(indexPath, "utf8");
 if (!oldIndexReferences.some((reference) => html.includes(reference)) && !html.includes(newIndexReference)) {
@@ -23,18 +24,6 @@ oldIndexReferences.forEach((reference) => {
 await writeFile(indexPath, nextHtml);
 
 const loader = await readFile(loaderPath, "utf8");
-const nextLoader = loader
-  .replaceAll(
-    "project-plan-v3-reference-ui.js?v=turtlebot-read-only-plan-v1",
-    "project-plan-v3-reference-ui.js?v=turtlebot-reference-no-progress-v2",
-  )
-  .replaceAll("loadFlexiblePeriods();", "loadReferencePlan();")
-  .replaceAll(
-    'script.addEventListener("load", loadFlexiblePeriods, { once: true });',
-    'script.addEventListener("load", loadReferencePlan, { once: true });',
-  );
-
-if (nextLoader === loader) {
-  throw new Error("TurtleBot Project Hub loader was not updated for the no-progress plan");
+if (!loader.includes("project-hub-tabs-cleanup.js?v=turtlebot-tabs-cleanup-v1")) {
+  throw new Error("TurtleBot tab cleanup loader was not found in the built frontend");
 }
-await writeFile(loaderPath, nextLoader);
