@@ -26,3 +26,77 @@
 #turtlebot-hub-modal * {
   font-family: "Nunito", ui-rounded, "Arial Rounded MT Bold", system-ui, sans-serif !important;
 }
+
+#turtlebot-hub-modal .turtlebot-hub {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+#turtlebot-hub-modal .turtlebot-hub-header-with-tabs {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 24px;
+}
+
+#turtlebot-hub-modal .turtlebot-hub-header-with-tabs .turtlebot-hub-title {
+  min-width: 0;
+}
+
+#turtlebot-hub-modal .turtlebot-hub-header-with-tabs .turtlebot-hub-tabs {
+  min-width: 0;
+  align-self: center;
+  justify-content: flex-start;
+  overflow-x: auto;
+  padding: 0;
+  border-bottom: 0;
+  background: transparent;
+  scrollbar-width: none;
+}
+
+#turtlebot-hub-modal .turtlebot-hub-header-with-tabs .turtlebot-hub-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+#turtlebot-hub-modal .turtlebot-hub-header-with-tabs .turtlebot-hub-tabs button {
+  flex: 0 0 auto;
+  padding: 9px 12px;
+  white-space: nowrap;
+}
+
+#turtlebot-hub-modal .turtlebot-hub-header-with-tabs .turtlebot-hub-header-actions {
+  justify-self: end;
+}
+
+@media (max-width: 1100px) {
+  #turtlebot-hub-modal .turtlebot-hub-header-with-tabs {
+    grid-template-columns: minmax(0, 1fr) max-content;
+    gap: 10px 16px;
+  }
+
+  #turtlebot-hub-modal .turtlebot-hub-header-with-tabs .turtlebot-hub-title {
+    grid-column: 1;
+  }
+
+  #turtlebot-hub-modal .turtlebot-hub-header-with-tabs .turtlebot-hub-header-actions {
+    grid-column: 2;
+  }
+
+  #turtlebot-hub-modal .turtlebot-hub-header-with-tabs .turtlebot-hub-tabs {
+    width: 100%;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    padding-top: 2px;
+  }
+}
+
+@media (max-width: 600px) {
+  #turtlebot-hub-modal .turtlebot-hub-header-with-tabs {
+    padding: 12px 14px;
+  }
+
+  #turtlebot-hub-modal .turtlebot-hub-header-with-tabs .turtlebot-hub-tabs button {
+    padding: 8px 10px;
+    font-size: .74rem;
+  }
+}
