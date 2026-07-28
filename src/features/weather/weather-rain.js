@@ -22,8 +22,7 @@
       hourCycle: "h23",
     }).formatToParts(now);
 
-    const value = (type) =>
-      parts.find((part) => part.type === type)?.value || "";
+    const value = (type) => parts.find((part) => part.type === type)?.value || "";
 
     return {
       dateKey: `${value("year")}-${value("month")}-${value("day")}`,
@@ -47,11 +46,8 @@
       const currentGroup = groups.at(-1);
       const previous = currentGroup?.at(-1);
 
-      if (!previous || entry.startHour !== previous.endHour) {
-        groups.push([entry]);
-      } else {
-        currentGroup.push(entry);
-      }
+      if (!previous || entry.startHour !== previous.endHour) groups.push([entry]);
+      else currentGroup.push(entry);
     });
 
     return groups.map((group) => (
@@ -65,12 +61,7 @@
       ? hourly.precipitation_probability
       : [];
 
-    if (!times.length) {
-      return {
-        state: "quiet",
-        text: "No rain is expected.",
-      };
-    }
+    if (!times.length) return { state: "quiet", text: "No rain is expected." };
 
     const current = vietnamClock(now);
     const currentMinute = current.hour * 60 + current.minute;
@@ -80,10 +71,6 @@
       const value = String(time || "");
       if (!value.startsWith(current.dateKey)) return;
 
-      /*
-       * Open-Meteo hourly precipitation belongs to the preceding hour.
-       * A value stamped 20:00 describes approximately 19:00–20:00.
-       */
       const endHour = Number(value.slice(11, 13));
       if (!Number.isInteger(endHour) || endHour <= 0) return;
 
@@ -97,12 +84,7 @@
       if (hasRainSignal(entry)) rainHours.push(entry);
     });
 
-    if (!rainHours.length) {
-      return {
-        state: "quiet",
-        text: "No rain is expected.",
-      };
-    }
+    if (!rainHours.length) return { state: "quiet", text: "No rain is expected." };
 
     return {
       state: "rain",
@@ -169,7 +151,7 @@
       return {
         state: "rain",
         icon: "☂",
-        text: `Rain is expected at ${groupRainWindows(rainHours).join(" and ")}.`,
+        text: `Rain at ${groupRainWindows(rainHours).join(" and ")}.`,
       };
     }
 
@@ -239,7 +221,7 @@
         <header class="joy-weather-week-heading">
           <div>
             <p>Hanoi weather</p>
-            <h2 id="joy-weather-week-title">7-day weather</h2>
+            <h2 id="joy-weather-week-title">Weekly forecast</h2>
             <span>Yesterday, today, and the next five days</span>
           </div>
           <button type="button" aria-label="Close weather overview">×</button>
@@ -260,7 +242,7 @@
       .weather-card.joy-weather-week-trigger {
         position: relative;
         cursor: pointer;
-        transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+        transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
       }
       .weather-card.joy-weather-week-trigger::after {
         content: "7 days ↗";
@@ -269,7 +251,7 @@
         bottom: 6px;
         color: #58717b;
         font-size: 8px;
-        font-weight: 700;
+        font-weight: 800;
         letter-spacing: .04em;
       }
       .weather-card.joy-weather-week-trigger:hover {
@@ -286,20 +268,24 @@
         z-index: 95;
         display: grid;
         place-items: center;
-        padding: 18px;
-        background: rgba(18, 21, 23, .62);
-        backdrop-filter: blur(12px);
+        padding: 22px;
+        background: rgba(18, 21, 23, .58);
+        backdrop-filter: blur(14px);
       }
       .joy-weather-week-backdrop[hidden] { display: none !important; }
       .joy-weather-week-modal {
-        width: min(1080px, 100%);
+        width: min(1110px, 100%);
         max-height: min(88vh, 720px);
         overflow: auto;
-        padding: 22px;
-        border: 1px solid rgba(255,255,255,.1);
-        border-radius: 24px;
-        background: #f3f0eb;
-        box-shadow: 0 34px 100px rgba(14, 17, 19, .42);
+        padding: 25px 25px 21px;
+        border: 1px solid rgba(255, 255, 255, .16);
+        border-radius: 28px;
+        background:
+          radial-gradient(circle at 92% 0%, rgba(171, 197, 207, .28), transparent 25rem),
+          linear-gradient(180deg, #f7f4ef 0%, #f0ece6 100%);
+        box-shadow:
+          0 36px 100px rgba(14, 17, 19, .34),
+          inset 0 1px rgba(255, 255, 255, .72);
         color: #292f32;
         font-family: "Nunito", ui-rounded, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
@@ -308,87 +294,157 @@
         align-items: flex-start;
         justify-content: space-between;
         gap: 18px;
-        margin-bottom: 18px;
+        margin-bottom: 20px;
       }
       .joy-weather-week-heading p,
       .joy-weather-week-heading h2,
       .joy-weather-week-heading span { margin: 0; }
       .joy-weather-week-heading p {
-        color: #3f6573;
+        color: #54727d;
         font-size: 10px;
-        font-weight: 700;
-        letter-spacing: .11em;
+        font-weight: 800;
+        letter-spacing: .12em;
         text-transform: uppercase;
       }
       .joy-weather-week-heading h2 {
-        margin-top: 3px;
+        margin-top: 4px;
         font-family: "Newsreader", Georgia, serif;
-        font-size: 30px;
+        font-size: 32px;
         font-weight: 500;
-        letter-spacing: -.02em;
+        letter-spacing: -.025em;
       }
       .joy-weather-week-heading span {
         display: block;
-        margin-top: 3px;
-        color: #747879;
+        margin-top: 5px;
+        color: #7a8184;
         font-size: 11px;
       }
       .joy-weather-week-heading button {
-        width: 36px;
-        height: 36px;
-        flex: 0 0 36px;
-        border: 1px solid #cec9c1;
-        border-radius: 11px;
-        background: #fbfaf7;
+        width: 38px;
+        height: 38px;
+        flex: 0 0 38px;
+        border: 1px solid #d6d1ca;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, .58);
         color: #6f7478;
         font: inherit;
         font-size: 22px;
         line-height: 1;
         cursor: pointer;
+        transition: background 160ms ease, transform 160ms ease;
+      }
+      .joy-weather-week-heading button:hover {
+        background: rgba(255, 255, 255, .88);
+        transform: translateY(-1px);
       }
       .joy-weather-week-grid {
         display: grid;
-        grid-template-columns: repeat(7, minmax(122px, 1fr));
-        gap: 10px;
+        grid-template-columns: repeat(7, minmax(138px, 1fr));
+        gap: 12px;
         overflow-x: auto;
-        padding: 2px 1px 8px;
+        padding: 4px 2px 9px;
+        scrollbar-width: thin;
       }
       .joy-weather-day {
         min-width: 0;
-        min-height: 205px;
-        padding: 14px 12px;
+        min-height: 224px;
+        padding: 14px 13px;
         display: grid;
         grid-template-rows: auto 1fr auto;
-        border: 1px solid rgba(66, 78, 81, .17);
-        border-radius: 16px;
+        gap: 10px;
+        border: 1px solid rgba(81, 95, 99, .14);
+        border-radius: 20px;
         background:
-          radial-gradient(circle at 100% 0%, rgba(164, 190, 199, .22), transparent 8rem),
-          rgba(249, 247, 242, .82);
-        box-shadow: inset 0 1px rgba(255,255,255,.68);
+          radial-gradient(circle at 100% 0%, rgba(176, 196, 204, .18), transparent 9rem),
+          rgba(255, 255, 255, .55);
+        box-shadow:
+          inset 0 1px rgba(255, 255, 255, .82),
+          0 8px 18px rgba(76, 92, 98, .06);
+        transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
       }
-      .joy-weather-day.is-yesterday { opacity: .66; }
+      .joy-weather-day:hover {
+        transform: translateY(-2px);
+        box-shadow:
+          inset 0 1px rgba(255, 255, 255, .88),
+          0 14px 28px rgba(76, 92, 98, .10);
+      }
+      .joy-weather-day.is-yesterday { opacity: .72; }
       .joy-weather-day.is-today {
-        border-color: rgba(61, 94, 109, .44);
+        border-color: rgba(79, 110, 122, .38);
         background:
-          radial-gradient(circle at 90% 0%, rgba(164, 190, 199, .44), transparent 8rem),
-          rgba(244, 243, 238, .96);
+          radial-gradient(circle at 90% 0%, rgba(158, 186, 198, .36), transparent 9rem),
+          linear-gradient(180deg, rgba(247, 249, 249, .97), rgba(238, 242, 241, .95));
+        box-shadow:
+          inset 0 1px rgba(255, 255, 255, .9),
+          0 16px 30px rgba(76, 92, 98, .11);
       }
-      .joy-weather-day header { display: grid; gap: 1px; }
-      .joy-weather-day header strong { font-size: 12px; }
-      .joy-weather-day header span { color: #747879; font-size: 9px; }
+      .joy-weather-day-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .joy-weather-day-labels {
+        display: grid;
+        gap: 2px;
+      }
+      .joy-weather-day-labels strong {
+        font-size: 13px;
+        line-height: 1.15;
+      }
+      .joy-weather-day-labels span {
+        color: #8a8f91;
+        font-size: 9px;
+      }
+      .joy-weather-day-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 20px;
+        padding: 0 8px;
+        border-radius: 999px;
+        background: rgba(78, 112, 126, .12);
+        color: #46697a;
+        font-size: 9px;
+        font-style: normal;
+        font-weight: 800;
+        letter-spacing: .02em;
+      }
       .joy-weather-day-main {
         display: grid;
         place-items: center;
         align-content: center;
-        gap: 8px;
-        padding: 8px 0;
+        gap: 11px;
+        padding: 4px 0;
         text-align: center;
+      }
+      .joy-weather-day-icon-wrap {
+        width: 46px;
+        height: 46px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: rgba(95, 123, 135, .08);
+        box-shadow: inset 0 1px rgba(255, 255, 255, .75);
       }
       .joy-weather-day-icon {
         display: grid;
         place-items: center;
-        color: #486a77;
-        font-size: 27px;
+        color: #4e6f7d;
+        font-size: 25px;
+        line-height: 1;
+      }
+      .joy-weather-day[data-weather-state="sunny"] .joy-weather-day-icon-wrap {
+        background: rgba(191, 154, 68, .11);
+      }
+      .joy-weather-day[data-weather-state="sunny"] .joy-weather-day-icon {
+        color: #9b7a35;
+      }
+      .joy-weather-day[data-weather-state="rain"] .joy-weather-day-icon-wrap {
+        background: rgba(74, 111, 130, .13);
+      }
+      .joy-weather-day[data-weather-state="rain"] .joy-weather-day-icon {
+        color: #3f6679;
       }
       .joy-weather-day-temperature {
         display: flex;
@@ -398,30 +454,40 @@
       }
       .joy-weather-day-temperature strong {
         font-family: "Newsreader", Georgia, serif;
-        font-size: 27px;
+        font-size: 29px;
         font-weight: 500;
         line-height: 1;
+        color: #2d3437;
       }
       .joy-weather-day-temperature span {
-        color: #747879;
+        color: #818789;
         font-size: 13px;
       }
       .joy-weather-day-condition {
-        min-height: 38px;
+        min-height: 58px;
         margin: 0;
+        padding: 10px;
         display: grid;
         place-items: center;
-        color: #596365;
+        border: 1px solid rgba(96, 107, 110, .06);
+        border-radius: 14px;
+        background: rgba(246, 244, 240, .88);
+        color: #5f676a;
         font-size: 10px;
-        line-height: 1.35;
+        line-height: 1.42;
         text-align: center;
       }
       .joy-weather-day[data-weather-state="rain"] .joy-weather-day-condition {
-        color: #385f70;
-        font-weight: 700;
+        border-color: rgba(86, 125, 144, .08);
+        background: rgba(86, 125, 144, .09);
+        color: #3f6679;
+        font-weight: 800;
       }
-      .joy-weather-day[data-weather-state="sunny"] .joy-weather-day-icon {
-        color: #927443;
+      .joy-weather-day[data-weather-state="sunny"] .joy-weather-day-condition {
+        border-color: rgba(194, 161, 84, .08);
+        background: rgba(194, 161, 84, .09);
+        color: #8e6c25;
+        font-weight: 700;
       }
       .joy-weather-week-state {
         min-height: 210px;
@@ -454,13 +520,19 @@
           width: 100%;
           max-height: 86vh;
           padding: 18px 15px 20px;
-          border-radius: 22px;
+          border-radius: 24px;
         }
-        .joy-weather-week-heading h2 { font-size: 27px; }
-        .joy-weather-week-grid { grid-template-columns: repeat(7, minmax(136px, 1fr)); }
+        .joy-weather-week-heading h2 { font-size: 28px; }
+        .joy-weather-week-grid {
+          grid-template-columns: repeat(7, minmax(150px, 1fr));
+          gap: 10px;
+        }
+        .joy-weather-day { min-height: 224px; }
       }
       @media (prefers-reduced-motion: reduce) {
-        .weather-card.joy-weather-week-trigger { transition: none; }
+        .weather-card.joy-weather-week-trigger,
+        .joy-weather-day,
+        .joy-weather-week-heading button { transition: none; }
       }
     `;
     documentRef.head.append(style);
@@ -503,17 +575,24 @@
 
           return `
             <article class="joy-weather-day${modifier}" data-weather-state="${status.state}">
-              <header>
-                <strong>${dayLabel(day, index)}</strong>
-                <span>${shortDate(day.date)}</span>
+              <header class="joy-weather-day-header">
+                <div class="joy-weather-day-labels">
+                  <strong>${dayLabel(day, index)}</strong>
+                  <span>${shortDate(day.date)}</span>
+                </div>
+                ${index === 1 ? `<em class="joy-weather-day-badge">Now</em>` : ""}
               </header>
+
               <div class="joy-weather-day-main">
-                <div class="joy-weather-day-icon" aria-hidden="true">${status.icon}</div>
+                <div class="joy-weather-day-icon-wrap">
+                  <div class="joy-weather-day-icon" aria-hidden="true">${status.icon}</div>
+                </div>
                 <div class="joy-weather-day-temperature" aria-label="High ${rounded(day.maximum)}, low ${rounded(day.minimum)}">
                   <strong>${rounded(day.maximum)}</strong>
                   <span>${rounded(day.minimum)}</span>
                 </div>
               </div>
+
               <p class="joy-weather-day-condition">${status.text}</p>
             </article>
           `;
