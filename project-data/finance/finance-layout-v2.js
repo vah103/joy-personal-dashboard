@@ -4,9 +4,9 @@
   const originalRenderYearView = typeof renderYearView === "function" ? renderYearView : null;
 
   function installSplitMonthStyles() {
-    if (document.querySelector("#joy-finance-month-split-v4")) return;
+    if (document.querySelector("#joy-finance-month-split-v5")) return;
     const style = document.createElement("style");
-    style.id = "joy-finance-month-split-v4";
+    style.id = "joy-finance-month-split-v5";
     style.textContent = `
       .finance-month-split-view{padding-top:14px}
       #finance-workspace.finance-month-layout-active .finance-tabs{display:flex;align-items:center;gap:8px}
@@ -18,12 +18,14 @@
       .finance-tab-month-nav strong{min-width:112px;color:#344b52;font-size:12px;font-weight:900;text-align:center;white-space:nowrap}
       .finance-month-split{display:grid;grid-template-columns:minmax(0,2fr) minmax(270px,1fr);align-items:start;gap:16px}
       .finance-current-month{min-width:0}
-      .finance-ledger-board-compact .finance-ledger-hero{min-height:132px;padding:17px 20px;display:grid;grid-template-columns:repeat(2,minmax(0,238px));align-items:stretch;justify-content:center;gap:12px;background:linear-gradient(135deg,#e9efeb 0%,#f5f2eb 100%)}
-      .finance-ledger-board-compact .finance-ledger-hero>div:first-child{width:auto;min-width:0;max-width:none;min-height:94px;padding:16px 18px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;text-align:left;border:1px solid rgba(61,81,86,.11);border-radius:16px;background:rgba(255,255,255,.68);box-shadow:0 8px 22px rgba(48,62,66,.055)}
-      .finance-ledger-board-compact .finance-ledger-hero>div:first-child>small{margin:0 0 6px;color:#657a7f;font-size:8.5px;line-height:1;letter-spacing:.13em}
-      .finance-ledger-board-compact .finance-ledger-hero h2{margin:0;color:#2f444b;font-size:27px;line-height:1.08;font-weight:900}
-      .finance-ledger-board-compact .finance-ledger-hero p{max-width:none;margin:8px 0 0;color:#748185;font-size:9px;line-height:1.35}
-      .finance-ledger-board-compact .finance-ledger-balance{width:auto;min-width:0;min-height:94px;padding:16px 18px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;border:0;border-radius:16px;background:linear-gradient(135deg,#466873,#607d78);box-shadow:0 10px 24px rgba(54,83,90,.16)}
+      .finance-ledger-board-compact .finance-ledger-hero{min-height:132px;padding:17px 20px;display:grid;grid-template-columns:minmax(0,1fr) 238px;align-items:stretch;gap:12px;background:linear-gradient(135deg,#e9efeb 0%,#f5f2eb 100%)}
+      .finance-ledger-board-compact .finance-ledger-hero>div:first-child{position:relative;isolation:isolate;overflow:hidden;width:auto;min-width:0;max-width:none;min-height:94px;padding:18px 24px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;text-align:left;border:1px solid rgba(61,81,86,.11);border-radius:16px;background:linear-gradient(135deg,rgba(255,255,255,.92) 0%,rgba(238,245,240,.86) 100%);box-shadow:0 8px 22px rgba(48,62,66,.055)}
+      .finance-ledger-board-compact .finance-ledger-hero>div:first-child::before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:linear-gradient(180deg,#6f948b,#456b73);z-index:-1}
+      .finance-ledger-board-compact .finance-ledger-hero>div:first-child::after{content:"";position:absolute;width:150px;height:150px;right:-46px;top:-70px;border-radius:50%;background:radial-gradient(circle,rgba(91,126,118,.15) 0%,rgba(91,126,118,0) 69%);z-index:-1}
+      .finance-ledger-board-compact .finance-ledger-hero>div:first-child>small{margin:0 0 7px;color:#60777c;font-size:8.5px;line-height:1;letter-spacing:.14em}
+      .finance-ledger-board-compact .finance-ledger-hero h2{margin:0;color:#2f444b;font-size:30px;line-height:1.06;font-weight:900}
+      .finance-ledger-board-compact .finance-ledger-hero p{max-width:430px;margin:9px 0 0;color:#6f7f82;font-size:9.5px;line-height:1.4}
+      .finance-ledger-board-compact .finance-ledger-balance{width:238px;min-width:238px;min-height:94px;padding:16px 18px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;border:0;border-radius:16px;background:linear-gradient(135deg,#466873,#607d78);box-shadow:0 10px 24px rgba(54,83,90,.16)}
       .finance-ledger-board-compact .finance-ledger-balance small{margin:0 0 8px;color:rgba(255,255,255,.72);font-size:8.5px;line-height:1;letter-spacing:.11em}
       .finance-ledger-board-compact .finance-ledger-balance strong{margin:0;color:#fff;font-size:25px;line-height:1.08}
       .finance-ledger-board-compact .finance-ledger-columns{padding:12px;gap:11px}
