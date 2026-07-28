@@ -9,9 +9,10 @@ async function source(path) {
 }
 
 test("Daily Brief is wired into the Worker and dashboard", async () => {
-  const [service, policy, router, wrangler, build, script, styles, polish] = await Promise.all([
+  const [service, policy, budget, router, wrangler, build, script, styles, polish] = await Promise.all([
     source("worker/daily-brief.js"),
     source("worker/daily-brief-policy.js"),
+    source("worker/daily-brief-budget.js"),
     source("worker/router.js"),
     source("wrangler.jsonc"),
     source("scripts/build.mjs"),
@@ -27,7 +28,8 @@ test("Daily Brief is wired into the Worker and dashboard", async () => {
   assert.match(service, /BBC Technology/);
   assert.match(policy, /24 \* 60 \* 60 \* 1000/);
   assert.match(policy, /publishedAt \+ STORY_TTL_MS > now/);
-  assert.match(router, /daily-brief-policy\.js/);
+  assert.match(budget, /from "\.\/daily-brief-policy\.js"/);
+  assert.match(router, /daily-brief-budget\.js/);
   assert.match(router, /runDailyBriefSchedule/);
   assert.match(wrangler, /"ai"\s*:\s*\{\s*"binding"\s*:\s*"AI"/s);
   assert.match(build, /greeting-layout\.css\?v=joy-daily-brief-v4/);
