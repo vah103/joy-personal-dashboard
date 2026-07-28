@@ -22,7 +22,7 @@
   font-display: swap;
 }
 
-#turtlebot-hub-modal .hub-roadmap-layout,
-#turtlebot-hub-modal .hub-roadmap-layout * {
+#turtlebot-hub-modal,
+#turtlebot-hub-modal * {
   font-family: "Nunito", ui-rounded, "Arial Rounded MT Bold", system-ui, sans-serif !important;
 }
