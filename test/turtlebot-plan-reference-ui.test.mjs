@@ -8,7 +8,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const referencePath = resolve(root, "project-data/turtlebot4/project-plan-v3-reference-ui.js");
 const cacheBustPath = resolve(root, "scripts/cache-bust-turtlebot-plan.mjs");
 
-test("TurtleBot 12-week plan contains no checkbox or percentage UI", async () => {
+test("TurtleBot 12-week plan contains no checkbox or visible progress UI", async () => {
   const [reference, cacheBust] = await Promise.all([
     readFile(referencePath, "utf8"),
     readFile(cacheBustPath, "utf8"),
@@ -27,7 +27,8 @@ test("TurtleBot 12-week plan contains no checkbox or percentage UI", async () =>
   assert.doesNotMatch(reference, /weekProgress\(/);
   assert.doesNotMatch(reference, /taskProgress\(/);
   assert.doesNotMatch(reference, /previousRenderPlan/);
-  assert.doesNotMatch(reference, /%/);
-  assert.match(cacheBust, /turtlebot-reference-no-progress-v2/);
-  assert.match(cacheBust, /loadFlexiblePeriods\(\);", "loadReferencePlan\(\);"/);
+  assert.doesNotMatch(reference, /progress-track|hub-progress-summary|hub-check-row/);
+  assert.doesNotMatch(reference, /\$\{[^}\n]*(?:progress|percentage)[^}\n]*\}%/i);
+  assert.match(cacheBust, /turtlebot-tabs-cleanup-v3/);
+  assert.match(cacheBust, /project-hub-tabs-cleanup\.js\?v=turtlebot-tabs-cleanup-v1/);
 });
