@@ -4,7 +4,7 @@
 
   const ENDPOINT = "https://api.open-meteo.com/v1/forecast?latitude=21.0285&longitude=105.8542&hourly=precipitation_probability,weather_code&timezone=Asia%2FHo_Chi_Minh&forecast_days=1";
   const REFRESH_MS = 15 * 60_000;
-  const RAIN_PROBABILITY_THRESHOLD = 80;
+  const RAIN_PROBABILITY_THRESHOLD = 90;
 
   let currentStatus = null;
 
@@ -45,7 +45,7 @@
     return {
       ...status,
       text: String(status?.text || "")
-        .replace(/\s*\(80%\+\)\.?/gi, "")
+        .replace(/\s*\(\d+%\+\)\.?/gi, "")
         .replace(/\s+([.,!?])/g, "$1")
         .trim(),
     };
