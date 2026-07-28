@@ -1,7 +1,7 @@
 (function registerJoyWeather(root) {
   const TIME_ZONE = "Asia/Ho_Chi_Minh";
   const RAIN_PROBABILITY_THRESHOLD = 80;
-  const WEATHER_WEEK_ENDPOINT = "https://api.open-meteo.com/v1/forecast?latitude=21.0285&longitude=105.8542&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia%2FHo_Chi_Minh&past_days=1&forecast_days=6";
+  const WEATHER_WEEK_ENDPOINT = "https://api.open-meteo.com/v1/forecast?latitude=21.0285&longitude=105.8542&daily=weather_code,temperature_2m_max,temperature_2m_min&hourly=precipitation_probability,weather_code&timezone=Asia%2FHo_Chi_Minh&past_days=1&forecast_days=6";
   const WEATHER_WEEK_CACHE_MS = 30 * 60_000;
 
   const weekState = {
@@ -40,11 +40,27 @@
     return Number(probability || 0) >= RAIN_PROBABILITY_THRESHOLD;
   }
 
-  function summarizeRainForecast(hourly, now = new Date()) {
-    const times = Array.isArray(hourly?.time)
-      ? hourly.time
-      : [];
+  function groupRainWindows(rainHours) {
+    const groups = [];
 
+    rainHours.forEach((entry) => {
+      const currentGroup = groups.at(-1);
+      const previous = currentGroup?.at(-1);
+
+      if (!previous || entry.startHour !== previous.endHour) {
+        groups.push([entry]);
+      } else {
+        currentGroup.push(entry);
+      }
+    });
+
+    return groups.map((group) => (
+      `${hourLabel(group[0].startHour)}–${hourLabel(group.at(-1).endHour)}`
+    ));
+  }
+
+  function summarizeRainForecast(hourly, now = new Date()) {
+    const times = Array.isArray(hourly?.time) ? hourly.time : [];
     const probabilities = Array.isArray(hourly?.precipitation_probability)
       ? hourly.precipitation_probability
       : [];
@@ -71,16 +87,13 @@
       const endHour = Number(value.slice(11, 13));
       if (!Number.isInteger(endHour) || endHour <= 0) return;
 
-      const startHour = endHour - 1;
-      const endMinute = endHour * 60;
-      if (endMinute <= currentMinute) return;
-
       const entry = {
-        startHour,
+        startHour: endHour - 1,
         endHour,
         probability: Number(probabilities[index] || 0),
       };
 
+      if (endHour * 60 <= currentMinute) return;
       if (hasRainSignal(entry)) rainHours.push(entry);
     });
 
@@ -91,27 +104,9 @@
       };
     }
 
-    const groups = [];
-    rainHours.forEach((entry) => {
-      const currentGroup = groups.at(-1);
-      const previous = currentGroup?.at(-1);
-
-      if (!previous || entry.startHour !== previous.endHour) {
-        groups.push([entry]);
-      } else {
-        currentGroup.push(entry);
-      }
-    });
-
-    const windows = groups.map((group) => {
-      const start = hourLabel(group[0].startHour);
-      const end = hourLabel(group.at(-1).endHour);
-      return `${start}–${end}`;
-    });
-
     return {
       state: "rain",
-      text: `Rain is expected in Hanoi at ${windows.join(" and ")}.`,
+      text: `Rain is expected in Hanoi at ${groupRainWindows(rainHours).join(" and ")}.`,
     };
   }
 
@@ -132,16 +127,81 @@
     return { label: "Mixed weather", icon: "◌" };
   }
 
-  function normalizeDailyWeather(payload) {
-    const daily = payload?.daily || {};
-    const times = Array.isArray(daily.time) ? daily.time : [];
+  function summarizeDayStatus(hourly, dateKey, now = new Date()) {
+    const times = Array.isArray(hourly?.time) ? hourly.time : [];
+    const probabilities = Array.isArray(hourly?.precipitation_probability)
+      ? hourly.precipitation_probability
+      : [];
+    const weatherCodes = Array.isArray(hourly?.weather_code)
+      ? hourly.weather_code
+      : [];
+    const current = vietnamClock(now);
+    const currentMinute = current.hour * 60 + current.minute;
+    const isToday = dateKey === current.dateKey;
+    const rainHours = [];
+    const daylightHours = [];
 
-    return times.map((date, index) => ({
-      date: String(date || ""),
-      code: Number(daily.weather_code?.[index]),
-      maximum: Number(daily.temperature_2m_max?.[index]),
-      minimum: Number(daily.temperature_2m_min?.[index]),
-    })).filter((day) => day.date);
+    times.forEach((time, index) => {
+      const value = String(time || "");
+      if (!value.startsWith(dateKey)) return;
+
+      const endHour = Number(value.slice(11, 13));
+      if (!Number.isInteger(endHour) || endHour <= 0) return;
+
+      const startHour = endHour - 1;
+      const weatherCode = Number(weatherCodes[index]);
+
+      if (startHour >= 6 && startHour < 18) {
+        daylightHours.push({ startHour, endHour, weatherCode });
+      }
+
+      if (isToday && endHour * 60 <= currentMinute) return;
+
+      const entry = {
+        startHour,
+        endHour,
+        probability: Number(probabilities[index] || 0),
+      };
+      if (hasRainSignal(entry)) rainHours.push(entry);
+    });
+
+    if (rainHours.length) {
+      return {
+        state: "rain",
+        icon: "☂",
+        text: `Rain is expected at ${groupRainWindows(rainHours).join(" and ")}.`,
+      };
+    }
+
+    const sunnyHours = daylightHours.filter(({ weatherCode }) => (
+      weatherCode === 0 || weatherCode === 1
+    )).length;
+    const isSunny = daylightHours.length >= 4
+      && sunnyHours >= Math.ceil(daylightHours.length / 2);
+
+    return isSunny
+      ? { state: "sunny", icon: "☀", text: "It’s a sunny day." }
+      : { state: "quiet", icon: "☁", text: "No rain is expected." };
+  }
+
+  function normalizeWeekWeather(payload, now = new Date()) {
+    const daily = payload?.daily || {};
+    const dates = Array.isArray(daily.time) ? daily.time : [];
+
+    return dates.map((date, index) => {
+      const dateKey = String(date || "");
+      const code = Number(daily.weather_code?.[index]);
+      const status = summarizeDayStatus(payload?.hourly, dateKey, now);
+
+      return {
+        date: dateKey,
+        code,
+        maximum: Number(daily.temperature_2m_max?.[index]),
+        minimum: Number(daily.temperature_2m_min?.[index]),
+        status,
+        fallback: weatherDetails(code),
+      };
+    }).filter((day) => day.date);
   }
 
   function dateFromKey(dateKey) {
@@ -233,7 +293,7 @@
       .joy-weather-week-backdrop[hidden] { display: none !important; }
       .joy-weather-week-modal {
         width: min(1080px, 100%);
-        max-height: min(88vh, 680px);
+        max-height: min(88vh, 720px);
         overflow: auto;
         padding: 22px;
         border: 1px solid rgba(255,255,255,.1);
@@ -295,7 +355,7 @@
       }
       .joy-weather-day {
         min-width: 0;
-        min-height: 176px;
+        min-height: 205px;
         padding: 14px 12px;
         display: grid;
         grid-template-rows: auto 1fr auto;
@@ -347,11 +407,21 @@
         font-size: 13px;
       }
       .joy-weather-day-condition {
+        min-height: 38px;
         margin: 0;
+        display: grid;
+        place-items: center;
         color: #596365;
         font-size: 10px;
         line-height: 1.35;
         text-align: center;
+      }
+      .joy-weather-day[data-weather-state="rain"] .joy-weather-day-condition {
+        color: #385f70;
+        font-weight: 700;
+      }
+      .joy-weather-day[data-weather-state="sunny"] .joy-weather-day-icon {
+        color: #927443;
       }
       .joy-weather-week-state {
         min-height: 210px;
@@ -387,7 +457,7 @@
           border-radius: 22px;
         }
         .joy-weather-week-heading h2 { font-size: 27px; }
-        .joy-weather-week-grid { grid-template-columns: repeat(7, minmax(132px, 1fr)); }
+        .joy-weather-week-grid { grid-template-columns: repeat(7, minmax(136px, 1fr)); }
       }
       @media (prefers-reduced-motion: reduce) {
         .weather-card.joy-weather-week-trigger { transition: none; }
@@ -424,23 +494,27 @@
     content.innerHTML = `
       <div class="joy-weather-week-grid">
         ${weekState.days.map((day, index) => {
-          const details = weatherDetails(day.code);
+          const status = day.status || {
+            state: "quiet",
+            icon: day.fallback.icon,
+            text: day.fallback.label,
+          };
           const modifier = index === 0 ? " is-yesterday" : index === 1 ? " is-today" : "";
 
           return `
-            <article class="joy-weather-day${modifier}">
+            <article class="joy-weather-day${modifier}" data-weather-state="${status.state}">
               <header>
                 <strong>${dayLabel(day, index)}</strong>
                 <span>${shortDate(day.date)}</span>
               </header>
               <div class="joy-weather-day-main">
-                <div class="joy-weather-day-icon" aria-hidden="true">${details.icon}</div>
+                <div class="joy-weather-day-icon" aria-hidden="true">${status.icon}</div>
                 <div class="joy-weather-day-temperature" aria-label="High ${rounded(day.maximum)}, low ${rounded(day.minimum)}">
                   <strong>${rounded(day.maximum)}</strong>
                   <span>${rounded(day.minimum)}</span>
                 </div>
               </div>
-              <p class="joy-weather-day-condition">${details.label}</p>
+              <p class="joy-weather-day-condition">${status.text}</p>
             </article>
           `;
         }).join("")}
@@ -468,7 +542,7 @@
       if (!response.ok) throw new Error(`Weather service returned ${response.status}`);
 
       const payload = await response.json();
-      const days = normalizeDailyWeather(payload);
+      const days = normalizeWeekWeather(payload, new Date());
       if (days.length !== 7) throw new Error("Seven-day weather data is incomplete");
 
       weekState.status = "ready";
