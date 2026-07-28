@@ -5,7 +5,7 @@ const PLACE_NAME = "Hanoi";
 const WEATHER_ENDPOINT = "https://api.open-meteo.com/v1/forecast?latitude=21.0285&longitude=105.8542&hourly=precipitation_probability,weather_code&timezone=Asia%2FHo_Chi_Minh&forecast_days=1";
 const CHECK_EVERY_MINUTES = 5;
 const DAILY_WEATHER_HOUR = 7;
-const RAIN_PROBABILITY_THRESHOLD = 80;
+const RAIN_PROBABILITY_THRESHOLD = 90;
 
 export function isPushRoute(pathname) {
   return pathname.startsWith("/api/push/");
@@ -148,7 +148,7 @@ async function processWeatherSummary(email, summary, env) {
   if (summary.rainKey && summary.rainKey !== state.rainKey) {
     pending.push({
       kind: "rain",
-      body: `Rain is expected in ${PLACE_NAME} at ${summary.rainWindowText} (80%+).`,
+      body: `Rain is expected in ${PLACE_NAME} at ${summary.rainWindowText} (${RAIN_PROBABILITY_THRESHOLD}%+).`,
       tag: "hey-joy-rain",
       topic: "hey-joy-rain",
       ttl: 30 * 60,
