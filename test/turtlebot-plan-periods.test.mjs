@@ -24,8 +24,9 @@ test("TurtleBot plan renders flexible reference periods in Nunito", async () => 
   assert.match(reference, /Completion Gate/);
   assert.doesNotMatch(reference, /const labels = \["Monday"/);
   assert.match(loader, /project-plan-v3-reference-ui\.js\?v=turtlebot-reference-no-progress-v2/);
-  assert.match(loader, /project-hub-tabs-cleanup\.js\?v=turtlebot-tabs-cleanup-v1/);
+  assert.match(loader, /project-hub-tabs-cleanup\.js\?v=turtlebot-inline-tabs-v2/);
   assert.doesNotMatch(loader, /project-plan-v3-periods-ui\.js/);
   assert.match(fontCss, /#turtlebot-hub-modal,\s*#turtlebot-hub-modal \*/);
   assert.match(fontCss, /font-family: "Nunito"/);
+  assert.match(fontCss, /grid-template-rows: auto minmax\(0, 1fr\)/);
 });
