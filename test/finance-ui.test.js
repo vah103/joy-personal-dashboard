@@ -41,10 +41,11 @@ test("Finance Month removes the repeated summary row and enlarges categories", (
   assert.match(financeOverlay, /finance-ledger-item-button>strong\{font-size:11\.5px\}/);
 });
 
-test("Finance Month header uses two balanced cards", () => {
-  assert.match(financeOverlay, /grid-template-columns:repeat\(2,minmax\(0,238px\)\)/);
-  assert.match(financeOverlay, /background:linear-gradient\(135deg,#466873,#607d78\)/);
-  assert.match(financeOverlay, /min-height:94px/);
+test("Finance Month header fills the available width", () => {
+  assert.match(financeOverlay, /grid-template-columns:minmax\(0,1fr\) 238px/);
+  assert.match(financeOverlay, /width:238px;min-width:238px/);
+  assert.match(financeOverlay, /background:linear-gradient\(135deg,rgba\(255,255,255,\.92\)/);
+  assert.match(financeOverlay, /finance-ledger-hero>div:first-child::before/);
 });
 
 test("Finance privacy only masks the dashboard", () => {
