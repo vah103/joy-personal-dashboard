@@ -17,6 +17,15 @@
     if (hubState.activeTab === "journal") hubState.activeTab = "plan";
   }
 
+  function dockTabsInHeader(nav) {
+    const header = document.querySelector("#turtlebot-hub-modal .turtlebot-hub-header");
+    if (!header || !nav) return;
+
+    const actions = header.querySelector(".turtlebot-hub-header-actions");
+    header.classList.add("turtlebot-hub-header-with-tabs");
+    header.insertBefore(nav, actions || null);
+  }
+
   function arrangeTabs() {
     const nav = document.querySelector("#turtlebot-hub-modal .turtlebot-hub-tabs");
     if (!nav) return;
@@ -37,6 +46,8 @@
       button.textContent = labels[tabName];
       nav.append(button);
     });
+
+    dockTabsInHeader(nav);
   }
 
   function renderEmptyCommands() {
