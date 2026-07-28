@@ -5,6 +5,27 @@ const SESSION_COOKIE = "__Host-joy_session";
 const DEFAULT_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
 let vocabularySchemaPromise;
 
+const VOCABULARY_JSON_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    inputLanguage: { type: "string", enum: ["en", "vi"] },
+    english: { type: "string" },
+    vietnamese: { type: "string" },
+    ipa: { type: "string" },
+    pronunciationVi: { type: "string" },
+    example: { type: "string" },
+  },
+  required: [
+    "inputLanguage",
+    "english",
+    "vietnamese",
+    "ipa",
+    "pronunciationVi",
+    "example",
+  ],
+};
+
 export function isVocabularyRoute(pathname) {
   return [VOCABULARY_PATH, VOCABULARY_LOOKUP_PATH, VOCABULARY_REVIEW_PATH].includes(pathname);
 }
@@ -14,21 +35,23 @@ export async function handleVocabularyRequest(request, env) {
     const pathname = new URL(request.url).pathname;
     const email = await sessionEmail(request, env);
     if (!email) return json({ error: "UNAUTHENTICATED" }, 401);
-    if (!env?.DB) return json({ error: "VOCABULARY_STORAGE_UNAVAILABLE" }, 503);
-    await ensureVocabularySchema(env);
 
     if (request.method !== "GET" && !isSameOrigin(request)) {
       return json({ error: "INVALID_ORIGIN" }, 403);
     }
+
+    if (pathname === VOCABULARY_LOOKUP_PATH && request.method === "POST") {
+      return lookupVocabularyWord(request, env);
+    }
+
+    if (!env?.DB) return json({ error: "VOCABULARY_STORAGE_UNAVAILABLE" }, 503);
+    await ensureVocabularySchema(env);
 
     if (pathname === VOCABULARY_PATH && request.method === "GET") {
       return listVocabularyWords(email, env);
     }
     if (pathname === VOCABULARY_PATH && request.method === "POST") {
       return saveVocabularyWord(request, email, env);
-    }
-    if (pathname === VOCABULARY_LOOKUP_PATH && request.method === "POST") {
-      return lookupVocabularyWord(request, env);
     }
     if (pathname === VOCABULARY_REVIEW_PATH && request.method === "POST") {
       return reviewVocabularyWord(request, email, env);
@@ -143,7 +166,41 @@ async function lookupVocabularyWord(request, env) {
   }
   if (!env?.AI?.run) return json({ error: "VOCABULARY_AI_UNAVAILABLE" }, 503);
 
-  const messages = [
+  const messages = vocabularyMessages(query);
+
+  try {
+    const structured = await env.AI.run(env.VOCABULARY_AI_MODEL || DEFAULT_AI_MODEL, {
+      messages,
+      response_format: {
+        type: "json_schema",
+        json_schema: VOCABULARY_JSON_SCHEMA,
+      },
+      temperature: 0,
+      max_tokens: 320,
+    });
+    const word = normalizeVocabularyResult(extractAiObject(structured));
+    if (word) return json({ word });
+  } catch (error) {
+    console.warn("Joy vocabulary structured lookup failed; retrying plain JSON", error);
+  }
+
+  try {
+    const fallback = await env.AI.run(env.VOCABULARY_AI_MODEL || DEFAULT_AI_MODEL, {
+      messages,
+      temperature: 0,
+      max_tokens: 320,
+    });
+    const word = normalizeVocabularyResult(extractAiObject(fallback));
+    if (word) return json({ word });
+    return json({ error: "VOCABULARY_RESULT_INVALID" }, 502);
+  } catch (error) {
+    console.error("Joy vocabulary AI lookup failed", error);
+    return json({ error: "VOCABULARY_AI_FAILED" }, 502);
+  }
+}
+
+function vocabularyMessages(query) {
+  return [
     {
       role: "system",
       content: `You are the bilingual English-Vietnamese dictionary inside a personal vocabulary flashcard app.
@@ -164,15 +221,6 @@ Return this exact JSON shape:
     },
     { role: "user", content: query },
   ];
-
-  const result = await env.AI.run(env.VOCABULARY_AI_MODEL || DEFAULT_AI_MODEL, {
-    messages,
-    temperature: 0,
-    max_tokens: 240,
-  });
-  const word = normalizeVocabularyResult(extractAiObject(result));
-  if (!word) return json({ error: "VOCABULARY_RESULT_INVALID" }, 502);
-  return json({ word });
 }
 
 async function reviewVocabularyWord(request, email, env) {
