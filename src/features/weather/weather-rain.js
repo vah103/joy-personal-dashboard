@@ -1,7 +1,7 @@
 (function registerJoyWeather(root) {
   const TIME_ZONE = "Asia/Ho_Chi_Minh";
   const RAIN_PROBABILITY_THRESHOLD = 80;
-  const WEATHER_WEEK_ENDPOINT = "https://api.open-meteo.com/v1/forecast?latitude=21.0285&longitude=105.8542&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,wind_speed_10m_max&timezone=Asia%2FHo_Chi_Minh&past_days=1&forecast_days=6";
+  const WEATHER_WEEK_ENDPOINT = "https://api.open-meteo.com/v1/forecast?latitude=21.0285&longitude=105.8542&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia%2FHo_Chi_Minh&past_days=1&forecast_days=6";
   const WEATHER_WEEK_CACHE_MS = 30 * 60_000;
 
   const weekState = {
@@ -45,10 +45,9 @@
       ? hourly.time
       : [];
 
-    const probabilities =
-      Array.isArray(hourly?.precipitation_probability)
-        ? hourly.precipitation_probability
-        : [];
+    const probabilities = Array.isArray(hourly?.precipitation_probability)
+      ? hourly.precipitation_probability
+      : [];
 
     if (!times.length) {
       return {
@@ -63,7 +62,6 @@
 
     times.forEach((time, index) => {
       const value = String(time || "");
-
       if (!value.startsWith(current.dateKey)) return;
 
       /*
@@ -71,12 +69,10 @@
        * A value stamped 20:00 describes approximately 19:00–20:00.
        */
       const endHour = Number(value.slice(11, 13));
-
       if (!Number.isInteger(endHour) || endHour <= 0) return;
 
       const startHour = endHour - 1;
       const endMinute = endHour * 60;
-
       if (endMinute <= currentMinute) return;
 
       const entry = {
@@ -85,9 +81,7 @@
         probability: Number(probabilities[index] || 0),
       };
 
-      if (hasRainSignal(entry)) {
-        rainHours.push(entry);
-      }
+      if (hasRainSignal(entry)) rainHours.push(entry);
     });
 
     if (!rainHours.length) {
@@ -98,7 +92,6 @@
     }
 
     const groups = [];
-
     rainHours.forEach((entry) => {
       const currentGroup = groups.at(-1);
       const previous = currentGroup?.at(-1);
@@ -113,7 +106,6 @@
     const windows = groups.map((group) => {
       const start = hourLabel(group[0].startHour);
       const end = hourLabel(group.at(-1).endHour);
-
       return `${start}–${end}`;
     });
 
@@ -149,9 +141,6 @@
       code: Number(daily.weather_code?.[index]),
       maximum: Number(daily.temperature_2m_max?.[index]),
       minimum: Number(daily.temperature_2m_min?.[index]),
-      rainChance: Number(daily.precipitation_probability_max?.[index]),
-      precipitation: Number(daily.precipitation_sum?.[index]),
-      windSpeed: Number(daily.wind_speed_10m_max?.[index]),
     })).filter((day) => day.date);
   }
 
@@ -177,12 +166,8 @@
     }).format(dateFromKey(dateKey));
   }
 
-  function rounded(value, suffix = "") {
-    return Number.isFinite(value) ? `${Math.round(value)}${suffix}` : "—";
-  }
-
-  function rainfall(value) {
-    return Number.isFinite(value) ? `${value.toFixed(1)} mm` : "—";
+  function rounded(value) {
+    return Number.isFinite(value) ? `${Math.round(value)}°` : "—";
   }
 
   function createWeekModal(documentRef) {
@@ -194,7 +179,7 @@
         <header class="joy-weather-week-heading">
           <div>
             <p>Hanoi weather</p>
-            <h2 id="joy-weather-week-title">7-day overview</h2>
+            <h2 id="joy-weather-week-title">7-day weather</h2>
             <span>Yesterday, today, and the next five days</span>
           </div>
           <button type="button" aria-label="Close weather overview">×</button>
@@ -208,6 +193,7 @@
 
   function injectWeekStyles(documentRef) {
     if (documentRef.querySelector("#joy-weather-week-styles")) return;
+
     const style = documentRef.createElement("style");
     style.id = "joy-weather-week-styles";
     style.textContent = `
@@ -247,7 +233,7 @@
       .joy-weather-week-backdrop[hidden] { display: none !important; }
       .joy-weather-week-modal {
         width: min(1080px, 100%);
-        max-height: min(88vh, 760px);
+        max-height: min(88vh, 680px);
         overflow: auto;
         padding: 22px;
         border: 1px solid rgba(255,255,255,.1);
@@ -302,61 +288,73 @@
       }
       .joy-weather-week-grid {
         display: grid;
-        grid-template-columns: repeat(7, minmax(118px, 1fr));
+        grid-template-columns: repeat(7, minmax(122px, 1fr));
         gap: 10px;
         overflow-x: auto;
         padding: 2px 1px 8px;
       }
       .joy-weather-day {
         min-width: 0;
+        min-height: 176px;
         padding: 14px 12px;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
         border: 1px solid rgba(66, 78, 81, .17);
         border-radius: 16px;
-        background: rgba(249, 247, 242, .78);
+        background:
+          radial-gradient(circle at 100% 0%, rgba(164, 190, 199, .22), transparent 8rem),
+          rgba(249, 247, 242, .82);
         box-shadow: inset 0 1px rgba(255,255,255,.68);
       }
       .joy-weather-day.is-yesterday { opacity: .66; }
       .joy-weather-day.is-today {
         border-color: rgba(61, 94, 109, .44);
-        background: radial-gradient(circle at 90% 0%, rgba(164, 190, 199, .42), transparent 8rem), rgba(244, 243, 238, .94);
+        background:
+          radial-gradient(circle at 90% 0%, rgba(164, 190, 199, .44), transparent 8rem),
+          rgba(244, 243, 238, .96);
       }
       .joy-weather-day header { display: grid; gap: 1px; }
       .joy-weather-day header strong { font-size: 12px; }
       .joy-weather-day header span { color: #747879; font-size: 9px; }
+      .joy-weather-day-main {
+        display: grid;
+        place-items: center;
+        align-content: center;
+        gap: 8px;
+        padding: 8px 0;
+        text-align: center;
+      }
       .joy-weather-day-icon {
-        height: 48px;
         display: grid;
         place-items: center;
         color: #486a77;
-        font-size: 25px;
+        font-size: 27px;
+      }
+      .joy-weather-day-temperature {
+        display: flex;
+        align-items: baseline;
+        justify-content: center;
+        gap: 6px;
+      }
+      .joy-weather-day-temperature strong {
+        font-family: "Newsreader", Georgia, serif;
+        font-size: 27px;
+        font-weight: 500;
+        line-height: 1;
+      }
+      .joy-weather-day-temperature span {
+        color: #747879;
+        font-size: 13px;
       }
       .joy-weather-day-condition {
-        min-height: 29px;
         margin: 0;
         color: #596365;
         font-size: 10px;
         line-height: 1.35;
+        text-align: center;
       }
-      .joy-weather-day-temperature {
-        margin: 8px 0 11px;
-        display: flex;
-        align-items: baseline;
-        gap: 7px;
-      }
-      .joy-weather-day-temperature strong {
-        font-family: "Newsreader", Georgia, serif;
-        font-size: 25px;
-        font-weight: 500;
-      }
-      .joy-weather-day-temperature span { color: #747879; font-size: 13px; }
-      .joy-weather-day dl { margin: 0; display: grid; gap: 7px; }
-      .joy-weather-day dl div { display: flex; justify-content: space-between; gap: 6px; }
-      .joy-weather-day dt,
-      .joy-weather-day dd { margin: 0; font-size: 9px; }
-      .joy-weather-day dt { color: #747879; }
-      .joy-weather-day dd { color: #385866; font-weight: 700; text-align: right; }
       .joy-weather-week-state {
-        min-height: 230px;
+        min-height: 210px;
         display: grid;
         place-items: center;
         align-content: center;
@@ -428,23 +426,21 @@
         ${weekState.days.map((day, index) => {
           const details = weatherDetails(day.code);
           const modifier = index === 0 ? " is-yesterday" : index === 1 ? " is-today" : "";
+
           return `
             <article class="joy-weather-day${modifier}">
               <header>
                 <strong>${dayLabel(day, index)}</strong>
                 <span>${shortDate(day.date)}</span>
               </header>
-              <div class="joy-weather-day-icon" aria-hidden="true">${details.icon}</div>
-              <p class="joy-weather-day-condition">${details.label}</p>
-              <div class="joy-weather-day-temperature">
-                <strong>${rounded(day.maximum, "°")}</strong>
-                <span>${rounded(day.minimum, "°")}</span>
+              <div class="joy-weather-day-main">
+                <div class="joy-weather-day-icon" aria-hidden="true">${details.icon}</div>
+                <div class="joy-weather-day-temperature" aria-label="High ${rounded(day.maximum)}, low ${rounded(day.minimum)}">
+                  <strong>${rounded(day.maximum)}</strong>
+                  <span>${rounded(day.minimum)}</span>
+                </div>
               </div>
-              <dl>
-                <div><dt>Rain chance</dt><dd>${rounded(day.rainChance, "%")}</dd></div>
-                <div><dt>Rainfall</dt><dd>${rainfall(day.precipitation)}</dd></div>
-                <div><dt>Max wind</dt><dd>${rounded(day.windSpeed, " km/h")}</dd></div>
-              </dl>
+              <p class="joy-weather-day-condition">${details.label}</p>
             </article>
           `;
         }).join("")}
