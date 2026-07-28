@@ -5,10 +5,12 @@ import { readFile } from "node:fs/promises";
 const dashboardSource = await readFile(new URL("../project-data/finance/finance-dashboard-v1.js", import.meta.url), "utf8");
 const buildSource = await readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8");
 
-test("Finance outer dashboard uses the same sharp font as its month button", () => {
+test("Finance outer dashboard uses the money typography at 35px", () => {
   assert.match(dashboardSource, /panel-title-button\{/);
+  assert.match(dashboardSource, /color:#2e454d/);
   assert.match(dashboardSource, /font-family:"Instrument Sans",Arial,sans-serif!important/);
-  assert.match(dashboardSource, /font-size:27px/);
+  assert.match(dashboardSource, /font-size:35px/);
+  assert.match(dashboardSource, /letter-spacing:-\.04em!important/);
   assert.match(dashboardSource, /finance-period-button/);
   assert.match(dashboardSource, /font-size:15px/);
 });
