@@ -5,23 +5,23 @@
   const ENGLISH_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
   function installDashboardStyles() {
-    if (document.querySelector("#joy-finance-dashboard-v1")) return;
+    if (document.querySelector("#joy-finance-dashboard-v2")) return;
 
     const style = document.createElement("style");
-    style.id = "joy-finance-dashboard-v1";
+    style.id = "joy-finance-dashboard-v2";
     style.textContent = `
       #finance.finance-dashboard-polished .panel-heading{
-        min-height:70px;
-        padding:15px 20px;
+        min-height:74px;
+        padding:16px 20px;
         align-items:center;
       }
 
       #finance.finance-dashboard-polished .panel-title-button{
         color:#2d4249;
         font-family:"Instrument Sans",Arial,sans-serif;
-        font-size:20px;
+        font-size:25px;
         font-weight:700;
-        letter-spacing:-.035em;
+        letter-spacing:-.045em;
         line-height:1;
       }
 
@@ -33,22 +33,22 @@
       }
 
       #finance.finance-dashboard-polished .finance-period-button{
-        min-width:132px;
-        min-height:38px;
-        padding:9px 15px;
+        min-width:152px;
+        min-height:43px;
+        padding:10px 17px;
         display:flex;
         align-items:center;
         justify-content:center;
-        gap:12px;
-        border:1px solid rgba(61,78,83,.15);
-        border-radius:13px;
-        background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(246,243,237,.82));
+        gap:13px;
+        border:1px solid rgba(61,78,83,.16);
+        border-radius:14px;
+        background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(246,243,237,.84));
         color:#314850;
         font-family:"Instrument Sans",Arial,sans-serif;
-        font-size:12px;
+        font-size:15px;
         font-weight:700;
-        letter-spacing:-.015em;
-        box-shadow:0 7px 18px rgba(48,61,65,.11),inset 0 1px rgba(255,255,255,.9);
+        letter-spacing:-.025em;
+        box-shadow:0 8px 20px rgba(48,61,65,.12),inset 0 1px rgba(255,255,255,.92);
         cursor:pointer;
         transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;
       }
@@ -57,19 +57,19 @@
         content:"⌄";
         margin-top:-3px;
         color:#607279;
-        font-size:15px;
+        font-size:17px;
         font-weight:700;
       }
 
       #finance.finance-dashboard-polished .finance-period-button:hover{
         transform:translateY(-1px);
-        border-color:rgba(55,83,91,.28);
-        box-shadow:0 10px 22px rgba(48,61,65,.14),inset 0 1px rgba(255,255,255,.94);
+        border-color:rgba(55,83,91,.3);
+        box-shadow:0 11px 24px rgba(48,61,65,.15),inset 0 1px rgba(255,255,255,.96);
       }
 
       #finance.finance-dashboard-polished .finance-privacy-toggle{
-        width:38px;
-        height:38px;
+        width:40px;
+        height:40px;
         border-radius:13px;
         background:rgba(255,255,255,.68);
       }
@@ -88,7 +88,7 @@
       #finance.finance-dashboard-polished .finance-available>span{
         color:#68797e;
         font-family:"Instrument Sans",Arial,sans-serif;
-        font-size:9px;
+        font-size:10px;
         font-weight:700;
         letter-spacing:.11em;
       }
@@ -100,7 +100,7 @@
         font-family:"Instrument Sans",Arial,sans-serif;
         font-variant-numeric:tabular-nums lining-nums;
         font-weight:700;
-        letter-spacing:-.045em;
+        letter-spacing:-.04em;
         line-height:1;
         white-space:nowrap;
       }
@@ -108,14 +108,14 @@
       #finance.finance-dashboard-polished .finance-available>strong{
         min-height:42px;
         margin:10px 0 9px;
-        font-size:clamp(28px,3vw,38px);
+        font-size:clamp(31px,3.4vw,43px);
       }
 
       #finance.finance-dashboard-polished .finance-available>small{
         gap:0;
         color:#5d846b;
         font-family:"Instrument Sans",Arial,sans-serif;
-        font-size:9px;
+        font-size:10px;
         font-weight:600;
       }
 
@@ -126,7 +126,7 @@
 
       #finance.finance-dashboard-polished .finance-available>small b{
         color:#5d846b;
-        font-size:9px;
+        font-size:10px;
         font-weight:650;
       }
 
@@ -143,25 +143,25 @@
       }
 
       #finance.finance-dashboard-polished .finance-overview-stat small{
-        color:#66777c;
+        color:#5f7278;
         font-family:"Instrument Sans",Arial,sans-serif;
-        font-size:9px;
-        font-weight:650;
+        font-size:10.5px;
+        font-weight:700;
       }
 
       #finance.finance-dashboard-polished .finance-overview-stat strong{
-        min-height:22px;
+        min-height:25px;
         margin-top:8px;
-        font-size:clamp(16px,1.42vw,20px);
+        font-size:clamp(19px,1.75vw,24px);
       }
 
       #finance.finance-dashboard-polished .finance-overview-stat em{
         margin-top:7px;
         overflow:visible;
-        color:#849093;
+        color:#7c898c;
         font-family:"Instrument Sans",Arial,sans-serif;
-        font-size:8px;
-        font-weight:500;
+        font-size:8.5px;
+        font-weight:550;
         line-height:1.3;
         white-space:normal;
       }
@@ -182,8 +182,8 @@
       #finance.finance-dashboard-polished .finance-months{
         color:#718085;
         font-family:"Instrument Sans",Arial,sans-serif;
-        font-size:7.5px;
-        font-weight:550;
+        font-size:7.8px;
+        font-weight:600;
       }
 
       #finance.finance-dashboard-polished .finance-months i.is-current{
@@ -202,9 +202,15 @@
           align-items:flex-start;
         }
 
+        #finance.finance-dashboard-polished .panel-title-button{
+          font-size:22px;
+        }
+
         #finance.finance-dashboard-polished .finance-period-button{
-          min-width:116px;
-          padding-inline:12px;
+          min-width:128px;
+          min-height:40px;
+          padding-inline:13px;
+          font-size:13px;
         }
 
         #finance.finance-dashboard-polished .finance-overview{
@@ -254,18 +260,6 @@
     }
   }
 
-  function useFullDashboardAmounts() {
-    if (typeof setMoneyValue !== "function" || setMoneyValue.__joyFullAmounts) return;
-
-    const fullValueSetter = function setFullDashboardMoneyValue(element, amount) {
-      if (!element) return;
-      element.dataset.financeValue = formatVnd(amount);
-      element.textContent = financeValuesHidden ? element.dataset.financeMask : element.dataset.financeValue;
-    };
-    fullValueSetter.__joyFullAmounts = true;
-    setMoneyValue = fullValueSetter;
-  }
-
   function useEnglishChartMonths() {
     const labels = panel.querySelector("#finance-months");
     if (!labels) return;
@@ -282,7 +276,6 @@
   }
 
   installDashboardStyles();
-  useFullDashboardAmounts();
 
   if (typeof renderFinanceDashboard === "function" && !renderFinanceDashboard.__joyDashboardPolished) {
     const originalRenderFinanceDashboard = renderFinanceDashboard;
