@@ -14,6 +14,7 @@ const frontendSource = await readFile(new URL("project-data/finance/finance-brea
 const frontendStyles = await readFile(new URL("project-data/finance/finance-breakdown-v1.css", root), "utf8");
 const buildSource = await readFile(new URL("scripts/build.mjs", root), "utf8");
 const routerSource = await readFile(new URL("worker/router.js", root), "utf8");
+const workerSource = await readFile(new URL("worker/finance-breakdown.js", root), "utf8");
 
 function payload(overrides = {}) {
   return {
@@ -54,6 +55,15 @@ test("Manually edited imported totals are not duplicated by migration", () => {
   assert.equal(migrated.some((transaction) => transaction.month === 8 && transaction.category === "home"), false);
   assert.equal(migrated.some((transaction) => transaction.month === 8 && transaction.category === "haircare"), true);
   assert.equal(migrated.some((transaction) => transaction.month === 10 && transaction.category === "home"), true);
+});
+
+test("One-time reset removes only August through December 2026 expenses", () => {
+  assert.match(workerSource, /FINANCE_EXPENSE_RESET_IMPORT_KEY = "finance-expenses-2026-08-12-reset-v1"/);
+  assert.match(workerSource, /await ensureFinanceBreakdownImport\(email, env\);\s*await ensureFinanceExpenseReset\(email, env\);/);
+  assert.match(workerSource, /year = 2026/);
+  assert.match(workerSource, /month BETWEEN 8 AND 12/);
+  assert.match(workerSource, /type = 'expense'/);
+  assert.doesNotMatch(workerSource, /type IN \('income', 'carryover'\)/);
 });
 
 test("Finance month UI includes overview, expense map, mind-map branches and transitions", () => {
