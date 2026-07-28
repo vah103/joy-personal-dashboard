@@ -1,20 +1,22 @@
 (() => {
-  const URL = "/project-data/turtlebot4/project-state-v2.json";
-  const TZ = "Asia/Ho_Chi_Minh";
-  const oldNormalize = normalizeOverrides;
-  const oldProgress = projectProgress;
-  const oldCard = updateTurtleBotCard;
-  const oldHub = renderHub;
-  const oldPlan = renderPlan;
-  const oldAnswer = answerProjectQuestion;
-  const oldEffectivePlan = effectivePlan;
+  const PROJECT_STATE_URL = "/project-data/turtlebot4/project-state-v2.json";
+  const DEFAULT_TIME_ZONE = "Asia/Ho_Chi_Minh";
+  const previousNormalizeOverrides = normalizeOverrides;
+  const previousProjectProgress = projectProgress;
+  const previousUpdateCard = updateTurtleBotCard;
+  const previousRenderHub = renderHub;
+  const previousRenderPlan = renderPlan;
+  const previousAnswer = answerProjectQuestion;
+  const previousEffectivePlan = effectivePlan;
 
   hubState.projectState = null;
 
   normalizeOverrides = (value) => {
-    const next = oldNormalize(value);
-    next.planTasks = value?.planTasks && typeof value.planTasks === "object" ? value.planTasks : {};
-    return next;
+    const normalized = previousNormalizeOverrides(value);
+    normalized.planTasks = value?.planTasks && typeof value.planTasks === "object"
+      ? value.planTasks
+      : {};
+    return normalized;
   };
 
   const style = document.createElement("style");
@@ -24,122 +26,373 @@
   `;
   document.head.append(style);
 
-  const state = () => hubState.projectState?.schemaVersion === 2 ? hubState.projectState : null;
-  const stages = () => {
-    const ids = new Set(state()?.scope?.includedStageIds || getStages().map((s) => s.id));
-    return getStages().map(effectiveStage).filter((s) => ids.has(s.id));
+  const projectState = () => hubState.projectState?.schemaVersion === 2
+    ? hubState.projectState
+    : null;
+
+  const activeStages = () => {
+    const includedIds = new Set(
+      projectState()?.scope?.includedStageIds || getStages().map((stage) => stage.id),
+    );
+    return getStages().map(effectiveStage).filter((stage) => includedIds.has(stage.id));
   };
-  const today = () => {
-    const p = Object.fromEntries(new Intl.DateTimeFormat("en-GB",{timeZone:state()?.project?.timezone||TZ,year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date()).map((x)=>[x.type,x.value]));
-    return `${p.year}-${p.month}-${p.day}`;
+
+  const currentDate = () => {
+    const parts = Object.fromEntries(
+      new Intl.DateTimeFormat("en-GB", {
+        timeZone: projectState()?.project?.timezone || DEFAULT_TIME_ZONE,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).formatToParts(new Date()).map((part) => [part.type, part.value]),
+    );
+    return `${parts.year}-${parts.month}-${parts.day}`;
   };
-  const fmt = (v, weekday=true) => new Intl.DateTimeFormat("en-GB",{timeZone:TZ,weekday:weekday?"short":undefined,day:"numeric",month:"short",year:"numeric"}).format(new Date(`${v}T00:00:00+07:00`));
-  const weeks = () => state()?.weeks || [];
-  const days = () => weeks().flatMap((w)=>(w.days||[]).map((d)=>({...d,weekNumber:w.number,weekTitle:w.title})));
-  const itemDone = (id) => getStages().map(effectiveStage).some((s)=>s.checklist?.some((i)=>i.id===id&&i.done));
-  const taskProgress = (t) => {
-    const ids=t.roadmapItemIds||[];
-    if(ids.length)return ids.filter(itemDone).length/ids.length;
-    const value=hubState.overrides.planTasks?.[t.id];
-    return typeof value==="boolean"?(value?1:0):(t.done?1:0);
+
+  const formatDate = (value, includeWeekday = true) => new Intl.DateTimeFormat("en-GB", {
+    timeZone: DEFAULT_TIME_ZONE,
+    weekday: includeWeekday ? "short" : undefined,
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(`${value}T00:00:00+07:00`));
+
+  const planWeeks = () => projectState()?.weeks || [];
+  const planDays = () => planWeeks().flatMap((week) =>
+    (week.days || []).map((day) => ({ ...day, weekNumber: week.number, weekTitle: week.title })),
+  );
+
+  const roadmapItemDone = (id) => getStages()
+    .map(effectiveStage)
+    .some((stage) => stage.checklist?.some((item) => item.id === id && item.done));
+
+  const taskProgress = (task) => {
+    const linkedIds = task.roadmapItemIds || [];
+    if (linkedIds.length) return linkedIds.filter(roadmapItemDone).length / linkedIds.length;
+    const override = hubState.overrides.planTasks?.[task.id];
+    return typeof override === "boolean" ? (override ? 1 : 0) : (task.done ? 1 : 0);
   };
-  const taskDone = (t) => taskProgress(t)>=1;
-  const dayProgress = (d) => {
-    const t=d?.tasks||[]; return t.length?Math.round(t.reduce((n,x)=>n+taskProgress(x),0)/t.length*100):0;
+
+  const taskDone = (task) => taskProgress(task) >= 1;
+
+  const dayProgress = (day) => {
+    const tasks = day?.tasks || [];
+    return tasks.length
+      ? Math.round(tasks.reduce((total, task) => total + taskProgress(task), 0) / tasks.length * 100)
+      : 0;
   };
-  const weekProgress = (w) => {
-    const t=(w?.days||[]).filter((d)=>!d.optional).flatMap((d)=>(d.tasks||[]).filter((x)=>!x.optional));
-    return t.length?Math.round(t.reduce((n,x)=>n+taskProgress(x),0)/t.length*100):0;
+
+  const weekProgress = (week) => {
+    const tasks = (week?.days || [])
+      .filter((day) => !day.optional)
+      .flatMap((day) => (day.tasks || []).filter((task) => !task.optional));
+    return tasks.length
+      ? Math.round(tasks.reduce((total, task) => total + taskProgress(task), 0) / tasks.length * 100)
+      : 0;
   };
 
   projectProgress = () => {
-    const list=stages(); if(!list.length)return oldProgress();
-    const total=list.reduce((n,s)=>n+Number(s.weight||1),0);
-    return total?Math.round(list.reduce((n,s)=>n+s.progress*Number(s.weight||1),0)/total):0;
+    const stages = activeStages();
+    if (!stages.length) return previousProjectProgress();
+    const totalWeight = stages.reduce((total, stage) => total + Number(stage.weight || 1), 0);
+    return totalWeight
+      ? Math.round(stages.reduce((total, stage) => total + stage.progress * Number(stage.weight || 1), 0) / totalWeight)
+      : 0;
   };
 
-  const snapshot = () => {
-    const date=today();
-    const week=weeks().find((w)=>date>=w.start&&date<=w.end)||weeks().find((w)=>date<w.start)||weeks().at(-1);
-    const todayDay=days().find((d)=>d.date===date);
-    const pendingDays=days().filter((d)=>d.date>=date);
-    let next=null;
-    for(const d of [todayDay,...pendingDays.filter((x)=>x!==todayDay)].filter(Boolean)){
-      const task=(d.tasks||[]).find((t)=>!taskDone(t)); if(task){next={task,day:d};break;}
+  const projectSnapshot = () => {
+    const date = currentDate();
+    const weeks = planWeeks();
+    const days = planDays();
+    const week = weeks.find((item) => date >= item.start && date <= item.end)
+      || weeks.find((item) => date < item.start)
+      || weeks.at(-1);
+    const today = days.find((day) => day.date === date);
+    const pendingDays = days.filter((day) => day.date >= date);
+    let next = null;
+
+    for (const day of [today, ...pendingDays.filter((item) => item !== today)].filter(Boolean)) {
+      const task = (day.tasks || []).find((item) => !taskDone(item));
+      if (task) {
+        next = { task, day };
+        break;
+      }
     }
-    if(!next)for(const d of days()){const task=(d.tasks||[]).find((t)=>!taskDone(t));if(task){next={task,day:d};break;}}
-    const nextLab=days().find((d)=>d.date>=date&&d.location==="Lab"&&(d.tasks||[]).some((t)=>!taskDone(t)))||null;
-    const overdue=days().flatMap((d)=>d.date<date&&!d.optional?(d.tasks||[]).filter((t)=>!taskDone(t)).map((task)=>({task,day:d})):[]);
-    const stage=stages().find((s)=>s.id===state()?.project?.currentStageId)||stages().find((s)=>s.progress<100)||stages().at(-1);
-    const start=new Date(`${state()?.project?.planStart}T00:00:00+07:00`).getTime(),end=new Date(`${state()?.project?.planEnd}T00:00:00+07:00`).getTime(),now=new Date(`${date}T00:00:00+07:00`).getTime();
-    const elapsed=now<=start?0:now>=end?100:Math.round((now-start)/(end-start)*100);
-    const status=date<state()?.project?.planStart?"Not started":overdue.length?"At risk":date>state()?.project?.planEnd&&projectProgress()<100?"Behind":"On track";
-    return {date,week,todayDay,next,nextLab,overdue,stage,elapsed,status,overall:projectProgress(),weekPct:weekProgress(week)};
+
+    if (!next) {
+      for (const day of days) {
+        const task = (day.tasks || []).find((item) => !taskDone(item));
+        if (task) {
+          next = { task, day };
+          break;
+        }
+      }
+    }
+
+    const nextLab = days.find((day) =>
+      day.date >= date
+      && day.location === "Lab"
+      && (day.tasks || []).some((task) => !taskDone(task)),
+    ) || null;
+
+    const overdue = days.flatMap((day) =>
+      day.date < date && !day.optional
+        ? (day.tasks || []).filter((task) => !taskDone(task)).map((task) => ({ task, day }))
+        : [],
+    );
+
+    const stages = activeStages();
+    const stage = stages.find((item) => item.id === projectState()?.project?.currentStageId)
+      || stages.find((item) => item.progress < 100)
+      || stages.at(-1);
+
+    const start = new Date(`${projectState()?.project?.planStart}T00:00:00+07:00`).getTime();
+    const end = new Date(`${projectState()?.project?.planEnd}T00:00:00+07:00`).getTime();
+    const now = new Date(`${date}T00:00:00+07:00`).getTime();
+    const elapsed = now <= start ? 0 : now >= end ? 100 : Math.round((now - start) / (end - start) * 100);
+    const status = date < projectState()?.project?.planStart
+      ? "Not started"
+      : overdue.length
+        ? "At risk"
+        : date > projectState()?.project?.planEnd && projectProgress() < 100
+          ? "Behind"
+          : "On track";
+
+    return {
+      date,
+      week,
+      today,
+      next,
+      nextLab,
+      overdue,
+      stage,
+      elapsed,
+      status,
+      overall: projectProgress(),
+      weekProgress: weekProgress(week),
+    };
   };
 
   effectivePlan = () => {
-    if(!state())return oldEffectivePlan();
-    const s=snapshot();
-    return {title:s.next?.task.label||"Review the next milestone",why:s.stage?.completionCriteria||"",location:s.next?.day.location||"Home",priority:"High",currentFocus:(s.todayDay?.tasks||[]).find((t)=>!taskDone(t))?.label||s.next?.task.label||"",nextAction:s.next?.task.label||"",completionCriteria:s.stage?.completionCriteria||""};
+    if (!projectState()) return previousEffectivePlan();
+    const snapshot = projectSnapshot();
+    return {
+      title: snapshot.next?.task.label || "Review the next milestone",
+      why: snapshot.stage?.completionCriteria || "",
+      location: snapshot.next?.day.location || "Home",
+      priority: "High",
+      currentFocus: (snapshot.today?.tasks || []).find((task) => !taskDone(task))?.label
+        || snapshot.next?.task.label
+        || "",
+      nextAction: snapshot.next?.task.label || "",
+      completionCriteria: snapshot.stage?.completionCriteria || "",
+    };
   };
 
-  const tasksHtml = (list=[]) => `<div class="ps-tasks">${list.length?list.map((t)=>{const p=taskProgress(t),done=p>=1,linked=(t.roadmapItemIds||[]).length;return `<label class="ps-task ${done?"done":""}"><input type="checkbox" data-ps-task="${escapeHub(t.id)}" ${done?"checked":""}><span class="ps-check">${done?"✓":""}</span><span><b>${escapeHub(t.label)}</b><small>${linked?"Counts toward technical progress":"Schedule task"}${p>0&&p<1?` · ${Math.round(p*100)}%`:""}</small></span></label>`}).join(""):`<p class="hub-muted">No tasks scheduled.</p>`}</div>`;
+  const renderTasks = (tasks = []) => `<div class="ps-tasks">${tasks.length
+    ? tasks.map((task) => {
+      const progress = taskProgress(task);
+      const done = progress >= 1;
+      const linked = (task.roadmapItemIds || []).length;
+      return `<label class="ps-task ${done ? "done" : ""}"><input type="checkbox" data-ps-task="${escapeHub(task.id)}" ${done ? "checked" : ""}><span class="ps-check">${done ? "✓" : ""}</span><span><b>${escapeHub(task.label)}</b><small>${linked ? "Counts toward technical progress" : "Schedule task"}${progress > 0 && progress < 1 ? ` · ${Math.round(progress * 100)}%` : ""}</small></span></label>`;
+    }).join("")
+    : '<p class="hub-muted">No tasks scheduled.</p>'}</div>`;
 
-  const chatHtml = () => `<section class="hub-chat-card ps-chat"><header><div><span>Joy project assistant</span><h3>Ask about TurtleBot4</h3></div><i>✦</i></header><div class="hub-chat-suggestions">${["What should I do today?","What should I prepare for the next lab?","Am I on schedule?","How did progress reach this percentage?"].map((q)=>`<button type="button" data-hub-action="ask-suggestion" data-question="${escapeHub(q)}">${escapeHub(q)}</button>`).join("")}</div><div class="hub-chat-log" id="hub-chat-log">${hubState.chat.length?hubState.chat.map((m)=>`<div class="hub-chat-message ${m.role}"><span>${m.role==="joy"?"Joy":"Vanh"}</span><p>${escapeHub(m.text)}</p></div>`).join(""):`<div class="hub-chat-empty"><strong>Project State v2 is active</strong><p>Joy now combines roadmap evidence, the 10-week schedule, lab days and completion gates.</p></div>`}</div><form id="hub-chat-form"><input name="question" autocomplete="off" placeholder="Ask Joy about this project…" required><button type="submit">Send</button></form></section>`;
+  const renderChat = () => `<section class="hub-chat-card ps-chat"><header><div><span>Joy project assistant</span><h3>Ask about TurtleBot4</h3></div><i>✦</i></header><div class="hub-chat-suggestions">${[
+    "What should I do today?",
+    "What should I prepare for the next lab?",
+    "Am I on schedule?",
+    "How did progress reach this percentage?",
+  ].map((question) => `<button type="button" data-hub-action="ask-suggestion" data-question="${escapeHub(question)}">${escapeHub(question)}</button>`).join("")}</div><div class="hub-chat-log" id="hub-chat-log">${hubState.chat.length
+    ? hubState.chat.map((message) => `<div class="hub-chat-message ${message.role}"><span>${message.role === "joy" ? "Joy" : "Vanh"}</span><p>${escapeHub(message.text)}</p></div>`).join("")
+    : '<div class="hub-chat-empty"><strong>Project State v2 is active</strong><p>Joy now combines roadmap evidence, the 10-week schedule, lab days and completion gates.</p></div>'}</div><form id="hub-chat-form"><input name="question" autocomplete="off" placeholder="Ask Joy about this project..." required><button type="submit">Send</button></form></section>`;
 
-  function overview(){
-    if(!state()){oldPlan();return}
-    const s=snapshot(),list=stages(),index=Math.max(0,list.findIndex((x)=>x.id===s.stage?.id))+1;
-    const history=state().history||[];
-    hubElements.body.innerHTML=`<div class="ps-wrap"><section class="ps-hero"><div><span>Project State v2 · ${escapeHub(fmt(s.date))}</span><h3>${escapeHub(s.week?`Week ${s.week.number}: ${s.week.title}`:"TurtleBot4")}</h3><p>${escapeHub(s.week?.objective||s.stage?.objective||"")}</p></div><b class="ps-status ${s.status.toLowerCase().replaceAll(" ","-")}">${escapeHub(s.status)}</b></section><section class="ps-metrics"><article><span>Overall completion</span><strong>${s.overall}%</strong><small>Active 10-week scope</small></article><article><span>Current week</span><strong>${s.week?.number||"—"}/10</strong><small>${s.weekPct}% weekly tasks</small></article><article><span>Technical stage</span><strong>${index}/${list.length}</strong><small>${escapeHub(s.stage?.shortName||s.stage?.name||"")}</small></article><article><span>Timeline elapsed</span><strong>${s.elapsed}%</strong><small>Time does not add progress</small></article></section><div class="ps-grid"><section class="ps-panel"><div class="ps-title"><div><span>Today</span><h3>${escapeHub(s.todayDay?`${s.todayDay.label} · ${s.todayDay.location}`:"Next planned action")}</h3></div><small>${escapeHub(fmt(s.date,false))}</small></div>${tasksHtml(s.todayDay?.tasks||[s.next?.task].filter(Boolean))}<div class="ps-actions"><button class="hub-primary-button" data-hub-action="add-plan-to-todo">Add next action to To-do</button><a href="${escapeHub(state().project.googleDocUrl)}" target="_blank" rel="noreferrer">Open Google Docs plan ↗</a></div></section><section class="ps-panel"><div class="ps-title"><div><span>Next robot session</span><h3>${escapeHub(s.nextLab?fmt(s.nextLab.date):"No lab session pending")}</h3></div><small>${escapeHub(s.nextLab?.location||"")}</small></div>${tasksHtml((s.nextLab?.tasks||[]).filter((t)=>!taskDone(t)))}</section><section class="ps-panel"><div class="ps-title"><div><span>Current completion gate</span><h3>${escapeHub(s.stage?.name||"Current stage")}</h3></div></div><p>${escapeHub(s.stage?.completionCriteria||"")}</p><ul>${(state().project.currentBlockers||[]).map((x)=>`<li>${escapeHub(x)}</li>`).join("")}</ul></section><section class="ps-panel"><div class="ps-title"><div><span>Scope control</span><h3>Accelerated core thesis</h3></div></div><p>${escapeHub(state().scope.excludedReason)}</p><p><b>${state().scope.objectClassLimit}</b> object classes · <b>${state().scope.environmentLimit}</b> experiment environment · Saturday only as buffer.</p></section></div><section class="ps-history"><div class="ps-title"><div><span>Progress history</span><h3>From 0% to today</h3></div><small>Evidence-backed only</small></div><div class="ps-timeline">${history.map((h)=>`<article><div><small>${escapeHub(fmt(h.date,false))}</small><b>${escapeHub(h.title)}</b><p>${escapeHub(h.detail)}</p></div><em>${h.progressAfter}%</em></article>`).join("")}</div></section>${chatHtml()}</div>`;
+  function renderOverview() {
+    if (!projectState()) {
+      previousRenderPlan();
+      return;
+    }
+
+    const snapshot = projectSnapshot();
+    const stages = activeStages();
+    const stageIndex = Math.max(0, stages.findIndex((stage) => stage.id === snapshot.stage?.id)) + 1;
+    const history = projectState().history || [];
+
+    hubElements.body.innerHTML = `<div class="ps-wrap"><section class="ps-hero"><div><span>Project State v2 · ${escapeHub(formatDate(snapshot.date))}</span><h3>${escapeHub(snapshot.week ? `Week ${snapshot.week.number}: ${snapshot.week.title}` : "TurtleBot4")}</h3><p>${escapeHub(snapshot.week?.objective || snapshot.stage?.objective || "")}</p></div><b class="ps-status ${snapshot.status.toLowerCase().replaceAll(" ", "-")}">${escapeHub(snapshot.status)}</b></section><section class="ps-metrics"><article><span>Overall completion</span><strong>${snapshot.overall}%</strong><small>Active 10-week scope</small></article><article><span>Current week</span><strong>${snapshot.week?.number || "-"}/10</strong><small>${snapshot.weekProgress}% weekly tasks</small></article><article><span>Technical stage</span><strong>${stageIndex}/${stages.length}</strong><small>${escapeHub(snapshot.stage?.shortName || snapshot.stage?.name || "")}</small></article><article><span>Timeline elapsed</span><strong>${snapshot.elapsed}%</strong><small>Time does not add progress</small></article></section><div class="ps-grid"><section class="ps-panel"><div class="ps-title"><div><span>Today</span><h3>${escapeHub(snapshot.today ? `${snapshot.today.label} · ${snapshot.today.location}` : "Next planned action")}</h3></div><small>${escapeHub(formatDate(snapshot.date, false))}</small></div>${renderTasks(snapshot.today?.tasks || [snapshot.next?.task].filter(Boolean))}<div class="ps-actions"><button class="hub-primary-button" data-hub-action="add-plan-to-todo">Add next action to To-do</button><a href="${escapeHub(projectState().project.googleDocUrl)}" target="_blank" rel="noreferrer">Open Google Docs plan ↗</a></div></section><section class="ps-panel"><div class="ps-title"><div><span>Next robot session</span><h3>${escapeHub(snapshot.nextLab ? formatDate(snapshot.nextLab.date) : "No lab session pending")}</h3></div><small>${escapeHub(snapshot.nextLab?.location || "")}</small></div>${renderTasks((snapshot.nextLab?.tasks || []).filter((task) => !taskDone(task)))}</section><section class="ps-panel"><div class="ps-title"><div><span>Current completion gate</span><h3>${escapeHub(snapshot.stage?.name || "Current stage")}</h3></div></div><p>${escapeHub(snapshot.stage?.completionCriteria || "")}</p><ul>${(projectState().project.currentBlockers || []).map((blocker) => `<li>${escapeHub(blocker)}</li>`).join("")}</ul></section><section class="ps-panel"><div class="ps-title"><div><span>Scope control</span><h3>Accelerated core thesis</h3></div></div><p>${escapeHub(projectState().scope.excludedReason)}</p><p><b>${projectState().scope.objectClassLimit}</b> object classes · <b>${projectState().scope.environmentLimit}</b> experiment environment · Saturday only as buffer.</p></section></div><section class="ps-history"><div class="ps-title"><div><span>Progress history</span><h3>From 0% to today</h3></div><small>Evidence-backed only</small></div><div class="ps-timeline">${history.map((entry) => `<article><div><small>${escapeHub(formatDate(entry.date, false))}</small><b>${escapeHub(entry.title)}</b><p>${escapeHub(entry.detail)}</p></div><em>${entry.progressAfter}%</em></article>`).join("")}</div></section>${renderChat()}</div>`;
   }
 
-  function schedule(){
-    if(!state()){hubElements.body.innerHTML=`<div class="hub-loading"><span></span><strong>Loading plan…</strong></div>`;return}
-    const s=snapshot();
-    hubElements.body.innerHTML=`<div class="ps-schedule"><header><div><span>10-week execution plan</span><h3>27 Jul – 4 Oct 2026</h3><p>Home preparation Monday–Tuesday, robot work Wednesday–Thursday, Saturday only as a controlled buffer.</p></div><a href="${escapeHub(state().project.googleDocUrl)}" target="_blank" rel="noreferrer">Open source plan ↗</a></header><div class="ps-weeks">${weeks().map((w)=>{const p=weekProgress(w),cur=w.number===s.week?.number;return `<details class="ps-week ${cur?"current":""}" ${cur?"open":""}><summary><span class="ps-num">${w.number}</span><span><b>${escapeHub(w.title)}</b><small>${escapeHub(fmt(w.start,false))} – ${escapeHub(fmt(w.end,false))}</small></span><span class="ps-bar">${p}%<i><em style="width:${p}%"></em></i></span></summary><div class="ps-week-body"><p>${escapeHub(w.objective)} <b>Deliverable:</b> ${escapeHub(w.deliverable)}</p><div class="ps-days">${(w.days||[]).map((d)=>`<article class="ps-day ${d.date===s.date?"today":""} ${d.optional?"optional":""}"><header><b>${escapeHub(d.label)} · ${escapeHub(fmt(d.date,false))}</b><span>${escapeHub(d.location)} · ${dayProgress(d)}%</span></header>${tasksHtml(d.tasks||[])}</article>`).join("")}</div></div></details>`}).join("")}</div></div>`;
+  function renderSchedule() {
+    if (!projectState()) {
+      hubElements.body.innerHTML = '<div class="hub-loading"><span></span><strong>Loading plan...</strong></div>';
+      return;
+    }
+
+    const snapshot = projectSnapshot();
+    hubElements.body.innerHTML = `<div class="ps-schedule"><header><div><span>10-week execution plan</span><h3>27 Jul - 4 Oct 2026</h3><p>Home preparation Monday-Tuesday, robot work Wednesday-Thursday, Saturday only as a controlled buffer.</p></div><a href="${escapeHub(projectState().project.googleDocUrl)}" target="_blank" rel="noreferrer">Open source plan ↗</a></header><div class="ps-weeks">${planWeeks().map((week) => {
+      const progress = weekProgress(week);
+      const current = week.number === snapshot.week?.number;
+      return `<details class="ps-week ${current ? "current" : ""}" ${current ? "open" : ""}><summary><span class="ps-num">${week.number}</span><span><b>${escapeHub(week.title)}</b><small>${escapeHub(formatDate(week.start, false))} - ${escapeHub(formatDate(week.end, false))}</small></span><span class="ps-bar">${progress}%<i><em style="width:${progress}%"></em></i></span></summary><div class="ps-week-body"><p>${escapeHub(week.objective)} <b>Deliverable:</b> ${escapeHub(week.deliverable)}</p><div class="ps-days">${(week.days || []).map((day) => `<article class="ps-day ${day.date === snapshot.date ? "today" : ""} ${day.optional ? "optional" : ""}"><header><b>${escapeHub(day.label)} · ${escapeHub(formatDate(day.date, false))}</b><span>${escapeHub(day.location)} · ${dayProgress(day)}%</span></header>${renderTasks(day.tasks || [])}</article>`).join("")}</div></div></details>`;
+    }).join("")}</div></div>`;
   }
 
-  renderPlan=overview;
-  renderHub=()=>{
-    hubElements.tabs.forEach((b)=>{const active=b.dataset.hubTab===hubState.activeTab;b.classList.toggle("active",active);b.setAttribute("aria-selected",String(active))});updateHubStatus();
-    if(!hubState.source){hubElements.body.innerHTML=`<div class="hub-loading"><span></span><strong>Connecting TurtleBot project…</strong></div>`;return}
-    if(hubState.activeTab==="schedule")schedule();else if(hubState.activeTab==="plan")overview();else if(hubState.activeTab==="commands")renderCommands();else if(hubState.activeTab==="journal")renderJournal();else if(hubState.activeTab==="roadmap")renderRoadmap();else oldHub();
+  renderPlan = renderOverview;
+
+  renderHub = () => {
+    hubElements.tabs.forEach((button) => {
+      const active = button.dataset.hubTab === hubState.activeTab;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-selected", String(active));
+    });
+    updateHubStatus();
+
+    if (!hubState.source) {
+      hubElements.body.innerHTML = '<div class="hub-loading"><span></span><strong>Connecting TurtleBot project...</strong></div>';
+      return;
+    }
+
+    if (hubState.activeTab === "schedule") renderSchedule();
+    else if (hubState.activeTab === "plan") renderOverview();
+    else if (hubState.activeTab === "commands") renderCommands();
+    else if (hubState.activeTab === "journal") renderJournal();
+    else if (hubState.activeTab === "roadmap") renderRoadmap();
+    else previousRenderHub();
   };
 
-  updateTurtleBotCard=()=>{
-    if(!state()||!hubState.source){oldCard();return}
-    const card=findTurtleBotCard();if(!card)return;const s=snapshot(),list=stages(),index=Math.max(0,list.findIndex((x)=>x.id===s.stage?.id))+1;
-    card.querySelector(".project-top span").textContent=`${s.overall}%`;card.querySelector(".progress-track span").style.width=`${s.overall}%`;
-    const dd=card.querySelectorAll("dl dd");if(dd[0])dd[0].textContent=(s.todayDay?.tasks||[]).find((t)=>!taskDone(t))?.label||s.next?.task.label||s.stage?.objective||"";if(dd[1])dd[1].textContent=s.next?.task.label||"Review the next completion gate";
-    const pill=card.querySelector(".project-stage-pill");if(pill)pill.textContent=`Week ${s.week?.number||"—"} of 10 · Stage ${index} of ${list.length}`;
-    let source=card.querySelector(".project-git-source");if(!source){source=document.createElement("span");source.className="project-git-source";card.append(source)}source.textContent=`Project State v2 · ${s.status} · ${hubState.sourceMode==="github"?"GitHub live":"Snapshot"}`;
+  updateTurtleBotCard = () => {
+    if (!projectState() || !hubState.source) {
+      previousUpdateCard();
+      return;
+    }
+
+    const card = findTurtleBotCard();
+    if (!card) return;
+    const snapshot = projectSnapshot();
+    const stages = activeStages();
+    const stageIndex = Math.max(0, stages.findIndex((stage) => stage.id === snapshot.stage?.id)) + 1;
+
+    const percentage = card.querySelector(".project-top span");
+    const track = card.querySelector(".progress-track span");
+    if (percentage) percentage.textContent = `${snapshot.overall}%`;
+    if (track) track.style.width = `${snapshot.overall}%`;
+
+    const details = card.querySelectorAll("dl dd");
+    if (details[0]) {
+      details[0].textContent = (snapshot.today?.tasks || []).find((task) => !taskDone(task))?.label
+        || snapshot.next?.task.label
+        || snapshot.stage?.objective
+        || "";
+    }
+    if (details[1]) details[1].textContent = snapshot.next?.task.label || "Review the next completion gate";
+
+    const pill = card.querySelector(".project-stage-pill");
+    if (pill) pill.textContent = `Week ${snapshot.week?.number || "-"} of 10 · Stage ${stageIndex} of ${stages.length}`;
+
+    let source = card.querySelector(".project-git-source");
+    if (!source) {
+      source = document.createElement("span");
+      source.className = "project-git-source";
+      card.append(source);
+    }
+    source.textContent = `Project State v2 · ${snapshot.status} · ${hubState.sourceMode === "github" ? "GitHub live" : "Snapshot"}`;
   };
 
-  const isVi=(q)=>/[ăâđêôơưàáạảãèéẹẻẽìíịỉĩòóọỏõùúụủũỳýỵỷỹ]|\b(tôi|hôm nay|tiến độ|tuần|chuẩn bị|ở nhà|sắp tới)\b/i.test(q);
-  answerProjectQuestion=(q)=>{
-    if(!state())return oldAnswer(q);const v=String(q).toLowerCase(),vi=isVi(q),s=snapshot(),next=s.next?.task.label||"No pending task",stage=`${s.stage?.name||"Stage"} (${s.stage?.progress||0}%)`;
-    if(/today|hôm nay|làm gì/.test(v)){const t=(s.todayDay?.tasks||[]).filter((x)=>!taskDone(x));return vi?`Hôm nay ${fmt(s.date)}, bạn ở Tuần ${s.week?.number||"—"}, ${stage}. Việc cần làm: ${(t.length?t:[s.next?.task].filter(Boolean)).map((x)=>x.label).join("; ")}.`:`Today is ${fmt(s.date)}. You are in Week ${s.week?.number||"—"}, ${stage}. Focus on: ${(t.length?t:[s.next?.task].filter(Boolean)).map((x)=>x.label).join("; ")}.`}
-    if(/lab|chuẩn bị/.test(v)){const text=(s.nextLab?.tasks||[]).filter((x)=>!taskDone(x)).map((x)=>x.label).join("; ");return vi?`Buổi lab tiếp theo: ${s.nextLab?fmt(s.nextLab.date):"không còn"}. ${text}`:`Next lab: ${s.nextLab?fmt(s.nextLab.date):"none pending"}. ${text}`}
-    if(/progress|percent|%|tiến độ|từ 0/.test(v))return vi?`Tiến độ là ${s.overall}% trong phạm vi 10 tuần; ${stage}; Tuần ${s.week?.number||"—"} đạt ${s.weekPct}%. Thời gian đã trôi ${s.elapsed}% nhưng không tự cộng tiến độ.`:`Completion is ${s.overall}% for the active 10-week scope; ${stage}; Week ${s.week?.number||"—"} is ${s.weekPct}%. Timeline elapsed is ${s.elapsed}% but never adds completion.`;
-    if(/schedule|track|late|behind|chậm|đúng tiến độ/.test(v))return vi?`Trạng thái lịch: ${s.status}. Có ${s.overdue.length} việc quá hạn. Việc tiếp theo: ${next}.`:`Schedule: ${s.status}. ${s.overdue.length} overdue tasks. Next: ${next}.`;
-    if(/blocker|gate|điều kiện|vướng/.test(v))return vi?`Completion gate: ${s.stage?.completionCriteria}. Vướng mắc: ${(state().project.currentBlockers||[]).join("; ")}.`:`Completion gate: ${s.stage?.completionCriteria}. Blockers: ${(state().project.currentBlockers||[]).join("; ")}.`;
-    return vi?`Joy đang theo dõi ${s.overall}%, Tuần ${s.week?.number||"—"} (${s.weekPct}%), ${stage}, trạng thái ${s.status}. Tiếp theo: ${next}.`:`Joy is tracking ${s.overall}%, Week ${s.week?.number||"—"} (${s.weekPct}%), ${stage}, status ${s.status}. Next: ${next}.`;
+  answerProjectQuestion = (question) => {
+    if (!projectState()) return previousAnswer(question);
+    const value = String(question || "").toLowerCase();
+    const snapshot = projectSnapshot();
+    const nextAction = snapshot.next?.task.label || "No pending task";
+    const stage = `${snapshot.stage?.name || "Stage"} (${snapshot.stage?.progress || 0}%)`;
+
+    if (/today|what should i do|next action/.test(value)) {
+      const tasks = (snapshot.today?.tasks || []).filter((task) => !taskDone(task));
+      return `Today is ${formatDate(snapshot.date)}. You are in Week ${snapshot.week?.number || "-"}, ${stage}. Focus on: ${(tasks.length ? tasks : [snapshot.next?.task].filter(Boolean)).map((task) => task.label).join("; ")}.`;
+    }
+
+    if (/lab|prepare/.test(value)) {
+      const tasks = (snapshot.nextLab?.tasks || []).filter((task) => !taskDone(task)).map((task) => task.label).join("; ");
+      return `Next lab: ${snapshot.nextLab ? formatDate(snapshot.nextLab.date) : "none pending"}. ${tasks || nextAction}`;
+    }
+
+    if (/progress|percent|completion/.test(value)) {
+      return `Completion is ${snapshot.overall}% for the active 10-week scope; ${stage}; Week ${snapshot.week?.number || "-"} is ${snapshot.weekProgress}%. Timeline elapsed is ${snapshot.elapsed}% but never adds completion.`;
+    }
+
+    if (/schedule|track|late|behind|overdue/.test(value)) {
+      return `Schedule: ${snapshot.status}. ${snapshot.overdue.length} overdue tasks. Next: ${nextAction}.`;
+    }
+
+    if (/blocker|gate|criteria|risk/.test(value)) {
+      return `Completion gate: ${snapshot.stage?.completionCriteria}. Blockers: ${(projectState().project.currentBlockers || []).join("; ")}.`;
+    }
+
+    return `Joy is tracking ${snapshot.overall}%, Week ${snapshot.week?.number || "-"} (${snapshot.weekProgress}%), ${stage}, status ${snapshot.status}. Next: ${nextAction}.`;
   };
 
-  const taskById=(id)=>{for(const w of weeks())for(const d of w.days||[]){const t=(d.tasks||[]).find((x)=>x.id===id);if(t)return t}return null};
-  document.addEventListener("change",(e)=>{const input=e.target.closest?.("[data-ps-task]");if(!input)return;const task=taskById(input.dataset.psTask);if(!task)return;hubState.overrides.planTasks||={};const ids=task.roadmapItemIds||[];if(ids.length){delete hubState.overrides.planTasks[task.id];ids.forEach((id)=>hubState.overrides.checklist[id]=input.checked)}else hubState.overrides.planTasks[task.id]=input.checked;scheduleHubSave();updateTurtleBotCard();renderHub()});
+  const taskById = (id) => {
+    for (const week of planWeeks()) {
+      for (const day of week.days || []) {
+        const task = (day.tasks || []).find((item) => item.id === id);
+        if (task) return task;
+      }
+    }
+    return null;
+  };
 
-  const oldButton=document.querySelector('[data-hub-tab="plan"]');
-  if(oldButton&&!document.querySelector("[data-ps-overview]")){
-    oldButton.dataset.hubTab="schedule";oldButton.textContent="10-Week Plan";
-    const button=document.createElement("button");button.type="button";button.dataset.hubTab="plan";button.dataset.psOverview="1";button.textContent="Overview";button.setAttribute("aria-selected","false");
-    oldButton.parentElement.insertBefore(button,oldButton.parentElement.firstElementChild);hubElements.tabs.unshift(button);if(!HUB_TABS.includes("schedule"))HUB_TABS.push("schedule");
-    button.addEventListener("click",()=>{hubState.activeTab="plan";renderHub()});
+  document.addEventListener("change", (event) => {
+    const input = event.target.closest?.("[data-ps-task]");
+    if (!input) return;
+    const task = taskById(input.dataset.psTask);
+    if (!task) return;
+
+    hubState.overrides.planTasks ||= {};
+    const linkedIds = task.roadmapItemIds || [];
+    if (linkedIds.length) {
+      delete hubState.overrides.planTasks[task.id];
+      linkedIds.forEach((id) => {
+        hubState.overrides.checklist[id] = input.checked;
+      });
+    } else {
+      hubState.overrides.planTasks[task.id] = input.checked;
+    }
+
+    scheduleHubSave();
+    updateTurtleBotCard();
+    renderHub();
+  });
+
+  const originalPlanButton = document.querySelector('[data-hub-tab="plan"]');
+  if (originalPlanButton && !document.querySelector("[data-ps-overview]")) {
+    originalPlanButton.dataset.hubTab = "schedule";
+    originalPlanButton.textContent = "10-Week Plan";
+
+    const overviewButton = document.createElement("button");
+    overviewButton.type = "button";
+    overviewButton.dataset.hubTab = "plan";
+    overviewButton.dataset.psOverview = "1";
+    overviewButton.textContent = "Overview";
+    overviewButton.setAttribute("aria-selected", "false");
+    originalPlanButton.parentElement.insertBefore(overviewButton, originalPlanButton.parentElement.firstElementChild);
+    hubElements.tabs.unshift(overviewButton);
+    if (!HUB_TABS.includes("schedule")) HUB_TABS.push("schedule");
+    overviewButton.addEventListener("click", () => {
+      hubState.activeTab = "plan";
+      renderHub();
+    });
   }
 
-  fetchHubJson(URL).then((data)=>{
-    if(data?.schemaVersion!==2)throw new Error("Unsupported Project State schema");
-    hubState.projectState=data;hubState.overrides=normalizeOverrides(hubState.overrides);storeLocalOverrides();hubState.activeTab="plan";updateTurtleBotCard();if(!hubElements.modal?.hidden)renderHub();
-  }).catch((error)=>{hubState.saveStatus="Project State unavailable";hubState.projectStateError=error.message;updateHubStatus()});
+  fetchHubJson(PROJECT_STATE_URL)
+    .then((data) => {
+      if (data?.schemaVersion !== 2) throw new Error("Unsupported Project State schema");
+      hubState.projectState = data;
+      hubState.overrides = normalizeOverrides(hubState.overrides);
+      storeLocalOverrides();
+      hubState.activeTab = "plan";
+      updateTurtleBotCard();
+      if (!hubElements.modal?.hidden) renderHub();
+    })
+    .catch((error) => {
+      hubState.saveStatus = "Project State unavailable";
+      hubState.projectStateError = error.message;
+      updateHubStatus();
+    });
 })();
