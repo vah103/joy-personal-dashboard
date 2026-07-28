@@ -12,6 +12,7 @@ import {
 
 const SESSION_COOKIE = "__Host-joy_session";
 const LEGACY_IMPORT_KEY = "finance-tracker-2026-v1";
+const FINANCE_EXPENSE_RESET_IMPORT_KEY = "finance-expenses-2026-08-12-reset-v1";
 
 export { isFinanceLedgerRoute };
 
@@ -20,6 +21,7 @@ export async function handleFinanceLedgerRequest(request, env) {
   if (email) {
     await ensureLegacyFinanceImport(email, env);
     await ensureFinanceBreakdownImport(email, env);
+    await ensureFinanceExpenseReset(email, env);
   }
 
   if (["POST", "PATCH"].includes(request.method)) {
@@ -111,6 +113,25 @@ async function ensureFinanceBreakdownImport(email, env) {
 
   statements.push(markImport(email, FINANCE_BREAKDOWN_IMPORT_KEY, now, env));
   await env.DB.batch(statements);
+}
+
+async function ensureFinanceExpenseReset(email, env) {
+  const resetComplete = await hasImport(email, FINANCE_EXPENSE_RESET_IMPORT_KEY, env);
+  if (resetComplete) return;
+
+  const now = Date.now();
+  await env.DB.batch([
+    env.DB.prepare(`
+      UPDATE finance_transactions
+      SET deleted_at = ?, updated_at = ?
+      WHERE user_email = ?
+        AND year = 2026
+        AND month BETWEEN 8 AND 12
+        AND type = 'expense'
+        AND deleted_at IS NULL
+    `).bind(now, now, email),
+    markImport(email, FINANCE_EXPENSE_RESET_IMPORT_KEY, now, env),
+  ]);
 }
 
 async function hasImport(email, importKey, env) {
