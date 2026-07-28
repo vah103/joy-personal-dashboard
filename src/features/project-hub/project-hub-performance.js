@@ -1,4 +1,20 @@
 (() => {
+  const loadSpeaking = () => {
+    if (!document.querySelector('link[data-joy-speaking="true"]')) {
+      const stylesheet = document.createElement("link");
+      stylesheet.rel = "stylesheet";
+      stylesheet.href = "/project-data/speaking/speaking.css?v=joy-speaking-v1";
+      stylesheet.dataset.joySpeaking = "true";
+      document.head.append(stylesheet);
+    }
+
+    if (document.querySelector('script[data-joy-speaking="true"]')) return;
+    const script = document.createElement("script");
+    script.src = "/project-data/speaking/speaking.js?v=joy-speaking-v1";
+    script.dataset.joySpeaking = "true";
+    document.body.append(script);
+  };
+
   const loadVocabulary = () => {
     if (!document.querySelector('link[data-joy-vocabulary="true"]')) {
       const stylesheet = document.createElement("link");
@@ -8,10 +24,17 @@
       document.head.append(stylesheet);
     }
 
-    if (document.querySelector('script[data-joy-vocabulary="true"]')) return;
+    const existing = document.querySelector('script[data-joy-vocabulary="true"]');
+    if (existing) {
+      if (window.JoyVocabulary) loadSpeaking();
+      else existing.addEventListener("load", loadSpeaking, { once: true });
+      return;
+    }
+
     const script = document.createElement("script");
     script.src = "/project-data/vocabulary/vocabulary.js?v=joy-vocabulary-v1";
     script.dataset.joyVocabulary = "true";
+    script.addEventListener("load", loadSpeaking, { once: true });
     document.body.append(script);
   };
 
