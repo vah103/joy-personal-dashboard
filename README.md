@@ -8,7 +8,7 @@ A private Cloudflare-powered dashboard for Vanh, covering Gmail, Google Sheets s
 - `project-data/` — stable public project data and browser assets whose deployed URLs must remain unchanged, including IELTS, TurtleBot4, Vocabulary, and Speaking.
 - `worker/` — Cloudflare Worker routes, API services, scheduled synchronization, and weather notifications.
 - `migrations/` — append-only Cloudflare D1 database migrations.
-- `scripts/` — production build, feature injection, source validation, cache updates, and test compatibility.
+- `scripts/` — production build, feature injection, source validation, cache updates, repository audit, and test compatibility.
 - `test/` — automated regression tests.
 - `docs/` — deployment, structure, and repository-maintenance notes.
 
@@ -21,11 +21,14 @@ Language tools are attached by `scripts/inject-language-tools.mjs`; they must no
 ## Commands
 
 ```bash
+npm run audit
 npm test
 npm run build
 npm run dev
 npm run deploy
 ```
+
+`npm test` runs the repository audit first. The audit examines every Git-tracked path and rejects committed build output, obsolete root compatibility files, likely secret files, and cross-feature language-tool loading.
 
 ## Safety
 
