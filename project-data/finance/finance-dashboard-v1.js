@@ -5,10 +5,10 @@
   const ENGLISH_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
   function installDashboardStyles() {
-    if (document.querySelector("#joy-finance-dashboard-v2")) return;
+    if (document.querySelector("#joy-finance-dashboard-v3")) return;
 
     const style = document.createElement("style");
-    style.id = "joy-finance-dashboard-v2";
+    style.id = "joy-finance-dashboard-v3";
     style.textContent = `
       #finance.finance-dashboard-polished .panel-heading{
         min-height:74px;
@@ -18,10 +18,10 @@
 
       #finance.finance-dashboard-polished .panel-title-button{
         color:#2d4249;
-        font-family:"Instrument Sans",Arial,sans-serif;
-        font-size:25px;
-        font-weight:700;
-        letter-spacing:-.045em;
+        font-family:"Instrument Sans",Arial,sans-serif!important;
+        font-size:27px;
+        font-weight:700!important;
+        letter-spacing:-.025em!important;
         line-height:1;
       }
 
@@ -44,10 +44,10 @@
         border-radius:14px;
         background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(246,243,237,.84));
         color:#314850;
-        font-family:"Instrument Sans",Arial,sans-serif;
+        font-family:"Instrument Sans",Arial,sans-serif!important;
         font-size:15px;
-        font-weight:700;
-        letter-spacing:-.025em;
+        font-weight:700!important;
+        letter-spacing:-.025em!important;
         box-shadow:0 8px 20px rgba(48,61,65,.12),inset 0 1px rgba(255,255,255,.92);
         cursor:pointer;
         transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;
@@ -182,7 +182,7 @@
       #finance.finance-dashboard-polished .finance-months{
         color:#718085;
         font-family:"Instrument Sans",Arial,sans-serif;
-        font-size:7.8px;
+        font-size:8.2px;
         font-weight:600;
       }
 
@@ -203,7 +203,7 @@
         }
 
         #finance.finance-dashboard-polished .panel-title-button{
-          font-size:22px;
+          font-size:24px;
         }
 
         #finance.finance-dashboard-polished .finance-period-button{
@@ -265,17 +265,41 @@
     if (!labels) return;
 
     [...labels.children].forEach((label, index) => {
-      label.textContent = ENGLISH_MONTHS[index] || label.textContent;
+      const desired = ENGLISH_MONTHS[index];
+      if (desired && label.textContent !== desired) label.textContent = desired;
     });
+  }
+
+  function guardEnglishChartMonths() {
+    const labels = panel.querySelector("#finance-months");
+    if (!labels || labels.dataset.englishMonthGuard === "true") return;
+
+    labels.dataset.englishMonthGuard = "true";
+    const observer = new MutationObserver(() => useEnglishChartMonths());
+    observer.observe(labels, { childList: true, subtree: true, characterData: true });
+    useEnglishChartMonths();
   }
 
   function polishFinanceDashboard() {
     panel.classList.add("finance-dashboard-polished");
     makeMonthButton();
     useEnglishChartMonths();
+    guardEnglishChartMonths();
   }
 
   installDashboardStyles();
+
+  if (typeof renderFinanceChart === "function" && !renderFinanceChart.__joyEnglishMonths) {
+    const originalRenderFinanceChart = renderFinanceChart;
+    const englishRenderFinanceChart = function renderFinanceChartWithEnglishMonths(...args) {
+      const result = originalRenderFinanceChart.apply(this, args);
+      useEnglishChartMonths();
+      queueMicrotask(useEnglishChartMonths);
+      return result;
+    };
+    englishRenderFinanceChart.__joyEnglishMonths = true;
+    renderFinanceChart = englishRenderFinanceChart;
+  }
 
   if (typeof renderFinanceDashboard === "function" && !renderFinanceDashboard.__joyDashboardPolished) {
     const originalRenderFinanceDashboard = renderFinanceDashboard;
