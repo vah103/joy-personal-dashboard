@@ -61,7 +61,7 @@ await mkdir(fonts, { recursive: true });
 
 const projectHubHead = [
   '    <link rel="stylesheet" href="project-hub.css?v=turtlebot-hub-v4">\n',
-  '    <link rel="stylesheet" href="turtlebot-roadmap-font.css?v=turtlebot-roadmap-nunito-v1">\n',
+  '    <link rel="stylesheet" href="turtlebot-roadmap-font.css?v=turtlebot-roadmap-nunito-v2">\n',
   '    <link rel="stylesheet" href="turtlebot-card-art.css?v=restored-card-v6">\n',
   '    <link rel="stylesheet" href="project-data/ielts/ielts-card.css?v=ielts-card-v2">\n',
   '    <link rel="stylesheet" href="project-data/ielts/ielts-core.css?v=ielts-august-core-v3">\n',
@@ -78,7 +78,7 @@ const projectHubHead = [
 ].join("");
 
 const projectHubScripts = [
-  '    <script src="project-hub-performance.js?v=turtlebot-hub-v4" defer></script>\n',
+  '    <script src="project-hub-performance.js?v=turtlebot-hub-v5" defer></script>\n',
   '    <script src="project-hub-core.js?v=turtlebot-hub-v4" defer></script>\n',
   '    <script src="project-hub-render.js?v=turtlebot-hub-v4" defer></script>\n',
   '    <script src="project-hub-actions.js?v=turtlebot-hub-v4" defer></script>\n',
