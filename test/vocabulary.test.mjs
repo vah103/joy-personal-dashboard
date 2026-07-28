@@ -10,15 +10,17 @@ const frontendPath = resolve(root, "project-data/vocabulary/vocabulary.js");
 const stylesPath = resolve(root, "project-data/vocabulary/vocabulary.css");
 const workerPath = resolve(root, "worker/vocabulary.js");
 const routerPath = resolve(root, "worker/router.js");
-const loaderPath = resolve(root, "src/features/project-hub/project-hub-performance.js");
+const injectorPath = resolve(root, "scripts/inject-language-tools.mjs");
+const projectHubPath = resolve(root, "src/features/project-hub/project-hub-performance.js");
 const migrationPath = resolve(root, "migrations/20260728_vocabulary.sql");
 
-const [frontend, styles, worker, router, loader, migration] = await Promise.all([
+const [frontend, styles, worker, router, injector, projectHub, migration] = await Promise.all([
   readFile(frontendPath, "utf8"),
   readFile(stylesPath, "utf8"),
   readFile(workerPath, "utf8"),
   readFile(routerPath, "utf8"),
-  readFile(loaderPath, "utf8"),
+  readFile(injectorPath, "utf8"),
+  readFile(projectHubPath, "utf8"),
   readFile(migrationPath, "utf8"),
 ]);
 
@@ -54,13 +56,14 @@ test("Vocabulary save and review routes use authenticated D1 storage", () => {
   assert.match(migration, /UNIQUE \(user_email, english_key\)/);
 });
 
-test("Dashboard loader adds the vocabulary assets", () => {
-  assert.match(loader, /project-data\/vocabulary\/vocabulary\.css\?v=joy-vocabulary-v1/);
-  assert.match(loader, /project-data\/vocabulary\/vocabulary\.js\?v=joy-vocabulary-v1/);
+test("Dashboard build loads Vocabulary independently from Project Hub", () => {
+  assert.match(injector, /project-data\/vocabulary\/vocabulary\.css\?v=joy-vocabulary-v2/);
+  assert.match(injector, /project-data\/vocabulary\/vocabulary\.js\?v=joy-vocabulary-v2/);
+  assert.doesNotMatch(projectHub, /vocabulary|speaking/i);
 });
 
 test("Vocabulary JavaScript files pass syntax checks", () => {
-  for (const path of [frontendPath, workerPath, routerPath, loaderPath]) {
+  for (const path of [frontendPath, workerPath, routerPath, injectorPath, projectHubPath]) {
     const result = spawnSync(process.execPath, ["--check", path], { encoding: "utf8" });
     assert.equal(result.status, 0, result.stderr || result.stdout);
   }
