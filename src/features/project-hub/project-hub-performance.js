@@ -1,4 +1,26 @@
 (() => {
+  const loadVocabulary = () => {
+    if (!document.querySelector('link[data-joy-vocabulary="true"]')) {
+      const stylesheet = document.createElement("link");
+      stylesheet.rel = "stylesheet";
+      stylesheet.href = "/project-data/vocabulary/vocabulary.css?v=joy-vocabulary-v1";
+      stylesheet.dataset.joyVocabulary = "true";
+      document.head.append(stylesheet);
+    }
+
+    if (document.querySelector('script[data-joy-vocabulary="true"]')) return;
+    const script = document.createElement("script");
+    script.src = "/project-data/vocabulary/vocabulary.js?v=joy-vocabulary-v1";
+    script.dataset.joyVocabulary = "true";
+    document.body.append(script);
+  };
+
+  if (document.readyState === "loading") {
+    window.addEventListener("DOMContentLoaded", loadVocabulary, { once: true });
+  } else {
+    loadVocabulary();
+  }
+
   const nativeObserve = window.MutationObserver?.prototype?.observe;
   if (!nativeObserve || nativeObserve.__joyProjectHubGuard) return;
 
