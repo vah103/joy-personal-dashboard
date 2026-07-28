@@ -47,5 +47,5 @@ test("Finance privacy only masks the dashboard", () => {
 
 test("Cloudflare build loads the direct Finance renderer and current month layout", () => {
   assert.match(buildSource, /finance-demo\.js\?v=joy-finance-core-v4/);
-  assert.match(buildSource, /project-data\/finance\/finance-layout-v2\.js\?v=joy-finance-month-layout-v2/);
+  assert.match(buildSource, /project-data\/finance\/finance-layout-v2\.js\?v=joy-finance-month-layout-v3/);
 });
