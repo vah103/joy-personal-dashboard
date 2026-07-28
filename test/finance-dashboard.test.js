@@ -7,23 +7,31 @@ const buildSource = await readFile(new URL("../scripts/build.mjs", import.meta.u
 
 test("Finance outer dashboard uses the sharp visual system", () => {
   assert.match(dashboardSource, /finance-dashboard-polished/);
-  assert.match(dashboardSource, /font-family:\"Instrument Sans\"/);
+  assert.match(dashboardSource, /font-family:"Instrument Sans"/);
   assert.match(dashboardSource, /finance-period-button/);
-  assert.match(dashboardSource, /grid-template-columns:minmax\(175px,1\.42fr\)/);
+  assert.match(dashboardSource, /font-size:25px/);
+  assert.match(dashboardSource, /font-size:15px/);
 });
 
 test("Finance outer dashboard removes redundant header actions", () => {
-  assert.match(dashboardSource, /finance-add-expense\"\)\?\.remove/);
-  assert.match(dashboardSource, /querySelector\(\"\[data-finance-open\]\"\)\?\.remove/);
-  assert.match(dashboardSource, /openFinanceWorkspace\(\"month\"\)/);
+  assert.match(dashboardSource, /finance-add-expense"\)\?\.remove/);
+  assert.match(dashboardSource, /querySelector\("\[data-finance-open\]"\)\?\.remove/);
+  assert.match(dashboardSource, /openFinanceWorkspace\("month"\)/);
 });
 
-test("Finance outer dashboard displays full values and English chart months", () => {
-  assert.match(dashboardSource, /element\.dataset\.financeValue = formatVnd\(amount\)/);
-  assert.match(dashboardSource, /\[\"Jan\", \"Feb\", \"Mar\"/);
+test("Finance outer dashboard keeps compact money values and uses English chart months", () => {
+  assert.doesNotMatch(dashboardSource, /setMoneyValue\s*=\s*fullValueSetter/);
+  assert.doesNotMatch(dashboardSource, /element\.dataset\.financeValue = formatVnd\(amount\)/);
+  assert.match(dashboardSource, /\["Jan", "Feb", "Mar"/);
   assert.match(dashboardSource, /useEnglishChartMonths/);
 });
 
-test("Cloudflare build loads the outer Finance dashboard module", () => {
-  assert.match(buildSource, /project-data\/finance\/finance-dashboard-v1\.js\?v=joy-finance-dashboard-v1/);
+test("Finance outer labels are larger and clearer", () => {
+  assert.match(dashboardSource, /finance-overview-stat small\{/);
+  assert.match(dashboardSource, /font-size:10\.5px/);
+  assert.match(dashboardSource, /font-size:clamp\(19px,1\.75vw,24px\)/);
+});
+
+test("Cloudflare build loads the refined outer Finance dashboard module", () => {
+  assert.match(buildSource, /project-data\/finance\/finance-dashboard-v1\.js\?v=joy-finance-dashboard-v2/);
 });
