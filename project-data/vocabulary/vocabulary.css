@@ -1,0 +1,360 @@
+.vocabulary-widget {
+  margin-top: 30px;
+  overflow: hidden;
+  border: 1px solid rgba(66, 72, 74, 0.14);
+  border-radius: 18px;
+  background: rgba(247, 246, 242, 0.5);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.52);
+  color: #34393b;
+}
+
+.vocabulary-widget-heading {
+  min-height: 58px;
+  padding: 12px 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+  border-bottom: 1px solid rgba(66, 72, 74, 0.11);
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.vocabulary-widget-heading strong,
+.vocabulary-widget-heading small {
+  display: block;
+}
+
+.vocabulary-widget-heading strong {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+.vocabulary-widget-heading small {
+  margin-top: 2px;
+  color: #747a7c;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.vocabulary-widget-heading button,
+.vocabulary-empty button,
+.vocabulary-practice-actions button {
+  border: 0;
+  background: transparent;
+  color: #4b6571;
+  font: 800 9px "Nunito", ui-rounded, system-ui, sans-serif;
+}
+
+.vocabulary-widget-heading button {
+  padding: 7px 8px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.vocabulary-empty {
+  min-height: 170px;
+  padding: 18px 14px;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  text-align: center;
+}
+
+.vocabulary-empty > span {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(73, 97, 108, 0.15);
+  border-radius: 14px;
+  background: rgba(205, 218, 223, 0.58);
+  color: #506b77;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.vocabulary-empty p {
+  margin: 10px 0 6px;
+  color: #6f7577;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.vocabulary-practice {
+  min-height: 196px;
+  padding: 16px 13px 13px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.vocabulary-direction {
+  color: #778082;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.vocabulary-prompt {
+  min-height: 57px;
+  display: grid;
+  place-items: center;
+  margin: 7px 0 10px;
+  color: #2f373a;
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1.15;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.vocabulary-answer-form {
+  display: grid;
+  gap: 7px;
+}
+
+.vocabulary-answer-form input,
+.vocabulary-lookup-row input {
+  min-width: 0;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid rgba(63, 70, 72, 0.19);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #2f3537;
+  outline: none;
+  font: 750 10px "Nunito", ui-rounded, system-ui, sans-serif;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.72);
+}
+
+.vocabulary-answer-form input:focus,
+.vocabulary-lookup-row input:focus {
+  border-color: rgba(66, 94, 107, 0.44);
+  box-shadow: 0 0 0 3px rgba(91, 119, 132, 0.12);
+}
+
+.vocabulary-answer-form button {
+  min-height: 35px;
+  border: 0;
+  border-radius: 10px;
+  background: #506b77;
+  color: #fff;
+  font: 850 9px "Nunito", ui-rounded, system-ui, sans-serif;
+}
+
+.vocabulary-feedback {
+  min-height: 18px;
+  margin: 7px 0 0;
+  color: #747b7d;
+  font-size: 9px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.vocabulary-feedback.is-correct { color: #4d745f; }
+.vocabulary-feedback.is-wrong { color: #9a5d52; }
+.vocabulary-feedback.is-answer { color: #506a76; }
+
+.vocabulary-practice-actions {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.vocabulary-practice-actions button {
+  padding: 5px 0;
+  color: #747b7e;
+  font-size: 8px;
+}
+
+.vocabulary-practice-actions button:last-child { color: #506a76; }
+
+.vocabulary-lookup-modal {
+  width: min(610px, 100%);
+}
+
+.vocabulary-lookup-form {
+  display: grid;
+  gap: 7px;
+}
+
+.vocabulary-lookup-form > label {
+  color: #555d60;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.vocabulary-lookup-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 9px;
+}
+
+.vocabulary-lookup-row input { height: 43px; font-size: 12px; }
+.vocabulary-lookup-row button { min-width: 92px; }
+
+.vocabulary-lookup-status {
+  min-height: 18px;
+  margin: 10px 0 0;
+  color: #747b7e;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.vocabulary-result-card {
+  margin-top: 7px;
+  padding: 16px;
+  border: 1px solid rgba(65, 72, 74, 0.14);
+  border-radius: 17px;
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.72);
+}
+
+.vocabulary-result-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-bottom: 13px;
+  border-bottom: 1px solid rgba(65, 72, 74, 0.11);
+}
+
+.vocabulary-result-main small,
+.vocabulary-result-main strong {
+  display: block;
+}
+
+.vocabulary-result-main small {
+  color: #7b8284;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.vocabulary-result-main strong {
+  margin-top: 3px;
+  color: #2e3638;
+  font-size: 25px;
+  font-weight: 900;
+}
+
+.vocabulary-result-main button {
+  width: 37px;
+  height: 37px;
+  border: 1px solid rgba(66, 75, 78, 0.14);
+  border-radius: 11px;
+  background: rgba(224, 231, 233, 0.66);
+  font-size: 15px;
+}
+
+.vocabulary-result-card dl {
+  margin: 0;
+}
+
+.vocabulary-result-card dl > div {
+  padding: 10px 0;
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  gap: 12px;
+  border-bottom: 1px solid rgba(65, 72, 74, 0.09);
+}
+
+.vocabulary-result-card dt {
+  color: #7b8284;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.vocabulary-result-card dd {
+  margin: 0;
+  color: #3f484b;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.vocabulary-result-card .vocabulary-example {
+  grid-template-columns: 1fr;
+  gap: 4px;
+}
+
+.vocabulary-result-card > p {
+  margin: 13px 0 0;
+  color: #4a5356;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.vocabulary-save-actions { margin-top: 10px; }
+.vocabulary-save-actions button { min-width: 74px; }
+
+.vocabulary-mobile-nav-button {
+  display: none;
+}
+
+.vocabulary-mobile-modal {
+  width: min(440px, 100%);
+}
+
+.vocabulary-mobile-modal [data-vocab-practice-root] {
+  overflow: hidden;
+  border: 1px solid rgba(66, 72, 74, 0.14);
+  border-radius: 18px;
+  background: rgba(247, 246, 242, 0.66);
+}
+
+@media (max-height: 760px) and (min-width: 761px) {
+  .vocabulary-widget { margin-top: 18px; }
+  .vocabulary-practice { min-height: 172px; }
+  .vocabulary-prompt { min-height: 40px; font-size: 17px; }
+}
+
+@media (max-width: 760px) {
+  .mobile-nav { grid-template-columns: repeat(6, 1fr); }
+  .vocabulary-mobile-nav-button {
+    min-width: 0;
+    padding: 5px 2px;
+    display: grid;
+    justify-items: center;
+    gap: 2px;
+    border: 0;
+    border-radius: 11px;
+    background: transparent;
+    color: #737879;
+  }
+  .vocabulary-mobile-nav-button small {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 8px;
+    font-weight: 800;
+  }
+  .vocabulary-mobile-modal { padding: 17px; }
+  .vocabulary-mobile-modal .vocabulary-widget-heading { padding-inline: 15px; }
+  .vocabulary-mobile-modal .vocabulary-practice { min-height: 250px; padding: 20px 15px 15px; }
+  .vocabulary-mobile-modal .vocabulary-prompt { min-height: 80px; font-size: 27px; }
+  .vocabulary-mobile-modal .vocabulary-answer-form { grid-template-columns: minmax(0, 1fr) 84px; }
+  .vocabulary-mobile-modal .vocabulary-answer-form input,
+  .vocabulary-mobile-modal .vocabulary-answer-form button { height: 43px; }
+  .vocabulary-lookup-row { grid-template-columns: 1fr; }
+  .vocabulary-lookup-row button { min-height: 41px; }
+  .vocabulary-result-card dl > div { grid-template-columns: 105px minmax(0, 1fr); }
+}
+
+@media (max-width: 430px) {
+  .vocabulary-result-card dl > div { grid-template-columns: 1fr; gap: 3px; }
+  .vocabulary-mobile-modal .vocabulary-answer-form { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vocabulary-widget *,
+  .vocabulary-lookup-modal *,
+  .vocabulary-mobile-modal * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
