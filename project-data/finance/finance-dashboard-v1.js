@@ -17,11 +17,11 @@
       }
 
       #finance.finance-dashboard-polished .panel-title-button{
-        color:#2d4249;
+        color:#2e454d;
         font-family:"Instrument Sans",Arial,sans-serif!important;
-        font-size:27px;
+        font-size:35px;
         font-weight:700!important;
-        letter-spacing:-.025em!important;
+        letter-spacing:-.04em!important;
         line-height:1;
       }
 
@@ -203,7 +203,7 @@
         }
 
         #finance.finance-dashboard-polished .panel-title-button{
-          font-size:24px;
+          font-size:35px;
         }
 
         #finance.finance-dashboard-polished .finance-period-button{
