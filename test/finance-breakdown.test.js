@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import {
   FINANCE_BREAKDOWN_CUTOFF,
+  financeBreakdownSeedForMigration,
   financeBreakdownSeedTotals,
   validateFinanceBreakdownPayload,
 } from "../worker/finance-breakdown-policy.js";
@@ -46,6 +47,13 @@ test("Detailed seed preserves the existing planned category totals", () => {
     "8:haircare": 150_000,
     "10:home": 3_900_000,
   });
+});
+
+test("Manually edited imported totals are not duplicated by migration", () => {
+  const migrated = financeBreakdownSeedForMigration(["sheet-2026-08-expense-home"]);
+  assert.equal(migrated.some((transaction) => transaction.month === 8 && transaction.category === "home"), false);
+  assert.equal(migrated.some((transaction) => transaction.month === 8 && transaction.category === "haircare"), true);
+  assert.equal(migrated.some((transaction) => transaction.month === 10 && transaction.category === "home"), true);
 });
 
 test("Finance month UI includes overview, expense map, mind-map branches and transitions", () => {
