@@ -1,33 +1,40 @@
 (() => {
   if (typeof renderMonthView !== "function") return;
 
+  const originalRenderYearView = typeof renderYearView === "function" ? renderYearView : null;
+
   function installSplitMonthStyles() {
-    if (document.querySelector("#joy-finance-month-split-v1")) return;
+    if (document.querySelector("#joy-finance-month-split-v2")) return;
     const style = document.createElement("style");
-    style.id = "joy-finance-month-split-v1";
+    style.id = "joy-finance-month-split-v2";
     style.textContent = `
-      .finance-month-split-view{padding-top:18px}
+      .finance-month-split-view{padding-top:14px}
+      #finance-workspace.finance-month-layout-active .finance-tabs{display:flex;align-items:center;gap:8px}
+      .finance-tab-month-nav{margin-left:auto;display:grid;grid-template-columns:34px minmax(112px,auto) 34px;align-items:center;gap:6px}
+      #finance-workspace:not(.finance-month-layout-active) .finance-tab-month-nav{display:none}
+      .finance-tab-month-nav button{width:34px;height:34px;padding:0;display:grid;place-items:center;border:1px solid rgba(63,72,74,.14);border-radius:11px;background:rgba(255,255,255,.72);color:#38515a;font:850 19px "Nunito",Arial,sans-serif;box-shadow:0 4px 12px rgba(54,64,66,.05)}
+      .finance-tab-month-nav button:hover:not(:disabled){border-color:rgba(61,91,99,.3);background:#fff}
+      .finance-tab-month-nav button:disabled{opacity:.32;cursor:default}
+      .finance-tab-month-nav strong{min-width:112px;color:#344b52;font-size:12px;font-weight:900;text-align:center;white-space:nowrap}
       .finance-month-split{display:grid;grid-template-columns:minmax(0,2fr) minmax(270px,1fr);align-items:start;gap:16px}
       .finance-current-month{min-width:0}
-      .finance-ledger-board-compact .finance-ledger-hero{min-height:112px;padding:18px 20px;gap:18px}
+      .finance-ledger-board-compact .finance-ledger-hero{min-height:112px;padding:18px 20px;display:grid;grid-template-columns:minmax(180px,230px) minmax(190px,230px);align-items:center;justify-content:center;gap:16px}
+      .finance-ledger-board-compact .finance-ledger-hero>div:first-child{max-width:none;text-align:right}
       .finance-ledger-board-compact .finance-ledger-hero h2{margin:4px 0;font-size:27px}
       .finance-ledger-board-compact .finance-ledger-hero p{font-size:10px}
-      .finance-ledger-board-compact .finance-ledger-balance{min-width:190px;padding:14px 16px;border-radius:15px}
+      .finance-ledger-board-compact .finance-ledger-balance{min-width:0;padding:14px 16px;border-radius:15px}
       .finance-ledger-board-compact .finance-ledger-balance strong{font-size:23px}
-      .finance-ledger-summary-two{grid-template-columns:repeat(2,minmax(0,1fr))}
-      .finance-ledger-summary-two>div{padding:13px 16px}
-      .finance-ledger-summary-two strong{font-size:17px}
       .finance-ledger-board-compact .finance-ledger-columns{padding:12px;gap:11px}
       .finance-ledger-board-compact .finance-ledger-column{border-radius:16px}
-      .finance-ledger-board-compact .finance-ledger-column>header{min-height:62px;padding:12px 14px}
-      .finance-ledger-board-compact .finance-ledger-column h3{font-size:14px}
-      .finance-ledger-board-compact .finance-ledger-column>header>strong{font-size:15px}
+      .finance-ledger-board-compact .finance-ledger-column>header{min-height:64px;padding:12px 14px}
+      .finance-ledger-board-compact .finance-ledger-column h3{font-size:15.5px}
+      .finance-ledger-board-compact .finance-ledger-column>header>strong{font-size:16.5px}
       .finance-ledger-board-compact .finance-ledger-list{padding:6px}
-      .finance-ledger-board-compact .finance-ledger-item-button{min-height:50px;padding:8px 9px;grid-template-columns:29px minmax(0,1fr) auto 15px;gap:8px}
-      .finance-ledger-board-compact .finance-ledger-item-mark{width:28px;height:28px;border-radius:9px;font-size:14px}
-      .finance-ledger-board-compact .finance-ledger-item-copy b{font-size:10.5px}
-      .finance-ledger-board-compact .finance-ledger-item-copy small{font-size:7.5px}
-      .finance-ledger-board-compact .finance-ledger-item-button>strong{font-size:10px}
+      .finance-ledger-board-compact .finance-ledger-item-button{min-height:54px;padding:9px 10px;grid-template-columns:31px minmax(0,1fr) auto 16px;gap:9px}
+      .finance-ledger-board-compact .finance-ledger-item-mark{width:30px;height:30px;border-radius:10px;font-size:15px}
+      .finance-ledger-board-compact .finance-ledger-item-copy b{font-size:12.5px}
+      .finance-ledger-board-compact .finance-ledger-item-copy small{margin-top:4px;font-size:9px}
+      .finance-ledger-board-compact .finance-ledger-item-button>strong{font-size:11.5px}
       .finance-ledger-board-compact .finance-ledger-composer{padding:0 10px 11px}
       .finance-ledger-board-compact .finance-ledger-input-row{grid-template-columns:1fr;gap:7px}
       .finance-ledger-board-compact .finance-ledger-add-button{width:100%}
@@ -50,7 +57,7 @@
       .finance-next-open{width:calc(100% - 36px);min-height:40px;margin:14px 18px 18px;border:0;border-radius:12px;background:#426772;color:#fff;font:800 11px "Nunito",Arial,sans-serif;cursor:pointer}
       .finance-next-open:hover{background:#365b66}
       @media(max-width:980px){.finance-month-split{grid-template-columns:1fr}.finance-next-month{position:static}.finance-next-metrics{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:12px}.finance-next-metrics>div{padding:10px;display:block;border:1px solid rgba(61,76,80,.08);border-radius:12px}.finance-next-metrics strong{display:block;margin-top:5px}}
-      @media(max-width:700px){.finance-ledger-board-compact .finance-ledger-hero{align-items:flex-start;flex-direction:column}.finance-ledger-board-compact .finance-ledger-balance{width:100%;min-width:0}.finance-next-metrics{grid-template-columns:1fr}.finance-ledger-summary-two{grid-template-columns:1fr}.finance-ledger-summary-two>div{border-right:0;border-bottom:1px solid rgba(62,72,74,.08)}}
+      @media(max-width:700px){.finance-tabs{flex-wrap:wrap}.finance-tab-month-nav{width:100%;margin-left:0;grid-template-columns:34px 1fr 34px}.finance-ledger-board-compact .finance-ledger-hero{grid-template-columns:1fr;align-items:stretch}.finance-ledger-board-compact .finance-ledger-hero>div:first-child{text-align:left}.finance-ledger-board-compact .finance-ledger-balance{width:100%;min-width:0}.finance-next-metrics{grid-template-columns:1fr}}
     `;
     document.head.append(style);
   }
@@ -59,6 +66,32 @@
     const months = Array.isArray(financeSummary?.months) ? financeSummary.months : [];
     const index = months.findIndex((month) => month.key === monthKey);
     return index >= 0 ? months[index + 1] || null : null;
+  }
+
+  function syncMonthTabNavigation(month) {
+    const workspace = document.querySelector("#finance-workspace");
+    const tabs = workspace?.querySelector(".finance-tabs");
+    if (!workspace || !tabs) return;
+
+    workspace.classList.add("finance-month-layout-active");
+    let navigation = tabs.querySelector(".finance-tab-month-nav");
+    if (!navigation) {
+      navigation = document.createElement("div");
+      navigation.className = "finance-tab-month-nav";
+      navigation.setAttribute("aria-label", "Select Finance month");
+      tabs.append(navigation);
+    }
+
+    const months = Array.isArray(financeSummary?.months) ? financeSummary.months : [];
+    const monthIndex = months.findIndex((item) => item.key === month.key);
+    navigation.innerHTML = `
+      <button type="button" data-tab-month-shift="-1" aria-label="Previous month" ${monthIndex <= 0 ? "disabled" : ""}>‹</button>
+      <strong aria-live="polite">${escapeHtml(month.label)}</strong>
+      <button type="button" data-tab-month-shift="1" aria-label="Next month" ${monthIndex < 0 || monthIndex >= months.length - 1 ? "disabled" : ""}>›</button>
+    `;
+    navigation.querySelectorAll("[data-tab-month-shift]").forEach((button) => {
+      button.addEventListener("click", () => shiftMonth(Number(button.dataset.tabMonthShift)));
+    });
   }
 
   function renderNextMonthSummary(month) {
@@ -107,6 +140,13 @@
 
   installSplitMonthStyles();
 
+  if (originalRenderYearView) {
+    renderYearView = function renderYearWithoutMonthNavigation(content) {
+      document.querySelector("#finance-workspace")?.classList.remove("finance-month-layout-active");
+      originalRenderYearView(content);
+    };
+  }
+
   renderMonthView = function renderCompactMonthView(content) {
     const month = financeSummary.months.find((item) => item.key === selectedMonth) || financeSummary.current;
     const nextMonth = nextMonthAfter(month.key);
@@ -116,14 +156,9 @@
     const expenseTotal = Number(month.projected?.expenses || 0);
     const closing = Number(month.projected?.remaining || 0);
 
+    syncMonthTabNavigation(month);
     content.className = "finance-workspace-content finance-month-split-view";
     content.innerHTML = `
-      <div class="finance-month-toolbar finance-ledger-month-toolbar">
-        <button type="button" data-month-shift="-1" aria-label="Previous month">‹</button>
-        <div><small>Monthly detail</small><strong>${escapeHtml(month.label)}</strong></div>
-        <button type="button" data-month-shift="1" aria-label="Next month">›</button>
-      </div>
-
       <div class="finance-month-split">
         <main class="finance-current-month">
           <section class="finance-ledger-board finance-ledger-board-compact" aria-label="${escapeHtml(month.label)} finance overview">
@@ -138,11 +173,6 @@
                 <strong>${formatVnd(closing)}</strong>
               </div>
             </header>
-
-            <div class="finance-ledger-summary finance-ledger-summary-two">
-              <div><span>Income</span><strong>${formatVnd(incomeTotal)}</strong><small>Includes Carryover</small></div>
-              <div><span>Expenses</span><strong>${formatVnd(expenseTotal)}</strong><small>Actual + planned</small></div>
-            </div>
 
             <div class="finance-ledger-columns">
               ${renderLedgerColumn("Income", "Money in", incomeTotal, financeCategories.income, totals.income, "income", month)}
@@ -160,7 +190,6 @@
       </div>
     `;
 
-    content.querySelectorAll("[data-month-shift]").forEach((button) => button.addEventListener("click", () => shiftMonth(Number(button.dataset.monthShift))));
     content.querySelectorAll("[data-finance-add]").forEach((button) => button.addEventListener("click", () => openEntryForm(button.dataset.financeAdd)));
     content.querySelectorAll("[data-finance-edit]").forEach((button) => button.addEventListener("click", () => editFinanceTransaction(button.dataset.financeEdit)));
     content.querySelectorAll("[data-finance-delete]").forEach((button) => button.addEventListener("click", () => removeFinanceTransaction(button.dataset.financeDelete)));
