@@ -49,7 +49,7 @@
     const loadTabsCleanup = () => {
       if (document.querySelector('script[data-turtlebot-tabs-cleanup="true"]')) return;
       const cleanup = document.createElement("script");
-      cleanup.src = "/project-data/turtlebot4/project-hub-tabs-cleanup.js?v=turtlebot-tabs-cleanup-v1";
+      cleanup.src = "/project-data/turtlebot4/project-hub-tabs-cleanup.js?v=turtlebot-inline-tabs-v2";
       cleanup.dataset.turtlebotTabsCleanup = "true";
       cleanup.defer = true;
       document.body.append(cleanup);
