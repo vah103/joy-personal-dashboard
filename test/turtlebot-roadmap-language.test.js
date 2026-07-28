@@ -1,9 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const root = resolve(import.meta.dirname, "..");
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const roadmapPath = resolve(root, "src/features/project-details/turtlebot-roadmap.js");
 const languagePath = resolve(root, "src/features/project-details/turtlebot-roadmap-language.js");
 const projectStatePath = resolve(root, "project-data/turtlebot4/project-state-v2.js");
