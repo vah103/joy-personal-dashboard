@@ -45,6 +45,10 @@ import {
   isSaleViewingCreateRoute,
 } from "./sale-viewing-create.js";
 import {
+  handleSpeakingEnglishRequest,
+  isSpeakingEnglishRoute,
+} from "./speaking-english.js";
+import {
   handleTaskDeleteRequest,
   isTaskDeleteRoute,
 } from "./task-delete.js";
@@ -102,6 +106,9 @@ export default {
       }
       if (isTaskEnglishRoute(pathname)) {
         return handleTaskEnglishRequest(request, env);
+      }
+      if (isSpeakingEnglishRoute(pathname)) {
+        return handleSpeakingEnglishRequest(request, env);
       }
       if (isVocabularyRoute(pathname)) {
         return handleVocabularyRequest(request, env);
