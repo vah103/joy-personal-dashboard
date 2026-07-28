@@ -3,7 +3,7 @@ import {
   handleDailyBriefRequest,
   isDailyBriefRoute,
   runDailyBriefSchedule,
-} from "./daily-brief-policy.js";
+} from "./daily-brief-budget.js";
 import {
   handleFinanceLedgerRequest,
   isFinanceLedgerRoute,
