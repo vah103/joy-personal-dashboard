@@ -24,12 +24,26 @@
   });
 
   window.addEventListener("DOMContentLoaded", () => {
+    const loadReferencePlan = () => {
+      if (document.querySelector('script[data-turtlebot-reference-v3="true"]')) return;
+      const reference = document.createElement("script");
+      reference.src = "/project-data/turtlebot4/project-plan-v3-reference-ui.js?v=turtlebot-read-only-plan-v1";
+      reference.dataset.turtlebotReferenceV3 = "true";
+      reference.defer = true;
+      document.body.append(reference);
+    };
+
     const loadFlexiblePeriods = () => {
-      if (document.querySelector('script[data-turtlebot-periods-v3="true"]')) return;
+      const existingPeriods = document.querySelector('script[data-turtlebot-periods-v3="true"]');
+      if (existingPeriods) {
+        loadReferencePlan();
+        return;
+      }
       const periods = document.createElement("script");
       periods.src = "/project-data/turtlebot4/project-plan-v3-periods-ui.js?v=turtlebot-flexible-periods-nunito-v1";
       periods.dataset.turtlebotPeriodsV3 = "true";
       periods.defer = true;
+      periods.addEventListener("load", loadReferencePlan, { once: true });
       document.body.append(periods);
     };
 
