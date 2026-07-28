@@ -3,6 +3,7 @@ const VOCABULARY_LOOKUP_PATH = "/api/vocabulary/lookup";
 const VOCABULARY_REVIEW_PATH = "/api/vocabulary/review";
 const SESSION_COOKIE = "__Host-joy_session";
 const DEFAULT_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
+let vocabularySchemaPromise;
 
 export function isVocabularyRoute(pathname) {
   return [VOCABULARY_PATH, VOCABULARY_LOOKUP_PATH, VOCABULARY_REVIEW_PATH].includes(pathname);
@@ -14,6 +15,7 @@ export async function handleVocabularyRequest(request, env) {
     const email = await sessionEmail(request, env);
     if (!email) return json({ error: "UNAUTHENTICATED" }, 401);
     if (!env?.DB) return json({ error: "VOCABULARY_STORAGE_UNAVAILABLE" }, 503);
+    await ensureVocabularySchema(env);
 
     if (request.method !== "GET" && !isSameOrigin(request)) {
       return json({ error: "INVALID_ORIGIN" }, 403);
@@ -37,6 +39,39 @@ export async function handleVocabularyRequest(request, env) {
     console.error("Joy vocabulary request failed", error);
     return json({ error: "VOCABULARY_REQUEST_FAILED" }, 500);
   }
+}
+
+async function ensureVocabularySchema(env) {
+  if (!vocabularySchemaPromise) {
+    vocabularySchemaPromise = env.DB.batch([
+      env.DB.prepare(`
+        CREATE TABLE IF NOT EXISTS vocabulary_words (
+          user_email TEXT NOT NULL,
+          id TEXT NOT NULL,
+          english_key TEXT NOT NULL,
+          english TEXT NOT NULL,
+          vietnamese TEXT NOT NULL,
+          ipa TEXT NOT NULL,
+          pronunciation_vi TEXT NOT NULL,
+          example TEXT NOT NULL,
+          review_count INTEGER NOT NULL DEFAULT 0,
+          correct_count INTEGER NOT NULL DEFAULT 0,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          PRIMARY KEY (user_email, id),
+          UNIQUE (user_email, english_key)
+        )
+      `),
+      env.DB.prepare(`
+        CREATE INDEX IF NOT EXISTS vocabulary_words_user_updated_idx
+        ON vocabulary_words (user_email, updated_at DESC)
+      `),
+    ]).catch((error) => {
+      vocabularySchemaPromise = null;
+      throw error;
+    });
+  }
+  return vocabularySchemaPromise;
 }
 
 async function listVocabularyWords(email, env) {
