@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 const root = new URL("../", import.meta.url);
 const budgetPath = new URL("worker/daily-brief-budget.js", root);
@@ -28,7 +29,7 @@ test("Daily Brief scheduled AI is limited and uses a smaller model", () => {
 
 test("Daily Brief AI budget files pass syntax checks", () => {
   for (const path of [budgetPath, routerPath]) {
-    const result = spawnSync(process.execPath, ["--check", path], { encoding: "utf8" });
+    const result = spawnSync(process.execPath, ["--check", fileURLToPath(path)], { encoding: "utf8" });
     assert.equal(result.status, 0, result.stderr || result.stdout);
   }
 });
