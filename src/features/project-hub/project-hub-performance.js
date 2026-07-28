@@ -24,11 +24,26 @@
   });
 
   window.addEventListener("DOMContentLoaded", () => {
-    if (document.querySelector('script[data-turtlebot-plan-v3="true"]')) return;
+    const loadFlexiblePeriods = () => {
+      if (document.querySelector('script[data-turtlebot-periods-v3="true"]')) return;
+      const periods = document.createElement("script");
+      periods.src = "/project-data/turtlebot4/project-plan-v3-periods-ui.js?v=turtlebot-flexible-periods-nunito-v1";
+      periods.dataset.turtlebotPeriodsV3 = "true";
+      periods.defer = true;
+      document.body.append(periods);
+    };
+
+    const existingPlan = document.querySelector('script[data-turtlebot-plan-v3="true"]');
+    if (existingPlan) {
+      loadFlexiblePeriods();
+      return;
+    }
+
     const script = document.createElement("script");
     script.src = "/project-data/turtlebot4/project-plan-v3-ui.js?v=turtlebot-new-plan-week3-v1";
     script.dataset.turtlebotPlanV3 = "true";
     script.defer = true;
+    script.addEventListener("load", loadFlexiblePeriods, { once: true });
     document.body.append(script);
   });
 })();
