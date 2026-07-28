@@ -41,11 +41,17 @@ test("Finance Month removes the repeated summary row and enlarges categories", (
   assert.match(financeOverlay, /finance-ledger-item-button>strong\{font-size:11\.5px\}/);
 });
 
+test("Finance Month header uses two balanced cards", () => {
+  assert.match(financeOverlay, /grid-template-columns:repeat\(2,minmax\(0,238px\)\)/);
+  assert.match(financeOverlay, /background:linear-gradient\(135deg,#466873,#607d78\)/);
+  assert.match(financeOverlay, /min-height:94px/);
+});
+
 test("Finance privacy only masks the dashboard", () => {
   assert.match(financeSource, /financeData\?\.classList\.toggle\("finance-values-hidden"/);
 });
 
 test("Cloudflare build loads the direct Finance renderer and current month layout", () => {
   assert.match(buildSource, /finance-demo\.js\?v=joy-finance-core-v4/);
-  assert.match(buildSource, /project-data\/finance\/finance-layout-v2\.js\?v=joy-finance-month-layout-v3/);
+  assert.match(buildSource, /project-data\/finance\/finance-layout-v2\.js\?v=joy-finance-month-layout-v4/);
 });
