@@ -38,6 +38,14 @@ test("Lookup returns one English word and one Vietnamese meaning", () => {
   assert.match(frontend, /One best match found\./);
 });
 
+test("Vocabulary lookup uses structured output with a plain JSON retry", () => {
+  assert.match(worker, /response_format:\s*\{[\s\S]*type:\s*"json_schema"/);
+  assert.match(worker, /VOCABULARY_JSON_SCHEMA/);
+  assert.match(worker, /retrying plain JSON/);
+  assert.match(worker, /VOCABULARY_AI_FAILED/);
+  assert.match(worker, /pathname === VOCABULARY_LOOKUP_PATH[\s\S]*return lookupVocabularyWord\(request, env\);[\s\S]*ensureVocabularySchema\(env\)/);
+});
+
 test("Vocabulary save and review routes use authenticated D1 storage", () => {
   assert.match(router, /isVocabularyRoute\(pathname\)/);
   assert.match(worker, /FROM vocabulary_words/);
