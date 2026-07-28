@@ -10,14 +10,16 @@ const frontendPath = resolve(root, "project-data/speaking/speaking.js");
 const stylesPath = resolve(root, "project-data/speaking/speaking.css");
 const workerPath = resolve(root, "worker/speaking-english.js");
 const routerPath = resolve(root, "worker/router.js");
-const loaderPath = resolve(root, "src/features/project-hub/project-hub-performance.js");
+const injectorPath = resolve(root, "scripts/inject-language-tools.mjs");
+const projectHubPath = resolve(root, "src/features/project-hub/project-hub-performance.js");
 
-const [frontend, styles, worker, router, loader] = await Promise.all([
+const [frontend, styles, worker, router, injector, projectHub] = await Promise.all([
   readFile(frontendPath, "utf8"),
   readFile(stylesPath, "utf8"),
   readFile(workerPath, "utf8"),
   readFile(routerPath, "utf8"),
-  readFile(loaderPath, "utf8"),
+  readFile(injectorPath, "utf8"),
+  readFile(projectHubPath, "utf8"),
 ]);
 
 test("Say it tool translates one Vietnamese sentence without saving it", () => {
@@ -38,16 +40,18 @@ test("Speaking API returns exactly one natural English sentence", () => {
   assert.match(router, /isSpeakingEnglishRoute\(pathname\)/);
 });
 
-test("Speaking assets load after Vocabulary", () => {
-  assert.match(loader, /speaking\.css\?v=joy-speaking-v1/);
-  assert.match(loader, /speaking\.js\?v=joy-speaking-v1/);
-  assert.match(loader, /script\.addEventListener\("load", loadSpeaking/);
+test("Speaking assets load after Vocabulary without Project Hub coupling", () => {
+  const vocabularyIndex = injector.indexOf("vocabulary.js?v=joy-vocabulary-v2");
+  const speakingIndex = injector.indexOf("speaking.js?v=joy-speaking-v2");
+  assert.ok(vocabularyIndex >= 0);
+  assert.ok(speakingIndex > vocabularyIndex);
+  assert.doesNotMatch(projectHub, /vocabulary|speaking/i);
   assert.match(styles, /\.speaking-modal/);
   assert.match(styles, /\.vocabulary-widget-actions/);
 });
 
 test("Speaking JavaScript files pass syntax checks", () => {
-  for (const path of [frontendPath, workerPath, routerPath, loaderPath]) {
+  for (const path of [frontendPath, workerPath, routerPath, injectorPath, projectHubPath]) {
     const result = spawnSync(process.execPath, ["--check", path], { encoding: "utf8" });
     assert.equal(result.status, 0, result.stderr || result.stdout);
   }
