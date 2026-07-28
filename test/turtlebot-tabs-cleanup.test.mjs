@@ -8,12 +8,14 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const cleanupPath = resolve(root, "project-data/turtlebot4/project-hub-tabs-cleanup.js");
 const loaderPath = resolve(root, "src/features/project-hub/project-hub-performance.js");
 const cacheBustPath = resolve(root, "scripts/cache-bust-turtlebot-plan.mjs");
+const fontPath = resolve(root, "src/features/project-details/turtlebot-roadmap-font.css");
 
-test("TurtleBot tabs remove Lab Journal and keep Commands empty after the plan", async () => {
-  const [cleanup, loader, cacheBust] = await Promise.all([
+test("TurtleBot tabs sit in the header, remove Lab Journal and keep Commands empty", async () => {
+  const [cleanup, loader, cacheBust, fontCss] = await Promise.all([
     readFile(cleanupPath, "utf8"),
     readFile(loaderPath, "utf8"),
     readFile(cacheBustPath, "utf8"),
+    readFile(fontPath, "utf8"),
   ]);
 
   assert.doesNotThrow(() => new Function(cleanup));
@@ -22,8 +24,12 @@ test("TurtleBot tabs remove Lab Journal and keep Commands empty after the plan",
   assert.match(cleanup, /const order = \["plan", "roadmap", "schedule", "commands"\]/);
   assert.match(cleanup, /schedule: "12-Week Plan"/);
   assert.match(cleanup, /commands: "Commands"/);
+  assert.match(cleanup, /header\.insertBefore\(nav, actions \|\| null\)/);
+  assert.match(cleanup, /turtlebot-hub-header-with-tabs/);
   assert.match(cleanup, /hubElements\.body\.innerHTML = ""/);
   assert.doesNotMatch(cleanup, /renderCommands\(\)/);
-  assert.match(loader, /project-hub-tabs-cleanup\.js\?v=turtlebot-tabs-cleanup-v1/);
-  assert.match(cacheBust, /turtlebot-tabs-cleanup-v3/);
+  assert.match(loader, /project-hub-tabs-cleanup\.js\?v=turtlebot-inline-tabs-v2/);
+  assert.match(cacheBust, /turtlebot-inline-header-tabs-v4/);
+  assert.match(fontCss, /grid-template-columns: max-content minmax\(0, 1fr\) max-content/);
+  assert.match(fontCss, /grid-template-rows: auto minmax\(0, 1fr\)/);
 });
