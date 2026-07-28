@@ -28,11 +28,24 @@ test("Finance Month uses a two-thirds current month and one-third next-month sum
   assert.doesNotMatch(financeOverlay, />New income</);
 });
 
+test("Finance Month navigation shares the Month and Year tab row", () => {
+  assert.match(financeOverlay, /finance-tab-month-nav/);
+  assert.match(financeOverlay, /syncMonthTabNavigation/);
+  assert.match(financeOverlay, /data-tab-month-shift/);
+  assert.doesNotMatch(financeOverlay, /finance-month-toolbar/);
+});
+
+test("Finance Month removes the repeated summary row and enlarges categories", () => {
+  assert.doesNotMatch(financeOverlay, /finance-ledger-summary-two/);
+  assert.match(financeOverlay, /finance-ledger-item-copy b\{font-size:12\.5px\}/);
+  assert.match(financeOverlay, /finance-ledger-item-button>strong\{font-size:11\.5px\}/);
+});
+
 test("Finance privacy only masks the dashboard", () => {
   assert.match(financeSource, /financeData\?\.classList\.toggle\("finance-values-hidden"/);
 });
 
-test("Cloudflare build loads the direct Finance renderer and month layout", () => {
+test("Cloudflare build loads the direct Finance renderer and current month layout", () => {
   assert.match(buildSource, /finance-demo\.js\?v=joy-finance-core-v4/);
-  assert.match(buildSource, /project-data\/finance\/finance-layout-v2\.js/);
+  assert.match(buildSource, /project-data\/finance\/finance-layout-v2\.js\?v=joy-finance-month-layout-v2/);
 });
