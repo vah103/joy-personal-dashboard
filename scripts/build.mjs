@@ -101,6 +101,7 @@ const projectHubScripts = [
   '    <script src="project-data/finance/finance-layout-v2.js?v=joy-finance-month-layout-v4" defer></script>\n',
   '    <script src="project-data/finance/finance-dashboard-v1.js?v=joy-finance-dashboard-v3" defer></script>\n',
   '    <script src="project-data/finance/finance-breakdown-v1.js?v=joy-finance-breakdown-v1" defer></script>\n',
+  '    <script src="project-data/finance/finance-amount-shortcut-v1.js?v=joy-finance-amount-shortcut-v1" defer></script>\n',
 ].join("");
 
 const sourceHtml = await readFile(resolve(dashboardPage, "index.html"), "utf8");
