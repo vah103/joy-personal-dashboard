@@ -1,6 +1,7 @@
 (() => {
   const THOUSAND_MULTIPLIER = 1_000;
   const SHORT_INPUT_MAX = 9_999;
+  const FINANCE_FORM_SELECTOR = "#finance-entry-form,.finance-ledger-composer";
 
   function normalizeAmountInput(value) {
     const text = String(value ?? "").trim();
@@ -45,6 +46,7 @@
   function prepareAmountInput(input) {
     if (!(input instanceof HTMLInputElement) || input.name !== "amount") return;
     input.step = "1";
+    input.min = "1";
     input.placeholder = "50 = 50.000 ₫";
     if (input.dataset.financeAmountShortcutReady === "true") return;
     input.dataset.financeAmountShortcutReady = "true";
@@ -55,6 +57,18 @@
     };
     input.addEventListener("input", updatePreview);
     updatePreview();
+  }
+
+  function normalizeFormAmount(form) {
+    if (!(form instanceof HTMLFormElement) || !form.matches(FINANCE_FORM_SELECTOR)) return false;
+    const input = form.elements.amount;
+    if (!(input instanceof HTMLInputElement)) return false;
+    prepareAmountInput(input);
+    const normalized = normalizeAmountInput(input.value);
+    if (!Number.isFinite(normalized) || normalized <= 0) return false;
+    input.value = String(normalized);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    return true;
   }
 
   function prepareAllAmountInputs(root = document) {
@@ -70,14 +84,42 @@
     input.dispatchEvent(new Event("input", { bubbles: true }));
   }
 
-  document.addEventListener("submit", (event) => {
-    const form = event.target;
-    if (!(form instanceof HTMLFormElement)) return;
-    if (!form.matches("#finance-entry-form,.finance-ledger-composer")) return;
-    const input = form.elements.amount;
-    if (!(input instanceof HTMLInputElement)) return;
+  document.addEventListener("pointerdown", (event) => {
+    const submitter = event.target.closest?.('button[type="submit"],input[type="submit"]');
+    if (submitter?.form) normalizeFormAmount(submitter.form);
+  }, true);
+
+  document.addEventListener("click", (event) => {
+    const submitter = event.target.closest?.('button[type="submit"],input[type="submit"]');
+    if (submitter?.form) normalizeFormAmount(submitter.form);
+  }, true);
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement) || input.name !== "amount") return;
+    if (input.form?.matches(FINANCE_FORM_SELECTOR)) normalizeFormAmount(input.form);
+  }, true);
+
+  document.addEventListener("invalid", (event) => {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement) || input.name !== "amount") return;
+    if (!input.form?.matches(FINANCE_FORM_SELECTOR)) return;
+    prepareAmountInput(input);
     const normalized = normalizeAmountInput(input.value);
-    if (Number.isFinite(normalized) && normalized > 0) input.value = String(normalized);
+    if (!Number.isFinite(normalized) || normalized <= 0) return;
+    event.preventDefault();
+    input.value = String(normalized);
+    if (input.dataset.financeValidationRetry === "true") return;
+    input.dataset.financeValidationRetry = "true";
+    window.setTimeout(() => {
+      delete input.dataset.financeValidationRetry;
+      input.form?.requestSubmit();
+    }, 0);
+  }, true);
+
+  document.addEventListener("submit", (event) => {
+    normalizeFormAmount(event.target);
   }, true);
 
   const observer = new MutationObserver((mutations) => {
