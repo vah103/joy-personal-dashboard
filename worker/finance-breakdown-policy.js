@@ -13,6 +13,7 @@ export const FINANCE_SUBCATEGORIES = Object.freeze({
 export const FINANCE_BREAKDOWN_SEED = Object.freeze([
   Object.freeze({
     id: "breakdown-2026-08-expense-home-services",
+    replacesId: "sheet-2026-08-expense-home",
     occurredOn: "2026-08-28",
     month: 8,
     type: "expense",
@@ -24,6 +25,7 @@ export const FINANCE_BREAKDOWN_SEED = Object.freeze([
   }),
   Object.freeze({
     id: "breakdown-2026-08-expense-home-household-shopping",
+    replacesId: "sheet-2026-08-expense-home",
     occurredOn: "2026-08-28",
     month: 8,
     type: "expense",
@@ -35,6 +37,7 @@ export const FINANCE_BREAKDOWN_SEED = Object.freeze([
   }),
   Object.freeze({
     id: "breakdown-2026-08-expense-haircare-haircut",
+    replacesId: "sheet-2026-08-expense-haircare",
     occurredOn: "2026-08-28",
     month: 8,
     type: "expense",
@@ -46,6 +49,7 @@ export const FINANCE_BREAKDOWN_SEED = Object.freeze([
   }),
   Object.freeze({
     id: "breakdown-2026-10-expense-home-rent",
+    replacesId: "sheet-2026-10-expense-home",
     occurredOn: "2026-10-28",
     month: 10,
     type: "expense",
@@ -82,6 +86,11 @@ export function validateFinanceBreakdownPayload(body) {
   if (!allowed) return subcategory ? "FINANCE_SUBCATEGORY_INVALID" : "";
   if (!subcategory) return isDetailedFinanceDate(occurredOn) ? "FINANCE_SUBCATEGORY_REQUIRED" : "";
   return allowed.includes(subcategory) ? "" : "FINANCE_SUBCATEGORY_INVALID";
+}
+
+export function financeBreakdownSeedForMigration(preservedLegacyIds = []) {
+  const preserved = new Set(Array.from(preservedLegacyIds, (value) => String(value || "")));
+  return FINANCE_BREAKDOWN_SEED.filter((transaction) => !preserved.has(transaction.replacesId));
 }
 
 export function financeBreakdownSeedTotals() {
