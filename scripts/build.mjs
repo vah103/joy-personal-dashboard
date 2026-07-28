@@ -95,7 +95,7 @@ const projectHubScripts = [
   '    <script src="task-reminders.js?v=joy-tasks-v1" defer></script>\n',
   '    <script src="task-natural-input.js?v=joy-natural-reminders-v1" defer></script>\n',
   '    <script type="module" src="sales-assistant.js?v=joy-dashboard-sales-assistant-v4"></script>\n',
-  '    <script src="project-data/finance/finance-layout-v2.js?v=joy-finance-month-layout-v3" defer></script>\n',
+  '    <script src="project-data/finance/finance-layout-v2.js?v=joy-finance-month-layout-v4" defer></script>\n',
 ].join("");
 
 const sourceHtml = await readFile(resolve(dashboardPage, "index.html"), "utf8");
