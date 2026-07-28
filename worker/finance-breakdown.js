@@ -6,7 +6,7 @@ import {
 import {
   FINANCE_BREAKDOWN_IMPORT_KEY,
   FINANCE_BREAKDOWN_REPLACED_IDS,
-  FINANCE_BREAKDOWN_SEED,
+  financeBreakdownSeedForMigration,
   validateFinanceBreakdownPayload,
 } from "./finance-breakdown-policy.js";
 
@@ -63,6 +63,16 @@ async function ensureFinanceBreakdownImport(email, env) {
   if (imported) return;
 
   const now = Date.now();
+  const preservedRows = await env.DB.prepare(`
+    SELECT id
+    FROM finance_transactions
+    WHERE user_email = ?
+      AND source = 'sheet-import'
+      AND updated_at != created_at
+      AND deleted_at IS NULL
+      AND id IN (?, ?, ?)
+  `).bind(email, ...FINANCE_BREAKDOWN_REPLACED_IDS).all();
+  const preservedLegacyIds = new Set((preservedRows.results || []).map((row) => String(row.id || "")));
   const statements = [];
 
   for (const id of FINANCE_BREAKDOWN_REPLACED_IDS) {
@@ -77,7 +87,7 @@ async function ensureFinanceBreakdownImport(email, env) {
     `).bind(now, now, email, id));
   }
 
-  for (const [index, transaction] of FINANCE_BREAKDOWN_SEED.entries()) {
+  for (const [index, transaction] of financeBreakdownSeedForMigration(preservedLegacyIds).entries()) {
     statements.push(env.DB.prepare(`
       INSERT OR IGNORE INTO finance_transactions (
         user_email, id, occurred_on, year, month, type, category, subcategory,
