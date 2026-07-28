@@ -60,6 +60,10 @@ import {
   handleTaskReminderRequest,
   isTaskReminderRoute,
 } from "./task-reminders.js";
+import {
+  handleVocabularyRequest,
+  isVocabularyRoute,
+} from "./vocabulary.js";
 
 const PROTECTED_ASSETS = new Set(["/", "/index.html", "/sale-manager.html"]);
 
@@ -98,6 +102,9 @@ export default {
       }
       if (isTaskEnglishRoute(pathname)) {
         return handleTaskEnglishRequest(request, env);
+      }
+      if (isVocabularyRoute(pathname)) {
+        return handleVocabularyRequest(request, env);
       }
       if (isIeltsDiagnosticReviewRoute(pathname)) {
         return handleIeltsDiagnosticReviewRequest(request, env);
