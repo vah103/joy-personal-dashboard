@@ -324,7 +324,8 @@ function summarizeWeatherForecast(hourly, now) {
   }
 
   const currentMinute = current.hour * 60 + current.minute;
-  const rainHours = [];
+  const allRainHours = [];
+  const upcomingRainHours = [];
   const daylightHours = [];
 
   times.forEach((time, index) => {
@@ -340,30 +341,24 @@ function summarizeWeatherForecast(hourly, now) {
       daylightHours.push({ startHour, endHour, weatherCode });
     }
 
-    if (endHour * 60 <= currentMinute) return;
-
     const probability = Number(probabilities[index] || 0);
-    if (hasRainSignal({ probability })) {
-      rainHours.push({ startHour, endHour, probability });
+    if (!hasRainSignal({ probability })) return;
+
+    const entry = { startHour, endHour, probability };
+    allRainHours.push(entry);
+
+    if (endHour * 60 > currentMinute) {
+      upcomingRainHours.push(entry);
     }
   });
 
-  if (rainHours.length) {
-    const groups = [];
-    rainHours.forEach((entry) => {
-      const group = groups.at(-1);
-      const previous = group?.at(-1);
-      if (!previous || entry.startHour !== previous.endHour) groups.push([entry]);
-      else group.push(entry);
-    });
-
-    const windows = groups.map((group) => (
-      `${hourLabel(group[0].startHour)}–${hourLabel(group.at(-1).endHour)}`
-    ));
+  if (upcomingRainHours.length) {
+    const fullDayWindows = groupRainWindows(allRainHours);
+    const upcomingWindows = groupRainWindows(upcomingRainHours);
     return {
       dateKey: current.dateKey,
-      rainKey: `${current.dateKey}|rain|${windows.join("|")}`,
-      rainWindowText: windows.join(" and "),
+      rainKey: `${current.dateKey}|rain|${fullDayWindows.join("|")}`,
+      rainWindowText: upcomingWindows.join(" and "),
       dailyKind: "",
     };
   }
@@ -389,6 +384,20 @@ function summarizeWeatherForecast(hourly, now) {
     rainWindowText: "",
     dailyKind: isSunny ? "sunny" : "chill",
   };
+}
+
+function groupRainWindows(hours) {
+  const groups = [];
+  hours.forEach((entry) => {
+    const group = groups.at(-1);
+    const previous = group?.at(-1);
+    if (!previous || entry.startHour !== previous.endHour) groups.push([entry]);
+    else group.push(entry);
+  });
+
+  return groups.map((group) => (
+    `${hourLabel(group[0].startHour)}–${hourLabel(group.at(-1).endHour)}`
+  ));
 }
 
 function hasRainSignal({ probability }) {
