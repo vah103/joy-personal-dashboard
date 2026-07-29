@@ -2,14 +2,23 @@
   const ROADMAP_URL = "https://docs.google.com/document/d/16tNFhp4qvS8rlGTzL_8DQ_3fGJJoasrL1hJAQ16xPkk/edit?tab=t.ov3oqkj75gyr";
   const OPEN_TASKS = new Set();
   const DONE_BY_DEFAULT = new Set([
-    "s1-1-1","s1-2-1","s1-2-2","s1-2-3","s1-2-4","s1-2-5","s1-5-1","s1-5-4",
-    "s2-2-1","s2-2-2","s2-2-3","s2-2-4","s2-2-5","s2-3-1","s2-3-2",
-    "s2-4-1","s2-4-2","s2-4-3","s2-5-3","s2-5-4"
+    "s1-1-1","s1-1-2","s1-1-3","s1-1-4","s1-2-1","s1-2-2",
+    "s1-2-3","s1-2-4","s1-2-5","s1-3-1","s1-3-2","s1-3-3",
+    "s1-3-4","s1-3-5","s1-3-6","s1-4-1","s1-4-2","s1-4-3",
+    "s1-4-4","s1-4-5","s1-5-1","s1-5-2","s1-5-3","s1-5-4",
+    "s1-5-5","s1-6-1","s1-6-2","s1-6-3","s1-6-4","s1-6-5",
+    "s2-1-1","s2-1-2","s2-1-3","s2-1-4","s2-1-5","s2-1-6",
+    "s2-2-1","s2-2-2","s2-2-3","s2-2-4","s2-2-5","s2-3-1",
+    "s2-3-2","s2-3-3","s2-3-4","s2-4-1","s2-4-2","s2-4-3",
+    "s2-4-4","s2-4-5","s2-5-1","s2-5-2","s2-5-3","s2-5-4",
+    "s2-5-5","s2-5-6","s2-6-1","s2-6-2","s2-6-3","s2-6-4",
+    "s2-6-5","s2-7-1","s2-7-2","s2-7-3","s2-7-4","s2-7-5",
+    "s3-1-1","s3-1-4","s3-2-1"
   ]);
 
   const ROADMAP = [
     {
-      id: "stage-1", number: 1, short: "Foundation", title: "Foundation & Inputs", state: "verification",
+      id: "stage-1", number: 1, short: "Foundation", title: "Foundation & Inputs", state: "complete",
       main: "Establish a safe, observable and stable ROS 2 foundation so every later stage uses verified input streams, frames, namespaces and an approved map.",
       objective: "Confirm reliable communication between the laptop and TurtleBot 4; verify battery, LiDAR, odometry, TF, RGB and depth data; document the map; and keep the required streams stable for a continuous 20–30 minute observation session.",
       gate: "All required inputs are stable, frames and namespaces are confirmed, one official map is selected, and no severe unexplained error remains.",
@@ -23,7 +32,7 @@
       ]
     },
     {
-      id: "stage-2", number: 2, short: "Localization & Nav2", title: "Localization & Nav2", state: "current",
+      id: "stage-2", number: 2, short: "Localization & Nav2", title: "Localization & Nav2", state: "complete",
       main: "Build a project-owned workflow that loads the approved map, localizes the robot with AMCL, starts Nav2 and navigates to operator-selected goals.",
       objective: "From a fresh start, localize the robot reliably on the approved map, keep LaserScan aligned with the map, activate the required lifecycle nodes and complete three fixed goals consecutively in a safe area.",
       gate: "The complete workflow is reproducible from a fresh start using project code and configuration, and G1 → G2 → G3 all return SUCCEEDED in one session.",
@@ -38,7 +47,7 @@
       ]
     },
     {
-      id: "stage-3", number: 3, short: "Nav2 Benchmark", title: "Navigation Benchmark", state: "upcoming",
+      id: "stage-3", number: 3, short: "Nav2 Benchmark", title: "Navigation Benchmark", state: "current",
       main: "Turn ‘the robot can navigate’ into a quantitative and repeatable baseline for later comparison with frontier and semantic-risk-aware exploration.",
       objective: "Create a fixed goal set, benchmark runner, logging workflow and metric report covering success rate, time, path length, replanning, recovery and failure.",
       gate: "Repeated trials use a frozen map, goal set and Nav2 configuration, and all metrics and failures are traceable to saved evidence.",
@@ -186,7 +195,7 @@
     const stage = ROADMAP.find((item) => item.id === hubState.activeStageId) || ROADMAP[1];
     const stats = stageStats(stage);
     const firstIncomplete = stage.tasks.findIndex((task, index) => taskStats(stage, index).percent < 100);
-    hubElements.body.innerHTML = `<div class="hub-roadmap-layout"><aside class="hub-stage-list" aria-label="Project stages"><div class="hub-progress-summary"><span>Detailed roadmap progress</span><strong>${overallProgress()}%</strong><div><i style="width:${overallProgress()}%"></i></div></div>${ROADMAP.map((item) => { const itemStats = stageStats(item); const complete = itemStats.percent === 100; const status = complete ? "Complete" : item.id === "stage-2" ? "In progress" : item.state === "verification" ? "Needs verification" : "Upcoming"; return `<button type="button" class="hub-stage-button ${item.id === stage.id ? "active" : ""}" data-hub-action="select-stage" data-stage-id="${escapeHub(item.id)}"><span class="hub-stage-number">${complete ? "✓" : item.number}</span><span><strong>${escapeHub(item.short)}</strong><small>${escapeHub(status)} · ${itemStats.percent}%</small><i class="joy-stage-progress"><i style="width:${itemStats.percent}%"></i></i></span></button>`; }).join("")}</aside><section class="hub-stage-detail"><div class="hub-stage-heading"><div><p>Stage ${stage.number} of ${ROADMAP.length}</p><h3>${escapeHub(stage.title)}</h3></div><span class="ps-status">${stats.completeTasks}/${stats.taskCount} tasks complete</span></div><div class="joy-roadmap-source"><span>Open a task to see its detailed work items. A task becomes Complete only after every item is checked.</span><a href="${ROADMAP_URL}" target="_blank" rel="noreferrer">Open Google Docs roadmap ↗</a></div><div class="joy-roadmap-intro"><article class="joy-roadmap-info"><span>Main content</span><p>${escapeHub(stage.main)}</p></article><article class="joy-roadmap-info"><span>Objective</span><p>${escapeHub(stage.objective)}</p></article></div><section class="hub-section-card"><div class="hub-section-heading"><div><span>Tasks</span><strong>${stats.percent}% complete</strong></div><small>Checkbox progress is saved through Joy Project Hub.</small></div><div class="joy-roadmap-tasks">${stage.tasks.map((task, index) => renderTask(stage, task, index, OPEN_TASKS.size === 0 && index === firstIncomplete)).join("")}</div></section><section class="joy-roadmap-gate"><span>Completion gate</span><p>${escapeHub(stage.gate)}</p></section>${verifiedEvidence(stage.id)}</section></div>`;
+    hubElements.body.innerHTML = `<div class="hub-roadmap-layout"><aside class="hub-stage-list" aria-label="Project stages"><div class="hub-progress-summary"><span>Detailed roadmap progress</span><strong>${overallProgress()}%</strong><div><i style="width:${overallProgress()}%"></i></div></div>${ROADMAP.map((item) => { const itemStats = stageStats(item); const complete = itemStats.percent === 100; const status = complete ? "Complete" : itemStats.percent > 0 || item.id === hubState.source?.project?.currentStageId ? "In progress" : item.state === "verification" ? "Needs verification" : "Upcoming"; return `<button type="button" class="hub-stage-button ${item.id === stage.id ? "active" : ""}" data-hub-action="select-stage" data-stage-id="${escapeHub(item.id)}"><span class="hub-stage-number">${complete ? "✓" : item.number}</span><span><strong>${escapeHub(item.short)}</strong><small>${escapeHub(status)} · ${itemStats.percent}%</small><i class="joy-stage-progress"><i style="width:${itemStats.percent}%"></i></i></span></button>`; }).join("")}</aside><section class="hub-stage-detail"><div class="hub-stage-heading"><div><p>Stage ${stage.number} of ${ROADMAP.length}</p><h3>${escapeHub(stage.title)}</h3></div><span class="ps-status">${stats.completeTasks}/${stats.taskCount} tasks complete</span></div><div class="joy-roadmap-source"><span>Open a task to see its detailed work items. A task becomes Complete only after every item is checked.</span><a href="${ROADMAP_URL}" target="_blank" rel="noreferrer">Open Google Docs roadmap ↗</a></div><div class="joy-roadmap-intro"><article class="joy-roadmap-info"><span>Main content</span><p>${escapeHub(stage.main)}</p></article><article class="joy-roadmap-info"><span>Objective</span><p>${escapeHub(stage.objective)}</p></article></div><section class="hub-section-card"><div class="hub-section-heading"><div><span>Tasks</span><strong>${stats.percent}% complete</strong></div><small>Checkbox progress is saved through Joy Project Hub.</small></div><div class="joy-roadmap-tasks">${stage.tasks.map((task, index) => renderTask(stage, task, index, OPEN_TASKS.size === 0 && index === firstIncomplete)).join("")}</div></section><section class="joy-roadmap-gate"><span>Completion gate</span><p>${escapeHub(stage.gate)}</p></section>${verifiedEvidence(stage.id)}</section></div>`;
   }
 
   document.addEventListener("toggle", (event) => {
