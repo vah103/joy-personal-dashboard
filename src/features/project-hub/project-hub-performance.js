@@ -16,13 +16,14 @@
   };
 
   const loadVocabularyMobileInline = () => {
-    const mobileScriptSrc = "/project-data/vocabulary/vocabulary-mobile-inline.js?v=joy-vocabulary-mobile-inline-v1";
+    const mobileScriptSrc = "/project-data/vocabulary/vocabulary-mobile-inline.js?v=joy-vocabulary-mobile-inline-v2";
     const existing = document.querySelector('script[data-joy-vocabulary-mobile-inline="true"]');
-    if (existing) {
+    if (existing && existing.src.includes("joy-vocabulary-mobile-inline-v2")) {
       if (existing.dataset.loaded === "true") loadSpeaking();
       else existing.addEventListener("load", loadSpeaking, { once: true });
       return;
     }
+    existing?.remove();
 
     const script = document.createElement("script");
     script.src = mobileScriptSrc;
