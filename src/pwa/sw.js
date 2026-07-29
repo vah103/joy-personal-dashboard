@@ -1,9 +1,26 @@
+const APP_SHELL_VERSION = "joy-mobile-vocabulary-v2";
+
 self.addEventListener("install", () => {
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil((async () => {
+    await self.clients.claim();
+    const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    await Promise.all(windows.map(async (client) => {
+      if (!("navigate" in client)) return;
+      try {
+        const url = new URL(client.url);
+        if (url.origin !== self.location.origin) return;
+        if (url.searchParams.get("joy-app-version") === APP_SHELL_VERSION) return;
+        url.searchParams.set("joy-app-version", APP_SHELL_VERSION);
+        await client.navigate(url.href);
+      } catch (error) {
+        console.warn("Hey Joy could not refresh an older app window", error);
+      }
+    }));
+  })());
 });
 
 self.addEventListener("push", (event) => {
