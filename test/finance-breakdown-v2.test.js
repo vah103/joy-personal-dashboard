@@ -54,11 +54,12 @@ test("Edited legacy totals are not duplicated", () => {
 });
 
 test("Seed, breakdown, reset and validation run through one Worker entry point", () => {
+  assert.equal(FINANCE_EXPENSE_RESET_IMPORT_KEY, "finance-expenses-2026-08-12-reset-v1");
   assert.match(workerSource, /ensureFinanceTrackerImport\(email, env\)/);
   assert.match(workerSource, /ensureFinanceBreakdownImport\(email, env\)/);
   assert.match(workerSource, /ensureFinanceExpenseReset\(email, env\)/);
   assert.match(workerSource, /validateFinanceBreakdownPayload\(body\)/);
-  assert.match(workerSource, new RegExp(FINANCE_EXPENSE_RESET_IMPORT_KEY));
+  assert.match(workerSource, /FINANCE_EXPENSE_RESET_IMPORT_KEY/);
   assert.match(workerSource, /month BETWEEN 8 AND 12/);
   assert.match(workerSource, /type = 'expense'/);
 });
