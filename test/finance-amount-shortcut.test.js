@@ -36,12 +36,13 @@ test("Existing transactions display a safe short value when editable", () => {
   assert.equal(api.amountInputDisplayValue(10_000_000), "10000000");
 });
 
-test("Cloudflare build loads and cache-busts the Finance amount shortcut", () => {
+test("Cloudflare build loads and cache-busts the Finance amount shortcut and core", () => {
   const breakdownIndex = buildSource.indexOf("finance-breakdown-v1.js?v=joy-finance-breakdown-v1");
   const shortcutIndex = buildSource.indexOf("finance-amount-shortcut-v1.js?v=joy-finance-amount-shortcut-v1");
   assert.ok(breakdownIndex >= 0);
   assert.ok(shortcutIndex > breakdownIndex);
   assert.match(postBuildSource, /joy-finance-amount-shortcut-v3/);
+  assert.match(postBuildSource, /finance-demo\.js\?v=joy-finance-core-v5/);
 });
 
 test("Post-build output removes the browser step mismatch for Income and Expense", () => {
