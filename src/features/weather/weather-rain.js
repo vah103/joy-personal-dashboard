@@ -1,6 +1,6 @@
 (function registerJoyWeather(root) {
   const TIME_ZONE = "Asia/Ho_Chi_Minh";
-  const RAIN_PROBABILITY_THRESHOLD = 90;
+  const RAIN_PROBABILITY_THRESHOLD = 85;
   const WEATHER_WEEK_ENDPOINT = "https://api.open-meteo.com/v1/forecast?latitude=21.0285&longitude=105.8542&daily=weather_code,temperature_2m_max,temperature_2m_min&hourly=precipitation_probability,weather_code&timezone=Asia%2FHo_Chi_Minh&past_days=1&forecast_days=6";
   const WEATHER_WEEK_CACHE_MS = 30 * 60_000;
 
