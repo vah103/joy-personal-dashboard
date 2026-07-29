@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import vm from "node:vm";
 
 const root = new URL("../", import.meta.url);
 
@@ -8,12 +9,27 @@ async function source(path) {
   return readFile(new URL(path, root), "utf8");
 }
 
+async function loadTaskEnglishApi() {
+  const helper = await source("src/features/tasks/task-english.js");
+  const window = {};
+  const document = {
+    readyState: "loading",
+    addEventListener() {},
+    querySelector() { return null; },
+  };
+
+  vm.runInNewContext(helper, { window, document, console });
+  return window.JoyTaskEnglish;
+}
+
 test("new to-do items and reminder titles are rewritten into natural English", async () => {
-  const [worker, router, helper, build] = await Promise.all([
+  const [worker, router, helper, build, cacheBust, packageJson] = await Promise.all([
     source("worker/task-english.js"),
     source("worker/router.js"),
     source("src/features/tasks/task-english.js"),
     source("scripts/build.mjs"),
+    source("scripts/cache-bust-task-english.mjs"),
+    source("package.json"),
   ]);
 
   assert.match(worker, /const TASK_ENGLISH_PATH = "\/api\/tasks\/english"/);
@@ -33,7 +49,7 @@ test("new to-do items and reminder titles are rewritten into natural English", a
   assert.match(helper, /form\.requestSubmit/);
   assert.match(helper, /\/api\/tasks\/english/);
   assert.match(helper, /REQUEST_TIMEOUT_MS = 10_000/);
-  assert.match(helper, /joy-task-english-cache-v5/);
+  assert.match(helper, /joy-task-english-cache-v6/);
   assert.match(helper, /function cleanReminderTitle/);
   assert.match(helper, /function prepareSubmission/);
   assert.match(helper, /composerOpen/);
@@ -42,7 +58,19 @@ test("new to-do items and reminder titles are rewritten into natural English", a
   assert.match(helper, /"cat mong tay": "Trim your nails\."/);
   assert.match(helper, /"mua nuoc giat": "Buy laundry detergent\."/);
   assert.match(helper, /const localTitle = fallbackEnglish\(original\)/);
+  assert.match(helper, /const withoutLeadingGo = actionOnly\.replace/);
   assert.match(helper, /it was not added/);
   assert.match(build, /task-english\.js\?v=joy-task-english-v5/);
   assert.match(build, /resolve\(features, "tasks", "task-english\.js"\)/);
+  assert.match(cacheBust, /joy-task-english-v6/);
+  assert.match(packageJson, /cache-bust-task-english\.mjs/);
+});
+
+test("common Vietnamese tasks with a leading đi use the local English fallback", async () => {
+  const { fallbackEnglish } = await loadTaskEnglishApi();
+
+  assert.equal(fallbackEnglish("đi tắm"), "Take a shower.");
+  assert.equal(fallbackEnglish("đi cắt tóc"), "Get a haircut.");
+  assert.equal(fallbackEnglish("đi tập gym"), "Work out at the gym.");
+  assert.equal(fallbackEnglish("đi ngủ"), "Go to sleep.");
 });
