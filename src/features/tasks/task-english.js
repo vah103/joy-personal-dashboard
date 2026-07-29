@@ -1,5 +1,5 @@
 (function installJoyTaskEnglish(root) {
-  const CACHE_KEY = "joy-task-english-cache-v6";
+  const CACHE_KEY = "joy-task-english-cache-v7";
   const REQUEST_TIMEOUT_MS = 10_000;
 
   function clean(value) {
@@ -42,6 +42,7 @@
       .trim();
     const exact = {
       "an com": "Eat a meal.",
+      "chuan bi bua an": "Prepare a meal.",
       "uong nuoc": "Drink water.",
       "phoi quan ao": "Hang the clothes out to dry.",
       "giat quan ao": "Do the laundry.",
