@@ -1,5 +1,11 @@
-/* Montserrat Bold heading trial for the outer Hey Joy dashboard only. */
-@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap");
+/* OpenAI Sans Bold heading trial for the outer Hey Joy dashboard only. */
+@font-face {
+  font-family: "OpenAI Sans";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url("https://cdn.openai.com/common/fonts/openai-sans/v4/OpenAISans-Bold.woff2") format("woff2");
+}
 
 .dashboard-shell .panel-heading h2,
 .dashboard-shell .panel-title-button h2,
@@ -8,7 +14,7 @@
 .dashboard-shell .subheading,
 .dashboard-shell .finance-pulse-heading strong,
 .dashboard-shell .sales-assistant-launch-copy strong {
-  font-family: "Montserrat", "Instrument Sans", "Segoe UI", sans-serif;
+  font-family: "OpenAI Sans", "Instrument Sans", "Segoe UI", sans-serif;
   font-weight: 700;
   font-synthesis: none;
 }
