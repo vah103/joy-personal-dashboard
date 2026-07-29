@@ -329,7 +329,7 @@
 
   const PLAN = {
     schemaVersion: 2,
-    updatedAt: "2026-07-28",
+    updatedAt: "2026-07-29",
     project: {
       id: "turtlebot4",
       name: "TurtleBot 4",
@@ -339,13 +339,13 @@
       planStart: "2026-07-13",
       planEnd: "2026-10-04",
       totalWeeks: 12,
-      currentStageId: "stage-2",
+      currentStageId: "stage-3",
       googleDocUrl: PLAN_URL,
       progressMethod: "Weighted technical checklist across all nine stages; schedule tasks and elapsed time remain separate.",
       currentBlockers: [
-        "Fresh-start Localization/Nav2 reproducibility and the fixed-goal sequence are not yet fully documented.",
-        "The saved map must be validated against the latest lab layout.",
-        "RGB-D topics and camera diagnostics still require complete verification.",
+        "The Stage 3 physical benchmark is pending until the robot is sufficiently charged.",
+        "Rosbag and CSV outputs still need validation in one pilot run.",
+        "Navigation metrics and the frozen official Nav2 baseline are not yet available.",
       ],
     },
     scope: {
@@ -368,6 +368,9 @@
       { date: "2026-07-23", progressAfter: 9, title: "Saved map and initial pose reproduced", detail: "The map loaded and AMCL initial pose was set in RViz." },
       { date: "2026-07-23", progressAfter: 11, title: "Map-to-base TF verified", detail: "The map → odom → base_link chain aligned scans with the map." },
       { date: "2026-07-23", progressAfter: 13, title: "Multiple Nav2 goals completed", detail: "Nav2 lifecycle nodes were activated and the robot reached multiple goals." },
+      { date: "2026-07-29", progressAfter: 16, title: "Stage 1 inputs completed", detail: "RGB-D, timing and the 20-minute stability observation were verified." },
+      { date: "2026-07-29", progressAfter: 22, title: "Stage 2 navigation completed", detail: "Map, AMCL, Nav2, fresh-start navigation and docking succeeded on the real robot." },
+      { date: "2026-07-29", progressAfter: 24, title: "Stage 3 benchmark prepared", detail: "Four fixed goals, checksums and the benchmark runner passed dry-run." },
     ],
     weeks,
   };
