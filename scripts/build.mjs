@@ -79,12 +79,12 @@ const projectHubHead = [
 ].join("");
 
 const projectHubScripts = [
-  '    <script src="project-hub-performance.js?v=turtlebot-hub-v6" defer></script>\n',
+  '    <script src="project-hub-performance.js?v=turtlebot-hub-v7" defer></script>\n',
   '    <script src="project-hub-core.js?v=turtlebot-hub-v4" defer></script>\n',
   '    <script src="project-hub-render.js?v=turtlebot-hub-v4" defer></script>\n',
   '    <script src="project-hub-actions.js?v=turtlebot-hub-v4" defer></script>\n',
-  '    <script src="project-data/turtlebot4/project-state-v2.js?v=turtlebot-project-state-v3-english" defer></script>\n',
-  '    <script src="turtlebot-roadmap.js?v=turtlebot-roadmap-v2" defer></script>\n',
+  '    <script src="project-data/turtlebot4/project-state-v2.js?v=turtlebot-progress-20260729-v1" defer></script>\n',
+  '    <script src="turtlebot-roadmap.js?v=turtlebot-roadmap-v3" defer></script>\n',
   '    <script src="turtlebot-roadmap-language.js?v=turtlebot-roadmap-english-v1" defer></script>\n',
   '    <script id="joy-ielts-core-bundle" data-loaded="true" src="project-data/ielts/ielts-core-bundle.js?v=ielts-august-core-v7" defer></script>\n',
   '    <script src="project-data/ielts/ielts-card.js?v=ielts-card-v8" defer></script>\n',
