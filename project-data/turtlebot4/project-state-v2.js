@@ -1,5 +1,5 @@
 (() => {
-  const PROJECT_STATE_URL = "/project-data/turtlebot4/project-state-v2.json";
+  const PROJECT_STATE_URL = "/project-data/turtlebot4/project-state-v2.json?v=turtlebot-progress-20260729-v1";
   const DEFAULT_TIME_ZONE = "Asia/Ho_Chi_Minh";
   const previousNormalizeOverrides = normalizeOverrides;
   const previousProjectProgress = projectProgress;
