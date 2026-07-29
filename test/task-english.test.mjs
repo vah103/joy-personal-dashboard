@@ -49,12 +49,13 @@ test("new to-do items and reminder titles are rewritten into natural English", a
   assert.match(helper, /form\.requestSubmit/);
   assert.match(helper, /\/api\/tasks\/english/);
   assert.match(helper, /REQUEST_TIMEOUT_MS = 10_000/);
-  assert.match(helper, /joy-task-english-cache-v6/);
+  assert.match(helper, /joy-task-english-cache-v7/);
   assert.match(helper, /function cleanReminderTitle/);
   assert.match(helper, /function prepareSubmission/);
   assert.match(helper, /composerOpen/);
   assert.match(helper, /replaceAction/);
   assert.match(helper, /"an com": "Eat a meal\."/);
+  assert.match(helper, /"chuan bi bua an": "Prepare a meal\."/);
   assert.match(helper, /"cat mong tay": "Trim your nails\."/);
   assert.match(helper, /"mua nuoc giat": "Buy laundry detergent\."/);
   assert.match(helper, /const localTitle = fallbackEnglish\(original\)/);
@@ -62,7 +63,7 @@ test("new to-do items and reminder titles are rewritten into natural English", a
   assert.match(helper, /it was not added/);
   assert.match(build, /task-english\.js\?v=joy-task-english-v5/);
   assert.match(build, /resolve\(features, "tasks", "task-english\.js"\)/);
-  assert.match(cacheBust, /joy-task-english-v6/);
+  assert.match(cacheBust, /joy-task-english-v7/);
   assert.match(packageJson, /cache-bust-task-english\.mjs/);
 });
 
@@ -73,4 +74,12 @@ test("common Vietnamese tasks with a leading đi use the local English fallback"
   assert.equal(fallbackEnglish("đi cắt tóc"), "Get a haircut.");
   assert.equal(fallbackEnglish("đi tập gym"), "Work out at the gym.");
   assert.equal(fallbackEnglish("đi ngủ"), "Go to sleep.");
+});
+
+test("meal preparation works locally with and without reminder timing", async () => {
+  const { fallbackEnglish, prepareSubmission } = await loadTaskEnglishApi();
+
+  assert.equal(fallbackEnglish("chuẩn bị bữa ăn"), "Prepare a meal.");
+  assert.equal(fallbackEnglish("3 tiếng rưỡi nữa chuẩn bị bữa ăn"), "Prepare a meal.");
+  assert.equal(prepareSubmission("3 tiếng rưỡi nữa chuẩn bị bữa ăn").taskText, "chuẩn bị bữa ăn");
 });
