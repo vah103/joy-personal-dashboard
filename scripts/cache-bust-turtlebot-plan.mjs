@@ -10,11 +10,15 @@ const turtleBotTabsScript = '    <script src="project-data/turtlebot4/project-hu
 let html = await readFile(indexPath, "utf8");
 html = html
   .replaceAll("project-hub-performance.js?v=turtlebot-hub-v5", "project-hub-performance.js?v=turtlebot-read-only-plan-v1")
+  .replaceAll("finance-demo.js?v=joy-finance-core-v4", "finance-demo.js?v=joy-finance-core-v5")
   .replaceAll("finance-amount-shortcut-v1.js?v=joy-finance-amount-shortcut-v1", "finance-amount-shortcut-v1.js?v=joy-finance-amount-shortcut-v3")
   .replaceAll("finance-amount-shortcut-v1.js?v=joy-finance-amount-shortcut-v2", "finance-amount-shortcut-v1.js?v=joy-finance-amount-shortcut-v3");
 
 if (!html.includes("project-hub-performance.js?v=turtlebot-read-only-plan-v1")) {
   throw new Error("TurtleBot Project Hub script reference was not found in dist/index.html");
+}
+if (!html.includes("finance-demo.js?v=joy-finance-core-v5")) {
+  throw new Error("Finance core script reference was not cache-busted in dist/index.html");
 }
 if (!html.includes("finance-amount-shortcut-v1.js?v=joy-finance-amount-shortcut-v3")) {
   throw new Error("Finance amount shortcut script reference was not found in dist/index.html");
