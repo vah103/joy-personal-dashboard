@@ -13,8 +13,9 @@ const oldIndexReferences = [
   "project-hub-performance.js?v=turtlebot-tabs-cleanup-v3",
   "project-hub-performance.js?v=turtlebot-inline-header-tabs-v4",
   "project-hub-performance.js?v=joy-mobile-vocabulary-v1",
+  "project-hub-performance.js?v=joy-mobile-vocabulary-v2",
 ];
-const newIndexReference = "project-hub-performance.js?v=joy-mobile-vocabulary-v2";
+const newIndexReference = "project-hub-performance.js?v=turtlebot-hub-v7";
 const oldFontReferences = [
   "turtlebot-roadmap-font.css?v=turtlebot-roadmap-nunito-v2",
   "turtlebot-roadmap-font.css?v=turtlebot-inline-header-tabs-v3",
