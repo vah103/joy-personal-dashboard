@@ -2,6 +2,7 @@
   const SHORT_THOUSAND_MAX = 9_999;
   const THOUSAND = 1_000;
   const AMOUNT_INPUT_SELECTOR = 'input[name="amount"]';
+  const FINANCE_FORM_SELECTOR = "#finance-entry-form,.finance-ledger-composer";
 
   function amountDigits(value) {
     const text = String(value ?? "").trim();
@@ -67,12 +68,15 @@
     input.removeAttribute("step");
     input.removeAttribute("pattern");
     input.placeholder = "50 = 50.000 ₫";
-    if (input.dataset.financeAmountPolicy === "v3") {
-      updatePreview(input);
-      return;
+    input.setCustomValidity("");
+
+    if (input.dataset.financeAmountPolicy !== "v4") {
+      input.dataset.financeAmountPolicy = "v4";
+      input.addEventListener("input", () => {
+        input.setCustomValidity("");
+        updatePreview(input);
+      });
     }
-    input.dataset.financeAmountPolicy = "v3";
-    input.addEventListener("input", () => updatePreview(input));
     updatePreview(input);
   }
 
@@ -81,89 +85,69 @@
     root.querySelectorAll?.(AMOUNT_INPUT_SELECTOR).forEach(prepareAmountInput);
   }
 
-  function normalizeFormInput(form) {
-    const input = form?.elements?.amount;
-    if (!(input instanceof HTMLInputElement)) return { input: null, amount: NaN };
+  function restoreShortValue(input, amount) {
+    if (!input?.isConnected) return;
+    input.value = financeAmountInputValue(amount);
+    updatePreview(input);
+  }
+
+  function handleFinanceSubmit(event) {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement) || !form.matches(FINANCE_FORM_SELECTOR)) return;
+    const input = form.elements.amount;
+    if (!(input instanceof HTMLInputElement)) return;
+
     prepareAmountInput(input);
-    return { input, amount: parseFinanceAmount(input.value) };
-  }
-
-  const originalSaveInlineTransaction = typeof saveInlineTransaction === "function" ? saveInlineTransaction : null;
-  if (originalSaveInlineTransaction) {
-    saveInlineTransaction = async function saveInlineTransactionWithUnifiedAmount(event, item) {
-      const form = event.currentTarget;
-      const { input, amount } = normalizeFormInput(form);
-      if (!Number.isFinite(amount)) {
-        event.preventDefault();
-        showInlineError(form.querySelector(".finance-ledger-error"), "Enter a valid amount.");
-        input?.focus();
-        return;
-      }
-      input.value = String(amount);
-      const result = await originalSaveInlineTransaction(event, item);
-      if (input.isConnected && !form.hidden) {
-        input.value = financeAmountInputValue(input.value);
-        updatePreview(input);
-      }
-      return result;
-    };
-  }
-
-  const originalSaveFinanceTransaction = typeof saveFinanceTransaction === "function" ? saveFinanceTransaction : null;
-  if (originalSaveFinanceTransaction) {
-    saveFinanceTransaction = async function saveFinanceTransactionWithUnifiedAmount(event) {
-      const form = event.currentTarget;
-      const { input, amount } = normalizeFormInput(form);
-      if (!Number.isFinite(amount)) {
-        event.preventDefault();
-        showFinanceToast("Enter a valid amount.");
-        input?.focus();
-        return;
-      }
-      input.value = String(amount);
-      const result = await originalSaveFinanceTransaction(event);
-      const modal = document.querySelector("#finance-entry-modal");
-      if (input.isConnected && modal && !modal.hidden) {
-        input.value = financeAmountInputValue(input.value);
-        updatePreview(input);
-      }
-      return result;
-    };
-
-    const entryForm = document.querySelector("#finance-entry-form");
-    if (entryForm) {
-      entryForm.removeEventListener("submit", originalSaveFinanceTransaction);
-      entryForm.addEventListener("submit", saveFinanceTransaction);
+    const amount = parseFinanceAmount(input.value);
+    if (!Number.isFinite(amount)) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      input.setCustomValidity("Enter a valid amount.");
+      input.reportValidity();
+      input.focus();
+      return;
     }
+
+    input.setCustomValidity("");
+    input.value = String(amount);
+    queueMicrotask(() => restoreShortValue(input, amount));
   }
 
-  const originalOpenEntryForm = typeof openEntryForm === "function" ? openEntryForm : null;
-  if (originalOpenEntryForm) {
-    openEntryForm = function openEntryFormWithUnifiedAmount(type = "expense", transaction = null) {
-      originalOpenEntryForm(type, transaction);
-      const input = document.querySelector("#finance-entry-form input[name='amount']");
-      if (!input) return;
-      prepareAmountInput(input);
-      input.value = transaction?.amount ? financeAmountInputValue(transaction.amount) : "";
-      updatePreview(input);
-    };
+  function startObserver() {
+    prepareAmountInputs();
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        mutation.addedNodes.forEach((node) => {
+          if (node instanceof Element) prepareAmountInputs(node);
+        });
+      }
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
   }
+
+  document.addEventListener("submit", handleFinanceSubmit, true);
+  document.addEventListener("focusin", (event) => {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement) || input.name !== "amount") return;
+    prepareAmountInput(input);
+
+    if (input.closest("#finance-entry-modal") && /^[0-9]+$/.test(input.value)) {
+      const storedAmount = Number(input.value);
+      if (Number.isSafeInteger(storedAmount) && storedAmount >= THOUSAND) {
+        input.value = financeAmountInputValue(storedAmount);
+        updatePreview(input);
+      }
+    }
+  }, true);
 
   const style = document.createElement("style");
-  style.dataset.financeAmountPolicy = "v3";
+  style.dataset.financeAmountPolicy = "v4";
   style.textContent = `
     .finance-amount-preview{display:block;margin-top:5px;color:#7c898c;font:700 8.5px "Nunito",Arial,sans-serif;letter-spacing:0;text-transform:none}
     .finance-ledger-composer .finance-amount-preview{grid-column:1/-1;margin:4px 0 0}
   `;
   document.head.append(style);
 
-  prepareAmountInputs();
-  const observer = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      mutation.addedNodes.forEach((node) => {
-        if (node instanceof Element) prepareAmountInputs(node);
-      });
-    }
-  });
-  observer.observe(document.body, { childList: true, subtree: true });
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", startObserver, { once: true });
+  else startObserver();
 })();
