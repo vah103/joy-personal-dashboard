@@ -5,7 +5,7 @@ const PLACE_NAME = "Hanoi";
 const WEATHER_ENDPOINT = "https://api.open-meteo.com/v1/forecast?latitude=21.0285&longitude=105.8542&hourly=precipitation_probability,weather_code&timezone=Asia%2FHo_Chi_Minh&forecast_days=1";
 const CHECK_EVERY_MINUTES = 5;
 const DAILY_WEATHER_HOUR = 7;
-const RAIN_PROBABILITY_THRESHOLD = 90;
+const RAIN_PROBABILITY_THRESHOLD = 85;
 
 export function isPushRoute(pathname) {
   return pathname.startsWith("/api/push/");
