@@ -75,7 +75,6 @@ const projectHubHead = [
   '    <link rel="stylesheet" href="room-summary.css?v=joy-room-summary-v1">\n',
   '    <link rel="stylesheet" href="sales-assistant.css?v=joy-dashboard-sales-assistant-v4">\n',
   '    <link rel="stylesheet" href="project-data/finance/finance-layout-v2.css?v=joy-finance-ledger-v4">\n',
-  '    <link rel="stylesheet" href="dashboard-consistency.css?v=joy-ui-consistency-v1">\n',
 ].join("");
 
 const projectHubScripts = [
@@ -185,7 +184,6 @@ const copies = [
   [resolve(features, "project-hub", "project-hub.css"), "project-hub.css"],
   [resolve(features, "project-hub", "turtlebot-card-art.css"), "turtlebot-card-art.css"],
   [resolve(features, "project-hub", "turtlebot4-card-background.webp"), "turtlebot4-card-background.webp"],
-  [resolve(features, "theme", "dashboard-consistency.css"), "dashboard-consistency.css"],
   [resolve(ieltsFeature, "card.js"), "project-data/ielts/ielts-card.js"],
   [resolve(icons, "app-icon-64.png"), "app-icon-64.png"],
   [resolve(icons, "app-icon-192.png"), "app-icon-192.png"],
