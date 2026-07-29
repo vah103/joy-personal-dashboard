@@ -6,25 +6,34 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const indexPath = resolve(root, "dist", "index.html");
 const financeCorePath = resolve(root, "dist", "finance-demo.js");
 
+const amountPolicyScript = '    <script src="project-data/finance/finance-amount-policy-v3.js?v=joy-finance-amount-policy-v4"></script>\n';
 const financeStyles = '    <link rel="stylesheet" href="project-data/finance/finance-breakdown-v2.css?v=joy-finance-breakdown-v2">\n';
-const financeScripts = [
-  '    <script src="project-data/finance/finance-breakdown-v2.js?v=joy-finance-breakdown-v2" defer></script>\n',
-  '    <script src="project-data/finance/finance-amount-policy-v3.js?v=joy-finance-amount-policy-v3" defer></script>\n',
-].join("");
+const breakdownScript = '    <script src="project-data/finance/finance-breakdown-v2.js?v=joy-finance-breakdown-v2" defer></script>\n';
 
 let html = await readFile(indexPath, "utf8");
-html = html.replace(/finance-demo\.js\?v=[^"']+/g, "finance-demo.js?v=joy-finance-core-v6");
+html = html
+  .replace(/\s*<script src="project-data\/finance\/finance-amount-policy-v3\.js\?v=[^"']+"(?: defer)?><\/script>\n?/g, "")
+  .replace(/finance-demo\.js\?v=[^"']+/g, "finance-demo.js?v=joy-finance-core-v7");
 
-if (!html.includes("finance-demo.js?v=joy-finance-core-v6")) {
+const coreScriptPattern = /([ \t]*<script src="finance-demo\.js\?v=joy-finance-core-v7" defer><\/script>\n?)/;
+if (!coreScriptPattern.test(html)) {
   throw new Error("Finance core script reference was not found in dist/index.html");
 }
+html = html.replace(coreScriptPattern, `${amountPolicyScript}$1`);
+
 if (!html.includes("finance-breakdown-v2.css?v=joy-finance-breakdown-v2")) {
   if (!html.includes("</head>")) throw new Error("Closing head tag was not found in dist/index.html");
   html = html.replace("</head>", `${financeStyles}  </head>`);
 }
-if (!html.includes("finance-amount-policy-v3.js?v=joy-finance-amount-policy-v3")) {
+if (!html.includes("finance-breakdown-v2.js?v=joy-finance-breakdown-v2")) {
   if (!html.includes("</body>")) throw new Error("Closing body tag was not found in dist/index.html");
-  html = html.replace("</body>", `${financeScripts}  </body>`);
+  html = html.replace("</body>", `${breakdownScript}  </body>`);
+}
+
+const amountIndex = html.indexOf("finance-amount-policy-v3.js?v=joy-finance-amount-policy-v4");
+const coreIndex = html.indexOf("finance-demo.js?v=joy-finance-core-v7");
+if (amountIndex < 0 || coreIndex < 0 || amountIndex > coreIndex) {
+  throw new Error("Finance amount policy must load before Finance core");
 }
 
 let financeCore = await readFile(financeCorePath, "utf8");
