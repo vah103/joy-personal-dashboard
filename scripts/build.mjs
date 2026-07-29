@@ -78,7 +78,7 @@ const projectHubHead = [
 ].join("");
 
 const projectHubScripts = [
-  '    <script src="project-hub-performance.js?v=turtlebot-hub-v5" defer></script>\n',
+  '    <script src="project-hub-performance.js?v=turtlebot-hub-v6" defer></script>\n',
   '    <script src="project-hub-core.js?v=turtlebot-hub-v4" defer></script>\n',
   '    <script src="project-hub-render.js?v=turtlebot-hub-v4" defer></script>\n',
   '    <script src="project-hub-actions.js?v=turtlebot-hub-v4" defer></script>\n',
