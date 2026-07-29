@@ -1,26 +1,22 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import test from "node:test";
 
 import {
   monthHeading,
-  parseFinanceTracker,
   parseSaleLedger,
   validateSaleDeal,
 } from "../worker/finance-sales.js";
 
-test("reads only finance summary values for the selected month", () => {
-  const rows = Array.from({ length: 25 }, () => []);
-  rows[1] = [null, "Jan 2026", null, 2_000_000];
-  rows[3] = [null, "Income", 10_000_000, "Expenses", 8_000_000];
-  rows[21] = [null, "Jul 2026", null, 3_480_000];
-  rows[23] = [null, "Income", 14_520_000, "Expenses", 11_040_000];
+const appSource = fs.readFileSync(new URL("../worker/index.js", import.meta.url), "utf8");
+const routerSource = fs.readFileSync(new URL("../worker/router.js", import.meta.url), "utf8");
 
-  const finance = parseFinanceTracker(rows, { selectedMonth: "2026-07" });
-  assert.equal(finance.current.label, "July 2026");
-  assert.equal(finance.current.income, 14_520_000);
-  assert.equal(finance.current.expenses, 11_040_000);
-  assert.equal(finance.current.remaining, 3_480_000);
-  assert.equal(finance.months.length, 12);
+test("finance summary uses the dedicated D1 ledger route", () => {
+  assert.ok(routerSource.includes('from "./finance-with-seed.js"'));
+  assert.ok(routerSource.includes("isFinanceLedgerRoute(pathname)"));
+  assert.ok(routerSource.includes("handleFinanceLedgerRequest(request, env)"));
+  assert.ok(!appSource.includes("getFinanceSummary"));
+  assert.ok(!appSource.includes("parseFinanceTracker"));
 });
 
 test("normalizes a two-row Sale entry and leaves a missing July at zero", () => {

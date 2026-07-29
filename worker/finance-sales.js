@@ -26,54 +26,6 @@ export function monthHeading(key) {
   return MONTHS[index] ? `${MONTHS[index][0]} ${match[1]}` : "";
 }
 
-export function monthDisplayName(key) {
-  const match = String(key || "").match(/^(\d{4})-(\d{2})$/);
-  if (!match) return "";
-  const index = Number(match[2]) - 1;
-  return MONTHS[index] ? `${MONTHS[index][1]} ${match[1]}` : "";
-}
-
-export function parseFinanceTracker(rows, { year = 2026, selectedMonth } = {}) {
-  const values = Array.isArray(rows) ? rows : [];
-  const found = new Map();
-
-  values.forEach((row, rowIndex) => {
-    if (!Array.isArray(row)) return;
-    row.forEach((cell, columnIndex) => {
-      const parsed = parseMonthCell(cell);
-      if (!parsed || parsed.year !== year) return;
-
-      const summary = values[rowIndex + 2] || [];
-      const incomeLabel = cleanText(summary[columnIndex]).toLowerCase();
-      const expensesLabel = cleanText(summary[columnIndex + 2]).toLowerCase();
-      found.set(monthKey(year, parsed.monthIndex), {
-        key: monthKey(year, parsed.monthIndex),
-        label: `${MONTHS[parsed.monthIndex][1]} ${year}`,
-        shortLabel: MONTHS[parsed.monthIndex][0],
-        income: incomeLabel === "income" ? toNumber(summary[columnIndex + 1]) : 0,
-        expenses: expensesLabel === "expenses" ? toNumber(summary[columnIndex + 3]) : 0,
-        remaining: toNumber(row[columnIndex + 2]),
-      });
-    });
-  });
-
-  const months = MONTHS.map(([short, full], index) => found.get(monthKey(year, index)) || ({
-    key: monthKey(year, index),
-    label: `${full} ${year}`,
-    shortLabel: short,
-    income: 0,
-    expenses: 0,
-    remaining: 0,
-  }));
-  const requested = selectedMonth && found.has(selectedMonth) ? selectedMonth : latestUsefulMonth(months);
-
-  return {
-    year,
-    current: months.find((month) => month.key === requested) || months[0],
-    months,
-  };
-}
-
 export function parseSaleLedger(rows, year = 2026) {
   const values = Array.isArray(rows) ? rows : [];
   const headings = [];
@@ -212,11 +164,6 @@ function parseMonthCell(value) {
   const monthIndex = MONTH_INDEX.get(match[1].toLowerCase());
   if (monthIndex === undefined) return null;
   return { monthIndex, year: Number(match[2]) };
-}
-
-function latestUsefulMonth(months) {
-  const useful = months.filter((month) => month.income || month.expenses || month.remaining);
-  return useful.at(-1)?.key || months[0]?.key;
 }
 
 function cleanText(value) {
