@@ -120,7 +120,7 @@
     }
 
     const script = document.createElement("script");
-    script.src = "/project-data/turtlebot4/project-plan-v3-ui.js?v=turtlebot-new-plan-week3-v1";
+    script.src = "/project-data/turtlebot4/project-plan-v3-ui.js?v=turtlebot-progress-20260729-v1";
     script.dataset.turtlebotPlanV3 = "true";
     script.defer = true;
     script.addEventListener("load", loadReferencePlan, { once: true });
