@@ -24,7 +24,7 @@ test("Finance short inputs are interpreted once as thousands of VND", () => {
   assert.equal(api.parseFinanceAmount("3900"), 3_900_000);
 });
 
-test("Finance accepts formatted full VND values", () => {
+test("Finance accepts correctly grouped full VND values", () => {
   const api = policyApi();
   assert.equal(api.parseFinanceAmount("50.000"), 50_000);
   assert.equal(api.parseFinanceAmount("3.900.000"), 3_900_000);
@@ -32,9 +32,9 @@ test("Finance accepts formatted full VND values", () => {
   assert.equal(api.parseFinanceAmount("10 000 000"), 10_000_000);
 });
 
-test("Finance rejects empty, zero, negative and alphabetic values", () => {
+test("Finance rejects empty, invalid and ambiguous values", () => {
   const api = policyApi();
-  for (const value of ["", "0", "-50", "abc", "50k"]) {
+  for (const value of ["", "0", "-50", "abc", "50k", "50.5", "3,9", "3.90.000", "3,900.000"]) {
     assert.equal(Number.isNaN(api.parseFinanceAmount(value)), true, value);
   }
 });
