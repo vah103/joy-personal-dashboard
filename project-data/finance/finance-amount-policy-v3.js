@@ -31,13 +31,8 @@
     return `Will save as ${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(amount)} ₫`;
   }
 
-  const api = Object.freeze({
-    parseFinanceAmount,
-    financeAmountInputValue,
-    financeAmountPreview,
-  });
+  const api = Object.freeze({ parseFinanceAmount, financeAmountInputValue, financeAmountPreview });
   window.JoyFinanceAmountPolicy = api;
-
   if (typeof document === "undefined") return;
 
   function previewElement(input) {
@@ -86,8 +81,7 @@
     const input = form?.elements?.amount;
     if (!(input instanceof HTMLInputElement)) return { input: null, amount: NaN };
     prepareAmountInput(input);
-    const amount = parseFinanceAmount(input.value);
-    return { input, amount };
+    return { input, amount: parseFinanceAmount(input.value) };
   }
 
   const originalSaveInlineTransaction = typeof saveInlineTransaction === "function" ? saveInlineTransaction : null;
@@ -97,7 +91,7 @@
       const { input, amount } = normalizeFormInput(form);
       if (!Number.isFinite(amount)) {
         event.preventDefault();
-        showInlineError?.(form.querySelector(".finance-ledger-error"), "Enter a valid amount.");
+        showInlineError(form.querySelector(".finance-ledger-error"), "Enter a valid amount.");
         input?.focus();
         return;
       }
@@ -118,7 +112,7 @@
       const { input, amount } = normalizeFormInput(form);
       if (!Number.isFinite(amount)) {
         event.preventDefault();
-        showFinanceToast?.("Enter a valid amount.");
+        showFinanceToast("Enter a valid amount.");
         input?.focus();
         return;
       }
@@ -131,6 +125,12 @@
       }
       return result;
     };
+
+    const entryForm = document.querySelector("#finance-entry-form");
+    if (entryForm) {
+      entryForm.removeEventListener("submit", originalSaveFinanceTransaction);
+      entryForm.addEventListener("submit", saveFinanceTransaction);
+    }
   }
 
   const originalOpenEntryForm = typeof openEntryForm === "function" ? openEntryForm : null;
