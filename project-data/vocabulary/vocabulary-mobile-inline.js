@@ -78,7 +78,15 @@
     if (event.key !== "Escape" || !mobileMedia.matches || mobilePractice.hidden) return;
     const hasOpenModal = [...document.querySelectorAll(".modal-backdrop")]
       .some((modal) => !modal.hidden);
-    if (!hasOpenModal) event.stopImmediatePropagation();
+    if (!hasOpenModal) {
+      event.stopImmediatePropagation();
+      return;
+    }
+
+    // Keep the legacy vocabulary Escape handler from hiding the inline card
+    // while still allowing the active modal to handle Escape normally.
+    mobilePractice.hidden = true;
+    window.setTimeout(syncVisibility, 0);
   }, { capture: true });
 
   if (lookupModal) {
