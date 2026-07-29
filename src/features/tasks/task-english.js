@@ -1,5 +1,5 @@
 (function installJoyTaskEnglish(root) {
-  const CACHE_KEY = "joy-task-english-cache-v5";
+  const CACHE_KEY = "joy-task-english-cache-v6";
   const REQUEST_TIMEOUT_MS = 10_000;
 
   function clean(value) {
@@ -62,7 +62,13 @@
       "tap gym": "Work out at the gym.",
       "tap the duc": "Exercise.",
     };
-    if (exact[actionOnly] || exact[normalized]) return exact[actionOnly] || exact[normalized];
+    const exactTitle = exact[actionOnly] || exact[normalized];
+    if (exactTitle) return exactTitle;
+
+    const withoutLeadingGo = actionOnly.replace(/^di\s+/, "");
+    if (withoutLeadingGo !== actionOnly && exact[withoutLeadingGo]) {
+      return exact[withoutLeadingGo];
+    }
 
     const toothpaste = actionOnly.match(/^mua kem danh rang\s+(.+)$/);
     if (toothpaste) {
