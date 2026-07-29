@@ -7,11 +7,13 @@ const indexPath = resolve(root, "dist", "index.html");
 const loaderPath = resolve(root, "dist", "project-hub-performance.js");
 const oldIndexReferences = [
   "project-hub-performance.js?v=turtlebot-hub-v5",
+  "project-hub-performance.js?v=turtlebot-hub-v6",
   "project-hub-performance.js?v=turtlebot-read-only-plan-v1",
   "project-hub-performance.js?v=turtlebot-reference-no-progress-v2",
   "project-hub-performance.js?v=turtlebot-tabs-cleanup-v3",
+  "project-hub-performance.js?v=turtlebot-inline-header-tabs-v4",
 ];
-const newIndexReference = "project-hub-performance.js?v=turtlebot-inline-header-tabs-v4";
+const newIndexReference = "project-hub-performance.js?v=joy-mobile-vocabulary-v1";
 const oldFontReferences = [
   "turtlebot-roadmap-font.css?v=turtlebot-roadmap-nunito-v2",
   "turtlebot-roadmap-font.css?v=turtlebot-inline-header-tabs-v3",
