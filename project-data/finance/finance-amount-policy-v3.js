@@ -3,14 +3,18 @@
   const THOUSAND = 1_000;
   const AMOUNT_INPUT_SELECTOR = 'input[name="amount"]';
 
-  function digitsOnly(value) {
+  function amountDigits(value) {
     const text = String(value ?? "").trim();
-    if (!text || !/^[0-9.,\s]+$/.test(text)) return "";
-    return text.replace(/[^0-9]/g, "");
+    if (!text) return "";
+    if (/^[0-9]+$/.test(text)) return text;
+    if (/^[0-9]{1,3}(?:\.[0-9]{3})+$/.test(text)) return text.replaceAll(".", "");
+    if (/^[0-9]{1,3}(?:,[0-9]{3})+$/.test(text)) return text.replaceAll(",", "");
+    if (/^[0-9]{1,3}(?: [0-9]{3})+$/.test(text)) return text.replaceAll(" ", "");
+    return "";
   }
 
   function parseFinanceAmount(value) {
-    const digits = digitsOnly(value);
+    const digits = amountDigits(value);
     if (!digits) return NaN;
     const amount = Number(digits);
     if (!Number.isSafeInteger(amount) || amount <= 0) return NaN;
