@@ -4,6 +4,7 @@ import fs from "node:fs";
 
 const router = fs.readFileSync(new URL("../worker/router.js", import.meta.url), "utf8");
 const delivery = fs.readFileSync(new URL("../worker/reminder-delivery.js", import.meta.url), "utf8");
+const reminderApi = fs.readFileSync(new URL("../worker/task-reminders.js", import.meta.url), "utf8");
 const serviceWorker = fs.readFileSync(new URL("../src/pwa/sw.js", import.meta.url), "utf8");
 
 test("router uses one consolidated reminder delivery module", () => {
@@ -12,6 +13,13 @@ test("router uses one consolidated reminder delivery module", () => {
   assert.ok(router.includes("handleReliableReminderRequest"));
   assert.ok(!router.includes("runNoTopicReminderSchedule"));
   assert.ok(!router.includes("runTaskReminderSchedule"));
+});
+
+test("task reminder API does not retain the replaced delivery scheduler", () => {
+  assert.ok(!reminderApi.includes("runTaskReminderSchedule"));
+  assert.ok(!reminderApi.includes("processDueTaskReminders"));
+  assert.ok(!reminderApi.includes("processDueFocusReminders"));
+  assert.ok(!reminderApi.includes("buildPushPayload"));
 });
 
 test("scheduled jobs cannot block one another", () => {
