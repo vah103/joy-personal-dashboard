@@ -2,60 +2,26 @@ import {
   handleFinanceLedgerRequest as handleBaseFinanceLedgerRequest,
   isFinanceLedgerRoute,
 } from "./finance-ledger.js";
+import {
+  FINANCE_BREAKDOWN_IMPORT_KEY,
+  FINANCE_BREAKDOWN_REPLACED_IDS,
+  FINANCE_EXPENSE_RESET_IMPORT_KEY,
+  financeBreakdownSeedForMigration,
+  validateFinanceBreakdownPayload,
+} from "./finance-breakdown-policy.js";
 
 const SESSION_COOKIE = "__Host-joy_session";
 const IMPORT_KEY = "finance-tracker-2026-v1";
 
 const FINANCE_2026_MONTHS = [
-  {
-    month: 1,
-    status: "actual",
-    carryover: 9_770_000,
-    income: { allowance: 5_500_000 },
-    expense: { home: 8_150_000, meals: 380_000, transportation: 800_000, clothing: 390_000, dating: 1_480_000, "hanging-out": 270_000, haircare: 280_000, "money-leaks": 90_000, other: 3_150_000 },
-  },
-  {
-    month: 2,
-    status: "actual",
-    income: { sale: 1_040_000, allowance: 5_000_000, "other-income": 6_150_000 },
-    expense: { home: 900_000, meals: 720_000, transportation: 480_000, clothing: 250_000, dating: 610_000, "hanging-out": 250_000, haircare: 240_000, "money-leaks": 50_000, other: 3_590_000 },
-  },
-  {
-    month: 3,
-    status: "actual",
-    income: { sale: 6_650_000, allowance: 5_500_000, "other-income": -2_120_000 },
-    expense: { home: 990_000, meals: 300_000, transportation: 230_000, "hanging-out": 660_000, haircare: 430_000, "money-leaks": 80_000, other: 5_580_000 },
-  },
-  {
-    month: 4,
-    status: "actual",
-    income: { sale: 800_000, allowance: 5_000_000, "other-income": 2_550_000 },
-    expense: { home: 4_400_000, meals: 330_000, transportation: 440_000, clothing: 1_310_000, dating: 1_790_000, "hanging-out": 2_670_000, haircare: 1_020_000, "money-leaks": 30_000, other: 290_000 },
-  },
-  {
-    month: 5,
-    status: "actual",
-    income: { sale: 1_160_000, allowance: 5_500_000, "other-income": 2_200_000 },
-    expense: { home: 760_000, meals: 380_000, transportation: 510_000, clothing: 250_000, dating: 260_000, "hanging-out": 530_000, haircare: 160_000, "money-leaks": 1_410_000, other: 2_380_000 },
-  },
-  {
-    month: 6,
-    status: "actual",
-    income: { sale: 1_200_000, allowance: 4_500_000, "other-income": -7_480_000 },
-    expense: { home: 330_000, meals: 280_000, transportation: 60_000, clothing: 270_000, dating: 2_870_000, haircare: 320_000, "money-leaks": 870_000, other: 270_000 },
-  },
-  {
-    month: 7,
-    status: "actual",
-    income: { sale: 7_340_000, allowance: 8_000_000, "other-income": 800_000 },
-    expense: { home: 5_000_000, meals: 250_000, transportation: 770_000, clothing: 280_000, dating: 280_000, haircare: 450_000, "money-leaks": 3_760_000, other: 1_220_000 },
-  },
-  {
-    month: 8,
-    status: "planned",
-    income: { allowance: 4_500_000 },
-    expense: { home: 580_000, dating: 140_000, haircare: 150_000 },
-  },
+  { month: 1, status: "actual", carryover: 9_770_000, income: { allowance: 5_500_000 }, expense: { home: 8_150_000, meals: 380_000, transportation: 800_000, clothing: 390_000, dating: 1_480_000, "hanging-out": 270_000, haircare: 280_000, "money-leaks": 90_000, other: 3_150_000 } },
+  { month: 2, status: "actual", income: { sale: 1_040_000, allowance: 5_000_000, "other-income": 6_150_000 }, expense: { home: 900_000, meals: 720_000, transportation: 480_000, clothing: 250_000, dating: 610_000, "hanging-out": 250_000, haircare: 240_000, "money-leaks": 50_000, other: 3_590_000 } },
+  { month: 3, status: "actual", income: { sale: 6_650_000, allowance: 5_500_000, "other-income": -2_120_000 }, expense: { home: 990_000, meals: 300_000, transportation: 230_000, "hanging-out": 660_000, haircare: 430_000, "money-leaks": 80_000, other: 5_580_000 } },
+  { month: 4, status: "actual", income: { sale: 800_000, allowance: 5_000_000, "other-income": 2_550_000 }, expense: { home: 4_400_000, meals: 330_000, transportation: 440_000, clothing: 1_310_000, dating: 1_790_000, "hanging-out": 2_670_000, haircare: 1_020_000, "money-leaks": 30_000, other: 290_000 } },
+  { month: 5, status: "actual", income: { sale: 1_160_000, allowance: 5_500_000, "other-income": 2_200_000 }, expense: { home: 760_000, meals: 380_000, transportation: 510_000, clothing: 250_000, dating: 260_000, "hanging-out": 530_000, haircare: 160_000, "money-leaks": 1_410_000, other: 2_380_000 } },
+  { month: 6, status: "actual", income: { sale: 1_200_000, allowance: 4_500_000, "other-income": -7_480_000 }, expense: { home: 330_000, meals: 280_000, transportation: 60_000, clothing: 270_000, dating: 2_870_000, haircare: 320_000, "money-leaks": 870_000, other: 270_000 } },
+  { month: 7, status: "actual", income: { sale: 7_340_000, allowance: 8_000_000, "other-income": 800_000 }, expense: { home: 5_000_000, meals: 250_000, transportation: 770_000, clothing: 280_000, dating: 280_000, haircare: 450_000, "money-leaks": 3_760_000, other: 1_220_000 } },
+  { month: 8, status: "planned", income: { allowance: 4_500_000 }, expense: { home: 580_000, dating: 140_000, haircare: 150_000 } },
   { month: 9, status: "planned", income: { allowance: 4_500_000 }, expense: {} },
   { month: 10, status: "planned", income: { allowance: 4_500_000 }, expense: { home: 3_900_000 } },
   { month: 11, status: "planned", income: { allowance: 4_500_000 }, expense: {} },
@@ -66,13 +32,21 @@ export { isFinanceLedgerRoute };
 
 export async function handleFinanceLedgerRequest(request, env) {
   const email = await financeSessionEmail(request, env);
-  if (email) await ensureFinanceTrackerImport(email, env);
+  if (email) {
+    await ensureFinanceTrackerImport(email, env);
+    await ensureFinanceBreakdownImport(email, env);
+    await ensureFinanceExpenseReset(email, env);
+  }
+
+  if (["POST", "PATCH"].includes(request.method)) {
+    const body = await request.clone().json().catch(() => ({}));
+    const breakdownError = validateFinanceBreakdownPayload(body);
+    if (breakdownError) return json({ error: breakdownError }, 400);
+  }
 
   const response = await handleBaseFinanceLedgerRequest(request, env);
   const url = new URL(request.url);
-  if (!response.ok || request.method !== "GET" || url.pathname !== "/api/finance/summary") {
-    return response;
-  }
+  if (!response.ok || request.method !== "GET" || url.pathname !== "/api/finance/summary") return response;
 
   const payload = await response.json();
   const currentMonthKey = vietnamMonthKey(Number(payload.year || 2026));
@@ -116,13 +90,7 @@ function seedTransaction(month, occurredOn, type, category, amount, status) {
 }
 
 async function ensureFinanceTrackerImport(email, env) {
-  const imported = await env.DB.prepare(`
-    SELECT 1 AS imported
-    FROM finance_imports
-    WHERE user_email = ? AND import_key = ?
-  `).bind(email, IMPORT_KEY).first();
-  if (imported) return;
-
+  if (await hasImport(email, IMPORT_KEY, env)) return;
   const now = Date.now();
   const statements = buildFinanceTrackerSeed().map((transaction, index) => env.DB.prepare(`
     INSERT OR IGNORE INTO finance_transactions (
@@ -142,11 +110,86 @@ async function ensureFinanceTrackerImport(email, env) {
     now + index,
     now + index,
   ));
-  statements.push(env.DB.prepare(`
+  statements.push(markImport(email, IMPORT_KEY, now, env));
+  await env.DB.batch(statements);
+}
+
+async function ensureFinanceBreakdownImport(email, env) {
+  if (await hasImport(email, FINANCE_BREAKDOWN_IMPORT_KEY, env)) return;
+  const now = Date.now();
+  const preservedRows = await env.DB.prepare(`
+    SELECT id FROM finance_transactions
+    WHERE user_email = ?
+      AND source = 'sheet-import'
+      AND updated_at != created_at
+      AND deleted_at IS NULL
+      AND id IN (?, ?, ?)
+  `).bind(email, ...FINANCE_BREAKDOWN_REPLACED_IDS).all();
+  const preservedLegacyIds = new Set((preservedRows.results || []).map((row) => String(row.id || "")));
+  const statements = [];
+
+  for (const id of FINANCE_BREAKDOWN_REPLACED_IDS) {
+    statements.push(env.DB.prepare(`
+      UPDATE finance_transactions
+      SET deleted_at = ?, updated_at = ?
+      WHERE user_email = ? AND id = ? AND source = 'sheet-import'
+        AND updated_at = created_at AND deleted_at IS NULL
+    `).bind(now, now, email, id));
+  }
+
+  for (const [index, transaction] of financeBreakdownSeedForMigration(preservedLegacyIds).entries()) {
+    statements.push(env.DB.prepare(`
+      INSERT OR IGNORE INTO finance_transactions (
+        user_email, id, occurred_on, year, month, type, category, subcategory,
+        amount, status, note, source, created_at, updated_at, deleted_at
+      ) VALUES (?, ?, ?, 2026, ?, ?, ?, ?, ?, ?, ?, 'sheet-breakdown', ?, ?, NULL)
+    `).bind(
+      email,
+      transaction.id,
+      transaction.occurredOn,
+      transaction.month,
+      transaction.type,
+      transaction.category,
+      transaction.subcategory,
+      transaction.amount,
+      transaction.status,
+      transaction.note,
+      now + index + 1,
+      now + index + 1,
+    ));
+  }
+
+  statements.push(markImport(email, FINANCE_BREAKDOWN_IMPORT_KEY, now, env));
+  await env.DB.batch(statements);
+}
+
+async function ensureFinanceExpenseReset(email, env) {
+  if (await hasImport(email, FINANCE_EXPENSE_RESET_IMPORT_KEY, env)) return;
+  const now = Date.now();
+  await env.DB.batch([
+    env.DB.prepare(`
+      UPDATE finance_transactions
+      SET deleted_at = ?, updated_at = ?
+      WHERE user_email = ? AND year = 2026 AND month BETWEEN 8 AND 12
+        AND type = 'expense' AND deleted_at IS NULL
+    `).bind(now, now, email),
+    markImport(email, FINANCE_EXPENSE_RESET_IMPORT_KEY, now, env),
+  ]);
+}
+
+async function hasImport(email, importKey, env) {
+  const row = await env.DB.prepare(`
+    SELECT 1 AS imported FROM finance_imports
+    WHERE user_email = ? AND import_key = ?
+  `).bind(email, importKey).first();
+  return Boolean(row);
+}
+
+function markImport(email, importKey, importedAt, env) {
+  return env.DB.prepare(`
     INSERT OR REPLACE INTO finance_imports (user_email, import_key, imported_at)
     VALUES (?, ?, ?)
-  `).bind(email, IMPORT_KEY, now));
-  await env.DB.batch(statements);
+  `).bind(email, importKey, importedAt);
 }
 
 async function financeSessionEmail(request, env) {
@@ -154,8 +197,7 @@ async function financeSessionEmail(request, env) {
   if (!token) return "";
   const tokenHash = await sha256Hex(token);
   const session = await env.DB.prepare(`
-    SELECT user_email
-    FROM sessions
+    SELECT user_email FROM sessions
     WHERE token_hash = ? AND expires_at > ?
   `).bind(tokenHash, Date.now()).first();
   return String(session?.user_email || "").trim().toLowerCase();
