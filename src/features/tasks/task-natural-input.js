@@ -44,20 +44,22 @@
 
   function parseRelative(text, now) {
     const units = [
-      { pattern: "phut|p|min|mins|minute|minutes", multiplier: 60_000 },
-      { pattern: "tieng|gio|hour|hours|h", multiplier: 3_600_000 },
-      { pattern: "ngay|day|days", multiplier: 86_400_000 },
+      { pattern: "phut|p|min|mins|minute|minutes", multiplier: 60_000, supportsHalf: false },
+      { pattern: "tieng|gio|hour|hours|h", multiplier: 3_600_000, supportsHalf: true },
+      { pattern: "ngay|day|days", multiplier: 86_400_000, supportsHalf: false },
     ];
 
     if (/\b(nua tieng|half an hour)\b/.test(text)) return now + 30 * 60_000;
 
     for (const unit of units) {
-      const after = new RegExp(`\\b(?:sau|in)\\s*(\\d+(?:[.,]\\d+)?)\\s*(?:${unit.pattern})\\b`);
-      const before = new RegExp(`\\b(\\d+(?:[.,]\\d+)?)\\s*(?:${unit.pattern})\\s*(?:nua|later|from now)\\b`);
+      const halfPattern = unit.supportsHalf ? "(?:\\s*(ruoi|and a half))?" : "";
+      const after = new RegExp(`\\b(?:sau|in)\\s*(\\d+(?:[.,]\\d+)?)\\s*(?:${unit.pattern})${halfPattern}\\b`);
+      const before = new RegExp(`\\b(\\d+(?:[.,]\\d+)?)\\s*(?:${unit.pattern})${halfPattern}\\s*(?:nua|later|from now)\\b`);
       const match = text.match(after) || text.match(before);
       if (!match) continue;
       const amount = Number(String(match[1]).replace(",", "."));
-      if (Number.isFinite(amount) && amount > 0) return now + amount * unit.multiplier;
+      const halfUnit = unit.supportsHalf && Boolean(match[2]) ? 30 * 60_000 : 0;
+      if (Number.isFinite(amount) && amount > 0) return now + amount * unit.multiplier + halfUnit;
     }
 
     return NaN;
@@ -196,6 +198,8 @@
     bell.addEventListener("click", () => root.setTimeout(applyPreview, 0));
     applyPreview();
   }
+
+  root.JoyNaturalReminderPreview = { parseNaturalPreview, parseRelative };
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", start, { once: true });
