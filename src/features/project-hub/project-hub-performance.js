@@ -15,6 +15,24 @@
     document.body.append(script);
   };
 
+  const loadVocabularyMobileInline = () => {
+    const existing = document.querySelector('script[data-joy-vocabulary-mobile-inline="true"]');
+    if (existing) {
+      if (existing.dataset.loaded === "true") loadSpeaking();
+      else existing.addEventListener("load", loadSpeaking, { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "/project-data/vocabulary/vocabulary-mobile-inline.js?v=joy-vocabulary-mobile-inline-v1";
+    script.dataset.joyVocabularyMobileInline = "true";
+    script.addEventListener("load", () => {
+      script.dataset.loaded = "true";
+      loadSpeaking();
+    }, { once: true });
+    document.body.append(script);
+  };
+
   const loadVocabulary = () => {
     if (!document.querySelector('link[data-joy-vocabulary="true"]')) {
       const stylesheet = document.createElement("link");
@@ -26,15 +44,15 @@
 
     const existing = document.querySelector('script[data-joy-vocabulary="true"]');
     if (existing) {
-      if (window.JoyVocabulary) loadSpeaking();
-      else existing.addEventListener("load", loadSpeaking, { once: true });
+      if (window.JoyVocabulary) loadVocabularyMobileInline();
+      else existing.addEventListener("load", loadVocabularyMobileInline, { once: true });
       return;
     }
 
     const script = document.createElement("script");
     script.src = "/project-data/vocabulary/vocabulary.js?v=joy-vocabulary-v1";
     script.dataset.joyVocabulary = "true";
-    script.addEventListener("load", loadSpeaking, { once: true });
+    script.addEventListener("load", loadVocabularyMobileInline, { once: true });
     document.body.append(script);
   };
 
