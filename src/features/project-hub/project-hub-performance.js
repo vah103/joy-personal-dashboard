@@ -28,8 +28,8 @@
     script.dataset.joyVocabularyMobileInline = "true";
     script.addEventListener("load", () => {
       script.dataset.loaded = "true";
-      loadSpeaking();
     }, { once: true });
+    script.addEventListener("load", loadSpeaking, { once: true });
     document.body.append(script);
   };
 
