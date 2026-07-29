@@ -11,14 +11,18 @@ const BUDGET_AI_MODEL = "@cf/meta/llama-3.2-3b-instruct";
 export { isDailyBriefRoute };
 
 export async function handleDailyBriefRequest(request, env, ctx) {
-  // Dashboard reads must never spend the shared Workers AI allowance.
-  // Existing stories remain available, while stale or empty data can use
-  // the deterministic RSS heuristic fallback in daily-brief.js.
+  // Dashboard reads never spend the shared Workers AI allowance.
   return handlePolicyDailyBriefRequest(request, withoutAi(env), ctx);
 }
 
 export async function runDailyBriefSchedule(env) {
   if (!env?.DB) return { skipped: true, reason: "storage-unavailable" };
+
+  // AI is disabled by default. RSS fetching, heuristic scoring, and cached
+  // Daily Brief stories continue to work without consuming any neurons.
+  if (!isDailyBriefAiEnabled(env)) {
+    return runPolicyDailyBriefSchedule(withoutAi(env));
+  }
 
   await ensureBudgetTable(env);
   const now = Date.now();
@@ -31,6 +35,10 @@ export async function runDailyBriefSchedule(env) {
   // not retried by the every-minute cron and cannot create an error storm.
   await writeBudgetTimestamp(env, now);
   return runPolicyDailyBriefSchedule(withBudgetAi(env));
+}
+
+function isDailyBriefAiEnabled(env) {
+  return String(env?.DAILY_BRIEF_AI_ENABLED || "").trim().toLowerCase() === "true";
 }
 
 function withoutAi(env) {
