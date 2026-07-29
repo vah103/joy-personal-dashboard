@@ -25,7 +25,7 @@ test("TurtleBot New Plan drives a 12-week schedule with Week 3 current", async (
   assert.match(runtime, /"stage-4"/);
   assert.match(runtime, /New Plan is the primary execution source/);
   assert.match(runtime, /replaceAll\("10-Week Plan", "12-Week Plan"\)/);
-  assert.match(loader, /project-plan-v3-ui\.js\?v=turtlebot-new-plan-week3-v1/);
+  assert.match(loader, /project-plan-v3-ui\\.js\\?v=turtlebot-progress-20260729-v1/);
 
   const start = new Date("2026-07-13T00:00:00+07:00");
   const current = new Date("2026-07-28T00:00:00+07:00");
