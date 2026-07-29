@@ -18,6 +18,7 @@ test("Finance short inputs are interpreted once as thousands of VND", () => {
   const api = policyApi();
   assert.equal(api.parseFinanceAmount("1"), 1_000);
   assert.equal(api.parseFinanceAmount("30"), 30_000);
+  assert.equal(api.parseFinanceAmount("40"), 40_000);
   assert.equal(api.parseFinanceAmount("50"), 50_000);
   assert.equal(api.parseFinanceAmount("150"), 150_000);
   assert.equal(api.parseFinanceAmount("800"), 800_000);
@@ -47,27 +48,27 @@ test("Edit mode converts stored VND amounts back to safe input values", () => {
   assert.equal(api.financeAmountInputValue(10_000_000), "10000000");
 });
 
-test("Unified policy owns both inline and modal submit paths", () => {
-  assert.match(policySource, /originalSaveInlineTransaction/);
-  assert.match(policySource, /originalSaveFinanceTransaction/);
-  assert.match(policySource, /removeEventListener\("submit", originalSaveFinanceTransaction\)/);
-  assert.match(policySource, /addEventListener\("submit", saveFinanceTransaction\)/);
-  assert.match(policySource, /originalOpenEntryForm/);
-  assert.doesNotMatch(policySource, /pointerdown|requestSubmit|addEventListener\("invalid"|addEventListener\("click"/);
+test("One capture-phase policy owns inline and modal submit paths", () => {
+  assert.match(policySource, /FINANCE_FORM_SELECTOR = "#finance-entry-form,\.finance-ledger-composer"/);
+  assert.match(policySource, /document\.addEventListener\("submit", handleFinanceSubmit, true\)/);
+  assert.match(policySource, /input\.value = String\(amount\)/);
+  assert.match(policySource, /queueMicrotask\(\(\) => restoreShortValue/);
+  assert.doesNotMatch(policySource, /pointerdown|requestSubmit|addEventListener\("invalid"/);
 });
 
-test("Production Finance bundle removes native step validation", () => {
-  assert.match(injectSource, /type=\\?"text\\?" inputmode=\\?"numeric\\?" autocomplete=\\?"off\\?"/);
-  assert.match(injectSource, /step=\\?"1000\\?"/);
+test("Finance amount inputs have no native number-step validation", () => {
+  assert.match(policySource, /input\.type = "text"/);
+  assert.match(policySource, /input\.removeAttribute\("step"\)/);
   assert.match(injectSource, /Finance production bundle still contains native number-step validation/);
 });
 
-test("Finance integration runs directly after the canonical build", () => {
+test("Amount policy loads before the cache-busted Finance core", () => {
+  assert.match(injectSource, /joy-finance-amount-policy-v4/);
+  assert.match(injectSource, /joy-finance-core-v7/);
+  assert.match(injectSource, /amountIndex > coreIndex/);
   const build = packageJson.scripts.build;
-  const coreIndex = build.indexOf("scripts/build.mjs");
-  const financeIndex = build.indexOf("scripts/inject-finance-v3.mjs");
-  assert.ok(coreIndex >= 0);
-  assert.ok(financeIndex > coreIndex);
-  assert.match(injectSource, /joy-finance-core-v6/);
-  assert.match(injectSource, /joy-finance-amount-policy-v3/);
+  const coreBuildIndex = build.indexOf("scripts/build.mjs");
+  const financeInjectIndex = build.indexOf("scripts/inject-finance-v3.mjs");
+  assert.ok(coreBuildIndex >= 0);
+  assert.ok(financeInjectIndex > coreBuildIndex);
 });
