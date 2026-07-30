@@ -10,14 +10,16 @@ const frontendPath = resolve(root, "project-data/speaking/speaking.js");
 const stylesPath = resolve(root, "project-data/speaking/speaking.css");
 const workerPath = resolve(root, "worker/speaking-english.js");
 const routerPath = resolve(root, "worker/router.js");
-const loaderPath = resolve(root, "src/features/project-hub/project-hub-performance.js");
+const speakingLoaderPath = resolve(root, "src/features/speaking/speaking-loader.js");
+const vocabularyLoaderPath = resolve(root, "src/features/vocabulary/vocabulary-loader.js");
 
-const [frontend, styles, worker, router, loader] = await Promise.all([
+const [frontend, styles, worker, router, speakingLoader, vocabularyLoader] = await Promise.all([
   readFile(frontendPath, "utf8"),
   readFile(stylesPath, "utf8"),
   readFile(workerPath, "utf8"),
   readFile(routerPath, "utf8"),
-  readFile(loaderPath, "utf8"),
+  readFile(speakingLoaderPath, "utf8"),
+  readFile(vocabularyLoaderPath, "utf8"),
 ]);
 
 test("Say it tool translates one Vietnamese sentence without saving it", () => {
@@ -39,15 +41,17 @@ test("Speaking API returns exactly one natural English sentence", () => {
 });
 
 test("Speaking assets load after Vocabulary", () => {
-  assert.match(loader, /speaking\.css\?v=joy-speaking-v1/);
-  assert.match(loader, /speaking\.js\?v=joy-speaking-v1/);
-  assert.match(loader, /script\.addEventListener\("load", loadSpeaking/);
+  assert.match(speakingLoader, /speaking\.css\?v=joy-speaking-v1/);
+  assert.match(speakingLoader, /speaking\.js\?v=joy-speaking-v1/);
+  assert.match(speakingLoader, /JoySpeakingLoader = Object\.freeze/);
+  assert.match(vocabularyLoader, /script\.addEventListener\("load", loadSpeaking/);
+  assert.match(vocabularyLoader, /JoySpeakingLoader\?\.load/);
   assert.match(styles, /\.speaking-modal/);
   assert.match(styles, /\.vocabulary-widget-actions/);
 });
 
 test("Speaking JavaScript files pass syntax checks", () => {
-  for (const path of [frontendPath, workerPath, routerPath, loaderPath]) {
+  for (const path of [frontendPath, workerPath, routerPath, speakingLoaderPath, vocabularyLoaderPath]) {
     const result = spawnSync(process.execPath, ["--check", path], { encoding: "utf8" });
     assert.equal(result.status, 0, result.stderr || result.stdout);
   }
