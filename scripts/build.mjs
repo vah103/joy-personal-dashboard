@@ -104,8 +104,6 @@ const projectHubScripts = [
 const sourceHtml = await readFile(resolve(dashboardPage, "index.html"), "utf8");
 const cloudflareHtml = sourceHtml
   .replace(blueFaviconLink, desktopFaviconLink)
-  .replace('finance-demo.css?v=joy-character-motion-v5', 'finance-demo.css?v=joy-finance-core-v4')
-  .replace('finance-demo.js?v=joy-character-motion-v4', 'finance-demo.js?v=joy-finance-core-v4')
   .replace('<meta name="application-name" content="Joy">', '<meta name="application-name" content="Hey Joy!">')
   .replace('<title>Joy — Personal Dashboard</title>', '<title>Hey Joy! — Personal Dashboard</title>')
   .replace('aria-label="Joy overview"', 'aria-label="Hey Joy! overview"')
@@ -156,6 +154,7 @@ const copies = [
   [resolve(features, "project-details", "turtlebot-roadmap-language.js"), "turtlebot-roadmap-language.js"],
   [resolve(features, "project-details", "turtlebot-roadmap-font.css"), "turtlebot-roadmap-font.css"],
   [resolve(features, "project-details", "turtlebot4-art.webp"), "turtlebot4-art.webp"],
+  [resolve(features, "finance", "finance-amount-core.js"), "finance-amount-core.js"],
   [resolve(features, "finance", "finance.js"), "finance-demo.js"],
   [resolve(features, "finance", "finance.css"), "finance-demo.css"],
   [resolve(features, "motion", "dashboard-entry.js"), "dashboard-entry.js"],

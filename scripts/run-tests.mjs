@@ -87,7 +87,6 @@ const syntaxChecks = [
   "src/pwa/sw.js",
   "scripts/build.mjs",
   "scripts/deploy-clean-main.mjs",
-  "scripts/patch-finance-core-amount.mjs",
   "scripts/run-feature-tests.mjs",
   "scripts/validate-ielts-sources.mjs",
 ];

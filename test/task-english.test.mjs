@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import vm from "node:vm";
+import { handleTaskEnglishRequest } from "../worker/task-english.js";
 
 const root = new URL("../", import.meta.url);
 
@@ -41,7 +42,8 @@ test("new to-do items and reminder titles are rewritten into natural English", a
   assert.match(worker, /Return only the final English task sentence/);
   assert.match(worker, /extractAiText/);
   assert.doesNotMatch(worker, /json_schema/);
-  assert.doesNotMatch(worker, /AUTH_REQUIRED/);
+  assert.match(worker, /getSession/);
+  assert.match(worker, /AUTH_REQUIRED/);
   assert.match(router, /isTaskEnglishRoute/);
   assert.match(router, /handleTaskEnglishRequest/);
   assert.match(helper, /addEventListener\("submit"/);
@@ -65,6 +67,31 @@ test("new to-do items and reminder titles are rewritten into natural English", a
   assert.match(build, /resolve\(features, "tasks", "task-english\.js"\)/);
   assert.match(cacheBust, /joy-task-english-v7/);
   assert.match(packageJson, /cache-bust-task-english\.mjs/);
+});
+
+test("task English rejects unauthenticated requests before using AI", async () => {
+  let aiCalls = 0;
+  const request = new Request("https://app.hey-joy.workers.dev/api/tasks/english", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Origin: "https://app.hey-joy.workers.dev",
+    },
+    body: JSON.stringify({ text: "hoàn thành báo cáo" }),
+  });
+
+  const response = await handleTaskEnglishRequest(request, {
+    AI: {
+      async run() {
+        aiCalls += 1;
+        return { response: "Complete the report." };
+      },
+    },
+  });
+
+  assert.equal(response.status, 401);
+  assert.deepEqual(await response.json(), { error: "AUTH_REQUIRED" });
+  assert.equal(aiCalls, 0);
 });
 
 test("common Vietnamese tasks with a leading đi use the local English fallback", async () => {

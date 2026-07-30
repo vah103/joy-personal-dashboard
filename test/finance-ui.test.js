@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 
 const financeSource = await readFile(new URL("../src/features/finance/finance.js", import.meta.url), "utf8");
 const financeOverlay = await readFile(new URL("../project-data/finance/finance-layout-v2.js", import.meta.url), "utf8");
+const htmlSource = await readFile(new URL("../src/pages/dashboard/index.html", import.meta.url), "utf8");
 const buildSource = await readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8");
 
 test("Finance UI source parses before deployment", () => {
@@ -56,6 +57,7 @@ test("Finance privacy only masks the dashboard", () => {
 });
 
 test("Cloudflare build loads the direct Finance renderer and current month layout", () => {
-  assert.match(buildSource, /finance-demo\.js\?v=joy-finance-core-v4/);
+  assert.match(htmlSource, /finance-amount-core\.js\?v=joy-finance-amount-v1/);
+  assert.match(htmlSource, /finance-demo\.js\?v=joy-finance-core-v9/);
   assert.match(buildSource, /project-data\/finance\/finance-layout-v2\.js\?v=joy-finance-month-layout-v4/);
 });

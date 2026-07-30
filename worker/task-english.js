@@ -1,4 +1,5 @@
 import { isSameOrigin, json, readJson } from "./shared/http.js";
+import { getSession } from "./shared/session.js";
 
 const TASK_ENGLISH_PATH = "/api/tasks/english";
 const DEFAULT_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
@@ -12,6 +13,9 @@ export async function handleTaskEnglishRequest(request, env) {
     if (request.method !== "POST") {
       return json({ error: "METHOD_NOT_ALLOWED" }, 405, { Allow: "POST" });
     }
+
+    const session = await getSession(request, env);
+    if (!session) return json({ error: "AUTH_REQUIRED" }, 401);
     if (!isSameOrigin(request)) return json({ error: "INVALID_ORIGIN" }, 403);
 
     const body = await readJson(request);

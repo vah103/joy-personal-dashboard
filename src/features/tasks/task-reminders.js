@@ -375,7 +375,8 @@
       }
 
       const payload = await request("/api/task-reminders");
-      const cloud = new Map((payload.reminders || []).map((item) => [String(item.taskId), normalizeLocalReminder({ ...item, dirty: false })]));
+      const cloud = new Map((payload.reminders || [])
+        .map((item) => [String(item.taskId), normalizeLocalReminder({ ...item, dirty: false })]));
       const merged = new Map();
       for (const [taskId, meta] of local) {
         if (meta.dirty) merged.set(taskId, meta);

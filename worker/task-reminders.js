@@ -66,7 +66,7 @@ async function listTaskReminders(email, env) {
       t.done
     FROM task_reminders r
     JOIN tasks t ON t.id = r.task_id AND t.user_email = r.user_email
-    WHERE r.user_email = ?
+    WHERE r.user_email = ? AND t.done = 0
     ORDER BY COALESCE(r.snoozed_until, r.due_at) ASC
   `).bind(email).all();
 

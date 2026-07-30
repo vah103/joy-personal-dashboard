@@ -52,10 +52,11 @@ test("build includes project hub assets in order", () => {
 });
 
 test("project list observer cannot recurse through card text updates", () => {
-  const guard = read(`${projectHubPath}project-hub-performance.js`);
-  assert.ok(guard.includes('target.id === "project-list"'));
-  assert.ok(guard.includes("subtree: false"));
-  assert.ok(guard.includes("childList: true"));
+  const performance = read(`${projectHubPath}project-hub-performance.js`);
+  const actions = read(`${projectHubPath}project-hub-actions.js`);
+  assert.doesNotMatch(performance, /MutationObserver\.prototype\.observe/);
+  assert.match(actions, /projectObserver\.observe\(projectList, \{ childList: true \}\)/);
+  assert.doesNotMatch(actions, /projectObserver\.observe\([^)]*subtree: true/);
 });
 
 test("dashboard card keeps the original TurtleBot artwork separately from the popup", () => {
