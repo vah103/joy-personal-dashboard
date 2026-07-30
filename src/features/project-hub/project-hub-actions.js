@@ -280,7 +280,7 @@ hubElements.modal?.addEventListener("click", (event) => {
 
 const projectObserver = new MutationObserver(enhanceTurtleBotCard);
 const projectList = document.querySelector("#project-list");
-if (projectList) projectObserver.observe(projectList, { childList: true, subtree: true });
+if (projectList) projectObserver.observe(projectList, { childList: true });
 
 enhanceTurtleBotCard();
 loadTurtleBotHub().catch((error) => {
