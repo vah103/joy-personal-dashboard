@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 
 const source = await readFile(new URL("../project-data/finance/finance-p1008-refine-v3.js", import.meta.url), "utf8");
 const styles = await readFile(new URL("../project-data/finance/finance-p1008-refine-v3.css", import.meta.url), "utf8");
-const cacheBust = await readFile(new URL("../scripts/cache-bust-finance-p1008.mjs", import.meta.url), "utf8");
+const build = await readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8");
 
 test("P1008 refinement source parses and arranges the overview without global observers", () => {
   assert.doesNotThrow(() => new Function(source));
@@ -45,10 +45,9 @@ test("P1008 capture mode fills the viewport and compacts the landscape table", (
   assert.match(styles, /overflow: hidden !important/);
 });
 
-test("P1008 cache bust injects the refreshed refinement assets", () => {
-  assert.match(cacheBust, /joy-finance-p1008-v3/);
-  assert.match(cacheBust, /finance-p1008-refine-v3\.css/);
-  assert.match(cacheBust, /finance-p1008-refine-v3\.js/);
-  assert.match(cacheBust, /joy-finance-p1008-refine-v5/);
-  assert.match(cacheBust, /joy-finance-p1008-v2/);
+test("P1008 assets are declared by the canonical frontend build", () => {
+  assert.match(build, /joy-finance-p1008-v3/);
+  assert.match(build, /finance-p1008-refine-v3\.css\?v=joy-finance-p1008-refine-v5/);
+  assert.match(build, /finance-p1008-refine-v3\.js\?v=joy-finance-p1008-refine-v5/);
+  assert.doesNotMatch(build, /cache-bust-finance-p1008/);
 });

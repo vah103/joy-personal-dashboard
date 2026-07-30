@@ -6,12 +6,14 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const referencePath = resolve(root, "project-data/turtlebot4/project-plan-v3-reference-ui.js");
-const cacheBustPath = resolve(root, "scripts/cache-bust-turtlebot-plan.mjs");
+const loaderPath = resolve(root, "src/features/project-hub/project-hub-performance.js");
+const buildPath = resolve(root, "scripts/build.mjs");
 
 test("TurtleBot 12-week plan contains no checkbox or visible progress UI", async () => {
-  const [reference, cacheBust] = await Promise.all([
+  const [reference, loader, build] = await Promise.all([
     readFile(referencePath, "utf8"),
-    readFile(cacheBustPath, "utf8"),
+    readFile(loaderPath, "utf8"),
+    readFile(buildPath, "utf8"),
   ]);
 
   assert.doesNotThrow(() => new Function(reference));
@@ -29,7 +31,8 @@ test("TurtleBot 12-week plan contains no checkbox or visible progress UI", async
   assert.doesNotMatch(reference, /previousRenderPlan/);
   assert.doesNotMatch(reference, /progress-track|hub-progress-summary|hub-check-row/);
   assert.doesNotMatch(reference, /\$\{[^}\n]*(?:progress|percentage)[^}\n]*\}%/i);
-  assert.match(cacheBust, /turtlebot-inline-header-tabs-v4/);
-  assert.match(cacheBust, /turtlebot-inline-header-tabs-v3/);
-  assert.match(cacheBust, /project-hub-tabs-cleanup\.js\?v=turtlebot-inline-tabs-v2/);
+  assert.match(loader, /project-hub-tabs-cleanup\.js\?v=turtlebot-inline-tabs-v2/);
+  assert.match(build, /project-hub-performance\.js\?v=turtlebot-hub-v7/);
+  assert.match(build, /turtlebot-roadmap-font\.css\?v=turtlebot-inline-header-tabs-v3/);
+  assert.doesNotMatch(build, /cache-bust-turtlebot-plan/);
 });
