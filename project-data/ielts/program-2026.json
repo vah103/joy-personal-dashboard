@@ -1,0 +1,1173 @@
+{
+  "programId": "ielts-band-7-december-2026",
+  "title": "IELTS Journey",
+  "target": {
+    "overall": 7,
+    "minimumSkill": 6.5,
+    "date": "2026-12-31"
+  },
+  "currentPhaseId": "august-foundation",
+  "phases": [
+    {
+      "id": "august-foundation",
+      "month": "August",
+      "title": "Foundation",
+      "status": "current",
+      "outcome": "Build a reliable 6.0 foundation and begin reaching 6.5 through evidence."
+    },
+    {
+      "id": "september-accuracy",
+      "month": "September",
+      "title": "Accuracy",
+      "status": "upcoming",
+      "outcome": "Make band 6 performance stable and reduce recurring errors."
+    },
+    {
+      "id": "october-band-65",
+      "month": "October",
+      "title": "Build Band 6.5",
+      "status": "upcoming",
+      "outcome": "Produce controlled band 6.5 work across all four skills."
+    },
+    {
+      "id": "november-exam",
+      "month": "November",
+      "title": "Exam Performance",
+      "status": "upcoming",
+      "outcome": "Convert ability into repeatable performance under full test conditions."
+    },
+    {
+      "id": "december-peak",
+      "month": "December",
+      "title": "Peak & Test",
+      "status": "upcoming",
+      "outcome": "Meet the target in consecutive mocks and arrive at the test rested."
+    }
+  ],
+  "prelaunch": [
+    {
+      "id": "prep-recordings",
+      "kind": "review",
+      "skill": "writing",
+      "title": "Collect recent Writing class recordings",
+      "minutes": 30,
+      "objective": "Prepare four to six recent Task 1 and Task 2 recordings for ChatGPT.",
+      "steps": [
+        "List the recordings from newest to oldest.",
+        "Label each recording Task 1 or Task 2.",
+        "Choose the four to six lessons most relevant to your current method."
+      ],
+      "output": "A short list of selected recordings with dates and lesson types.",
+      "doneWhen": [
+        "Every selected recording has a date.",
+        "Every selected recording is labelled Task 1 or Task 2."
+      ]
+    },
+    {
+      "id": "prep-course-notes",
+      "kind": "guided",
+      "skill": "writing",
+      "title": "Build the first course knowledge notes",
+      "minutes": 90,
+      "objective": "Let ChatGPT extract reusable knowledge from recent lessons before August.",
+      "steps": [
+        "Send one selected recording or transcript to ChatGPT.",
+        "Ask ChatGPT to extract the lesson method, examples, teacher feedback and homework.",
+        "Check the summary and import the structured course session into Joy."
+      ],
+      "output": "At least one reviewed Course Session in Joy.",
+      "doneWhen": [
+        "The lesson summary is saved.",
+        "The method and next practice are recorded separately."
+      ]
+    },
+    {
+      "id": "prep-baseline",
+      "kind": "review",
+      "skill": "review",
+      "title": "Prepare the August baseline",
+      "minutes": 30,
+      "objective": "Make sure the four-skill baseline can start without setup work.",
+      "steps": [
+        "Choose one official or reliable full Listening test.",
+        "Choose one full Academic Reading test.",
+        "Prepare a timer, microphone and a quiet study space.",
+        "Do not preview the answers or prompts."
+      ],
+      "output": "Baseline materials and test setup ready for 1–2 August.",
+      "doneWhen": [
+        "Listening and Reading sources are ready.",
+        "Speaking recording works.",
+        "Writing will be completed without assistance."
+      ]
+    }
+  ],
+  "baseline": {
+    "dateRange": "1–2 Aug",
+    "objective": "Measure current ability before personalising the first study rhythm.",
+    "tasks": [
+      {
+        "id": "baseline-listening",
+        "kind": "test",
+        "skill": "listening",
+        "title": "Full Listening baseline",
+        "minutes": 90,
+        "objective": "Measure Listening performance and identify the causes of lost marks.",
+        "steps": [
+          "Complete one full IELTS Listening test without pausing or replaying.",
+          "Check every answer.",
+          "Classify each mistake as comprehension, spelling, distraction or prediction."
+        ],
+        "output": "Answer score, source and a categorised mistake list.",
+        "doneWhen": [
+          "All questions are completed under test conditions.",
+          "Every wrong answer has a reason."
+        ]
+      },
+      {
+        "id": "baseline-reading",
+        "kind": "test",
+        "skill": "reading",
+        "title": "Full Academic Reading baseline",
+        "minutes": 130,
+        "objective": "Measure Reading accuracy, timing and weak question types.",
+        "steps": [
+          "Complete a full Academic Reading test in 60 minutes without a dictionary.",
+          "Check the answers and locate evidence for every wrong or guessed answer.",
+          "Record time pressure and weak question types."
+        ],
+        "output": "Answer score, passage timing and an evidence-based error list.",
+        "doneWhen": [
+          "The full test is completed in 60 minutes.",
+          "Every wrong or guessed answer is reviewed."
+        ]
+      },
+      {
+        "id": "baseline-writing",
+        "kind": "test",
+        "skill": "writing",
+        "title": "Full Writing baseline",
+        "minutes": 120,
+        "objective": "Measure unaided Task 1 and Task 2 performance.",
+        "steps": [
+          "Write Task 1 in 20 minutes.",
+          "Write Task 2 in 40 minutes.",
+          "Send both responses to ChatGPT for criterion-based feedback.",
+          "Save the estimated scores, evidence and recurring errors."
+        ],
+        "output": "Two timed responses and one structured assessment.",
+        "doneWhen": [
+          "Both responses were written without help.",
+          "Feedback covers all four Writing criteria."
+        ]
+      },
+      {
+        "id": "baseline-speaking",
+        "kind": "test",
+        "skill": "speaking",
+        "title": "Full Speaking baseline",
+        "minutes": 75,
+        "objective": "Measure fluency, vocabulary, grammar and pronunciation across all three parts.",
+        "steps": [
+          "Complete and record a full Speaking mock.",
+          "Listen once and note pauses, repetition and unclear answers.",
+          "Send the recording or transcript to ChatGPT for structured feedback."
+        ],
+        "output": "One full recording, transcript notes and assessment.",
+        "doneWhen": [
+          "All three Speaking parts are completed.",
+          "The main fluency and language problems are recorded."
+        ]
+      }
+    ]
+  },
+  "course": {
+    "title": "External Writing Course",
+    "schedule": [
+      {
+        "days": "Wednesday–Thursday",
+        "focus": "Writing Task 1",
+        "defaultMinutes": 120
+      },
+      {
+        "days": "Friday",
+        "focus": "Writing Task 2",
+        "defaultMinutes": 120
+      }
+    ]
+  },
+  "august": {
+    "dateRange": "3–30 Aug",
+    "weeklyHours": 18,
+    "rhythmHours": 6,
+    "weeks": [
+      {
+        "id": "aug-w1",
+        "number": 1,
+        "dateRange": "3–9 Aug",
+        "title": "Foundation & Error Awareness",
+        "outcome": "Explain the baseline errors and use a clear structure before adding speed.",
+        "rhythms": [
+          {
+            "id": "aug-w1-r1",
+            "label": "Rhythm 1",
+            "days": "Mon–Tue",
+            "dateRange": "3–4 Aug",
+            "objective": "Repair the weakest Listening and Reading patterns and build clear Speaking Part 1 answers.",
+            "tasks": [
+              {
+                "id": "aug-w1-r1-listening",
+                "kind": "guided",
+                "skill": "listening",
+                "title": "Repair the two weakest Listening question types",
+                "minutes": 120,
+                "objective": "Understand why baseline answers were lost and practise the same patterns deliberately.",
+                "steps": [
+                  "Give ChatGPT your baseline error categories.",
+                  "Complete two short drills selected from the weakest question types.",
+                  "Use the transcript to identify the exact missed language.",
+                  "Repeat the difficult audio once after correction."
+                ],
+                "output": "Two corrected drills and a short list of listening signals.",
+                "doneWhen": [
+                  "Every incorrect answer has transcript evidence.",
+                  "At least one repeated error has a prevention rule."
+                ]
+              },
+              {
+                "id": "aug-w1-r1-reading",
+                "kind": "guided",
+                "skill": "reading",
+                "title": "Repair the two weakest Reading question types",
+                "minutes": 120,
+                "objective": "Replace guessing with a repeatable evidence-finding process.",
+                "steps": [
+                  "Give ChatGPT the weakest Reading question types.",
+                  "Complete one focused passage without a strict time limit.",
+                  "Underline evidence for every answer.",
+                  "Explain why each distractor is wrong."
+                ],
+                "output": "One annotated passage and a question-type strategy.",
+                "doneWhen": [
+                  "Every answer has evidence.",
+                  "The strategy is recorded in your own words."
+                ]
+              },
+              {
+                "id": "aug-w1-r1-speaking",
+                "kind": "guided",
+                "skill": "speaking",
+                "title": "Build complete Speaking Part 1 answers",
+                "minutes": 90,
+                "objective": "Answer familiar questions naturally without stopping after one sentence.",
+                "steps": [
+                  "Ask ChatGPT for ten Part 1 questions matched to your learner profile.",
+                  "Answer and record all ten.",
+                  "Expand weak answers with a reason or example.",
+                  "Record the five weakest answers again."
+                ],
+                "output": "Ten answers and five improved recordings.",
+                "doneWhen": [
+                  "Each answer directly answers the question.",
+                  "Weak answers have been recorded a second time."
+                ]
+              },
+              {
+                "id": "aug-w1-r1-review",
+                "kind": "review",
+                "skill": "review",
+                "title": "Create the first recurring-error map",
+                "minutes": 30,
+                "objective": "Turn baseline findings into priorities for the next rhythm.",
+                "steps": [
+                  "Select no more than five recurring errors.",
+                  "Record the cause and one prevention action for each.",
+                  "Share the updated Joy context with ChatGPT."
+                ],
+                "output": "A prioritised error map.",
+                "doneWhen": [
+                  "Every error has a cause and next action."
+                ]
+              }
+            ]
+          },
+          {
+            "id": "aug-w1-r2",
+            "label": "Rhythm 2",
+            "days": "Wed–Thu",
+            "dateRange": "5–6 Aug",
+            "objective": "Capture the Task 1 course method and apply it to one controlled response.",
+            "tasks": [
+              {
+                "id": "aug-w1-r2-course-wed",
+                "kind": "course",
+                "skill": "writing",
+                "title": "Attend external Task 1 class · Wednesday",
+                "minutes": 120,
+                "objective": "Learn the scheduled Task 1 content from the external course.",
+                "steps": [
+                  "Attend the class.",
+                  "Save the lesson recording.",
+                  "Record the topic, homework and teacher feedback."
+                ],
+                "output": "Class record and homework note.",
+                "doneWhen": [
+                  "The class is attended.",
+                  "The recording or lesson source is saved."
+                ]
+              },
+              {
+                "id": "aug-w1-r2-course-thu",
+                "kind": "course",
+                "skill": "writing",
+                "title": "Attend external Task 1 class · Thursday",
+                "minutes": 120,
+                "objective": "Continue the scheduled Task 1 content from the external course.",
+                "steps": [
+                  "Attend the class.",
+                  "Save the lesson recording.",
+                  "Record new instructions and teacher feedback."
+                ],
+                "output": "Class record and homework note.",
+                "doneWhen": [
+                  "The class is attended.",
+                  "The recording or lesson source is saved."
+                ]
+              },
+              {
+                "id": "aug-w1-r2-process",
+                "kind": "review",
+                "skill": "writing",
+                "title": "Process both Task 1 lesson recordings",
+                "minutes": 45,
+                "objective": "Turn the two class recordings into reusable course knowledge.",
+                "steps": [
+                  "Send the recordings or transcripts to ChatGPT.",
+                  "Extract method, examples, teacher feedback and homework.",
+                  "Import the two Course Sessions into Joy."
+                ],
+                "output": "Two reviewed Course Sessions.",
+                "doneWhen": [
+                  "Both sessions have a summary and next practice."
+                ]
+              },
+              {
+                "id": "aug-w1-r2-apply",
+                "kind": "guided",
+                "skill": "writing",
+                "title": "Apply the Task 1 lesson",
+                "minutes": 75,
+                "objective": "Use the course method in a new Task 1 plan, overview and selected paragraph.",
+                "steps": [
+                  "Ask ChatGPT for a prompt that matches the lesson topic.",
+                  "Identify key features and plan the response.",
+                  "Write the overview and one body paragraph.",
+                  "Check whether the course method was applied correctly."
+                ],
+                "output": "One Task 1 plan, overview and body paragraph.",
+                "doneWhen": [
+                  "Key features are selected.",
+                  "The response uses the method from class."
+                ]
+              }
+            ]
+          },
+          {
+            "id": "aug-w1-r3",
+            "label": "Rhythm 3",
+            "days": "Fri–Sun",
+            "dateRange": "7–9 Aug",
+            "objective": "Capture the Task 2 method, practise paragraph development and close the first week.",
+            "tasks": [
+              {
+                "id": "aug-w1-r3-course",
+                "kind": "course",
+                "skill": "writing",
+                "title": "Attend external Task 2 class · Friday",
+                "minutes": 120,
+                "objective": "Learn the scheduled Task 2 content from the external course.",
+                "steps": [
+                  "Attend the class.",
+                  "Save the lesson recording.",
+                  "Record homework and teacher feedback."
+                ],
+                "output": "Class record and homework note.",
+                "doneWhen": [
+                  "The class is attended.",
+                  "The recording or lesson source is saved."
+                ]
+              },
+              {
+                "id": "aug-w1-r3-writing",
+                "kind": "guided",
+                "skill": "writing",
+                "title": "Build one complete Task 2 body paragraph",
+                "minutes": 120,
+                "objective": "Develop one main idea with explanation and a relevant example.",
+                "steps": [
+                  "Process the Friday lesson with ChatGPT.",
+                  "Analyse one paragraph using the class method.",
+                  "Brainstorm one main idea for a new prompt.",
+                  "Write, receive feedback and rewrite the paragraph."
+                ],
+                "output": "One original paragraph, feedback and rewrite.",
+                "doneWhen": [
+                  "The paragraph directly answers the prompt.",
+                  "The explanation and example support the same main idea."
+                ]
+              },
+              {
+                "id": "aug-w1-r3-maintenance",
+                "kind": "guided",
+                "skill": "speaking",
+                "title": "Listening and Speaking maintenance",
+                "minutes": 90,
+                "objective": "Keep receptive and spoken English active during the Writing-heavy rhythm.",
+                "steps": [
+                  "Complete one short Listening section selected from the baseline weakness.",
+                  "Record two Speaking Part 2 attempts.",
+                  "Correct the main problem in each activity."
+                ],
+                "output": "One corrected Listening section and two Speaking recordings.",
+                "doneWhen": [
+                  "Listening errors are reviewed.",
+                  "The second Speaking attempt is clearer than the first."
+                ]
+              },
+              {
+                "id": "aug-w1-r3-review",
+                "kind": "review",
+                "skill": "review",
+                "title": "Week 1 review",
+                "minutes": 30,
+                "objective": "Give ChatGPT enough evidence to prepare Week 2.",
+                "steps": [
+                  "Record the strongest improvement.",
+                  "Record the most important recurring error.",
+                  "Choose one priority for next week."
+                ],
+                "output": "Week 1 review in Joy.",
+                "doneWhen": [
+                  "The review contains evidence, not only feelings."
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "aug-w2",
+        "number": 2,
+        "dateRange": "10–16 Aug",
+        "title": "Controlled Production",
+        "outcome": "Complete full responses with support and begin using official time limits.",
+        "rhythms": [
+          {
+            "id": "aug-w2-r1",
+            "label": "Rhythm 1",
+            "days": "Mon–Tue",
+            "dateRange": "10–11 Aug",
+            "objective": "Produce timed Listening and Reading work and sustain longer Speaking answers.",
+            "tasks": [
+              {
+                "id": "aug-w2-r1-listening",
+                "kind": "guided",
+                "skill": "listening",
+                "title": "Timed Listening Sections 3–4",
+                "minutes": 90,
+                "objective": "Follow longer academic discussions and monologues without replaying.",
+                "steps": [
+                  "Complete Sections 3–4 once under test conditions.",
+                  "Check answers with the transcript.",
+                  "Replay only the sentences that caused errors.",
+                  "Record useful signals and distractors."
+                ],
+                "output": "Timed score and transcript-based corrections.",
+                "doneWhen": [
+                  "Every wrong answer has an audio or transcript explanation."
+                ]
+              },
+              {
+                "id": "aug-w2-r1-reading",
+                "kind": "guided",
+                "skill": "reading",
+                "title": "Two timed Reading passages",
+                "minutes": 120,
+                "objective": "Balance accuracy with a realistic passage time.",
+                "steps": [
+                  "Complete two passages using the time target agreed with ChatGPT.",
+                  "Mark every guessed answer.",
+                  "Find evidence for wrong and guessed answers.",
+                  "Repeat the weakest question type."
+                ],
+                "output": "Two scores, timing data and one focused correction drill.",
+                "doneWhen": [
+                  "Both passage times are recorded.",
+                  "Guessed answers are reviewed even when correct."
+                ]
+              },
+              {
+                "id": "aug-w2-r1-speaking",
+                "kind": "guided",
+                "skill": "speaking",
+                "title": "Speaking Part 2 and Part 3 control",
+                "minutes": 120,
+                "objective": "Speak for close to two minutes and extend abstract answers.",
+                "steps": [
+                  "Prepare and record two Part 2 topics.",
+                  "Answer six related Part 3 questions.",
+                  "Ask ChatGPT to identify fluency and development problems.",
+                  "Repeat the weakest Part 2 and three Part 3 answers."
+                ],
+                "output": "Two Part 2 recordings and six Part 3 answers.",
+                "doneWhen": [
+                  "At least one Part 2 response approaches two minutes.",
+                  "Part 3 answers include explanation or example."
+                ]
+              },
+              {
+                "id": "aug-w2-r1-review",
+                "kind": "review",
+                "skill": "review",
+                "title": "Update language and error priorities",
+                "minutes": 30,
+                "objective": "Keep only errors that still affect performance.",
+                "steps": [
+                  "Update recurring errors.",
+                  "Archive errors that no longer appear.",
+                  "Share the context before Rhythm 2."
+                ],
+                "output": "Updated Joy context.",
+                "doneWhen": [
+                  "The active error list contains no more than five priorities."
+                ]
+              }
+            ]
+          },
+          {
+            "id": "aug-w2-r2",
+            "label": "Rhythm 2",
+            "days": "Wed–Thu",
+            "dateRange": "12–13 Aug",
+            "objective": "Use the external Task 1 lessons in one complete timed response.",
+            "tasks": [
+              {
+                "id": "aug-w2-r2-course-wed",
+                "kind": "course",
+                "skill": "writing",
+                "title": "Attend external Task 1 class · Wednesday",
+                "minutes": 120,
+                "objective": "Learn and record the scheduled Task 1 lesson.",
+                "steps": [
+                  "Attend class.",
+                  "Save the recording and homework.",
+                  "Record teacher feedback."
+                ],
+                "output": "Class record.",
+                "doneWhen": [
+                  "The class source is saved."
+                ]
+              },
+              {
+                "id": "aug-w2-r2-course-thu",
+                "kind": "course",
+                "skill": "writing",
+                "title": "Attend external Task 1 class · Thursday",
+                "minutes": 120,
+                "objective": "Learn and record the scheduled Task 1 lesson.",
+                "steps": [
+                  "Attend class.",
+                  "Save the recording and homework.",
+                  "Record teacher feedback."
+                ],
+                "output": "Class record.",
+                "doneWhen": [
+                  "The class source is saved."
+                ]
+              },
+              {
+                "id": "aug-w2-r2-review",
+                "kind": "review",
+                "skill": "writing",
+                "title": "Process the Task 1 course knowledge",
+                "minutes": 30,
+                "objective": "Save only the reusable knowledge from both lessons.",
+                "steps": [
+                  "Process both records with ChatGPT.",
+                  "Import lesson summaries and next practice into Course."
+                ],
+                "output": "Two Course Sessions.",
+                "doneWhen": [
+                  "Both sessions are reviewed."
+                ]
+              },
+              {
+                "id": "aug-w2-r2-test",
+                "kind": "test",
+                "skill": "writing",
+                "title": "Write and revise one timed Task 1",
+                "minutes": 90,
+                "objective": "Complete Task 1 in 20 minutes and improve it using feedback.",
+                "steps": [
+                  "Ask ChatGPT for a prompt matching the class topic.",
+                  "Write the response in 20 minutes.",
+                  "Check it against the four Writing criteria.",
+                  "Rewrite the weakest sections."
+                ],
+                "output": "Timed response, feedback and rewrite.",
+                "doneWhen": [
+                  "The first response was completed in 20 minutes.",
+                  "The rewrite fixes the identified priority."
+                ]
+              }
+            ]
+          },
+          {
+            "id": "aug-w2-r3",
+            "label": "Rhythm 3",
+            "days": "Fri–Sun",
+            "dateRange": "14–16 Aug",
+            "objective": "Complete a timed Task 2 and apply feedback before the weekly review.",
+            "tasks": [
+              {
+                "id": "aug-w2-r3-course",
+                "kind": "course",
+                "skill": "writing",
+                "title": "Attend external Task 2 class · Friday",
+                "minutes": 120,
+                "objective": "Learn and record the scheduled Task 2 lesson.",
+                "steps": [
+                  "Attend class.",
+                  "Save the recording and homework.",
+                  "Record teacher feedback."
+                ],
+                "output": "Class record.",
+                "doneWhen": [
+                  "The class source is saved."
+                ]
+              },
+              {
+                "id": "aug-w2-r3-writing",
+                "kind": "test",
+                "skill": "writing",
+                "title": "Write and revise one timed Task 2",
+                "minutes": 160,
+                "objective": "Complete Task 2 in 40 minutes and strengthen the weakest criterion.",
+                "steps": [
+                  "Process the Friday lesson with ChatGPT.",
+                  "Write a matched Task 2 prompt in 40 minutes.",
+                  "Receive criterion-based feedback.",
+                  "Rewrite the introduction and weakest body paragraph."
+                ],
+                "output": "Timed essay, assessment and rewrite.",
+                "doneWhen": [
+                  "The first response was completed in 40 minutes.",
+                  "The rewrite addresses evidence from the assessment."
+                ]
+              },
+              {
+                "id": "aug-w2-r3-speaking",
+                "kind": "guided",
+                "skill": "speaking",
+                "title": "Speaking Part 2–3 application",
+                "minutes": 60,
+                "objective": "Use clearer development in both long turn and discussion answers.",
+                "steps": [
+                  "Complete one Part 2 topic.",
+                  "Answer four related Part 3 questions.",
+                  "Repeat answers after ChatGPT feedback."
+                ],
+                "output": "One long turn and four discussion answers.",
+                "doneWhen": [
+                  "The repeated answers show a specific improvement."
+                ]
+              },
+              {
+                "id": "aug-w2-r3-review",
+                "kind": "review",
+                "skill": "review",
+                "title": "Week 2 review",
+                "minutes": 20,
+                "objective": "Decide what must change before timed full tests.",
+                "steps": [
+                  "Record one measurable gain.",
+                  "Record the most persistent problem.",
+                  "Choose the Week 3 priority."
+                ],
+                "output": "Week 2 review.",
+                "doneWhen": [
+                  "The priority is supported by task evidence."
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "aug-w3",
+        "number": 3,
+        "dateRange": "17–23 Aug",
+        "title": "Timed Control",
+        "outcome": "Maintain quality across full timed tests and identify errors that survive instruction.",
+        "rhythms": [
+          {
+            "id": "aug-w3-r1",
+            "label": "Rhythm 1",
+            "days": "Mon–Tue",
+            "dateRange": "17–18 Aug",
+            "objective": "Complete full Listening, Reading and Speaking checks under realistic conditions.",
+            "tasks": [
+              {
+                "id": "aug-w3-r1-listening",
+                "kind": "test",
+                "skill": "listening",
+                "title": "Full timed Listening check",
+                "minutes": 120,
+                "objective": "Test whether correction work transfers to a new full paper.",
+                "steps": [
+                  "Complete one new full Listening test.",
+                  "Check every wrong or uncertain answer.",
+                  "Compare error categories with baseline."
+                ],
+                "output": "Full score and baseline comparison.",
+                "doneWhen": [
+                  "The test is completed without pausing.",
+                  "Recurring errors are updated."
+                ]
+              },
+              {
+                "id": "aug-w3-r1-reading",
+                "kind": "test",
+                "skill": "reading",
+                "title": "Full timed Academic Reading check",
+                "minutes": 150,
+                "objective": "Test accuracy and passage timing across a full paper.",
+                "steps": [
+                  "Complete one new full Reading test in 60 minutes.",
+                  "Review wrong and guessed answers.",
+                  "Compare question-type performance with baseline."
+                ],
+                "output": "Full score, passage timing and comparison.",
+                "doneWhen": [
+                  "All passages are attempted.",
+                  "Timing and errors are recorded."
+                ]
+              },
+              {
+                "id": "aug-w3-r1-speaking",
+                "kind": "test",
+                "skill": "speaking",
+                "title": "Mid-month Speaking mock",
+                "minutes": 60,
+                "objective": "Check fluency and answer development across all three parts.",
+                "steps": [
+                  "Record a complete mock.",
+                  "Ask ChatGPT for evidence-based feedback.",
+                  "Repeat the weakest Part 2 or Part 3 response."
+                ],
+                "output": "Full recording, assessment and one repeated response.",
+                "doneWhen": [
+                  "All three parts are completed.",
+                  "Feedback is saved to Progress."
+                ]
+              },
+              {
+                "id": "aug-w3-r1-review",
+                "kind": "review",
+                "skill": "review",
+                "title": "Save the mid-month checkpoint",
+                "minutes": 30,
+                "objective": "Compare current evidence with the baseline before planning the remaining rhythms.",
+                "steps": [
+                  "Save current skill estimates.",
+                  "Record confidence and evidence for each estimate.",
+                  "Share the checkpoint context with ChatGPT."
+                ],
+                "output": "Mid-month assessment.",
+                "doneWhen": [
+                  "All four skill fields have evidence or are marked pending."
+                ]
+              }
+            ]
+          },
+          {
+            "id": "aug-w3-r2",
+            "label": "Rhythm 2",
+            "days": "Wed–Thu",
+            "dateRange": "19–20 Aug",
+            "objective": "Use Task 1 course knowledge accurately under the official time limit.",
+            "tasks": [
+              {
+                "id": "aug-w3-r2-course-wed",
+                "kind": "course",
+                "skill": "writing",
+                "title": "Attend external Task 1 class · Wednesday",
+                "minutes": 120,
+                "objective": "Learn and record the scheduled Task 1 lesson.",
+                "steps": [
+                  "Attend class.",
+                  "Save the recording and teacher feedback."
+                ],
+                "output": "Class record.",
+                "doneWhen": [
+                  "The class source is saved."
+                ]
+              },
+              {
+                "id": "aug-w3-r2-course-thu",
+                "kind": "course",
+                "skill": "writing",
+                "title": "Attend external Task 1 class · Thursday",
+                "minutes": 120,
+                "objective": "Learn and record the scheduled Task 1 lesson.",
+                "steps": [
+                  "Attend class.",
+                  "Save the recording and teacher feedback."
+                ],
+                "output": "Class record.",
+                "doneWhen": [
+                  "The class source is saved."
+                ]
+              },
+              {
+                "id": "aug-w3-r2-apply",
+                "kind": "test",
+                "skill": "writing",
+                "title": "Timed Task 1 with criterion review",
+                "minutes": 120,
+                "objective": "Produce and improve a full Task 1 using current course knowledge.",
+                "steps": [
+                  "Process the two lesson records with ChatGPT.",
+                  "Write one matched Task 1 in 20 minutes.",
+                  "Evaluate all four criteria.",
+                  "Rewrite the response after feedback."
+                ],
+                "output": "Two Course Sessions, timed response and rewrite.",
+                "doneWhen": [
+                  "Course knowledge is saved.",
+                  "The rewrite fixes the weakest criterion."
+                ]
+              }
+            ]
+          },
+          {
+            "id": "aug-w3-r3",
+            "label": "Rhythm 3",
+            "days": "Fri–Sun",
+            "dateRange": "21–23 Aug",
+            "objective": "Produce Task 2 under time and attack the most persistent cross-skill errors.",
+            "tasks": [
+              {
+                "id": "aug-w3-r3-course",
+                "kind": "course",
+                "skill": "writing",
+                "title": "Attend external Task 2 class · Friday",
+                "minutes": 120,
+                "objective": "Learn and record the scheduled Task 2 lesson.",
+                "steps": [
+                  "Attend class.",
+                  "Save the recording and teacher feedback."
+                ],
+                "output": "Class record.",
+                "doneWhen": [
+                  "The class source is saved."
+                ]
+              },
+              {
+                "id": "aug-w3-r3-writing",
+                "kind": "test",
+                "skill": "writing",
+                "title": "Timed Task 2 and targeted rewrite",
+                "minutes": 140,
+                "objective": "Maintain a clear position and develop ideas under time pressure.",
+                "steps": [
+                  "Process the Friday lesson with ChatGPT.",
+                  "Write one matched Task 2 in 40 minutes.",
+                  "Receive feedback and rewrite the weakest section."
+                ],
+                "output": "Course Session, timed essay and rewrite.",
+                "doneWhen": [
+                  "The position is clear throughout.",
+                  "The rewrite addresses the feedback."
+                ]
+              },
+              {
+                "id": "aug-w3-r3-speaking",
+                "kind": "guided",
+                "skill": "speaking",
+                "title": "Focused Speaking Part 3 drill",
+                "minutes": 60,
+                "objective": "Develop abstract answers with clear reasoning.",
+                "steps": [
+                  "Answer six Part 3 questions selected from the current weakness.",
+                  "Receive feedback after each group of three.",
+                  "Repeat the three weakest answers."
+                ],
+                "output": "Six answers and three improved repeats.",
+                "doneWhen": [
+                  "Every repeated answer has a clear reason or example."
+                ]
+              },
+              {
+                "id": "aug-w3-r3-errors",
+                "kind": "guided",
+                "skill": "review",
+                "title": "Drill the most persistent Listening or Reading error",
+                "minutes": 20,
+                "objective": "Prevent one recurring receptive-skill error from carrying into Week 4.",
+                "steps": [
+                  "Let ChatGPT select the highest-frequency error.",
+                  "Complete a short targeted drill.",
+                  "Record whether the prevention rule worked."
+                ],
+                "output": "One targeted drill.",
+                "doneWhen": [
+                  "The result is added to the recurring-error record."
+                ]
+              },
+              {
+                "id": "aug-w3-r3-review",
+                "kind": "review",
+                "skill": "review",
+                "title": "Week 3 review",
+                "minutes": 20,
+                "objective": "Select no more than three priorities for the final week.",
+                "steps": [
+                  "Compare current performance with baseline.",
+                  "Choose the three highest-impact priorities."
+                ],
+                "output": "Week 3 review.",
+                "doneWhen": [
+                  "Every priority is supported by recent evidence."
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "aug-w4",
+        "number": 4,
+        "dateRange": "24–30 Aug",
+        "title": "Stability & Assessment",
+        "outcome": "Verify progress, stabilise the highest-impact gains and provide evidence for September.",
+        "rhythms": [
+          {
+            "id": "aug-w4-r1",
+            "label": "Rhythm 1",
+            "days": "Mon–Tue",
+            "dateRange": "24–25 Aug",
+            "objective": "Complete final Listening, Reading and Speaking checks and compare them with baseline.",
+            "tasks": [
+              {
+                "id": "aug-w4-r1-listening",
+                "kind": "test",
+                "skill": "listening",
+                "title": "Final August Listening check",
+                "minutes": 90,
+                "objective": "Measure accuracy and recurring errors on a new full test.",
+                "steps": [
+                  "Complete a new full Listening test.",
+                  "Review errors and compare them with baseline."
+                ],
+                "output": "Final score and comparison.",
+                "doneWhen": [
+                  "The test and correction are complete."
+                ]
+              },
+              {
+                "id": "aug-w4-r1-reading",
+                "kind": "test",
+                "skill": "reading",
+                "title": "Final August Academic Reading check",
+                "minutes": 130,
+                "objective": "Measure full-test accuracy and timing against baseline.",
+                "steps": [
+                  "Complete a new full Reading test in 60 minutes.",
+                  "Review wrong and guessed answers.",
+                  "Compare passage timing with baseline."
+                ],
+                "output": "Final score, timing and comparison.",
+                "doneWhen": [
+                  "All passages and corrections are complete."
+                ]
+              },
+              {
+                "id": "aug-w4-r1-speaking",
+                "kind": "test",
+                "skill": "speaking",
+                "title": "Final August Speaking mock",
+                "minutes": 90,
+                "objective": "Measure fluency and answer development across all three parts.",
+                "steps": [
+                  "Record one full mock.",
+                  "Receive evidence-based feedback.",
+                  "Repeat the weakest response."
+                ],
+                "output": "Final recording, assessment and repeated response.",
+                "doneWhen": [
+                  "The assessment is saved to Progress."
+                ]
+              },
+              {
+                "id": "aug-w4-r1-review",
+                "kind": "review",
+                "skill": "review",
+                "title": "Prepare final Writing priorities",
+                "minutes": 50,
+                "objective": "Use the latest evidence to choose the final Writing focus.",
+                "steps": [
+                  "Review current Writing errors and course coverage.",
+                  "Select one Task 1 and one Task 2 priority.",
+                  "Share them with ChatGPT."
+                ],
+                "output": "Two final Writing priorities.",
+                "doneWhen": [
+                  "Both priorities are evidence-based."
+                ]
+              }
+            ]
+          },
+          {
+            "id": "aug-w4-r2",
+            "label": "Rhythm 2",
+            "days": "Wed–Thu",
+            "dateRange": "26–27 Aug",
+            "objective": "Complete the final Task 1 check and consolidate the month's course knowledge.",
+            "tasks": [
+              {
+                "id": "aug-w4-r2-course-wed",
+                "kind": "course",
+                "skill": "writing",
+                "title": "Attend external Task 1 class · Wednesday",
+                "minutes": 120,
+                "objective": "Learn and record the scheduled Task 1 lesson.",
+                "steps": [
+                  "Attend class.",
+                  "Save the recording and teacher feedback."
+                ],
+                "output": "Class record.",
+                "doneWhen": [
+                  "The class source is saved."
+                ]
+              },
+              {
+                "id": "aug-w4-r2-course-thu",
+                "kind": "course",
+                "skill": "writing",
+                "title": "Attend external Task 1 class · Thursday",
+                "minutes": 120,
+                "objective": "Learn and record the scheduled Task 1 lesson.",
+                "steps": [
+                  "Attend class.",
+                  "Save the recording and teacher feedback."
+                ],
+                "output": "Class record.",
+                "doneWhen": [
+                  "The class source is saved."
+                ]
+              },
+              {
+                "id": "aug-w4-r2-final",
+                "kind": "test",
+                "skill": "writing",
+                "title": "Final timed Task 1 and course audit",
+                "minutes": 120,
+                "objective": "Measure Task 1 performance and consolidate reusable course knowledge.",
+                "steps": [
+                  "Process both class records.",
+                  "Write a matched Task 1 in 20 minutes.",
+                  "Receive feedback and rewrite the response.",
+                  "Mark course topics as learned, applied or still uncertain."
+                ],
+                "output": "Two Course Sessions, final Task 1 and coverage audit.",
+                "doneWhen": [
+                  "The response is assessed.",
+                  "Course coverage statuses are updated."
+                ]
+              }
+            ]
+          },
+          {
+            "id": "aug-w4-r3",
+            "label": "Rhythm 3",
+            "days": "Fri–Sun",
+            "dateRange": "28–30 Aug",
+            "objective": "Complete the final Writing check and close August with a structured review.",
+            "tasks": [
+              {
+                "id": "aug-w4-r3-course",
+                "kind": "course",
+                "skill": "writing",
+                "title": "Attend external Task 2 class · Friday",
+                "minutes": 120,
+                "objective": "Learn and record the scheduled Task 2 lesson.",
+                "steps": [
+                  "Attend class.",
+                  "Save the recording and teacher feedback."
+                ],
+                "output": "Class record.",
+                "doneWhen": [
+                  "The class source is saved."
+                ]
+              },
+              {
+                "id": "aug-w4-r3-writing",
+                "kind": "test",
+                "skill": "writing",
+                "title": "Final full Writing check",
+                "minutes": 190,
+                "objective": "Measure Task 1 and Task 2 together under official time limits.",
+                "steps": [
+                  "Process the Friday course record.",
+                  "Write Task 1 in 20 minutes and Task 2 in 40 minutes.",
+                  "Receive criterion-based feedback.",
+                  "Rewrite the sections that most reduce the estimated band."
+                ],
+                "output": "Course Session, full Writing responses, assessment and rewrite.",
+                "doneWhen": [
+                  "Both tasks were completed in 60 minutes.",
+                  "The assessment is saved to Progress."
+                ]
+              },
+              {
+                "id": "aug-w4-r3-weakness",
+                "kind": "guided",
+                "skill": "review",
+                "title": "Final weakest-skill drill",
+                "minutes": 30,
+                "objective": "Finish the month by practising the highest-impact unresolved weakness.",
+                "steps": [
+                  "Let ChatGPT choose one short drill from the latest evidence.",
+                  "Complete and review it immediately."
+                ],
+                "output": "One targeted drill.",
+                "doneWhen": [
+                  "The result is saved with the related error."
+                ]
+              },
+              {
+                "id": "aug-w4-r3-review",
+                "kind": "review",
+                "skill": "review",
+                "title": "August monthly review",
+                "minutes": 20,
+                "objective": "Prepare the evidence ChatGPT needs to design September.",
+                "steps": [
+                  "Record the strongest measurable gain.",
+                  "Record the most persistent problem.",
+                  "Confirm the latest four-skill estimates.",
+                  "Share the full Joy context with ChatGPT."
+                ],
+                "output": "August review and September handoff.",
+                "doneWhen": [
+                  "The review compares baseline and final evidence."
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -27,32 +27,32 @@ const fontFiles = [
   ...[400, 500, 600, 700].flatMap((weight) => [
     `instrument-sans-latin-${weight}-normal.woff2`,
     `instrument-sans-latin-ext-${weight}-normal.woff2`,
-  ]).map((file) => ["instrument-sans", file]),
+  ]).map((file) => ["instrument-sans", file, file.includes("-400-") ? 400 : file.includes("-700-") ? 700 : 600]),
   ...[400, 500].flatMap((weight) => [
     `newsreader-latin-${weight}-normal.woff2`,
     `newsreader-latin-ext-${weight}-normal.woff2`,
-  ]).map((file) => ["newsreader", file]),
+  ]).map((file) => ["newsreader", file, file.includes("-400-") ? 400 : 600]),
   ...[
     "quicksand-latin-600-normal.woff2",
     "quicksand-latin-ext-600-normal.woff2",
-  ].map((file) => ["quicksand", file]),
+  ].map((file) => ["quicksand", file, 600]),
 ];
+
+async function copyFontWithNunitoFallback(family, file, weight) {
+  const source = resolve(root, "node_modules", "@fontsource", family, "files", file);
+  const fallback = resolve(nunitoFonts, `nunito-latin-${weight}-normal.woff2`);
+  try {
+    await cp(source, resolve(fonts, file));
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+    await cp(fallback, resolve(fonts, file));
+  }
+}
 
 const ieltsCoreSourceFiles = [
   "core-model.js",
   "core-ui.js",
   "core-actions.js",
-  "core-diagnostic.js",
-  "core-writing-review.js",
-  "core-writing-rewrite.js",
-  "i18n-vi-base.js",
-  "i18n-vi-days-01-09.js",
-  "i18n-vi-days-10-16.js",
-  "i18n-vi-days-17-23.js",
-  "i18n-vi-days-24-31.js",
-  "i18n-vi-plan-runtime.js",
-  "i18n-vi-ui-text.js",
-  "i18n-vi-hooks.js",
 ];
 
 await rm(dist, { recursive: true, force: true });
@@ -63,10 +63,8 @@ const projectHubHead = [
   '    <link rel="stylesheet" href="project-hub.css?v=turtlebot-hub-v4">\n',
   '    <link rel="stylesheet" href="turtlebot-roadmap-font.css?v=turtlebot-roadmap-nunito-v2">\n',
   '    <link rel="stylesheet" href="turtlebot-card-art.css?v=restored-card-v6">\n',
-  '    <link rel="stylesheet" href="project-data/ielts/ielts-card.css?v=ielts-card-v2">\n',
-  '    <link rel="stylesheet" href="project-data/ielts/ielts-core.css?v=ielts-august-core-v3">\n',
-  '    <link rel="stylesheet" href="project-data/ielts/ielts-core-polish.css?v=ielts-august-core-v3">\n',
-  '    <link rel="stylesheet" href="project-data/ielts/ielts-diagnostic.css?v=ielts-baseline-v2">\n',
+  '    <link rel="stylesheet" href="project-data/ielts/ielts-card.css?v=ielts-journey-v5">\n',
+  '    <link rel="stylesheet" href="project-data/ielts/ielts-core.css?v=ielts-journey-v4">\n',
   '    <link rel="stylesheet" href="mobile-notifications.css?v=iphone-rain-bell-v1">\n',
   '    <link rel="stylesheet" href="auth-ui.css?v=joy-google-account-v3">\n',
   '    <link rel="stylesheet" href="greeting-layout.css?v=joy-daily-brief-v4">\n',
@@ -86,8 +84,8 @@ const projectHubScripts = [
   '    <script src="project-data/turtlebot4/project-state-v2.js?v=turtlebot-progress-20260729-v1" defer></script>\n',
   '    <script src="turtlebot-roadmap.js?v=turtlebot-roadmap-v3" defer></script>\n',
   '    <script src="turtlebot-roadmap-language.js?v=turtlebot-roadmap-english-v1" defer></script>\n',
-  '    <script id="joy-ielts-core-bundle" data-loaded="true" src="project-data/ielts/ielts-core-bundle.js?v=ielts-august-core-v7" defer></script>\n',
-  '    <script src="project-data/ielts/ielts-card.js?v=ielts-card-v8" defer></script>\n',
+  '    <script id="joy-ielts-core-bundle-v4" data-loaded="true" src="project-data/ielts/ielts-core-bundle.js?v=ielts-journey-v4" defer></script>\n',
+  '    <script src="project-data/ielts/ielts-card.js?v=ielts-journey-v4" defer></script>\n',
   '    <script src="weather-status-ui.js?v=rain-threshold-85-v1" defer></script>\n',
   '    <script src="push-notifications.js?v=joy-current-device-v1" defer></script>\n',
   '    <script src="auth-ui.js?v=joy-google-account-v3" defer></script>\n',
@@ -207,10 +205,7 @@ await Promise.all([
     "nunito-latin-700-normal.woff2",
     "nunito-vietnamese-700-normal.woff2",
   ].map((file) => cp(resolve(nunitoFonts, file), resolve(fonts, file))),
-  ...fontFiles.map(([family, file]) => cp(
-    resolve(root, "node_modules", "@fontsource", family, "files", file),
-    resolve(fonts, file),
-  )),
+  ...fontFiles.map(([family, file, weight]) => copyFontWithNunitoFallback(family, file, weight)),
 ]);
 
 const ieltsCoreParts = await Promise.all(
@@ -218,7 +213,8 @@ const ieltsCoreParts = await Promise.all(
 );
 const ieltsCoreBundle = [
   "(function registerIeltsAugustCore() {",
-  "  if (window.JoyIELTS) return;",
+  '  if (window.JoyIELTS?.version === "journey-v4") return;',
+  '  document.querySelector("#ielts-modal")?.remove();',
   ...ieltsCoreParts,
   "})();",
   "",

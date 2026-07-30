@@ -1,12 +1,246 @@
-function render(){if(!app.plan)return;document.querySelectorAll("[data-it]").forEach(b=>{const a=b.dataset.it===app.tab;b.classList.toggle("active",a);b.setAttribute("aria-selected",a)});document.querySelector("#ielts-sub").textContent=app.plan.primaryGoal;sync(app.mode==="cloud"?"Synced":app.mode==="local"?"Local only":"Connecting…");if(app.tab==="roadmap")roadmap();else if(app.tab==="log")log();else if(app.tab==="coach")coach();else today();updateCard()}
-function today(){const b=document.querySelector("#ielts-body"),now=key();if(now<"2026-08-01"){const left=Math.round((new Date("2026-08-01T00:00:00+07:00")-new Date(`${now}T00:00:00+07:00`))/86400000);b.innerHTML=`<section class="ielts-hero"><div><small>Preparation mode</small><h3>${left} days until August</h3><p>Finish setup so Day 1 starts without friction.</p></div><strong>${Object.values(app.data.prelaunch).filter(Boolean).length}/${app.plan.prelaunch.length}</strong></section><div class="ielts-grid">${app.plan.prelaunch.map(p=>prep(p)).join("")}</div>${strict()}`;return}if(now>"2026-08-31"){b.innerHTML=`<section class="ielts-hero"><div><small>August complete</small><h3>Monthly review ready</h3><p>Set September from evidence, not feelings.</p></div><strong>${progress(taskList())}%</strong></section>${summary()}<button class="ielts-primary" data-ia="final">Open August review</button>`;return}const d=day(now),tasks=taskList().filter(t=>t.date===now),late=overdue();b.innerHTML=`<section class="ielts-hero"><div><small>Day ${d.day} · ${d.weekday}</small><h3>${esc(d.theme)}</h3><p>${tasks.filter(done).length}/${tasks.length} required missions complete</p></div><strong>${progress(tasks)}%</strong></section>${late.length?`<section class="ielts-warning"><span><b>${late.length} overdue missions</b><small>Strict Mode keeps unfinished work visible.</small></span><button data-ia="recovery">Open Recovery</button></section>`:""}${["morning","afternoon","evening","daily","review"].map(s=>{const x=tasks.filter(t=>t.session===s);return x.length?`<section class="ielts-session"><header><b>${s}</b><small>${x.reduce((n,t)=>n+t.minutes,0)} min</small></header><div class="ielts-grid">${x.map(taskCard).join("")}</div></section>`:""}).join("")}${strict()}`}
-function prep(p){const d=!!app.data.prelaunch[p.id];return`<article class="ielts-task ${d?"done":""}"><div><span class="badge review">Setup</span><i>${d?"Completed":`${p.durationMinutes} min`}</i></div><h4>${esc(p.title)}</h4><p>Prepare the learning system before the intensive starts.</p><button data-ia="prep" data-id="${p.id}">${d?"Undo":"Mark complete"}</button></article>`}
-function taskCard(t){const s=state(t),x=app.data.taskStates[t.id]||{};return`<article class="ielts-task ${s}"><div><span class="badge ${t.skill}">${LABEL[t.skill]||t.skill}</span><i>${STATUS[s]||s}</i></div><h4>${esc(t.title)}</h4><p>${esc(t.objective)}</p><footer><span>${t.minutes} min</span><span>${esc(t.evidence.replaceAll("_"," "))}</span>${x.score?`<span>${esc(x.score)}</span>`:""}</footer>${x.note?`<small class="evidence">${esc(x.note).slice(0,100)}</small>`:""}<section>${!done(t)?`<button data-ia="start" data-task="${t.id}">Start</button>`:""}<button class="primary" data-ia="edit" data-task="${t.id}">${done(t)?"Review evidence":"Complete"}</button>${!done(t)&&t.date<key()?`<button class="quiet" data-ia="move" data-task="${t.id}">Recovery</button>`:""}</section></article>`}
-function strict(){return`<section class="ielts-strict"><b>!</b><span><strong>Strict Mode is on</strong><small>Time and evidence are required. Minimum Day earns partial progress only.</small></span><button data-ia="strict">Keep on</button></section>`}
-function roadmap(){const b=document.querySelector("#ielts-body");b.innerHTML=`<section class="ielts-hero"><div><small>August plan</small><h3>${progress(taskList())}% complete</h3><p>Writing stays primary · Speaking stays daily.</p></div><section class="allocation">${Object.entries(app.plan.allocation).map(([s,n])=>`<span><b>${n}%</b><small>${LABEL[s]}</small></span>`).join("")}</section></section><div class="weeks">${app.plan.weeks.map(week).join("")}</div>`}
-function week(w){const ts=taskList().filter(t=>t.week===w.number),r=app.data.weeklyReviews[w.id];return`<article class="week"><header><span><small>Week ${w.number} · ${w.dateRange}</small><h3>${esc(w.title)}</h3></span><strong>${progress(ts)}%</strong></header><div><p><b>Writing</b>${esc(w.writingFocus)}</p><p><b>Speaking</b>${esc(w.speakingFocus)}</p><p><b>Reading</b>${esc(w.readingFocus)}</p><p><b>Listening</b>${esc(w.listeningFocus)}</p></div><footer><span>${ts.filter(done).length}/${ts.length} missions</span><span>${r?"Review saved":"Review pending"}</span></footer><button data-ia="week" data-week="${w.id}">${r?"Update review":"Complete review"}</button></article>`}
-function stats(skill){const ts=taskList().filter(t=>t.skill===skill);return{p:progress(ts),d:ts.filter(done).length,n:ts.length}}
-function log(){const b=document.querySelector("#ielts-body");b.innerHTML=`${summary()}<div class="logs"><section><header><span><small>Speaking memory</small><h3>Story Bank</h3></span><b>${app.data.storyBank.length}/10</b></header><form data-form="story"><input name="title" placeholder="Story title" required><textarea name="detail" placeholder="Context · event · meaning · useful phrases" required></textarea><button>Add story</button></form><div class="list">${app.data.storyBank.length?app.data.storyBank.slice().reverse().map(s=>`<article><span><strong>${esc(s.title)}</strong><p>${esc(s.detail)}</p></span><button data-ia="del-story" data-id="${s.id}">×</button></article>`).join(""):'<p class="empty">Start with Vung Tau, TurtleBot4 or your internship.</p>'}</div></section><section><header><span><small>Evidence-based correction</small><h3>Error Log</h3></span><b>${app.data.errorLogs.length}</b></header><form data-form="error"><select name="skill">${["writing","speaking","reading","listening"].map(s=>`<option value="${s}">${LABEL[s]}</option>`).join("")}</select><input name="label" placeholder="Recurring error" required><textarea name="action" placeholder="Why it happened and how to prevent it" required></textarea><button>Record error</button></form><div class="list">${app.data.errorLogs.length?app.data.errorLogs.slice().reverse().map(e=>`<article><span class="badge ${e.skill}">${LABEL[e.skill]}</span><span><strong>${esc(e.label)}</strong><p>${esc(e.action)}</p><small>${e.count||1} occurrence(s)</small></span><button data-ia="plus-error" data-id="${e.id}">+1</button></article>`).join(""):'<p class="empty">Record the cause, not only the wrong answer.</p>'}</div></section></div><section class="recovery"><header><span><small>Strict Mode</small><h3>Recovery Queue</h3></span><b>${overdue().length}</b></header>${recoveryList()}</section>`}
-function summary(){return`<section class="summary">${["writing","speaking","reading","listening"].map(s=>{const x=stats(s);return`<article><span>${LABEL[s]}</span><strong>${x.p}%</strong><small>${x.d}/${x.n} missions</small></article>`}).join("")}</section>`}
-function recoveryList(){const x=overdue().slice(0,15);return x.length?`<div>${x.map(t=>`<article><time>${fmt(t.date)}</time><span><strong>${esc(t.title)}</strong><small>${LABEL[t.skill]} · ${t.minutes} min</small></span><button data-ia="edit" data-task="${t.id}">Recover</button></article>`).join("")}</div>`:'<p class="empty good">Recovery Queue is clear.</p>'}
-function coach(){const b=document.querySelector("#ielts-body"),d=day(),ts=d?taskList().filter(t=>t.date===d.date):[],late=overdue(),n=next();let title=key()<"2026-08-01"?"Preparation is part of the plan.":late.length?`${late.length} overdue mission(s) need recovery.`:ts.length&&ts.every(done)?"Today is complete.":`${Math.max(0,ts.length-ts.filter(done).length)} mission(s) remain today.`;b.innerHTML=`<section class="coach"><b>J</b><span><small>Joy’s assessment</small><h3>${title}</h3><p>${d?`Day ${d.day}: ${esc(d.theme)}`:"The August system is ready."}</p></span></section>${n?`<section class="next"><span><small>Next required mission</small><h3>${esc(n.title)}</h3><p>${fmt(n.date)} · ${LABEL[n.skill]} · ${n.minutes} min</p></span><button data-ia="edit" data-task="${n.id}">Open mission</button></section>`:""}${summary()}<section class="coach-actions"><button data-ia="today"><b>Show today’s lesson</b><small>Return to the fixed curriculum.</small></button><button data-ia="recovery"><b>Create a recovery session</b><small>Start with the oldest overdue work.</small></button><button data-ia="minimum"><b>Use Minimum Day</b><small>Do a valid small version, not zero.</small></button><button data-ia="go-log"><b>Review my errors</b><small>Use Story Bank and Error Log.</small></button></section>${strict()}`}
+function render() {
+  if (!app.program) return;
+  document.querySelectorAll("[data-ielts-tab]").forEach((button) => {
+    const active = button.dataset.ieltsTab === app.tab;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-selected", String(active));
+  });
+  const context = currentContext();
+  document.querySelector("#ielts-sub").textContent = context.label;
+  syncLabel(app.mode === "cloud" ? "Synced" : app.mode === "local" ? "Local" : "Connecting…");
+  if (app.tab === "course") renderCourse();
+  else if (app.tab === "journey") renderJourney();
+  else if (app.tab === "progress") renderProgress();
+  else renderNow();
+  updateDashboardCard();
+}
+
+function progressBar(value) {
+  return `<span class="ielts-progress" aria-label="${value}% complete"><i style="width:${Math.max(0, Math.min(100, value))}%"></i></span>`;
+}
+
+function taskCard(task) {
+  const state = taskState(task);
+  const status = isDone(task) ? "Completed" : state.status === "progress" ? "In progress" : "Not started";
+  return `
+    <article class="ielts-task-card ${isDone(task) ? "completed" : ""}">
+      <button type="button" data-ielts-action="task" data-task-id="${escapeHtml(task.id)}">
+        <span class="ielts-task-check" aria-hidden="true">${isDone(task) ? "✓" : ""}</span>
+        <span class="ielts-task-copy">
+          <span class="ielts-task-meta">
+            <b class="ielts-kind ${escapeHtml(task.kind)}">${escapeHtml(KIND_LABELS[task.kind] || task.kind)}</b>
+            <i>${escapeHtml(SKILL_LABELS[task.skill])} · ${task.minutes} min</i>
+          </span>
+          <strong>${escapeHtml(task.title)}</strong>
+          <small>${escapeHtml(task.objective)}</small>
+        </span>
+        <span class="ielts-task-status">${status}</span>
+      </button>
+    </article>`;
+}
+
+function renderNow() {
+  const body = document.querySelector("#ielts-body");
+  const context = currentContext();
+  const tasks = context.tasks;
+  const minutes = completedMinutes(tasks);
+  const target = context.targetMinutes || tasks.reduce((sum, task) => sum + task.minutes, 0);
+  const percent = taskProgress(tasks);
+  const next = nextTask(context);
+
+  if (context.type === "monthly-review") {
+    body.innerHTML = `
+      <section class="ielts-now-hero">
+        <div>
+          <small>August · Monthly checkpoint</small>
+          <h3>Turn the month into evidence</h3>
+          <p>Compare baseline and final assessments, then share the complete Joy context with ChatGPT to design September.</p>
+        </div>
+        <button class="ielts-primary" data-ielts-action="assessment">Add assessment</button>
+      </section>
+      ${renderAssessmentComparison()}
+      <section class="ielts-action-panel">
+        <span><small>Next step</small><strong>Prepare the September phase</strong><p>Use progress, recurring errors and course coverage—not task count alone.</p></span>
+        <button data-ielts-action="share">Share full context</button>
+      </section>`;
+    return;
+  }
+
+  body.innerHTML = `
+    <section class="ielts-now-hero">
+      <div>
+        <small>${escapeHtml(context.week ? `Week ${context.week.number} · ${context.week.title}` : context.type === "baseline" ? "1–2 August" : "Preparation")}</small>
+        <h3>${escapeHtml(context.label)}</h3>
+        <p>${escapeHtml(context.objective)}</p>
+      </div>
+      <div class="ielts-time">
+        <strong>${formatMinutes(minutes)}</strong>
+        <small>of ${formatMinutes(target)}</small>
+      </div>
+    </section>
+    <section class="ielts-rhythm-progress">
+      ${progressBar(percent)}
+      <span>${tasks.filter(isDone).length}/${tasks.length} tasks completed</span>
+    </section>
+    ${next ? `
+      <section class="ielts-next">
+        <span>
+          <small>Next task</small>
+          <strong>${escapeHtml(next.title)}</strong>
+          <p>${escapeHtml(KIND_LABELS[next.kind])} · ${next.minutes} min</p>
+        </span>
+        <button class="ielts-primary" data-ielts-action="task" data-task-id="${escapeHtml(next.id)}">Open task</button>
+      </section>` : ""}
+    <section class="ielts-section-heading">
+      <span><small>${escapeHtml(context.type === "prelaunch" ? "Before August" : context.type === "baseline" ? "Input check" : "Current rhythm")}</small><h3>Tasks</h3></span>
+      <button data-ielts-action="import" data-import-rhythm="${escapeHtml(context.id)}">Import from ChatGPT</button>
+    </section>
+    <div class="ielts-task-list">
+      ${tasks.length ? tasks.map(taskCard).join("") : '<p class="ielts-empty-copy">No tasks have been prepared for this rhythm yet.</p>'}
+    </div>`;
+}
+
+function renderCourse() {
+  const body = document.querySelector("#ielts-body");
+  const sessions = [...app.data.courseSessions].sort((a, b) => b.date.localeCompare(a.date));
+  body.innerHTML = `
+    <section class="ielts-course-hero">
+      <div>
+        <small>External Writing Course</small>
+        <h3>Class knowledge becomes learning context</h3>
+        <p>Recordings stay outside Joy. Joy stores the lesson method, feedback, homework and the next application.</p>
+      </div>
+      <button class="ielts-primary" data-ielts-action="import-course">Import lesson notes</button>
+    </section>
+    <div class="ielts-course-schedule">
+      ${app.program.course.schedule.map((item) => `
+        <article>
+          <small>${escapeHtml(item.days)}</small>
+          <strong>${escapeHtml(item.focus)}</strong>
+          <span>External class · actual time counts toward the 6-hour rhythm</span>
+        </article>`).join("")}
+    </div>
+    <section class="ielts-section-heading">
+      <span><small>Course memory</small><h3>Recent sessions</h3></span>
+      <b>${sessions.length} saved</b>
+    </section>
+    <div class="ielts-course-list">
+      ${sessions.length ? sessions.map((session) => `
+        <article>
+          <span class="ielts-course-date">${escapeHtml(formatDate(session.date))}</span>
+          <span>
+            <small>${escapeHtml(session.taskType)} · ${escapeHtml(session.status)}</small>
+            <strong>${escapeHtml(session.title)}</strong>
+            <p>${escapeHtml(session.summary || "Lesson summary has not been added yet.")}</p>
+            ${session.nextPractice ? `<em>Next: ${escapeHtml(session.nextPractice)}</em>` : ""}
+          </span>
+          <button data-ielts-action="course-detail" data-course-id="${escapeHtml(session.id)}">Open</button>
+        </article>`).join("") : `
+        <div class="ielts-empty-state">
+          <strong>No course sessions saved yet</strong>
+          <p>Start with four to six recent Task 1 and Task 2 recordings. Ask ChatGPT to summarise one, then import the result here.</p>
+        </div>`}
+    </div>`;
+}
+
+function renderJourney() {
+  const body = document.querySelector("#ielts-body");
+  const current = currentContext();
+  body.innerHTML = `
+    <section class="ielts-journey-hero">
+      <span><small>Long-term goal</small><h3>Band 7.0 · December 2026</h3><p>August is the first adaptive phase, not the whole plan.</p></span>
+      <strong>7.0</strong>
+    </section>
+    <section class="ielts-phase-row">
+      ${app.program.phases.map((phase) => `
+        <article class="${phase.status}">
+          <span></span>
+          <small>${escapeHtml(phase.month)}</small>
+          <strong>${escapeHtml(phase.title)}</strong>
+          <p>${escapeHtml(phase.outcome)}</p>
+        </article>`).join("")}
+    </section>
+    <section class="ielts-section-heading">
+      <span><small>August · Foundation</small><h3>Four adaptive weeks</h3></span>
+      <b>18 h/week</b>
+    </section>
+    <div class="ielts-week-list">
+      ${allWeeks().map((week) => {
+        const weekTasks = week.rhythms.flatMap((rhythm) => rhythmTasks(rhythm.id));
+        return `
+          <article>
+            <header>
+              <span><small>Week ${week.number} · ${escapeHtml(week.dateRange)}</small><h3>${escapeHtml(week.title)}</h3></span>
+              <strong>${taskProgress(weekTasks)}%</strong>
+            </header>
+            <p>${escapeHtml(week.outcome)}</p>
+            <div>
+              ${week.rhythms.map((rhythm) => `
+                <button class="${current.id === rhythm.id ? "active" : ""}" data-ielts-action="view-rhythm" data-rhythm-id="${escapeHtml(rhythm.id)}">
+                  <small>${escapeHtml(rhythm.label)} · ${escapeHtml(rhythm.days)}</small>
+                  <strong>${escapeHtml(rhythm.objective)}</strong>
+                  <span>${taskProgress(rhythmTasks(rhythm.id))}% · ${formatMinutes(completedMinutes(rhythmTasks(rhythm.id)))}/6h</span>
+                </button>`).join("")}
+            </div>
+          </article>`;
+      }).join("")}
+    </div>`;
+}
+
+function renderAssessmentComparison() {
+  const baseline = baselineAssessment();
+  const latest = latestAssessment();
+  const skills = ["listening", "reading", "writing", "speaking"];
+  return `
+    <div class="ielts-score-grid">
+      ${skills.map((skill) => `
+        <article>
+          <small>${SKILL_LABELS[skill]}</small>
+          <span><b>${baseline?.scores?.[skill] ?? "—"}</b><i>Baseline</i></span>
+          <span><b>${latest?.scores?.[skill] ?? "—"}</b><i>Latest</i></span>
+          <span><b>${skill === "writing" || skill === "speaking" ? "6.5+" : "7.0"}</b><i>Dec target</i></span>
+        </article>`).join("")}
+    </div>`;
+}
+
+function renderProgress() {
+  const body = document.querySelector("#ielts-body");
+  const activeErrors = app.data.errorLogs.filter((error) => error.active).sort((a, b) => b.count - a.count).slice(0, 5);
+  const completed = allTasks().filter(isDone);
+  body.innerHTML = `
+    <section class="ielts-progress-header">
+      <span><small>Evidence, not task count</small><h3>Progress toward Band 7.0</h3><p>Band estimates are checkpoints. Course attendance and completed tasks are supporting evidence, not scores.</p></span>
+      <button class="ielts-primary" data-ielts-action="assessment">Add assessment</button>
+    </section>
+    ${renderAssessmentComparison()}
+    <div class="ielts-progress-columns">
+      <section>
+        <header><span><small>Patterns</small><h3>Recurring errors</h3></span><button data-ielts-action="error">Add error</button></header>
+        <div class="ielts-error-list">
+          ${activeErrors.length ? activeErrors.map((error) => `
+            <article>
+              <span class="ielts-skill-dot ${escapeHtml(error.skill)}"></span>
+              <span><small>${escapeHtml(SKILL_LABELS[error.skill])} · ${error.count}×</small><strong>${escapeHtml(error.label)}</strong><p>${escapeHtml(error.action || error.cause)}</p></span>
+            </article>`).join("") : '<p class="ielts-empty-copy">Recurring errors will appear after baseline and task reviews.</p>'}
+        </div>
+      </section>
+      <section>
+        <header><span><small>Consistency</small><h3>Learning evidence</h3></span></header>
+        <dl class="ielts-evidence-stats">
+          <div><dt>Recorded time</dt><dd>${formatMinutes(completedMinutes(completed))}</dd></div>
+          <div><dt>Tasks completed</dt><dd>${completed.length}</dd></div>
+          <div><dt>Course sessions</dt><dd>${app.data.courseSessions.length}</dd></div>
+          <div><dt>Assessments</dt><dd>${app.data.assessments.length}</dd></div>
+        </dl>
+      </section>
+    </div>`;
+}
+
+function formatMinutes(minutes) {
+  const value = Math.max(0, Math.round(Number(minutes) || 0));
+  const hours = Math.floor(value / 60);
+  const rest = value % 60;
+  if (!hours) return `${rest}m`;
+  if (!rest) return `${hours}h`;
+  return `${hours}h ${rest}m`;
+}

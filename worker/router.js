@@ -9,10 +9,6 @@ import {
   isFinanceLedgerRoute,
 } from "./finance-with-seed.js";
 import {
-  handleIeltsDiagnosticReviewRequest,
-  isIeltsDiagnosticReviewRoute,
-} from "./ielts-diagnostic-review.js";
-import {
   handleIeltsCoreRequest,
   isIeltsCoreRoute,
   runIeltsSchedule,
@@ -112,9 +108,6 @@ export default {
       }
       if (isVocabularyRoute(pathname)) {
         return handleVocabularyRequest(request, env);
-      }
-      if (isIeltsDiagnosticReviewRoute(pathname)) {
-        return handleIeltsDiagnosticReviewRequest(request, env);
       }
       if (isGoogleAuthRoute(pathname)) {
         return handleGoogleAuthRequest(request, env);
