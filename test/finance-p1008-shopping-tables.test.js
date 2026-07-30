@@ -49,8 +49,8 @@ test("P1008 shopping two-table layout matches the service table card language", 
 
 test("canonical build loads the two-table refinement after the shopping module", () => {
   const baseScript = "finance-p1008-shopping-v1.js?v=joy-finance-p1008-shopping-v1";
-  const tablesScript = "finance-p1008-shopping-tables-v1.js?v=joy-finance-p1008-shopping-tables-v1";
+  const tablesScript = "finance-p1008-shopping-tables-v1.js?v=joy-finance-p1008-shopping-tables-v2";
   assert.match(buildSource, /finance-p1008-shopping-tables-v1\.css\?v=joy-finance-p1008-shopping-tables-v1/);
-  assert.match(buildSource, /finance-p1008-shopping-tables-v1\.js\?v=joy-finance-p1008-shopping-tables-v1/);
+  assert.match(buildSource, /finance-p1008-shopping-tables-v1\.js\?v=joy-finance-p1008-shopping-tables-v2/);
   assert.ok(buildSource.indexOf(baseScript) < buildSource.indexOf(tablesScript));
 });
