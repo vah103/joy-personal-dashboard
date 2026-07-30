@@ -9,7 +9,7 @@ async function source(path) {
 }
 
 test("Daily Brief is wired into the Worker and dashboard", async () => {
-  const [service, policy, budget, router, wrangler, dashboard, script, baseStyles, dailyStyles, compatibility, build] = await Promise.all([
+  const [service, policy, budget, router, wrangler, dashboard, script, baseStyles, dailyStyles, build] = await Promise.all([
     source("worker/daily-brief.js"),
     source("worker/daily-brief-policy.js"),
     source("worker/daily-brief-budget.js"),
@@ -19,7 +19,6 @@ test("Daily Brief is wired into the Worker and dashboard", async () => {
     source("src/features/greeting/greeting-layout.js"),
     source("src/features/greeting/greeting-layout.css"),
     source("src/features/greeting/daily-brief.css"),
-    source("src/features/greeting/daily-brief-polish.js"),
     source("scripts/build.mjs"),
   ]);
 
@@ -35,8 +34,9 @@ test("Daily Brief is wired into the Worker and dashboard", async () => {
   assert.match(router, /runDailyBriefSchedule/);
   assert.match(wrangler, /"ai"\s*:\s*\{\s*"binding"\s*:\s*"AI"/s);
   assert.match(dashboard, /greeting-layout\.css\?v=joy-daily-brief-v4/);
+  assert.match(dashboard, /daily-brief\.css\?v=joy-daily-brief-v5/);
   assert.match(dashboard, /greeting-layout\.js\?v=joy-daily-brief-v4/);
-  assert.match(dashboard, /daily-brief-polish\.js\?v=joy-daily-brief-polish-v2/);
+  assert.doesNotMatch(dashboard, /daily-brief-polish\.js/);
   assert.match(script, /window\.fetch\("\/api\/daily-brief"/);
   assert.match(script, /daily-brief-drawer/);
   assert.match(script, /const ROTATION_MS = 20_000/);
@@ -53,11 +53,8 @@ test("Daily Brief is wired into the Worker and dashboard", async () => {
   assert.match(dailyStyles, /margin: 5px 0 0/);
   assert.match(dailyStyles, /padding: 4px 0 0/);
   assert.match(dailyStyles, /data-category="ai"/);
-  assert.doesNotMatch(compatibility, /createElement\("style"\)/);
-  assert.doesNotMatch(compatibility, /querySelectorAll\("\.daily-brief-drawer-body/);
-  assert.match(compatibility, /daily-brief\.css\?v=joy-daily-brief-v5/);
   assert.match(build, /"daily-brief\.css"/);
-  assert.match(build, /"daily-brief-polish\.js"/);
+  assert.doesNotMatch(build, /daily-brief-polish\.js/);
   assert.match(baseStyles, /\.joy-brief\.daily-brief-enabled/);
   assert.match(baseStyles, /\.daily-brief-drawer-backdrop/);
 });
