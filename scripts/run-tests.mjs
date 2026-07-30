@@ -87,44 +87,20 @@ const syntaxChecks = [
   "src/pwa/sw.js",
   "scripts/build.mjs",
   "scripts/deploy-clean-main.mjs",
-  "scripts/patch-finance-core-amount.mjs",
   "scripts/run-feature-tests.mjs",
   "scripts/validate-ielts-sources.mjs",
 ];
 
 const created = [];
 
-async function inspect(path) {
+async function exists(path) {
   try {
-    return await lstat(path);
+    await lstat(path);
+    return true;
   } catch (error) {
-    if (error?.code === "ENOENT") return null;
+    if (error?.code === "ENOENT") return false;
     throw error;
   }
-}
-
-async function prepareCompatibilityLink(legacyPath, sourcePath) {
-  const legacy = resolve(root, legacyPath);
-  const source = resolve(root, sourcePath);
-  const existing = await inspect(legacy);
-
-  if (existing && !existing.isSymbolicLink()) {
-    throw new Error(
-      `Compatibility path ${legacyPath} already exists as a real file or directory. `
-      + "Move or remove it before running the test suite.",
-    );
-  }
-
-  if (existing) {
-    // A previous interrupted test run may have left this managed symlink behind.
-    await rm(legacy, { recursive: true, force: true });
-  }
-
-  await mkdir(dirname(legacy), { recursive: true });
-  const target = relative(dirname(legacy), source) || ".";
-  const type = legacyPath === "modules" || legacyPath === "sale-fonts" ? "dir" : "file";
-  await symlink(target, legacy, type);
-  created.push(legacy);
 }
 
 function runNode(args) {
@@ -140,7 +116,14 @@ function runNode(args) {
 
 try {
   for (const [legacyPath, sourcePath] of compatibilityPaths) {
-    await prepareCompatibilityLink(legacyPath, sourcePath);
+    const legacy = resolve(root, legacyPath);
+    const source = resolve(root, sourcePath);
+    if (await exists(legacy)) continue;
+    await mkdir(dirname(legacy), { recursive: true });
+    const target = relative(dirname(legacy), source) || ".";
+    const type = legacyPath === "modules" || legacyPath === "sale-fonts" ? "dir" : "file";
+    await symlink(target, legacy, type);
+    created.push(legacy);
   }
 
   for (const path of syntaxChecks) {
@@ -153,7 +136,5 @@ try {
 
   if (!process.exitCode) process.exitCode = await runNode(["--test"]);
 } finally {
-  await Promise.allSettled(
-    created.reverse().map((path) => rm(path, { recursive: true, force: true })),
-  );
+  await Promise.allSettled(created.reverse().map((path) => rm(path, { recursive: true, force: true })));
 }

@@ -4,6 +4,11 @@ const initialPrivacyToggle = document.querySelector("[data-action='toggle-financ
 const FINANCE_CLOUD_BACKEND = document.querySelector('meta[name="joy-backend"]')?.content === "cloudflare";
 const FINANCE_YEAR = 2026;
 const FINANCE_REVEAL_MS = 60_000;
+const financeAmount = window.JoyFinanceAmount;
+
+if (!financeAmount) {
+  throw new Error("Joy Finance amount parser is not loaded");
+}
 
 const FALLBACK_CATEGORIES = {
   income: [
@@ -146,7 +151,7 @@ function financeWorkspaceMarkup() {
             <button type="button" class="active" data-entry-type="expense">Expense</button>
             <button type="button" data-entry-type="income">Income</button>
           </div>
-          <label class="finance-amount-label"><span>Amount</span><div><input name="amount" type="number" min="1" step="1000" inputmode="numeric" placeholder="0" required><b>₫</b></div></label>
+          <label class="finance-amount-label"><span>Amount</span><div><input name="amount" type="text" inputmode="numeric" autocomplete="off" placeholder="50 = 50.000 ₫" required><b>₫</b></div></label>
           <div class="finance-form-grid">
             <label>Date<input name="occurred_on" type="date" required></label>
             <label>Status<select name="status"><option value="actual">Actual</option><option value="planned">Planned</option></select></label>
@@ -402,7 +407,7 @@ function renderInlineComposer(category, type) {
         </div>
       ` : ""}
       <div class="finance-ledger-input-row">
-        <label><span>Amount</span><div><input name="amount" type="number" min="1" step="1000" inputmode="numeric" placeholder="0" required><b>₫</b></div></label>
+        <label><span>Amount</span><div><input name="amount" type="text" inputmode="numeric" autocomplete="off" placeholder="50 = 50.000 ₫" required><b>₫</b></div></label>
         <label class="finance-ledger-note-field"><span>Note</span><input name="note" type="text" maxlength="120" placeholder="Optional"></label>
         <button class="finance-ledger-add-button" type="submit">Add ${type}</button>
       </div>
@@ -445,7 +450,7 @@ function bindInlineCategoryForms(content) {
 async function saveInlineTransaction(event, item) {
   event.preventDefault();
   const form = event.currentTarget;
-  const amount = Number(form.elements.amount?.value || 0);
+  const amount = financeAmount.parse(form.elements.amount?.value);
   const note = String(form.elements.note?.value || "").trim();
   const selectedSubcategory = form.querySelector("[data-ledger-subcategory].is-selected")?.dataset.ledgerSubcategory || "";
   const type = item.dataset.type;
@@ -582,7 +587,7 @@ function openEntryForm(type = "expense", transaction = null) {
   form.reset();
   form.elements.id.value = editingTransactionId;
   form.elements.occurred_on.value = transaction?.occurred_on || defaultDateForSelectedMonth();
-  form.elements.amount.value = transaction?.amount || "";
+  form.elements.amount.value = transaction ? financeAmount.inputValue(transaction.amount) : "";
   form.elements.status.value = transaction?.status || (selectedMonth > vietnamMonthKey() ? "planned" : "actual");
   form.elements.note.value = transaction?.note || "";
   setEntryType(transaction?.type || type, transaction?.category, transaction?.subcategory);
@@ -628,9 +633,14 @@ async function saveFinanceTransaction(event) {
   event.preventDefault();
   const form = event.currentTarget;
   const submit = form.querySelector("button[type='submit']");
-  submit.disabled = true;
   const payload = Object.fromEntries(new FormData(form));
-  payload.amount = Number(payload.amount);
+  payload.amount = financeAmount.parse(payload.amount);
+  if (!Number.isFinite(payload.amount)) {
+    showFinanceToast("Enter a valid amount.");
+    form.elements.amount?.focus();
+    return;
+  }
+  submit.disabled = true;
   delete payload.id;
   const wasEditing = Boolean(editingTransactionId);
 
