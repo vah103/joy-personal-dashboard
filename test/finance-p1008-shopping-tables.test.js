@@ -6,6 +6,8 @@ const tablesSource = await readFile(new URL("../project-data/finance/finance-p10
 const tablesStyles = await readFile(new URL("../project-data/finance/finance-p1008-shopping-tables-v1.css", import.meta.url), "utf8");
 const shoppingSource = await readFile(new URL("../project-data/finance/finance-p1008-shopping-v1.js", import.meta.url), "utf8");
 const buildSource = await readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8");
+const cacheSource = await readFile(new URL("../scripts/cache-bust-p1008-shopping-tables.mjs", import.meta.url), "utf8");
+const packageSource = await readFile(new URL("../package.json", import.meta.url), "utf8");
 
 test("P1008 shopping keeps monthly manual entry behind a compact add control", () => {
   assert.doesNotThrow(() => new Function(tablesSource));
@@ -54,10 +56,11 @@ test("shopping refinement removes the separate shopping summary", () => {
   assert.match(tablesStyles, /\.p1008-shopping-summary[\s\S]*display: none !important/);
 });
 
-test("canonical build loads the service-matched refinement after the shopping module", () => {
+test("canonical build loads and cache-refreshes the service-matched refinement", () => {
   const baseScript = "finance-p1008-shopping-v1.js?v=joy-finance-p1008-shopping-v1";
-  const tablesScript = "finance-p1008-shopping-tables-v1.js?v=joy-finance-p1008-shopping-tables-v3";
-  assert.match(buildSource, /finance-p1008-shopping-tables-v1\.css\?v=joy-finance-p1008-shopping-tables-v3/);
-  assert.match(buildSource, /finance-p1008-shopping-tables-v1\.js\?v=joy-finance-p1008-shopping-tables-v3/);
+  const tablesScript = "finance-p1008-shopping-tables-v1.js?v=joy-finance-p1008-shopping-tables-v2";
   assert.ok(buildSource.indexOf(baseScript) < buildSource.indexOf(tablesScript));
+  assert.match(cacheSource, /finance-p1008-shopping-tables-v1\.css\?v=joy-finance-p1008-shopping-tables-v3/);
+  assert.match(cacheSource, /finance-p1008-shopping-tables-v1\.js\?v=joy-finance-p1008-shopping-tables-v3/);
+  assert.match(packageSource, /cache-bust-p1008-shopping-tables\.mjs/);
 });
