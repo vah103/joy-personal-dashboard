@@ -3,17 +3,22 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "build": "node scripts/validate-ielts-sources.mjs && node scripts/build.mjs && node scripts/build-finance-bundle.mjs",
     "test": "node scripts/run-tests.mjs",
     "audit:prod": "npm audit --omit=dev --audit-level=high",
     "audit:all": "npm audit --audit-level=high",
-    "verify": "npm run audit:prod && npm run audit:all && npm test && npm run build",
+    "db:migrate:smoke": "node scripts/validate-d1-migrations.mjs",
+    "db:migrate:check:remote": "node scripts/check-remote-d1-migrations.mjs",
+    "verify": "npm run audit:prod && npm run audit:all && npm run db:migrate:smoke && npm test && npm run build",
     "test:finance": "node scripts/run-feature-tests.mjs finance",
     "test:ielts": "node scripts/run-feature-tests.mjs ielts",
     "dev": "npm run build && wrangler dev",
     "deploy": "node scripts/deploy-clean-main.mjs",
-    "deploy:current": "npm run verify && wrangler deploy",
+    "deploy:current": "npm run verify && npm run db:migrate:check:remote && wrangler deploy",
     "db:migrate:local": "wrangler d1 migrations apply joy-dashboard --local",
     "db:migrate:remote": "wrangler d1 migrations apply joy-dashboard --remote"
   },
