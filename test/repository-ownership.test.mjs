@@ -61,6 +61,7 @@ test("D1 table ownership stays in migrations instead of Worker requests", async 
     "google_integrations",
     "ielts_core_states",
     "ielts_notification_state",
+    "project_hubs",
   ]) {
     assert.match(migration, new RegExp(`CREATE TABLE IF NOT EXISTS ${table}`));
   }
