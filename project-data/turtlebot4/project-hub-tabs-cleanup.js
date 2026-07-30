@@ -1,5 +1,7 @@
 (() => {
   const previousRenderHub = renderHub;
+  let docsCommands = [];
+  let docsCommandsLoaded = false;
 
   function removeJournalTab() {
     const journalButton = document.querySelector('#turtlebot-hub-modal [data-hub-tab="journal"]');
@@ -50,28 +52,69 @@
     dockTabsInHeader(nav);
   }
 
-  function renderEmptyCommands() {
-    hubElements.body.innerHTML = "";
+  function clearLegacyCommandOverrides() {
+    const edits = hubState.overrides?.commandEdits;
+    const custom = hubState.overrides?.customCommands;
+    const hasLegacy = Boolean(
+      (edits && Object.keys(edits).length)
+      || (Array.isArray(custom) && custom.length),
+    );
+    if (!hasLegacy) return;
+
+    hubState.overrides.commandEdits = {};
+    hubState.overrides.customCommands = [];
+    if (typeof storeLocalOverrides === "function") storeLocalOverrides();
+    if (typeof scheduleHubSave === "function") scheduleHubSave();
+  }
+
+  function docsOnlyCommands() {
+    return docsCommandsLoaded ? docsCommands : [];
+  }
+
+  mergedCommands = docsOnlyCommands;
+
+  function removeLegacyCommandControls() {
+    const body = hubElements.body;
+    if (!body) return;
+    body.querySelector('[data-hub-action="add-command"]')?.remove();
+    body.querySelectorAll('[data-hub-action="edit-command"]').forEach((button) => button.remove());
+
+    const sourceLabel = body.querySelector(".hub-command-toolbar p");
+    if (sourceLabel) sourceLabel.textContent = "Google Docs command tab";
+  }
+
+  async function loadDocsCommands() {
+    try {
+      const response = await fetch(
+        "/project-data/turtlebot4/commands-docs.json?v=turtlebot-doc-commands-v1",
+        { cache: "no-store" },
+      );
+      if (!response.ok) throw new Error(`Command source returned ${response.status}`);
+      const payload = await response.json();
+      docsCommands = Array.isArray(payload?.commands) ? payload.commands : [];
+      docsCommandsLoaded = true;
+      if (hubState.source) hubState.source.commands = payload;
+    } catch (error) {
+      console.error("Joy could not load the Google Docs command source", error);
+      docsCommands = Array.isArray(hubState.source?.commands?.commands)
+        ? hubState.source.commands.commands
+        : [];
+      docsCommandsLoaded = true;
+    }
+
+    clearLegacyCommandOverrides();
+    if (hubState.activeTab === "commands" && !hubElements.modal?.hidden) renderHub();
   }
 
   renderHub = () => {
     arrangeTabs();
-
-    if (hubState.activeTab === "commands") {
-      hubElements.tabs.forEach((button) => {
-        const active = button.dataset.hubTab === "commands";
-        button.classList.toggle("active", active);
-        button.setAttribute("aria-selected", String(active));
-      });
-      updateHubStatus();
-      renderEmptyCommands();
-      return;
-    }
-
+    clearLegacyCommandOverrides();
     previousRenderHub();
+    if (hubState.activeTab === "commands") removeLegacyCommandControls();
     arrangeTabs();
   };
 
   arrangeTabs();
+  loadDocsCommands();
   if (!hubElements.modal?.hidden) renderHub();
 })();
