@@ -20,7 +20,7 @@
   const HISTORY_TITLE = "Stage 3 navigation benchmark completed";
 
   function applyProgressUpdate() {
-    const plan = window.hubState?.projectState;
+    const plan = hubState?.projectState;
     if (!plan || plan.project?.totalWeeks !== 12) return false;
 
     plan.updatedAt = "2026-07-30";
@@ -51,19 +51,19 @@
       });
     }
 
-    window.hubState.overrides = window.normalizeOverrides(window.hubState.overrides);
-    window.hubState.overrides.checklist ||= {};
-    window.hubState.overrides.planTasks ||= {};
+    hubState.overrides = normalizeOverrides(hubState.overrides);
+    hubState.overrides.checklist ||= {};
+    hubState.overrides.planTasks ||= {};
     STAGE_3_CHECKLIST_IDS.forEach((id) => {
-      window.hubState.overrides.checklist[id] = true;
+      hubState.overrides.checklist[id] = true;
     });
     STAGE_3_SCHEDULE_TASK_IDS.forEach((id) => {
-      window.hubState.overrides.planTasks[id] = true;
+      hubState.overrides.planTasks[id] = true;
     });
 
-    window.storeLocalOverrides();
-    window.updateTurtleBotCard();
-    if (!window.hubElements?.modal?.hidden) window.renderHub();
+    storeLocalOverrides();
+    updateTurtleBotCard();
+    if (!hubElements?.modal?.hidden) renderHub();
     return true;
   }
 
