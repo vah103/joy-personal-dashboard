@@ -6,13 +6,13 @@ const root = new URL("../", import.meta.url);
 const read = (path) => fs.readFileSync(new URL(path, root), "utf8");
 
 test("IELTS dashboard card preserves the original artwork and opens the new journey", () => {
-  const build = read("scripts/build.mjs");
+  const dashboard = read("src/pages/dashboard/index.html");
   const css = read("project-data/ielts/ielts-card.css");
   const script = read("src/features/ielts/card.js");
 
-  assert.match(build, /ielts-card\.css\?v=ielts-journey-v5/);
-  assert.match(build, /ielts-core\.css\?v=ielts-journey-v4/);
-  assert.match(build, /ielts-core-bundle\.js\?v=ielts-journey-v4/);
+  assert.match(dashboard, /ielts-card\.css\?v=ielts-journey-v5/);
+  assert.match(dashboard, /ielts-core\.css\?v=ielts-journey-v4/);
+  assert.match(dashboard, /ielts-core-bundle\.js\?v=ielts-journey-v4/);
   assert.match(script, /Band 7 by December/);
   assert.match(script, /Target Band 7\.0/);
   assert.match(script, /CURRENT RHYTHM/);
