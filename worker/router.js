@@ -13,6 +13,10 @@ import {
   isFinanceP1008Route,
 } from "./finance-p1008-sync.js";
 import {
+  handleFinanceP1008ShoppingRequest,
+  isFinanceP1008ShoppingRoute,
+} from "./finance-p1008-shopping.js";
+import {
   handleIeltsCoreRequest,
   isIeltsCoreRoute,
   runIeltsSchedule,
@@ -88,6 +92,9 @@ export default {
     try {
       if (isDailyBriefRoute(pathname)) {
         return handleDailyBriefRequest(request, env, ctx);
+      }
+      if (isFinanceP1008ShoppingRoute(pathname)) {
+        return handleFinanceP1008ShoppingRequest(request, env);
       }
       if (isFinanceP1008Route(pathname)) {
         return handleFinanceP1008Request(request, env);
