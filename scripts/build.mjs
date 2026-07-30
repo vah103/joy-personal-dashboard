@@ -112,6 +112,7 @@ async function copyFontWithNunitoFallback(family, file, weight) {
 }
 
 const dashboardAppSourceFiles = [
+  "app-config.js",
   "app-helpers.js",
   "app-state.js",
   "app-scratchpad.js",
