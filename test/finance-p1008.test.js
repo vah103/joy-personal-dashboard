@@ -33,7 +33,31 @@ test("P1008 keeps shopping pending until the monthly day-15 close", () => {
 });
 
 test("P1008 uses OpenAI Sans headings and Nunito body text", () => {
-  assert.match(styles, /font-family:"Nunito"/);
-  assert.match(styles, /font-family:"OpenAI Sans"/);
-  assert.match(styles, /\.p1008-view h2,\.p1008-view h3/);
+  assert.match(styles, /font-family: "Nunito"/);
+  assert.match(styles, /font-family: "OpenAI Sans"/);
+  assert.match(styles, /\.p1008-view h2,/);
+  assert.match(styles, /\.p1008-view h3,/);
+});
+
+test("P1008 service table is compact and removes row notes", () => {
+  assert.match(source, /<h3>Tiền dịch vụ<\/h3>/);
+  assert.match(source, /<th>Hạng mục<\/th><th>Tiền<\/th><th>Chia cho<\/th><th>Mỗi người<\/th>/);
+  assert.match(source, /class="p1008-share-count">\$\{eligible\.length\}<\/td>/);
+  assert.doesNotMatch(source, /eligible\.join\(" · "\)/);
+  assert.doesNotMatch(source, /xấp xỉ, chênh tối đa 1 ₫/);
+  assert.match(styles, /\.p1008-services-card \{/);
+  assert.match(styles, /width: min\(860px, 100%\)/);
+});
+
+test("P1008 formats money with thousand separators while typing", () => {
+  assert.match(source, /addEventListener\("input", \(\) => formatMoneyInput\(input\)\)/);
+  assert.match(source, /replace\(\/\\D\/g, ""\)/);
+  assert.match(source, /input\.value = Number\.isSafeInteger\(amount\) \? formatNumber\(amount\) : ""/);
+  assert.doesNotMatch(source, /amount \* 1_000/);
+});
+
+test("P1008 overview uses larger readable typography", () => {
+  assert.match(styles, /\.p1008-summary strong \{[\s\S]*font-size: 29px/);
+  assert.match(styles, /\.p1008-summary span \{[\s\S]*font-size: 11px/);
+  assert.match(styles, /\.p1008-card table \{[\s\S]*font-size: 11px/);
 });
