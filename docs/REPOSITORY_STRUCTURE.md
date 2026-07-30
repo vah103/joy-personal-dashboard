@@ -11,25 +11,31 @@ joy-personal-dashboard/
 │   │   ├── auth/               # Account and integration controls
 │   │   ├── finance/            # Finance dashboard behavior and styling
 │   │   ├── greeting/           # Daily Brief layout and polish
-│   │   ├── ielts/              # IELTS Coach source, baseline, AI review, and rewrite
+│   │   ├── ielts/              # IELTS Journey source and learning state UI
+│   │   ├── motion/             # Dashboard entry animation
 │   │   ├── notifications/      # Web Push client, mobile styling, weather status
 │   │   ├── project-details/    # Project detail modal
 │   │   ├── project-hub/        # TurtleBot4 Project Hub and card artwork
 │   │   ├── sales/              # Sales assistant and appointment behavior
 │   │   ├── tasks/              # To-do visibility, English rewrite, and reminders
+│   │   ├── theme/              # Shared dashboard typography overrides
 │   │   └── weather/            # Dashboard weather forecast helper
 │   ├── assets/
 │   │   ├── icons/              # App icons, favicon, and wolf mark
 │   │   └── fonts/nunito/       # Bundled Nunito font files
 │   └── pwa/                    # Manifest and service worker
 ├── project-data/
-│   ├── ielts/                  # Public curriculum JSON, styles, and card artwork
-│   └── turtlebot4/             # TurtleBot4 project data and public assets
-├── worker/                     # Cloudflare API and scheduled jobs
+│   ├── finance/                # Finance layouts and P1008 assets
+│   ├── ielts/                  # IELTS program JSON, styles, and card artwork
+│   ├── speaking/               # Speaking practice runtime assets
+│   ├── turtlebot4/             # TurtleBot4 project data and public assets
+│   └── vocabulary/             # Vocabulary practice runtime assets
+├── worker/                     # Cloudflare APIs, authentication, and scheduled jobs
 ├── migrations/                 # D1 schema migrations
-├── scripts/                    # Build, source validation, and test runner
+├── scripts/                    # Build, validation, deployment, cache, and test utilities
 ├── test/                       # Regression tests
 ├── docs/                       # Setup and architecture documentation
+├── .github/workflows/          # Automated test and build checks
 ├── package.json
 ├── package-lock.json
 └── wrangler.jsonc
@@ -37,13 +43,17 @@ joy-personal-dashboard/
 
 ## Build behavior
 
-`scripts/build.mjs` reads source files from `src/` and writes stable public filenames into `dist/`. This keeps existing browser URLs, service-worker paths, app icons, and Cloudflare asset routes unchanged after repository reorganization.
+`scripts/build.mjs` reads source files from `src/`, copies stable public project data from `project-data/`, and writes deployable assets into `dist/`. Existing browser URLs, service-worker paths, app icons, and Cloudflare asset routes remain stable after source reorganization.
 
-The IELTS source is maintained in `src/features/ielts/`. Its core files are combined into one isolated browser bundle during the build, while curriculum JSON and public styles remain in `project-data/ielts/`.
+The IELTS source is maintained in `src/features/ielts/`. Its core files are combined into one isolated browser bundle during the build, while program JSON and public styles remain in `project-data/ielts/`.
 
 ## Test compatibility
 
-Some older regression tests intentionally inspect the previous root filenames. `scripts/run-tests.mjs` creates temporary local symlinks while tests run and removes them afterward. These compatibility files are never committed and do not clutter the repository.
+Some older regression tests intentionally inspect previous root filenames. `scripts/run-tests.mjs` creates temporary symlinks while tests run and removes them afterward. Before creating them, it removes managed symlinks left by an interrupted earlier run. A real file or directory occupying a compatibility path causes a clear failure instead of silently testing stale code.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs the regression suite, production build, and a Wrangler dry run for pull requests and pushes to `main`.
 
 ## Removed fallback
 
