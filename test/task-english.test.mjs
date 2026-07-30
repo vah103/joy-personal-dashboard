@@ -24,12 +24,11 @@ async function loadTaskEnglishApi() {
 }
 
 test("new to-do items and reminder titles are rewritten into natural English", async () => {
-  const [worker, router, helper, build, cacheBust, packageJson] = await Promise.all([
+  const [worker, router, helper, build, packageJson] = await Promise.all([
     source("worker/task-english.js"),
     source("worker/router.js"),
     source("src/features/tasks/task-english.js"),
     source("scripts/build.mjs"),
-    source("scripts/cache-bust-task-english.mjs"),
     source("package.json"),
   ]);
 
@@ -63,10 +62,9 @@ test("new to-do items and reminder titles are rewritten into natural English", a
   assert.match(helper, /const localTitle = fallbackEnglish\(original\)/);
   assert.match(helper, /const withoutLeadingGo = actionOnly\.replace/);
   assert.match(helper, /it was not added/);
-  assert.match(build, /task-english\.js\?v=joy-task-english-v5/);
+  assert.match(build, /task-english\.js\?v=joy-task-english-v7/);
   assert.match(build, /resolve\(features, "tasks", "task-english\.js"\)/);
-  assert.match(cacheBust, /joy-task-english-v7/);
-  assert.match(packageJson, /cache-bust-task-english\.mjs/);
+  assert.doesNotMatch(packageJson, /cache-bust-task-english\.mjs/);
 });
 
 test("task English rejects unauthenticated requests before using AI", async () => {
