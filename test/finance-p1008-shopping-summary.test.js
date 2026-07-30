@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const source = await readFile(new URL("../project-data/finance/finance-p1008-shopping-tables-v1.js", import.meta.url), "utf8");
-const build = await readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8");
+const dashboard = await readFile(new URL("../src/pages/dashboard/index.html", import.meta.url), "utf8");
 
 test("P1008 shopping has a service-style three-card summary", () => {
   assert.match(source, /updateShoppingSummary/);
@@ -24,6 +24,6 @@ test("P1008 shopping summary recalculates from monthly item data", () => {
   assert.match(source, /\$\{items\.length\} món trong tháng/);
 });
 
-test("canonical build refreshes the shopping table script cache key", () => {
-  assert.match(build, /finance-p1008-shopping-tables-v1\.js\?v=joy-finance-p1008-shopping-tables-v2/);
+test("canonical dashboard refreshes the shopping table script cache key", () => {
+  assert.match(dashboard, /finance-p1008-shopping-tables-v1\.js\?v=joy-finance-p1008-shopping-tables-v2/);
 });
