@@ -34,7 +34,7 @@ test("maps an empty scratchpad account", () => {
 });
 
 test("worker exposes authenticated Scratchpad routes", () => {
-  const source = fs.readFileSync(new URL("../worker/index.js", import.meta.url), "utf8");
+  const source = fs.readFileSync(new URL("../worker/dashboard-data.js", import.meta.url), "utf8");
   assert.ok(source.includes('pathname === "/api/scratchpad"'));
   assert.ok(source.includes("async function getScratchpad"));
   assert.ok(source.includes("async function updateScratchpad"));
