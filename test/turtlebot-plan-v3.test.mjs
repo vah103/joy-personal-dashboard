@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const runtimePath = resolve(root, "project-data/turtlebot4/project-plan-v3-ui.js");
-const loaderPath = resolve(root, "src/features/project-hub/project-hub-performance.js");
+const loaderPath = resolve(root, "src/features/project-hub/turtlebot-plan-loader.js");
 const vietnameseCharacters = /[ăâđêôơưàáạảãèéẹẻẽìíịỉĩòóọỏõùúụủũỳýỵỷỹ]/i;
 
 test("TurtleBot New Plan drives a 12-week schedule with Week 3 current", async () => {

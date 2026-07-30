@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const referencePath = resolve(root, "project-data/turtlebot4/project-plan-v3-reference-ui.js");
-const loaderPath = resolve(root, "src/features/project-hub/project-hub-performance.js");
+const loaderPath = resolve(root, "src/features/project-hub/turtlebot-plan-loader.js");
 const fontPath = resolve(root, "src/features/project-details/turtlebot-roadmap-font.css");
 
 test("TurtleBot plan renders flexible reference periods in Nunito", async () => {

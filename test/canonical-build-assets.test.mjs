@@ -33,7 +33,10 @@ test("build emits final production asset versions directly", () => {
     "finance-p1008-capture-v2.css?v=joy-finance-p1008-capture-v2",
     "task-english.js?v=joy-task-english-v7",
     "task-natural-input.js?v=joy-natural-reminders-v2",
-    "project-hub-performance.js?v=turtlebot-hub-v7",
+    "speaking-loader.js?v=joy-speaking-loader-v1",
+    "vocabulary-loader.js?v=joy-vocabulary-loader-v1",
+    "project-hub-performance.js?v=turtlebot-hub-lifecycle-v1",
+    "turtlebot-plan-loader.js?v=turtlebot-plan-loader-v1",
   ]) {
     assert.match(build, new RegExp(reference.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }

@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const mobilePath = resolve(root, "project-data/vocabulary/vocabulary-mobile-inline.js");
-const loaderPath = resolve(root, "src/features/project-hub/project-hub-performance.js");
+const loaderPath = resolve(root, "src/features/vocabulary/vocabulary-loader.js");
 
 const [mobile, loader] = await Promise.all([
   readFile(mobilePath, "utf8"),
@@ -29,9 +29,10 @@ test("The Words navigation control scrolls to the inline card instead of opening
 
 test("Vocabulary mobile enhancement loads before the Say it integration", () => {
   const mobileIndex = loader.indexOf("vocabulary-mobile-inline.js");
-  const speakingIndex = loader.indexOf("loadSpeaking();", mobileIndex);
+  const speakingIndex = loader.indexOf("loadSpeaking", mobileIndex);
   assert.ok(mobileIndex >= 0);
   assert.ok(speakingIndex > mobileIndex);
+  assert.match(loader, /JoySpeakingLoader\?\.load/);
 });
 
 test("Vocabulary mobile JavaScript files pass syntax checks", () => {
