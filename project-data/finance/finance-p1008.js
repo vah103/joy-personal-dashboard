@@ -92,18 +92,18 @@
         </aside>
       `}
 
-      <section class="p1008-card">
+      <section class="p1008-card p1008-services-card">
         <header>
-          <div><p>Bảng 1</p><h3>Chia tiền dịch vụ</h3></div>
+          <h3>Tiền dịch vụ</h3>
           <span class="p1008-local-state">Lưu trên thiết bị này</span>
         </header>
         <div class="p1008-table-wrap">
           <table class="p1008-services-table">
-            <thead><tr><th>Hạng mục</th><th>Tổng tiền</th><th>Chia cho</th><th>Mỗi người</th></tr></thead>
+            <thead><tr><th>Hạng mục</th><th>Tiền</th><th>Chia cho</th><th>Mỗi người</th></tr></thead>
             <tbody>
-              ${SERVICES.map((service) => renderServiceRow(service, selectedMonth, amounts, split)).join("")}
+              ${SERVICES.map((service) => renderServiceRow(service, selectedMonth, amounts)).join("")}
             </tbody>
-            <tfoot><tr><th>Tổng dịch vụ</th><td>${formatVnd(serviceTotal)}</td><td colspan="2">Bảng bên dưới là số tiền chính xác của từng người</td></tr></tfoot>
+            <tfoot><tr><th>Tổng</th><td>${formatVnd(serviceTotal)}</td><td></td><td></td></tr></tfoot>
           </table>
         </div>
       </section>
@@ -145,17 +145,18 @@
     const eligible = eligiblePeople(service, monthKey);
     const amount = amounts[service.id];
     const average = eligible.length ? Math.round(amount / eligible.length) : 0;
+
     return `
       <tr>
-        <th><strong>${service.label}</strong><small>${monthKey === "2026-07" && !service.julyIncludesTrung ? "Không tính Trung trong tháng 7" : "Chia đều theo tháng"}</small></th>
+        <th>${service.label}</th>
         <td>
           <label class="p1008-amount-field">
             <input type="text" inputmode="numeric" autocomplete="off" data-p1008-service="${service.id}" value="${amount ? formatNumber(amount) : ""}" placeholder="0">
             <span>₫</span>
           </label>
         </td>
-        <td><strong>${eligible.length} người</strong><small>${eligible.join(" · ")}</small></td>
-        <td><strong>${formatVnd(average)}</strong><small>${amount ? "xấp xỉ, chênh tối đa 1 ₫" : "chưa có số tiền"}</small></td>
+        <td class="p1008-share-count">${eligible.length}</td>
+        <td class="p1008-per-person">${formatVnd(average)}</td>
       </tr>
     `;
   }
@@ -182,6 +183,7 @@
 
     content.querySelectorAll("[data-p1008-service]").forEach((input) => {
       input.addEventListener("focus", () => input.select());
+      input.addEventListener("input", () => formatMoneyInput(input));
       input.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
           event.preventDefault();
@@ -191,11 +193,26 @@
       input.addEventListener("blur", () => {
         const amount = parseAmount(input.value);
         const data = readData();
-        data[selectedMonth] = { ...emptyAmounts(), ...(data[selectedMonth] || {}), [input.dataset.p1008Service]: amount };
+        data[selectedMonth] = {
+          ...emptyAmounts(),
+          ...(data[selectedMonth] || {}),
+          [input.dataset.p1008Service]: amount,
+        };
         writeData(data);
         renderP1008View();
       });
     });
+  }
+
+  function formatMoneyInput(input) {
+    const digits = String(input.value || "").replace(/\D/g, "");
+    if (!digits) {
+      input.value = "";
+      return;
+    }
+
+    const amount = Number(digits);
+    input.value = Number.isSafeInteger(amount) ? formatNumber(amount) : "";
   }
 
   function calculateSplit(monthKey, amounts) {
@@ -256,14 +273,11 @@
   }
 
   function parseAmount(value) {
-    const text = String(value || "").trim();
-    if (!text) return 0;
-    const plainDigits = /^[0-9]+$/.test(text);
-    const groupedDigits = /^[0-9]{1,3}(?:[.,\s][0-9]{3})+$/.test(text);
-    if (!plainDigits && !groupedDigits) return 0;
-    const amount = Number(text.replace(/[^0-9]/g, ""));
-    if (!Number.isSafeInteger(amount) || amount < 0) return 0;
-    return plainDigits && amount > 0 && amount <= 9_999 ? amount * 1_000 : amount;
+    const digits = String(value || "").replace(/\D/g, "");
+    if (!digits) return 0;
+
+    const amount = Number(digits);
+    return Number.isSafeInteger(amount) && amount >= 0 ? amount : 0;
   }
 
   function formatNumber(value) {
