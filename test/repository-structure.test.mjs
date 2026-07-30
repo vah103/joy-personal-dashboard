@@ -6,7 +6,10 @@ const root = new URL("../", import.meta.url);
 
 const requiredPaths = [
   "src/pages/dashboard/index.html",
-  "src/pages/dashboard/app.js",
+  "src/pages/dashboard/app-config.js",
+  "src/pages/dashboard/app-state.js",
+  "src/pages/dashboard/app-render.js",
+  "src/pages/dashboard/app-bootstrap.js",
   "src/pages/dashboard/styles.css",
   "src/pages/login/index.html",
   "src/pages/sale/index.html",
@@ -25,12 +28,14 @@ test("Cloudflare-first source structure is complete", () => {
   for (const path of requiredPaths) {
     assert.equal(fs.existsSync(new URL(path, root)), true, `Missing ${path}`);
   }
+  assert.equal(fs.existsSync(new URL("src/pages/dashboard/app.js", root)), false);
 });
 
 test("build reads from src and preserves public asset names", () => {
   const build = fs.readFileSync(new URL("scripts/build.mjs", root), "utf8");
   assert.ok(build.includes('const src = resolve(root, "src")'));
   assert.ok(build.includes('[resolve(features, "finance", "finance.js"), "finance-demo.js"]'));
-  assert.ok(build.includes('[resolve(pwa, "sw.js"), "sw.js"]'));
+  assert.ok(build.includes('writeFile(resolve(dist, "sw.js"), cloudflareServiceWorker)'));
   assert.ok(build.includes('cp(resolve(root, "project-data")'));
+  assert.ok(build.includes('writeFile(resolve(dist, "app.js")'));
 });
