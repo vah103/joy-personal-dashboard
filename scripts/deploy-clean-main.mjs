@@ -1,11 +1,12 @@
-import { access, lstat, mkdtemp, rm, symlink } from "node:fs/promises";
+import { lstat, mkdtemp, rm, symlink } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const worktree = await mkdtemp(join(tmpdir(), "joy-main-deploy-"));
+const temporaryRoot = await mkdtemp(join(tmpdir(), "joy-main-deploy-"));
+const worktree = resolve(temporaryRoot, "main");
 let worktreeAdded = false;
 let linkedNodeModules = false;
 
@@ -77,6 +78,6 @@ try {
     }
   }
 
-  await rm(worktree, { recursive: true, force: true });
+  await rm(temporaryRoot, { recursive: true, force: true });
   await run("git", ["worktree", "prune"], root).catch(() => {});
 }
