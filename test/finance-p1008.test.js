@@ -28,10 +28,11 @@ test("P1008 applies the July exception only to electricity, water and Wi-Fi", ()
   assert.match(source, /person !== "Trung"/);
 });
 
-test("P1008 keeps shopping pending until the monthly day-15 close", () => {
+test("P1008 provides the shopping card that the monthly shopping module enhances", () => {
+  assert.match(source, /p1008-shopping-card/);
   assert.match(source, /Chia tiền mua sắm/);
-  assert.match(source, /ngày 15 hằng tháng/);
-  assert.match(source, /Chờ cập nhật/);
+  assert.match(buildSource, /finance-p1008-shopping-v1\.css/);
+  assert.match(buildSource, /finance-p1008-shopping-v1\.js/);
 });
 
 test("P1008 uses OpenAI Sans headings and Nunito body text", () => {
@@ -81,5 +82,7 @@ test("P1008 production assets are emitted directly by the canonical build", () =
   assert.match(buildSource, /finance-p1008-refine-v3\.css\?v=joy-finance-p1008-refine-v7/);
   assert.match(buildSource, /finance-p1008-refine-v3\.js\?v=joy-finance-p1008-refine-v7/);
   assert.match(buildSource, /finance-p1008-capture-v2\.css\?v=joy-finance-p1008-capture-v3/);
+  assert.match(buildSource, /finance-p1008-shopping-v1\.css\?v=joy-finance-p1008-shopping-v1/);
+  assert.match(buildSource, /finance-p1008-shopping-v1\.js\?v=joy-finance-p1008-shopping-v1/);
   assert.doesNotMatch(packageSource, /cache-bust-finance-p1008\.mjs/);
 });
