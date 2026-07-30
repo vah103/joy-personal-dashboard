@@ -6,6 +6,7 @@
   if (!workspace) return;
 
   let queued = false;
+  let activeCaptureCard = null;
 
   function currentMonthKey() {
     return document.querySelector("[data-p1008-month]")?.value || "2026-08";
@@ -89,14 +90,122 @@
     root.querySelectorAll(".p1008-local-state").forEach((badge) => badge.remove());
   }
 
+  function fullscreenElement() {
+    return document.fullscreenElement || document.webkitFullscreenElement || null;
+  }
+
+  function updateCaptureButton(card, active) {
+    const button = card.querySelector("[data-shopping-fullscreen]");
+    if (!button) return;
+    button.setAttribute("aria-pressed", String(active));
+    button.setAttribute("aria-label", active ? "Thoát toàn màn hình bảng mua đồ chung" : "Xem toàn màn hình bảng mua đồ chung");
+    const label = button.querySelector(".p1008-fullscreen-label");
+    if (label) label.textContent = active ? "Thoát" : "Toàn màn hình";
+  }
+
+  function setCaptureState(card, active) {
+    card.classList.toggle("is-shopping-capture-mode", active);
+    document.body.classList.toggle("p1008-shopping-capture-active", active);
+    updateCaptureButton(card, active);
+    activeCaptureCard = active ? card : null;
+  }
+
+  async function lockLandscape() {
+    const orientation = globalThis.screen?.orientation;
+    if (typeof orientation?.lock !== "function") return;
+    try {
+      await orientation.lock("landscape");
+    } catch {
+      // iOS Safari and some embedded browsers require manual rotation.
+    }
+  }
+
+  function unlockOrientation() {
+    const orientation = globalThis.screen?.orientation;
+    if (typeof orientation?.unlock !== "function") return;
+    try {
+      orientation.unlock();
+    } catch {
+      // Orientation unlock is best-effort.
+    }
+  }
+
+  async function enterCapture(card) {
+    if (activeCaptureCard && activeCaptureCard !== card) setCaptureState(activeCaptureCard, false);
+    setCaptureState(card, true);
+
+    const request = card.requestFullscreen || card.webkitRequestFullscreen;
+    if (typeof request === "function") {
+      try {
+        await request.call(card);
+        card.dataset.shoppingNativeFullscreen = "true";
+      } catch {
+        delete card.dataset.shoppingNativeFullscreen;
+      }
+    }
+    await lockLandscape();
+  }
+
+  async function exitCapture(card) {
+    const current = fullscreenElement();
+    const exit = document.exitFullscreen || document.webkitExitFullscreen;
+    if (current === card && typeof exit === "function") {
+      try {
+        await exit.call(document);
+      } catch {
+        // The fixed-position fallback can still be closed below.
+      }
+    }
+    delete card.dataset.shoppingNativeFullscreen;
+    setCaptureState(card, false);
+    unlockOrientation();
+  }
+
+  function installShoppingFullscreen(root) {
+    root.querySelectorAll(".p1008-shopping-people-card").forEach((card) => {
+      const header = card.querySelector(":scope > header");
+      if (!header || header.querySelector("[data-shopping-fullscreen]")) return;
+
+      let actions = header.querySelector(".p1008-shopping-fullscreen-actions");
+      if (!actions) {
+        actions = document.createElement("div");
+        actions.className = "p1008-shopping-fullscreen-actions";
+        Array.from(header.children)
+          .filter((child) => child.tagName !== "H3" && child !== actions)
+          .forEach((child) => actions.append(child));
+        header.append(actions);
+      }
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "p1008-fullscreen-button p1008-shopping-fullscreen-button";
+      button.dataset.shoppingFullscreen = "true";
+      button.setAttribute("aria-pressed", "false");
+      button.setAttribute("aria-label", "Xem toàn màn hình bảng mua đồ chung");
+      button.innerHTML = '<span class="p1008-fullscreen-icon" aria-hidden="true">⛶</span><span class="p1008-fullscreen-label">Toàn màn hình</span>';
+      button.addEventListener("click", () => {
+        if (card.classList.contains("is-shopping-capture-mode")) void exitCapture(card);
+        else void enterCapture(card);
+      });
+      actions.append(button);
+    });
+  }
+
   function polish() {
     const content = workspace.querySelector("#finance-workspace-content.p1008-view");
     if (!content) return;
+
+    if (activeCaptureCard && !activeCaptureCard.isConnected) {
+      document.body.classList.remove("p1008-shopping-capture-active");
+      activeCaptureCard = null;
+      unlockOrientation();
+    }
 
     removeSyncLabels(content);
     simplifySplitControls(content);
     sortItemRows(content);
     sortPeopleColumns(content);
+    installShoppingFullscreen(content);
   }
 
   function schedulePolish() {
@@ -118,6 +227,21 @@
   document.addEventListener("joy:p1008-shopping-refresh", schedulePolish);
   window.addEventListener("storage", (event) => {
     if (event.key === STORAGE_KEY) schedulePolish();
+  });
+
+  const handleFullscreenChange = () => {
+    if (!activeCaptureCard) return;
+    if (fullscreenElement() === activeCaptureCard) return;
+    delete activeCaptureCard.dataset.shoppingNativeFullscreen;
+    setCaptureState(activeCaptureCard, false);
+    unlockOrientation();
+  };
+  document.addEventListener("fullscreenchange", handleFullscreenChange);
+  document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && activeCaptureCard && fullscreenElement() !== activeCaptureCard) {
+      void exitCapture(activeCaptureCard);
+    }
   });
 
   const observer = new MutationObserver(schedulePolish);
