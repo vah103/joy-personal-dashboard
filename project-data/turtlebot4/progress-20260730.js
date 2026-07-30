@@ -6,6 +6,14 @@
     "s3-metrics",
   ];
 
+  const STAGE_3_DETAILED_TASK_ITEM_COUNTS = [4, 5, 4, 4, 4, 4];
+  const STAGE_3_DETAILED_CHECKLIST_IDS = STAGE_3_DETAILED_TASK_ITEM_COUNTS.flatMap(
+    (count, taskIndex) => Array.from(
+      { length: count },
+      (_, itemIndex) => `s3-${taskIndex + 1}-${itemIndex + 1}`,
+    ),
+  );
+
   const STAGE_3_SCHEDULE_TASK_IDS = [
     "w3-d2-t2",
     "w3-d3-t1",
@@ -54,14 +62,24 @@
     hubState.overrides = normalizeOverrides(hubState.overrides);
     hubState.overrides.checklist ||= {};
     hubState.overrides.planTasks ||= {};
-    STAGE_3_CHECKLIST_IDS.forEach((id) => {
+
+    let overridesChanged = false;
+    [...STAGE_3_CHECKLIST_IDS, ...STAGE_3_DETAILED_CHECKLIST_IDS].forEach((id) => {
+      if (hubState.overrides.checklist[id] === true) return;
       hubState.overrides.checklist[id] = true;
+      overridesChanged = true;
     });
     STAGE_3_SCHEDULE_TASK_IDS.forEach((id) => {
+      if (hubState.overrides.planTasks[id] === true) return;
       hubState.overrides.planTasks[id] = true;
+      overridesChanged = true;
     });
 
-    storeLocalOverrides();
+    if (overridesChanged) {
+      if (typeof scheduleHubSave === "function") scheduleHubSave();
+      else storeLocalOverrides();
+    }
+
     updateTurtleBotCard();
     if (!hubElements?.modal?.hidden) renderHub();
     return true;
