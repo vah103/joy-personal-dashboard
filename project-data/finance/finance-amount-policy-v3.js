@@ -3,6 +3,7 @@
   const THOUSAND = 1_000;
   const AMOUNT_INPUT_SELECTOR = 'input[name="amount"]';
   const FINANCE_FORM_SELECTOR = "#finance-entry-form,.finance-ledger-composer";
+  const FINANCE_WRITE_PATH = /^\/api\/finance\/transactions(?:\/[^/?#]+)?$/;
 
   function amountDigits(value) {
     const text = String(value ?? "").trim();
@@ -36,8 +37,39 @@
     return `Will save as ${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(amount)} ₫`;
   }
 
+  function financeWriteDetails(input, init = {}) {
+    const method = String(init.method || (input instanceof Request ? input.method : "GET")).toUpperCase();
+    if (!['POST', 'PATCH'].includes(method)) return null;
+    const rawUrl = input instanceof Request ? input.url : String(input || "");
+    const url = new URL(rawUrl, window.location.origin);
+    return FINANCE_WRITE_PATH.test(url.pathname) ? { method, url } : null;
+  }
+
+  function installFinanceFetchGuard() {
+    if (window.fetch?.__joyFinanceAmountGuardV5) return;
+    const nativeFetch = window.fetch.bind(window);
+    const guardedFetch = function guardedFinanceFetch(input, init = {}) {
+      const details = financeWriteDetails(input, init);
+      if (!details || typeof init.body !== "string") return nativeFetch(input, init);
+
+      try {
+        const payload = JSON.parse(init.body);
+        const amount = parseFinanceAmount(payload?.amount);
+        if (Number.isFinite(amount)) {
+          return nativeFetch(input, { ...init, body: JSON.stringify({ ...payload, amount }) });
+        }
+      } catch {
+        // Let the normal API validation report malformed requests.
+      }
+      return nativeFetch(input, init);
+    };
+    guardedFetch.__joyFinanceAmountGuardV5 = true;
+    window.fetch = guardedFetch;
+  }
+
   const api = Object.freeze({ parseFinanceAmount, financeAmountInputValue, financeAmountPreview });
   window.JoyFinanceAmountPolicy = api;
+  installFinanceFetchGuard();
   if (typeof document === "undefined") return;
 
   function previewElement(input) {
@@ -70,8 +102,8 @@
     input.placeholder = "50 = 50.000 ₫";
     input.setCustomValidity("");
 
-    if (input.dataset.financeAmountPolicy !== "v4") {
-      input.dataset.financeAmountPolicy = "v4";
+    if (input.dataset.financeAmountPolicy !== "v5") {
+      input.dataset.financeAmountPolicy = "v5";
       input.addEventListener("input", () => {
         input.setCustomValidity("");
         updatePreview(input);
@@ -141,7 +173,7 @@
   }, true);
 
   const style = document.createElement("style");
-  style.dataset.financeAmountPolicy = "v4";
+  style.dataset.financeAmountPolicy = "v5";
   style.textContent = `
     .finance-amount-preview{display:block;margin-top:5px;color:#7c898c;font:700 8.5px "Nunito",Arial,sans-serif;letter-spacing:0;text-transform:none}
     .finance-ledger-composer .finance-amount-preview{grid-column:1/-1;margin:4px 0 0}
