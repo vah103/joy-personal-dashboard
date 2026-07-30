@@ -68,6 +68,6 @@ test("P1008 production assets are emitted directly by the canonical build", () =
   assert.match(buildSource, /replaceAll\('joy-finance-p1008-v1', 'joy-finance-p1008-v3'\)/);
   assert.match(buildSource, /finance-p1008-refine-v3\.css\?v=joy-finance-p1008-refine-v6/);
   assert.match(buildSource, /finance-p1008-refine-v3\.js\?v=joy-finance-p1008-refine-v6/);
-  assert.match(buildSource, /finance-p1008-capture-v2\.css\?v=joy-finance-p1008-capture-v2/);
+  assert.match(buildSource, /finance-p1008-capture-v2\.css\?v=joy-finance-p1008-capture-v3/);
   assert.doesNotMatch(packageSource, /cache-bust-finance-p1008\.mjs/);
 });
