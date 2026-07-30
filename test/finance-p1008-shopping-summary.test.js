@@ -4,8 +4,7 @@ import { readFile } from "node:fs/promises";
 
 const source = await readFile(new URL("../project-data/finance/finance-p1008-shopping-tables-v1.js", import.meta.url), "utf8");
 const styles = await readFile(new URL("../project-data/finance/finance-p1008-shopping-tables-v1.css", import.meta.url), "utf8");
-const cache = await readFile(new URL("../scripts/cache-bust-p1008-shopping-tables.mjs", import.meta.url), "utf8");
-const packageSource = await readFile(new URL("../package.json", import.meta.url), "utf8");
+const build = await readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8");
 
 test("P1008 shopping no longer inserts a separate three-card summary", () => {
   assert.doesNotMatch(source, /updateShoppingSummary/);
@@ -22,8 +21,7 @@ test("P1008 shopping uses the same two card families as service splitting", () =
   assert.match(source, /p1008-people-table/);
 });
 
-test("canonical build refreshes both shopping table assets", () => {
-  assert.match(cache, /finance-p1008-shopping-tables-v1\.css\?v=joy-finance-p1008-shopping-tables-v3/);
-  assert.match(cache, /finance-p1008-shopping-tables-v1\.js\?v=joy-finance-p1008-shopping-tables-v3/);
-  assert.match(packageSource, /cache-bust-p1008-shopping-tables\.mjs/);
+test("canonical build emits both final shopping table asset versions", () => {
+  assert.match(build, /finance-p1008-shopping-tables-v1\.css\?v=joy-finance-p1008-shopping-tables-v3/);
+  assert.match(build, /finance-p1008-shopping-tables-v1\.js\?v=joy-finance-p1008-shopping-tables-v3/);
 });
