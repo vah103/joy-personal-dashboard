@@ -8,7 +8,7 @@ async function read(path) {
   return readFile(new URL(path, root), "utf8");
 }
 
-test("CI blocks vulnerable production dependencies and critical dependency issues", async () => {
+test("CI and deployment share the high-severity verification gate", async () => {
   const [packageSource, workflow] = await Promise.all([
     read("package.json"),
     read(".github/workflows/ci.yml"),
@@ -16,9 +16,17 @@ test("CI blocks vulnerable production dependencies and critical dependency issue
   const packageJson = JSON.parse(packageSource);
 
   assert.equal(packageJson.scripts["audit:prod"], "npm audit --omit=dev --audit-level=high");
-  assert.equal(packageJson.scripts["audit:all"], "npm audit --audit-level=critical");
-  assert.match(workflow, /name: Audit production dependencies[\s\S]*run: npm run audit:prod/);
-  assert.match(workflow, /name: Audit full dependency tree for critical vulnerabilities[\s\S]*run: npm run audit:all/);
+  assert.equal(packageJson.scripts["audit:all"], "npm audit --audit-level=high");
+  assert.equal(
+    packageJson.scripts.verify,
+    "npm run audit:prod && npm run audit:all && npm test && npm run build",
+  );
+  assert.equal(packageJson.scripts["deploy:current"], "npm run verify && wrangler deploy");
+
+  assert.match(workflow, /name: Verify repository[\s\S]*run: npm run verify/);
+  assert.doesNotMatch(workflow, /run: npm run audit:(?:prod|all)/);
+  assert.doesNotMatch(workflow, /run: npm test/);
+  assert.doesNotMatch(workflow, /run: npm run build/);
   assert.doesNotMatch(workflow, /continue-on-error/);
 });
 
