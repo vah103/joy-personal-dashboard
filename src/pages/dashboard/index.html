@@ -22,6 +22,7 @@
     <link rel="stylesheet" href="mobile-notifications.css?v=iphone-rain-bell-v1">
     <link rel="stylesheet" href="auth-ui.css?v=joy-google-account-v3">
     <link rel="stylesheet" href="greeting-layout.css?v=joy-daily-brief-v4">
+    <link rel="stylesheet" href="daily-brief.css?v=joy-daily-brief-v5">
     <link rel="stylesheet" href="dashboard-entry.css?v=joy-entry-motion-v1">
     <link rel="stylesheet" href="task-reminders.css?v=joy-tasks-v1">
     <link rel="stylesheet" href="room-summary.css?v=joy-room-summary-v1">
@@ -43,96 +44,52 @@
   <body>
     <main class="dashboard-shell">
       <aside class="sidebar" aria-label="Primary navigation">
-        <a class="brand" href="#overview" aria-label="Hey Joy! overview">
-          <span>Hey Joy!</span>
-        </a>
-
+        <a class="brand" href="#overview" aria-label="Hey Joy! overview"><span>Hey Joy!</span></a>
         <nav class="nav-list compact-nav" aria-label="Desktop navigation">
-          <a class="nav-item active" href="#overview" aria-label="Overview">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/></svg>
-          </a>
-          <a class="nav-item" href="#projects" aria-label="Projects">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5h6l1.7 2H20v8.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7.5Z"/><path d="M4 10h16"/></svg>
-          </a>
-          <a class="nav-item" href="#finance" aria-label="Finance">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5h14a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7.5Z"/><path d="M4 8V6a2 2 0 0 1 2-2h10v3.5"/><path d="M15.5 13h4.5"/><circle cx="15.5" cy="13" r=".6" fill="currentColor" stroke="none"/></svg>
-          </a>
+          <a class="nav-item active" href="#overview" aria-label="Overview"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/></svg></a>
+          <a class="nav-item" href="#projects" aria-label="Projects"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5h6l1.7 2H20v8.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7.5Z"/><path d="M4 10h16"/></svg></a>
+          <a class="nav-item" href="#finance" aria-label="Finance"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5h14a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7.5Z"/><path d="M4 8V6a2 2 0 0 1 2-2h10v3.5"/><path d="M15.5 13h4.5"/><circle cx="15.5" cy="13" r=".6" fill="currentColor" stroke="none"/></svg></a>
         </nav>
-
         <section class="scratchpad" aria-labelledby="scratchpad-title">
-          <div class="scratchpad-heading">
-            <p id="scratchpad-title">Scratchpad</p>
-            <span id="scratchpad-status">Local</span>
-          </div>
+          <div class="scratchpad-heading"><p id="scratchpad-title">Scratchpad</p><span id="scratchpad-status">Local</span></div>
           <label class="sr-only" for="scratchpad-input">Quick personal notes</label>
           <textarea id="scratchpad-input" placeholder="Drop a thought here…" spellcheck="true"></textarea>
         </section>
-
-        <div class="sidebar-footer">
-          <div class="profile-card">
-            <span><strong>Vanh</strong><small>Personal workspace</small></span>
-          </div>
-        </div>
+        <div class="sidebar-footer"><div class="profile-card"><span><strong>Vanh</strong><small>Personal workspace</small></span></div></div>
       </aside>
 
       <section class="main-content" id="overview">
         <header class="topbar">
-          <div>
-            <p class="eyebrow" id="today-label">Wednesday, July 22</p>
-            <h1 id="greeting">Good morning, Vanh.</h1>
-          </div>
-          <div class="header-actions">
-            <button class="icon-button" type="button" aria-label="Notifications" data-action="notifications">2</button>
-            <span class="header-avatar" role="img" aria-label="Vanh profile">
-              <img src="wolf-mark.svg?v=joy-summit-wolf" alt="" aria-hidden="true">
-            </span>
-          </div>
+          <div><p class="eyebrow" id="today-label">Wednesday, July 22</p><h1 id="greeting">Good morning, Vanh.</h1></div>
+          <div class="header-actions"><button class="icon-button" type="button" aria-label="Notifications" data-action="notifications">2</button><span class="header-avatar" role="img" aria-label="Vanh profile"><img src="wolf-mark.svg?v=joy-summit-wolf" alt="" aria-hidden="true"></span></div>
         </header>
 
         <div class="top-widgets">
           <section class="weather-card" aria-labelledby="weather-location">
             <div class="weather-icon" id="weather-icon" aria-hidden="true">☁</div>
-            <div class="weather-reading">
-              <p id="weather-location">Hanoi</p>
-              <strong id="weather-temperature">--°</strong>
-            </div>
+            <div class="weather-reading"><p id="weather-location">Hanoi</p><strong id="weather-temperature">--°</strong></div>
             <p class="weather-condition" id="weather-condition">Checking weather</p>
-            <p
-              class="weather-rain-notice"
-              id="weather-rain-notice"
-              data-state="quiet"
-              hidden
-              aria-live="polite"
-            ></p>
+            <p class="weather-rain-notice" id="weather-rain-notice" data-state="quiet" hidden aria-live="polite"></p>
           </section>
-
           <section class="joy-brief" aria-labelledby="brief-title">
             <div class="brief-icon" aria-hidden="true">✦</div>
-            <div class="joy-message">
-              <p class="section-kicker" id="brief-title">Hey Joy!</p>
-              <p id="brief-copy">You have <strong>2 customer viewings</strong>, <strong>2 tasks due today</strong>, and <strong>Gmail not connected</strong>.</p>
-            </div>
+            <div class="joy-message"><p class="section-kicker" id="brief-title">Hey Joy!</p><p id="brief-copy">You have <strong>2 customer viewings</strong>, <strong>2 tasks due today</strong>, and <strong>Gmail not connected</strong>.</p></div>
           </section>
         </div>
 
         <div class="dashboard-grid">
           <div class="left-stack">
             <section class="panel projects-panel" id="projects" aria-labelledby="projects-title">
-              <div class="panel-heading">
-                <div><h2 id="projects-title">Active Projects</h2></div>
-                <button class="quiet-link" type="button" data-action="open-project-form">+ Add project</button>
-              </div>
+              <div class="panel-heading"><div><h2 id="projects-title">Active Projects</h2></div><button class="quiet-link" type="button" data-action="open-project-form">+ Add project</button></div>
               <div class="project-list" id="project-list"></div>
             </section>
 
             <section class="panel finance-panel" id="finance" aria-labelledby="finance-title">
               <div class="panel-heading">
-                <a class="panel-title-button finance-sheet-link" href="https://docs.google.com/spreadsheets/d/13rVL8-vBNpwOTntCTjNhU31TzxCAFRujRH0X4AfqNx4/edit#gid=980013791" target="_blank" rel="noreferrer">
-                  <h2 id="finance-title">Finance</h2>
-                </a>
+                <button class="panel-title-button finance-sheet-link" type="button" data-finance-open><h2 id="finance-title">Finance</h2></button>
                 <div class="finance-heading-actions">
                   <span class="finance-period" id="finance-period">2026</span>
-                  <a class="quiet-link finance-sheet-link" href="https://docs.google.com/spreadsheets/d/13rVL8-vBNpwOTntCTjNhU31TzxCAFRujRH0X4AfqNx4/edit#gid=980013791" target="_blank" rel="noreferrer">View details ↗</a>
+                  <button class="quiet-link finance-sheet-link" type="button" data-finance-open>View details ↗</button>
                   <button class="finance-privacy-toggle" type="button" data-action="toggle-finance-privacy" aria-label="Show finance amounts" aria-pressed="true">
                     <svg class="finance-eye finance-eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg>
                     <svg class="finance-eye finance-eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 6.1A9.8 9.8 0 0 1 12 6c6 0 9.5 6 9.5 6a16.2 16.2 0 0 1-2.8 3.5M6.1 6.1C3.8 7.7 2.5 12 2.5 12s3.5 6 9.5 6a9.6 9.6 0 0 0 3.4-.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
@@ -142,26 +99,14 @@
               <div class="finance-body finance-values-hidden" id="finance-data" aria-live="polite">
                 <div class="finance-sync-state" id="finance-sync-state" hidden></div>
                 <div class="finance-overview">
-                  <a class="finance-available finance-sheet-link" href="https://docs.google.com/spreadsheets/d/13rVL8-vBNpwOTntCTjNhU31TzxCAFRujRH0X4AfqNx4/edit#gid=980013791" target="_blank" rel="noreferrer">
-                    <span>Available this month</span>
-                    <strong data-finance-field="remaining" data-finance-value="0 ₫" data-finance-mask="● ● ● ●">● ● ● ●</strong>
-                    <small id="finance-comparison"><i>↗</i><b>—</b> compared with last month</small>
-                  </a>
-                  <a class="finance-overview-stat finance-sheet-link" href="https://docs.google.com/spreadsheets/d/13rVL8-vBNpwOTntCTjNhU31TzxCAFRujRH0X4AfqNx4/edit#gid=980013791" target="_blank" rel="noreferrer"><span class="finance-stat-icon income" aria-hidden="true">▰</span><span><small>Income</small><strong data-finance-field="income" data-finance-value="0 ₫" data-finance-mask="● ● ●">● ● ●</strong></span></a>
-                  <a class="finance-overview-stat finance-sheet-link" href="https://docs.google.com/spreadsheets/d/13rVL8-vBNpwOTntCTjNhU31TzxCAFRujRH0X4AfqNx4/edit#gid=980013791" target="_blank" rel="noreferrer"><span class="finance-stat-icon expense" aria-hidden="true">↓</span><span><small>Expenses</small><strong data-finance-field="expenses" data-finance-value="0 ₫" data-finance-mask="● ● ●">● ● ●</strong></span></a>
-                  <a class="finance-overview-stat finance-sheet-link" href="https://docs.google.com/spreadsheets/d/13rVL8-vBNpwOTntCTjNhU31TzxCAFRujRH0X4AfqNx4/edit#gid=980013791" target="_blank" rel="noreferrer"><span class="finance-stat-icon gold" aria-hidden="true">▱</span><span><small>Gold savings</small><strong data-finance-field="gold" data-finance-value="0,5 chỉ" data-finance-mask="● ●">● ●</strong><em>Total accumulated</em></span></a>
+                  <button class="finance-available finance-sheet-link" type="button" data-finance-open><span>Available this month</span><strong data-finance-field="remaining" data-finance-value="0 ₫" data-finance-mask="● ● ● ●">● ● ● ●</strong><small id="finance-comparison"><i>↗</i><b>—</b> compared with last month</small></button>
+                  <button class="finance-overview-stat finance-sheet-link" type="button" data-finance-open><span class="finance-stat-icon income" aria-hidden="true">▰</span><span><small>Income</small><strong data-finance-field="income" data-finance-value="0 ₫" data-finance-mask="● ● ●">● ● ●</strong></span></button>
+                  <button class="finance-overview-stat finance-sheet-link" type="button" data-finance-open><span class="finance-stat-icon expense" aria-hidden="true">↓</span><span><small>Expenses</small><strong data-finance-field="expenses" data-finance-value="0 ₫" data-finance-mask="● ● ●">● ● ●</strong></span></button>
+                  <button class="finance-overview-stat finance-sheet-link" type="button" data-finance-year><span class="finance-stat-icon gold" aria-hidden="true">▱</span><span><small>Gold savings</small><strong data-finance-field="gold" data-finance-value="0,5 chỉ" data-finance-mask="● ●">● ●</strong><em>Total accumulated</em></span></button>
                 </div>
                 <div class="finance-lower-grid">
-                  <a class="finance-pulse finance-sheet-link" href="https://docs.google.com/spreadsheets/d/13rVL8-vBNpwOTntCTjNhU31TzxCAFRujRH0X4AfqNx4/edit#gid=980013791" target="_blank" rel="noreferrer">
-                    <span class="finance-pulse-heading"><strong>Monthly pulse</strong><small id="finance-chart-period">January – July 2026</small></span>
-                    <span class="finance-chart-visual"><svg viewBox="0 0 600 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="finance-live-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6f99a8" stop-opacity=".28"/><stop offset="1" stop-color="#6f99a8" stop-opacity="0"/></linearGradient></defs><path class="finance-grid-line" d="M14 24H586M14 75H586M14 126H586M14 154H586"/><path class="finance-series-area" data-finance-area d=""/><polyline class="finance-series finance-series-remaining" data-finance-series="remaining" points=""/><g data-finance-points></g></svg></span>
-                    <span class="finance-months" id="finance-months" aria-hidden="true"></span>
-                  </a>
-                  <a class="finance-sale-card" href="/sale-manager.html">
-                    <span class="finance-sale-title"><i aria-hidden="true">▰</i><span><small>Sale income</small><strong data-finance-field="sale" data-finance-value="0 ₫" data-finance-mask="● ● ●">● ● ●</strong></span></span>
-                    <span class="finance-sale-progress"><i id="finance-sale-progress"></i></span><b id="finance-sale-share">0% <small>of monthly income</small></b>
-                    <span class="finance-sale-count"><i aria-hidden="true">≡</i><b id="finance-sale-count">0 entries</b></span><span class="finance-sale-status" id="finance-sale-status">No entries yet</span>
-                  </a>
+                  <button class="finance-pulse finance-sheet-link" type="button" data-finance-year><span class="finance-pulse-heading"><strong>Monthly pulse</strong><small id="finance-chart-period">January – July 2026</small></span><span class="finance-chart-visual"><svg viewBox="0 0 600 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="finance-live-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6f99a8" stop-opacity=".28"/><stop offset="1" stop-color="#6f99a8" stop-opacity="0"/></linearGradient></defs><path class="finance-grid-line" d="M14 24H586M14 75H586M14 126H586M14 154H586"/><path class="finance-series-area" data-finance-area d=""/><polyline class="finance-series finance-series-remaining" data-finance-series="remaining" points=""/><g data-finance-points></g></svg></span><span class="finance-months" id="finance-months" aria-hidden="true"></span></button>
+                  <a class="finance-sale-card" href="/sale-manager.html"><span class="finance-sale-title"><i aria-hidden="true">▰</i><span><small>Sale income</small><strong data-finance-field="sale" data-finance-value="0 ₫" data-finance-mask="● ● ●">● ● ●</strong></span></span><span class="finance-sale-progress"><i id="finance-sale-progress"></i></span><b id="finance-sale-share">0% <small>of monthly income</small></b><span class="finance-sale-count"><i aria-hidden="true">≡</i><b id="finance-sale-count">0 entries</b></span><span class="finance-sale-status" id="finance-sale-status">No entries yet</span></a>
                 </div>
                 <p class="finance-demo-note" id="finance-source">Syncing Finance Tracker…</p>
               </div>
@@ -170,121 +115,39 @@
 
           <div class="right-stack">
             <section class="panel todo-panel" id="to-do" aria-labelledby="todo-title">
-              <div class="panel-heading">
-                <div><h2 id="todo-title">To-do list</h2></div>
-                <div class="todo-heading-actions">
-                  <span class="count-pill" id="task-count">0 open</span>
-                  <button class="quiet-link" type="button" data-action="open-task-history" aria-haspopup="dialog">View history</button>
-                </div>
-              </div>
-              <form class="quick-add" id="quick-add-form">
-                <label class="sr-only" for="quick-task">Add a task</label>
-                <input id="quick-task" name="task" type="text" placeholder="What do you need to do?" autocomplete="off">
-                <button type="submit" aria-label="Add task">+</button>
-              </form>
+              <div class="panel-heading"><div><h2 id="todo-title">To-do list</h2></div><div class="todo-heading-actions"><span class="count-pill" id="task-count">0 open</span><button class="quiet-link" type="button" data-action="open-task-history" aria-haspopup="dialog">View history</button></div></div>
+              <form class="quick-add" id="quick-add-form"><label class="sr-only" for="quick-task">Add a task</label><input id="quick-task" name="task" type="text" placeholder="What do you need to do?" autocomplete="off"><button type="submit" aria-label="Add task">+</button></form>
               <div class="task-list" id="task-list" aria-live="polite"></div>
             </section>
-
             <section class="panel sales-panel" id="sales" aria-labelledby="sales-title">
-              <div class="panel-heading">
-                <button class="panel-title-button" type="button" data-action="open-sale-manager">
-                  <h2 id="sales-title">Sales</h2>
-                </button>
-                <button class="quiet-link" type="button" data-action="open-sale-manager">Manage 2026 ↗</button>
-              </div>
-              <div class="sales-body">
-                <div class="sales-summary">
-                  <p class="subheading">Upcoming viewings</p>
-                  <span class="count-pill" id="sales-count">Loading</span>
-                </div>
-                <div id="sales-content" aria-live="polite"></div>
-              </div>
+              <div class="panel-heading"><button class="panel-title-button" type="button" data-action="open-sale-manager"><h2 id="sales-title">Sales</h2></button><button class="quiet-link" type="button" data-action="open-sale-manager">Manage 2026 ↗</button></div>
+              <div class="sales-body"><div class="sales-summary"><p class="subheading">Upcoming viewings</p><span class="count-pill" id="sales-count">Loading</span></div><div id="sales-content" aria-live="polite"></div></div>
             </section>
-
             <section class="panel email-panel" id="email" aria-labelledby="email-title">
-              <div class="panel-heading">
-                <div><h2 id="email-title">Priority Email</h2></div>
-                <button class="quiet-link" type="button" data-action="view-inbox">View inbox</button>
-              </div>
+              <div class="panel-heading"><div><h2 id="email-title">Priority Email</h2></div><button class="quiet-link" type="button" data-action="view-inbox">View inbox</button></div>
               <div id="email-content" aria-live="polite"></div>
             </section>
           </div>
         </div>
       </section>
 
-      <nav class="mobile-nav" aria-label="Mobile navigation">
-        <a class="active" href="#overview"><small>Overview</small></a>
-        <a href="#projects"><small>Projects</small></a>
-        <a href="#finance"><small>Finance</small></a>
-        <a href="#to-do"><small>To-do</small></a>
-        <a href="#sales"><small>Sales</small></a>
-      </nav>
+      <nav class="mobile-nav" aria-label="Mobile navigation"><a class="active" href="#overview"><small>Overview</small></a><a href="#projects"><small>Projects</small></a><a href="#finance"><small>Finance</small></a><a href="#to-do"><small>To-do</small></a><a href="#sales"><small>Sales</small></a></nav>
 
       <div class="modal-backdrop" id="project-modal" role="presentation" hidden>
         <section class="modal" role="dialog" aria-modal="true" aria-labelledby="new-project-title">
-          <div class="modal-heading">
-            <div><p class="section-kicker">Projects</p><h2 id="new-project-title">Add a new project</h2></div>
-            <button type="button" aria-label="Close project form" data-action="close-project-form">×</button>
-          </div>
-          <form id="project-form">
-            <label>Project name<input name="name" type="text" placeholder="e.g. Personal finance" required></label>
-            <label>Current focus<input name="focus" type="text" placeholder="What are you focusing on?" required></label>
-            <label>Next action<input name="next" type="text" placeholder="What should happen next?" required></label>
-            <div class="modal-actions">
-              <button class="secondary-button" type="button" data-action="close-project-form">Cancel</button>
-              <button class="primary-button" type="submit">Add project</button>
-            </div>
-          </form>
+          <div class="modal-heading"><div><p class="section-kicker">Projects</p><h2 id="new-project-title">Add a new project</h2></div><button type="button" aria-label="Close project form" data-action="close-project-form">×</button></div>
+          <form id="project-form"><label>Project name<input name="name" type="text" placeholder="e.g. Personal finance" required></label><label>Current focus<input name="focus" type="text" placeholder="What are you focusing on?" required></label><label>Next action<input name="next" type="text" placeholder="What should happen next?" required></label><div class="modal-actions"><button class="secondary-button" type="button" data-action="close-project-form">Cancel</button><button class="primary-button" type="submit">Add project</button></div></form>
         </section>
       </div>
-
-      <div class="modal-backdrop" id="sales-modal" role="presentation" hidden>
-        <section class="modal sales-modal" role="dialog" aria-modal="true" aria-labelledby="sales-modal-title">
-          <div class="modal-heading">
-            <div><p class="section-kicker">Sale phòng | GPTs</p><h2 id="sales-modal-title">Upcoming viewings</h2></div>
-            <button type="button" aria-label="Close sales details" data-action="close-sales">×</button>
-          </div>
-          <div id="sales-modal-content"></div>
-        </section>
-      </div>
-
-      <div class="modal-backdrop" id="task-history-modal" role="presentation" hidden>
-        <section class="modal task-history-modal" role="dialog" aria-modal="true" aria-labelledby="task-history-title">
-          <div class="modal-heading">
-            <div><p class="section-kicker">To-do list</p><h2 id="task-history-title">Task history</h2></div>
-            <button type="button" aria-label="Close task history" data-action="close-task-history">×</button>
-          </div>
-          <p class="task-history-summary" id="task-history-summary"></p>
-          <div class="task-history-content" id="task-history-content"></div>
-        </section>
-      </div>
-
+      <div class="modal-backdrop" id="sales-modal" role="presentation" hidden><section class="modal sales-modal" role="dialog" aria-modal="true" aria-labelledby="sales-modal-title"><div class="modal-heading"><div><p class="section-kicker">Sale phòng | GPTs</p><h2 id="sales-modal-title">Upcoming viewings</h2></div><button type="button" aria-label="Close sales details" data-action="close-sales">×</button></div><div id="sales-modal-content"></div></section></div>
+      <div class="modal-backdrop" id="task-history-modal" role="presentation" hidden><section class="modal task-history-modal" role="dialog" aria-modal="true" aria-labelledby="task-history-title"><div class="modal-heading"><div><p class="section-kicker">To-do list</p><h2 id="task-history-title">Task history</h2></div><button type="button" aria-label="Close task history" data-action="close-task-history">×</button></div><p class="task-history-summary" id="task-history-summary"></p><div class="task-history-content" id="task-history-content"></div></section></div>
       <div class="modal-backdrop" id="project-delete-modal" role="presentation" hidden>
         <section class="modal project-delete-modal" role="dialog" aria-modal="true" aria-labelledby="project-delete-title">
-          <div class="modal-heading">
-            <div>
-              <p class="section-kicker">Active Projects</p>
-              <h2 id="project-delete-title">Delete project?</h2>
-            </div>
-            <button type="button" aria-label="Close delete confirmation" data-action="cancel-delete-project">×</button>
-          </div>
-
-          <div class="project-delete-copy">
-            <p>
-              Are you sure you want to remove
-              <strong id="project-delete-name">this project</strong>
-              from Active Projects?
-            </p>
-            <small>The project will be archived rather than permanently erased.</small>
-          </div>
-
-          <div class="modal-actions">
-            <button class="secondary-button" type="button" data-action="cancel-delete-project">Cancel</button>
-            <button class="danger-button" type="button" data-action="confirm-delete-project">Delete project</button>
-          </div>
+          <div class="modal-heading"><div><p class="section-kicker">Active Projects</p><h2 id="project-delete-title">Delete project?</h2></div><button type="button" aria-label="Close delete confirmation" data-action="cancel-delete-project">×</button></div>
+          <div class="project-delete-copy"><p>Are you sure you want to remove <strong id="project-delete-name">this project</strong> from Active Projects?</p><small>The project will be archived rather than permanently erased.</small></div>
+          <div class="modal-actions"><button class="secondary-button" type="button" data-action="cancel-delete-project">Cancel</button><button class="danger-button" type="button" data-action="confirm-delete-project">Delete project</button></div>
         </section>
       </div>
-
       <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
     </main>
 
@@ -306,7 +169,6 @@
     <script src="auth-ui.js?v=joy-google-account-v3" defer></script>
     <script src="dashboard-entry.js?v=joy-entry-motion-v1" defer></script>
     <script src="greeting-layout.js?v=joy-daily-brief-v4" defer></script>
-    <script src="daily-brief-polish.js?v=joy-daily-brief-polish-v2" defer></script>
     <script src="task-english.js?v=joy-task-english-v7" defer></script>
     <script src="task-reminders-events.js?v=joy-task-checkbox-v2" defer></script>
     <script src="task-reminders.js?v=joy-tasks-v1" defer></script>
