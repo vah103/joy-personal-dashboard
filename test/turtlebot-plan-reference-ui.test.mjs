@@ -33,7 +33,7 @@ test("TurtleBot 12-week plan contains no checkbox or visible progress UI", async
   assert.doesNotMatch(reference, /previousRenderPlan/);
   assert.doesNotMatch(reference, /progress-track|hub-progress-summary|hub-check-row/);
   assert.doesNotMatch(reference, /\$\{[^}\n]*(?:progress|percentage)[^}\n]*\}%/i);
-  assert.match(loader, /project-hub-tabs-cleanup\.js\?v=turtlebot-inline-tabs-v2/);
+  assert.match(loader, /project-hub-tabs-cleanup\.js\?v=turtlebot-doc-commands-v1/);
   assert.match(dashboard, /turtlebot-plan-loader\.js\?v=turtlebot-plan-loader-v1/);
   assert.match(dashboard, /turtlebot-roadmap-font\.css\?v=turtlebot-inline-header-tabs-v3/);
   assert.doesNotMatch(packageSource, /cache-bust-turtlebot-plan/);
