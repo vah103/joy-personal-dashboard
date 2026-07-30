@@ -7,6 +7,7 @@ const root = new URL("../", import.meta.url);
 const financeCoreSource = await readFile(new URL("src/features/finance/finance.js", root), "utf8");
 const amountCoreSource = await readFile(new URL("src/features/finance/finance-amount-core.js", root), "utf8");
 const bundleSource = await readFile(new URL("scripts/build-finance-bundle.mjs", root), "utf8");
+const buildSource = await readFile(new URL("scripts/build.mjs", root), "utf8");
 const packageJson = JSON.parse(await readFile(new URL("package.json", root), "utf8"));
 const window = {};
 vm.runInNewContext(amountCoreSource, { window });
@@ -53,19 +54,18 @@ test("Production Finance source owns parsing in both save paths", () => {
   assert.doesNotThrow(() => new vm.Script(financeCoreSource));
 });
 
-test("Finance build composes canonical sources without patching the bundle", () => {
+test("Finance build composes canonical sources without patching HTML", () => {
   assert.match(bundleSource, /finance-amount-core\.js/);
   assert.match(bundleSource, /src", "features", "finance", "finance\.js/);
   assert.match(bundleSource, /writeFile\(financeBundlePath, bundle\)/);
-  assert.match(bundleSource, /joy-finance-core-v9/);
+  assert.doesNotMatch(bundleSource, /index\.html|replaceAll?\(/);
+  assert.match(buildSource, /finance-demo\.js\?v=joy-finance-core-v9/);
   assert.doesNotMatch(bundleSource, /replaceExact|patchFinanceCore|parserAnchor/);
 
   const build = packageJson.scripts.build;
   const canonicalIndex = build.indexOf("scripts/build.mjs");
   const financeBundleIndex = build.indexOf("scripts/build-finance-bundle.mjs");
-  const p1008Index = build.indexOf("scripts/cache-bust-finance-p1008.mjs");
   assert.ok(canonicalIndex >= 0);
   assert.ok(financeBundleIndex > canonicalIndex);
-  assert.ok(p1008Index > financeBundleIndex);
-  assert.doesNotMatch(build, /patch-finance-core-amount/);
+  assert.doesNotMatch(build, /cache-bust|patch-finance-core-amount/);
 });
