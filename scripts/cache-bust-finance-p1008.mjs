@@ -3,17 +3,16 @@ import { resolve } from "node:path";
 
 const indexPath = resolve(import.meta.dirname, "..", "dist", "index.html");
 const source = await readFile(indexPath, "utf8");
-const previous = ["joy-finance-p1008-v1", "joy-finance-p1008-v2"];
+const legacy = "joy-finance-p1008-v1";
+const previous = "joy-finance-p1008-v2";
 const next = "joy-finance-p1008-v3";
 
-if (!previous.some((reference) => source.includes(reference)) && !source.includes(next)) {
+if (![legacy, previous, next].some((reference) => source.includes(reference))) {
   throw new Error("P1008 asset references were not found in dist/index.html");
 }
 
-let output = source;
-previous.forEach((reference) => {
-  output = output.replaceAll(reference, next);
-});
+let output = source.replaceAll(legacy, previous);
+output = output.replaceAll(previous, next);
 
 const refineStyles = '      <link rel="stylesheet" href="project-data/finance/finance-p1008-refine-v3.css?v=joy-finance-p1008-refine-v3">';
 const refineScript = '      <script src="project-data/finance/finance-p1008-refine-v3.js?v=joy-finance-p1008-refine-v3" defer></script>';
