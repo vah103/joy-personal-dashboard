@@ -7,7 +7,7 @@ const root = new URL("../", import.meta.url);
 const financeCoreSource = await readFile(new URL("src/features/finance/finance.js", root), "utf8");
 const amountCoreSource = await readFile(new URL("src/features/finance/finance-amount-core.js", root), "utf8");
 const bundleSource = await readFile(new URL("scripts/build-finance-bundle.mjs", root), "utf8");
-const buildSource = await readFile(new URL("scripts/build.mjs", root), "utf8");
+const dashboardHtml = await readFile(new URL("src/pages/dashboard/index.html", root), "utf8");
 const packageJson = JSON.parse(await readFile(new URL("package.json", root), "utf8"));
 const window = {};
 vm.runInNewContext(amountCoreSource, { window });
@@ -59,7 +59,7 @@ test("Finance build composes canonical sources without patching HTML", () => {
   assert.match(bundleSource, /src", "features", "finance", "finance\.js/);
   assert.match(bundleSource, /writeFile\(financeBundlePath, bundle\)/);
   assert.doesNotMatch(bundleSource, /index\.html|replaceAll?\(/);
-  assert.match(buildSource, /finance-demo\.js\?v=joy-finance-core-v9/);
+  assert.match(dashboardHtml, /finance-demo\.js\?v=joy-finance-core-v9/);
   assert.doesNotMatch(bundleSource, /replaceExact|patchFinanceCore|parserAnchor/);
 
   const build = packageJson.scripts.build;
