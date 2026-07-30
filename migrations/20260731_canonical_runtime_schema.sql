@@ -41,6 +41,26 @@ CREATE TABLE IF NOT EXISTS daily_brief_meta (
   updated_at INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS daily_brief_stories (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  why_it_matters TEXT NOT NULL,
+  key_points_json TEXT NOT NULL DEFAULT '[]',
+  category TEXT NOT NULL,
+  scope TEXT NOT NULL,
+  source_name TEXT NOT NULL,
+  article_url TEXT NOT NULL,
+  source_count INTEGER NOT NULL DEFAULT 1,
+  score INTEGER NOT NULL,
+  published_at INTEGER NOT NULL,
+  created_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS daily_brief_active_idx
+ON daily_brief_stories (expires_at, score DESC, published_at DESC);
+
 CREATE TABLE IF NOT EXISTS finance_p1008 (
   user_email TEXT PRIMARY KEY,
   data_json TEXT NOT NULL DEFAULT '{}',
