@@ -58,6 +58,18 @@ test("P1008 formats money with thousand separators while typing", () => {
   assert.doesNotMatch(source, /amount \* 1_000/);
 });
 
+test("P1008 syncs local data through the signed-in account API", () => {
+  assert.match(source, /const API_PATH = "\/api\/p1008"/);
+  assert.match(source, /credentials: "same-origin"/);
+  assert.match(source, /method: "PUT"/);
+  assert.match(source, /mergeCloudWithLocal/);
+  assert.match(source, /localMutationVersion/);
+  assert.match(source, /Đã đồng bộ tài khoản/);
+  assert.match(source, /Chưa đồng bộ · lưu tạm trên máy/);
+  assert.match(source, /window\.addEventListener\("focus"/);
+  assert.match(source, /joy:p1008-rendered/);
+});
+
 test("P1008 overview uses larger readable typography", () => {
   assert.match(styles, /\.p1008-summary strong \{[\s\S]*font-size: 29px/);
   assert.match(styles, /\.p1008-summary span \{[\s\S]*font-size: 11px/);
@@ -65,9 +77,9 @@ test("P1008 overview uses larger readable typography", () => {
 });
 
 test("P1008 production assets are emitted directly by the canonical build", () => {
-  assert.match(buildSource, /replaceAll\('joy-finance-p1008-v1', 'joy-finance-p1008-v3'\)/);
-  assert.match(buildSource, /finance-p1008-refine-v3\.css\?v=joy-finance-p1008-refine-v6/);
-  assert.match(buildSource, /finance-p1008-refine-v3\.js\?v=joy-finance-p1008-refine-v6/);
+  assert.match(buildSource, /replaceAll\('joy-finance-p1008-v1', 'joy-finance-p1008-v4'\)/);
+  assert.match(buildSource, /finance-p1008-refine-v3\.css\?v=joy-finance-p1008-refine-v7/);
+  assert.match(buildSource, /finance-p1008-refine-v3\.js\?v=joy-finance-p1008-refine-v7/);
   assert.match(buildSource, /finance-p1008-capture-v2\.css\?v=joy-finance-p1008-capture-v3/);
   assert.doesNotMatch(packageSource, /cache-bust-finance-p1008\.mjs/);
 });

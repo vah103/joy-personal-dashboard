@@ -16,6 +16,10 @@ test("P1008 refinement source parses and arranges the overview without global ob
   assert.match(source, /p1008-people-card/);
 });
 
+test("P1008 refinement reruns after account data refreshes", () => {
+  assert.match(source, /workspace\.addEventListener\("joy:p1008-rendered", refineP1008Layout\)/);
+});
+
 test("P1008 places the summary beside a compact service table", () => {
   assert.match(styles, /width: min\(1000px, 100%\)/);
   assert.match(styles, /grid-template-columns: minmax\(230px, 260px\) minmax\(0, 720px\)/);
@@ -63,9 +67,9 @@ test("P1008 fullscreen headers stretch across their complete grid columns", () =
 });
 
 test("P1008 assets are declared by the canonical frontend build", () => {
-  assert.match(build, /joy-finance-p1008-v3/);
-  assert.match(build, /finance-p1008-refine-v3\.css\?v=joy-finance-p1008-refine-v6/);
-  assert.match(build, /finance-p1008-refine-v3\.js\?v=joy-finance-p1008-refine-v6/);
+  assert.match(build, /joy-finance-p1008-v4/);
+  assert.match(build, /finance-p1008-refine-v3\.css\?v=joy-finance-p1008-refine-v7/);
+  assert.match(build, /finance-p1008-refine-v3\.js\?v=joy-finance-p1008-refine-v7/);
   assert.match(build, /finance-p1008-capture-v2\.css\?v=joy-finance-p1008-capture-v3/);
   assert.doesNotMatch(build, /cache-bust-finance-p1008/);
 });

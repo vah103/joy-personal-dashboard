@@ -28,8 +28,8 @@ test("frontend build has one canonical HTML owner", () => {
 test("build emits final production asset versions directly", () => {
   for (const reference of [
     "finance-demo.js?v=joy-finance-core-v9",
-    "joy-finance-p1008-v3",
-    "joy-finance-p1008-refine-v6",
+    "joy-finance-p1008-v4",
+    "joy-finance-p1008-refine-v7",
     "finance-p1008-capture-v2.css?v=joy-finance-p1008-capture-v3",
     "task-english.js?v=joy-task-english-v7",
     "task-natural-input.js?v=joy-natural-reminders-v2",
