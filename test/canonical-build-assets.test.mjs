@@ -26,7 +26,7 @@ const removedFinanceOverlays = [
 test("frontend build has one canonical HTML owner", () => {
   assert.equal(
     packageJson.scripts.build,
-    "node scripts/validate-ielts-sources.mjs && node scripts/build.mjs && node scripts/build-finance-bundle.mjs",
+    "node scripts/validate-ielts-sources.mjs && node scripts/build.mjs && node scripts/sanitize-public-project-data.mjs && node scripts/build-finance-bundle.mjs",
   );
   assert.match(build, /readFile\(resolve\(dashboardPage, "index\.html"\), "utf8"\)/);
   assert.match(build, /dashboardBackendAnchor/);
