@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const dashboardAppSourceFiles = [
+  "src/pages/dashboard/app-config.js",
   "src/pages/dashboard/app-helpers.js",
   "src/pages/dashboard/app-state.js",
   "src/pages/dashboard/app-scratchpad.js",
