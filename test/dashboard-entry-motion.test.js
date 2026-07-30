@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 
 const motionJs = await readFile(new URL("../src/features/motion/dashboard-entry.js", import.meta.url), "utf8");
 const motionCss = await readFile(new URL("../src/features/motion/dashboard-entry.css", import.meta.url), "utf8");
+const dashboardHtml = await readFile(new URL("../src/pages/dashboard/index.html", import.meta.url), "utf8");
 const buildSource = await readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8");
 
 test("dashboard greeting motion is independent from Finance", () => {
@@ -21,9 +22,9 @@ test("dashboard entry transitions cover greeting and main cards", () => {
   assert.match(motionCss, /\.email-panel/);
 });
 
-test("Cloudflare build copies and loads the entry motion module", () => {
-  assert.match(buildSource, /dashboard-entry\.css\?v=joy-entry-motion-v1/);
-  assert.match(buildSource, /dashboard-entry\.js\?v=joy-entry-motion-v1/);
+test("Cloudflare build copies and dashboard HTML loads the entry motion module", () => {
+  assert.match(dashboardHtml, /dashboard-entry\.css\?v=joy-entry-motion-v1/);
+  assert.match(dashboardHtml, /dashboard-entry\.js\?v=joy-entry-motion-v1/);
   assert.match(buildSource, /resolve\(features, "motion", "dashboard-entry\.js"\)/);
   assert.match(buildSource, /resolve\(features, "motion", "dashboard-entry\.css"\)/);
 });
