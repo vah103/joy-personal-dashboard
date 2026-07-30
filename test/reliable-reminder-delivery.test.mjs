@@ -22,6 +22,10 @@ test("task reminder API does not retain the replaced delivery scheduler", () => 
   assert.ok(!reminderApi.includes("buildPushPayload"));
 });
 
+test("task reminder API excludes reminders for completed tasks", () => {
+  assert.match(reminderApi, /WHERE r\.user_email = \? AND t\.done = 0/);
+});
+
 test("scheduled jobs cannot block one another", () => {
   assert.ok(router.includes("function scheduleIndependentJob"));
   assert.ok(router.includes('scheduleIndependentJob(ctx, "Gmail"'));
