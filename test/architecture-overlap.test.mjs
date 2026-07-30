@@ -10,12 +10,19 @@ function resourcePaths(source, attribute) {
   return [...source.matchAll(pattern)].map((match) => match[1].split("?")[0]);
 }
 
+function arrayDeclaration(build, name) {
+  const pattern = new RegExp(`const ${name} = \\[\\s\\S]*?\\]\\.join\\(""\\);`);
+  return build.match(pattern)?.[0] || "";
+}
+
 test("dashboard build declares every static resource once", () => {
   const build = read("scripts/build.mjs");
   const resourceDeclarations = [
-    build.match(/const projectHubHead = \[[\s\S]*?\]\.join\(""\);/)?.[0] || "",
-    build.match(/const projectHubScripts = \[[\s\S]*?\]\.join\(""\);/)?.[0] || "",
-  ].join("\n");
+    "projectHubHead",
+    "languageFeatureScripts",
+    "projectHubScripts",
+    "dashboardFeatureScripts",
+  ].map((name) => arrayDeclaration(build, name)).join("\n");
   const paths = [
     ...resourcePaths(resourceDeclarations, "href"),
     ...resourcePaths(resourceDeclarations, "src"),
@@ -29,8 +36,7 @@ test("IELTS Journey has one built resource and one dashboard-card controller", (
   const build = read("scripts/build.mjs");
   const card = read("src/features/ielts/card.js");
   const actions = read("src/features/ielts/core-actions.js");
-  const scriptDeclarations =
-    build.match(/const projectHubScripts = \[[\s\S]*?\]\.join\(""\);/)?.[0] || "";
+  const scriptDeclarations = arrayDeclaration(build, "dashboardFeatureScripts");
 
   assert.equal(
     (scriptDeclarations.match(/project-data\/ielts\/ielts-core-bundle\.js/g) || []).length,
