@@ -5,7 +5,7 @@ import fs from "node:fs";
 const router = fs.readFileSync(new URL("../worker/router.js", import.meta.url), "utf8");
 const cleanup = fs.readFileSync(new URL("../worker/push-subscription-cleanup.js", import.meta.url), "utf8");
 const frontend = fs.readFileSync(new URL("../src/features/notifications/push-notifications.js", import.meta.url), "utf8");
-const build = fs.readFileSync(new URL("../scripts/build.mjs", import.meta.url), "utf8");
+const dashboard = fs.readFileSync(new URL("../src/pages/dashboard/index.html", import.meta.url), "utf8");
 
 test("router handles push cleanup before the generic push route", () => {
   const cleanupIndex = router.indexOf("isPushSubscriptionCleanupRoute(pathname)");
@@ -24,5 +24,5 @@ test("the iPhone registers then cleans stale subscriptions", () => {
   assert.ok(frontend.includes("registerCurrentSubscription(subscription)"));
   assert.ok(frontend.includes('requestJson("/api/push/cleanup-current"'));
   assert.ok(frontend.includes("cleanupResult.removed"));
-  assert.ok(build.includes("push-notifications.js?v=joy-current-device-v1"));
+  assert.ok(dashboard.includes("push-notifications.js?v=joy-current-device-v1"));
 });
