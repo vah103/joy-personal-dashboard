@@ -5,6 +5,10 @@ import {
   runDailyBriefSchedule,
 } from "./daily-brief-budget.js";
 import {
+  handleDashboardDataRequest,
+  isDashboardDataRoute,
+} from "./dashboard-data.js";
+import {
   handleFinanceLedgerRequest,
   isFinanceLedgerRoute,
 } from "./finance-ledger.js";
@@ -92,6 +96,9 @@ export default {
     try {
       if (isDailyBriefRoute(pathname)) {
         return handleDailyBriefRequest(request, env, ctx);
+      }
+      if (isDashboardDataRoute(pathname)) {
+        return handleDashboardDataRequest(request, env);
       }
       if (isFinanceP1008ShoppingRoute(pathname)) {
         return handleFinanceP1008ShoppingRequest(request, env);
