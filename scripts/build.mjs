@@ -22,6 +22,8 @@ const ieltsPublicDir = resolve(dist, "project-data", "ielts");
 const desktopFaviconLink = '    <link rel="icon" href="/joy-web-favicon.svg?v=joy-desktop-wolf-v2" type="image/svg+xml">';
 const blueFaviconLink = '    <link rel="icon" href="/joy-blue-icon.png?v=joy-topographic-blue-v1" type="image/png">';
 const legacySaleFaviconLink = '    <link rel="icon" href="app-icon-64.png?v=joy-original-wolf-v2" type="image/png" sizes="64x64">';
+const dashboardBackendAnchor = "    <!-- JOY_CLOUDFLARE_BACKEND -->";
+const cloudflareBackendMeta = '    <meta name="joy-backend" content="cloudflare">';
 
 const fontFiles = [
   ...[400, 500, 600, 700].flatMap((weight) => [
@@ -37,6 +39,23 @@ const fontFiles = [
     "quicksand-latin-ext-600-normal.woff2",
   ].map((file) => ["quicksand", file, 600]),
 ];
+
+function replaceRequired(source, search, replacement, label) {
+  const firstIndex = source.indexOf(search);
+  if (firstIndex === -1) {
+    throw new Error(`Missing required build anchor: ${label}`);
+  }
+  if (source.indexOf(search, firstIndex + search.length) !== -1) {
+    throw new Error(`Duplicate required build anchor: ${label}`);
+  }
+  return source.replace(search, replacement);
+}
+
+function assertBuildTokenRemoved(source, token, label) {
+  if (source.includes(token)) {
+    throw new Error(`Unresolved build token: ${label}`);
+  }
+}
 
 async function copyFontWithNunitoFallback(family, file, weight) {
   const source = resolve(root, "node_modules", "@fontsource", family, "files", file);
@@ -59,101 +78,48 @@ await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
 await mkdir(fonts, { recursive: true });
 
-const projectHubHead = [
-  '    <link rel="stylesheet" href="project-hub.css?v=turtlebot-hub-v4">\n',
-  '    <link rel="stylesheet" href="turtlebot-roadmap-font.css?v=turtlebot-inline-header-tabs-v3">\n',
-  '    <link rel="stylesheet" href="turtlebot-card-art.css?v=restored-card-v6">\n',
-  '    <link rel="stylesheet" href="project-data/ielts/ielts-card.css?v=ielts-journey-v5">\n',
-  '    <link rel="stylesheet" href="project-data/ielts/ielts-core.css?v=ielts-journey-v4">\n',
-  '    <link rel="stylesheet" href="mobile-notifications.css?v=iphone-rain-bell-v1">\n',
-  '    <link rel="stylesheet" href="auth-ui.css?v=joy-google-account-v3">\n',
-  '    <link rel="stylesheet" href="greeting-layout.css?v=joy-daily-brief-v4">\n',
-  '    <link rel="stylesheet" href="dashboard-entry.css?v=joy-entry-motion-v1">\n',
-  '    <link rel="stylesheet" href="task-reminders.css?v=joy-tasks-v1">\n',
-  '    <link rel="stylesheet" href="room-summary.css?v=joy-room-summary-v1">\n',
-  '    <link rel="stylesheet" href="sales-assistant.css?v=joy-dashboard-sales-assistant-v4">\n',
-  '    <link rel="stylesheet" href="project-data/finance/finance-layout-v2.css?v=joy-finance-ledger-v4">\n',
-  '    <link rel="stylesheet" href="project-data/finance/finance-p1008-refine-v3.css?v=joy-finance-p1008-refine-v7">\n',
-  '    <link rel="stylesheet" href="project-data/finance/finance-p1008-capture-v2.css?v=joy-finance-p1008-capture-v3">\n',
-  '    <link rel="stylesheet" href="project-data/finance/finance-p1008-shopping-v1.css?v=joy-finance-p1008-shopping-v1">\n',
-  '    <link rel="stylesheet" href="project-data/finance/finance-p1008-shopping-tables-v1.css?v=joy-finance-p1008-shopping-tables-v1">\n',
-  '    <link rel="stylesheet" href="dashboard-openai-headings.css?v=joy-openai-headings-v1">\n',
-].join("");
-
-const languageFeatureScripts = [
-  '    <script src="speaking-loader.js?v=joy-speaking-loader-v1" defer></script>\n',
-  '    <script src="vocabulary-loader.js?v=joy-vocabulary-loader-v1" defer></script>\n',
-].join("");
-
-const projectHubScripts = [
-  '    <script src="project-hub-performance.js?v=turtlebot-hub-lifecycle-v1" defer></script>\n',
-  '    <script src="project-hub-core.js?v=turtlebot-hub-v4" defer></script>\n',
-  '    <script src="project-hub-render.js?v=turtlebot-hub-v4" defer></script>\n',
-  '    <script src="project-hub-actions.js?v=turtlebot-hub-v4" defer></script>\n',
-  '    <script src="project-hub-extension-api.js?v=turtlebot-hub-extension-v1" defer></script>\n',
-  '    <script src="project-data/turtlebot4/project-state-v2.js?v=turtlebot-progress-hooks-v2" defer></script>\n',
-  '    <script src="turtlebot-roadmap.js?v=turtlebot-roadmap-v3" defer></script>\n',
-  '    <script src="turtlebot-roadmap-language.js?v=turtlebot-roadmap-english-v1" defer></script>\n',
-  '    <script src="turtlebot-plan-loader.js?v=turtlebot-plan-loader-v1" defer></script>\n',
-].join("");
-
-const dashboardFeatureScripts = [
-  '    <script id="joy-ielts-core-bundle-v4" data-loaded="true" src="project-data/ielts/ielts-core-bundle.js?v=ielts-journey-v4" defer></script>\n',
-  '    <script src="project-data/ielts/ielts-card.js?v=ielts-journey-v4" defer></script>\n',
-  '    <script src="weather-status-ui.js?v=rain-threshold-85-v1" defer></script>\n',
-  '    <script src="push-notifications.js?v=joy-current-device-v1" defer></script>\n',
-  '    <script src="auth-ui.js?v=joy-google-account-v3" defer></script>\n',
-  '    <script src="dashboard-entry.js?v=joy-entry-motion-v1" defer></script>\n',
-  '    <script src="greeting-layout.js?v=joy-daily-brief-v4" defer></script>\n',
-  '    <script src="daily-brief-polish.js?v=joy-daily-brief-polish-v2" defer></script>\n',
-  '    <script src="task-english.js?v=joy-task-english-v7" defer></script>\n',
-  '    <script src="task-reminders-events.js?v=joy-task-checkbox-v2" defer></script>\n',
-  '    <script src="task-reminders.js?v=joy-tasks-v1" defer></script>\n',
-  '    <script src="task-natural-input.js?v=joy-natural-reminders-v2" defer></script>\n',
-  '    <script type="module" src="sales-assistant.js?v=joy-dashboard-sales-assistant-v4"></script>\n',
-  '    <script src="project-data/finance/finance-layout-v2.js?v=joy-finance-month-layout-v4" defer></script>\n',
-  '    <script src="project-data/finance/finance-dashboard-v1.js?v=joy-finance-dashboard-v3" defer></script>\n',
-  '    <script src="project-data/finance/finance-p1008-refine-v3.js?v=joy-finance-p1008-refine-v7" defer></script>\n',
-  '    <script src="project-data/finance/finance-p1008-shopping-v1.js?v=joy-finance-p1008-shopping-v1" defer></script>\n',
-  '    <script src="project-data/finance/finance-p1008-shopping-tables-v1.js?v=joy-finance-p1008-shopping-tables-v2" defer></script>\n',
-].join("");
-
-const dashboardScripts = `${languageFeatureScripts}${projectHubScripts}${dashboardFeatureScripts}`;
-
 const sourceHtml = await readFile(resolve(dashboardPage, "index.html"), "utf8");
-const cloudflareHtml = sourceHtml
-  .replace(blueFaviconLink, desktopFaviconLink)
-  .replace('finance-demo.css?v=joy-character-motion-v5', 'finance-demo.css?v=joy-finance-core-v4')
-  .replace('finance-demo.js?v=joy-character-motion-v4', 'finance-demo.js?v=joy-finance-core-v9')
-  .replaceAll('joy-finance-p1008-v1', 'joy-finance-p1008-v4')
-  .replace('<meta name="application-name" content="Joy">', '<meta name="application-name" content="Hey Joy!">')
-  .replace('<title>Joy — Personal Dashboard</title>', '<title>Hey Joy! — Personal Dashboard</title>')
-  .replace('aria-label="Joy overview"', 'aria-label="Hey Joy! overview"')
-  .replace('<p class="section-kicker" id="brief-title">Joy</p>', '<p class="section-kicker" id="brief-title">Hey Joy!</p>')
-  .replace('site.webmanifest?v=joy-original-wolf-v2', 'site.webmanifest?v=joy-blue-wolf-v4')
-  .replace('weather-rain.js?v=joy-rain-notice-v2', 'weather-rain.js?v=joy-rain-notice-v6')
-  .replace(
-    '<script src="app.js?v=joy-dashboard-combined-v1" defer></script>',
-    '<script src="todo-display-policy.js?v=joy-task-window-v1" defer></script>\n    <script src="app.js?v=joy-dashboard-combined-v1" defer></script>',
-  )
-  .replace(
-    "</head>",
-    `${projectHubHead}    <meta name="joy-backend" content="cloudflare">\n  </head>`,
-  )
-  .replace("</body>", `${dashboardScripts}  </body>`);
+const cloudflareHtml = replaceRequired(
+  sourceHtml,
+  dashboardBackendAnchor,
+  cloudflareBackendMeta,
+  "dashboard Cloudflare backend metadata",
+);
+assertBuildTokenRemoved(cloudflareHtml, dashboardBackendAnchor, "dashboard Cloudflare backend metadata");
 
 const sourceLoginHtml = await readFile(resolve(loginPage, "index.html"), "utf8");
-const cloudflareLoginHtml = sourceLoginHtml.replace(blueFaviconLink, desktopFaviconLink);
+const cloudflareLoginHtml = replaceRequired(
+  sourceLoginHtml,
+  blueFaviconLink,
+  desktopFaviconLink,
+  "login favicon",
+);
 
 const sourceSaleHtml = await readFile(resolve(salePage, "index.html"), "utf8");
-const cloudflareSaleHtml = sourceSaleHtml
-  .replace(legacySaleFaviconLink, desktopFaviconLink)
-  .replace('<meta name="description" content="Joy\'s private 2026 room sale workspace.">', '<meta name="description" content="Hey Joy! private 2026 room sale workspace.">')
-  .replace('<title>Sale 2026 — Joy</title>', '<title>Sale 2026 — Hey Joy!</title>')
-  .replace(
-    "</head>",
-    '    <meta name="joy-backend" content="cloudflare">\n  </head>',
-  );
+let cloudflareSaleHtml = replaceRequired(
+  sourceSaleHtml,
+  legacySaleFaviconLink,
+  desktopFaviconLink,
+  "sale favicon",
+);
+cloudflareSaleHtml = replaceRequired(
+  cloudflareSaleHtml,
+  '<meta name="description" content="Joy\'s private 2026 room sale workspace.">',
+  '<meta name="description" content="Hey Joy! private 2026 room sale workspace.">',
+  "sale description",
+);
+cloudflareSaleHtml = replaceRequired(
+  cloudflareSaleHtml,
+  "<title>Sale 2026 — Joy</title>",
+  "<title>Sale 2026 — Hey Joy!</title>",
+  "sale title",
+);
+cloudflareSaleHtml = replaceRequired(
+  cloudflareSaleHtml,
+  "</head>",
+  '    <meta name="joy-backend" content="cloudflare">\n  </head>',
+  "sale Cloudflare backend metadata",
+);
 
 await writeFile(resolve(dist, "index.html"), cloudflareHtml);
 await writeFile(resolve(dist, "login.html"), cloudflareLoginHtml);
