@@ -10,52 +10,36 @@ function resourcePaths(source, attribute) {
   return [...source.matchAll(pattern)].map((match) => match[1].split("?")[0]);
 }
 
-function arrayDeclaration(build, name) {
-  const start = `const ${name} = [`;
-  const end = '].join("");';
-  const startIndex = build.indexOf(start);
-  if (startIndex < 0) return "";
-  const endIndex = build.indexOf(end, startIndex);
-  return endIndex < 0 ? "" : build.slice(startIndex, endIndex + end.length);
-}
-
-test("dashboard build declares every static resource once", () => {
-  const build = read("scripts/build.mjs");
-  const resourceDeclarations = [
-    "projectHubHead",
-    "languageFeatureScripts",
-    "projectHubScripts",
-    "dashboardFeatureScripts",
-  ].map((name) => arrayDeclaration(build, name)).join("\n");
+test("dashboard HTML declares every static resource once", () => {
+  const dashboard = read("src/pages/dashboard/index.html");
   const paths = [
-    ...resourcePaths(resourceDeclarations, "href"),
-    ...resourcePaths(resourceDeclarations, "src"),
-  ];
+    ...resourcePaths(dashboard, "href"),
+    ...resourcePaths(dashboard, "src"),
+  ].filter((path) => !path.startsWith("http") && !path.startsWith("#"));
   const duplicates = paths.filter((path, index) => paths.indexOf(path) !== index);
 
   assert.deepEqual([...new Set(duplicates)], []);
 });
 
 test("IELTS Journey has one built resource and one dashboard-card controller", () => {
-  const build = read("scripts/build.mjs");
+  const dashboard = read("src/pages/dashboard/index.html");
   const card = read("src/features/ielts/card.js");
   const actions = read("src/features/ielts/core-actions.js");
-  const scriptDeclarations = arrayDeclaration(build, "dashboardFeatureScripts");
 
   assert.equal(
-    (scriptDeclarations.match(/project-data\/ielts\/ielts-core-bundle\.js/g) || []).length,
+    (dashboard.match(/project-data\/ielts\/ielts-core-bundle\.js/g) || []).length,
     1,
   );
   assert.equal(
-    (scriptDeclarations.match(/project-data\/ielts\/ielts-card\.js/g) || []).length,
+    (dashboard.match(/project-data\/ielts\/ielts-card\.js/g) || []).length,
     1,
   );
 
-  assert.match(build, /id="joy-ielts-core-bundle-v4"/);
-  assert.match(build, /data-loaded="true"/);
+  assert.match(dashboard, /id="joy-ielts-core-bundle-v4"/);
+  assert.match(dashboard, /data-loaded="true"/);
 
   // card.js may provide one fallback loader, but it must first reuse
-  // the script that the normal Cloudflare build already declared.
+  // the script that the normal Cloudflare dashboard already declares.
   assert.match(card, /const CORE_SCRIPT = \[/);
   assert.match(card, /document\.querySelector\(`#\$\{id\}`\)/);
   assert.equal(
