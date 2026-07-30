@@ -94,6 +94,19 @@
     return document.fullscreenElement || document.webkitFullscreenElement || null;
   }
 
+  function configureCaptureGrid(card) {
+    const table = card.querySelector(".p1008-shopping-people-table");
+    const columnCount = Math.max(2, table?.tHead?.rows?.[0]?.cells?.length || 2);
+    const itemCount = Math.max(0, columnCount - 2);
+    const middleColumns = itemCount ? `repeat(${itemCount}, minmax(0, 1fr))` : "";
+    const gridColumns = ["minmax(0, 1.1fr)", middleColumns, "minmax(0, 1.15fr)"].filter(Boolean).join(" ");
+    const minimumCanvasWidth = columnCount > 7 ? columnCount * 96 : 0;
+
+    card.style.setProperty("--p1008-shopping-capture-columns", gridColumns);
+    card.style.setProperty("--p1008-shopping-capture-min-width", `${minimumCanvasWidth}px`);
+    card.dataset.shoppingCaptureColumns = String(columnCount);
+  }
+
   function updateCaptureButton(card, active) {
     const button = card.querySelector("[data-shopping-fullscreen]");
     if (!button) return;
@@ -104,6 +117,7 @@
   }
 
   function setCaptureState(card, active) {
+    if (active) configureCaptureGrid(card);
     card.classList.toggle("is-shopping-capture-mode", active);
     document.body.classList.toggle("p1008-shopping-capture-active", active);
     updateCaptureButton(card, active);
@@ -132,6 +146,7 @@
 
   async function enterCapture(card) {
     if (activeCaptureCard && activeCaptureCard !== card) setCaptureState(activeCaptureCard, false);
+    configureCaptureGrid(card);
     setCaptureState(card, true);
 
     const request = card.requestFullscreen || card.webkitRequestFullscreen;
@@ -163,6 +178,7 @@
 
   function installShoppingFullscreen(root) {
     root.querySelectorAll(".p1008-shopping-people-card").forEach((card) => {
+      configureCaptureGrid(card);
       const header = card.querySelector(":scope > header");
       if (!header || header.querySelector("[data-shopping-fullscreen]")) return;
 
