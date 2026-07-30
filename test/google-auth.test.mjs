@@ -9,6 +9,7 @@ import {
 
 const authSource = fs.readFileSync(new URL("../worker/google-auth.js", import.meta.url), "utf8");
 const routerSource = fs.readFileSync(new URL("../worker/router.js", import.meta.url), "utf8");
+const appSource = fs.readFileSync(new URL("../worker/index.js", import.meta.url), "utf8");
 const buildSource = fs.readFileSync(new URL("../scripts/build.mjs", import.meta.url), "utf8");
 const loginHtml = fs.readFileSync(new URL("../src/pages/login/index.html", import.meta.url), "utf8");
 const accountUi = fs.readFileSync(new URL("../src/features/auth/auth-ui.js", import.meta.url), "utf8");
@@ -49,6 +50,21 @@ test("sign out preserves integrations while service disconnects are separate", (
   assert.ok(accountUi.includes('request("/api/signout"'));
   assert.ok(accountUi.includes('root.location.assign("/auth/connect/gmail")'));
   assert.ok(accountUi.includes('root.location.assign("/auth/connect/sheets")'));
+});
+
+test("legacy authentication handlers are not duplicated in the app worker", () => {
+  assert.ok(routerSource.includes("isGoogleAuthRoute(pathname)"));
+  assert.ok(routerSource.includes("handleGoogleAuthRequest(request, env)"));
+  for (const handler of [
+    "startGoogleAuthorization",
+    "finishGoogleAuthorization",
+    "verifyGoogleIdentity",
+    "createSession",
+    "sessionStatus",
+    "disconnectGoogle",
+  ]) {
+    assert.ok(!appSource.includes(handler), `Legacy handler remains: ${handler}`);
+  }
 });
 
 test("Cloudflare build contains all authentication assets", () => {

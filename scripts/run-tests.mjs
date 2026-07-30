@@ -54,6 +54,9 @@ const compatibilityPaths = [
 ];
 
 const syntaxChecks = [
+  "worker/shared/http.js",
+  "worker/shared/schema.js",
+  "worker/shared/session.js",
   "worker/task-reminders.js",
   "worker/reminder-delivery.js",
   "worker/push.js",
@@ -66,6 +69,7 @@ const syntaxChecks = [
   "src/pages/sale/room-summary.js",
   "src/features/sales/sale-appointment.js",
   "src/features/sales/sales-assistant.js",
+  "src/features/finance/finance-amount-core.js",
   "src/features/weather/weather-rain.js",
   "src/features/tasks/task-english.js",
   "src/features/tasks/task-reminders-events.js",
@@ -82,6 +86,9 @@ const syntaxChecks = [
   "src/features/ielts/core-actions.js",
   "src/pwa/sw.js",
   "scripts/build.mjs",
+  "scripts/deploy-clean-main.mjs",
+  "scripts/patch-finance-core-amount.mjs",
+  "scripts/run-feature-tests.mjs",
   "scripts/validate-ielts-sources.mjs",
 ];
 

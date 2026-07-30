@@ -3,6 +3,7 @@ import {
   isDailyBriefRoute,
   runDailyBriefSchedule as runPolicyDailyBriefSchedule,
 } from "./daily-brief-policy.js";
+import { ensureDailyBriefMetaTable } from "./shared/schema.js";
 
 const DAILY_BRIEF_AI_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const DAILY_BRIEF_BUDGET_KEY = "last_budgeted_ai_refresh";
@@ -61,13 +62,7 @@ function withBudgetAi(env) {
 }
 
 async function ensureBudgetTable(env) {
-  await env.DB.prepare(`
-    CREATE TABLE IF NOT EXISTS daily_brief_meta (
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL,
-      updated_at INTEGER NOT NULL
-    )
-  `).run();
+  await ensureDailyBriefMetaTable(env);
 }
 
 async function readBudgetTimestamp(env) {

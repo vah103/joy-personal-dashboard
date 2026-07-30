@@ -238,6 +238,7 @@ function renderFinanceDashboard() {
   document.querySelector("#finance-sync-state")?.setAttribute("hidden", "");
   renderFinanceChart(financeSummary.months || []);
   setFinancePrivacy(financeValuesHidden);
+  document.dispatchEvent(new CustomEvent("joy:finance-dashboard-rendered"));
 }
 
 function renderFinanceChart(months) {
@@ -261,6 +262,7 @@ function renderFinanceChart(months) {
   }
   const labels = document.querySelector("#finance-months");
   if (labels) labels.innerHTML = months.map((month) => `<i class="${month.key === selectedMonth ? "is-current" : ""}">${month.shortLabel}</i>`).join("");
+  document.dispatchEvent(new CustomEvent("joy:finance-chart-rendered"));
 }
 
 async function openFinanceWorkspace(view = "month") {
@@ -294,12 +296,15 @@ async function renderFinanceWorkspace() {
   }
 
   if (workspaceView === "year") {
+    window.JoyFinanceLayout?.beforeYearView?.();
     renderYearView(content);
     return;
   }
 
   await loadMonthTransactions();
-  renderMonthView(content);
+  const customMonthRenderer = window.JoyFinanceLayout?.renderMonthView;
+  if (typeof customMonthRenderer === "function") customMonthRenderer(content);
+  else renderMonthView(content);
 }
 
 async function loadMonthTransactions() {

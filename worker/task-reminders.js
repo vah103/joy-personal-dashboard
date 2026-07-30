@@ -1,45 +1,10 @@
-import { buildPushPayload } from "@block65/webcrypto-web-push";
+import { isSameOrigin, json, readJson } from "./shared/http.js";
+import { ensureReminderTables } from "./shared/schema.js";
+import { getSession } from "./shared/session.js";
 
-const SESSION_COOKIE = "__Host-joy_session";
 const MAX_TASK_ID_LENGTH = 100;
 const MAX_TITLE_LENGTH = 500;
 const VIETNAM_OFFSET_MS = 7 * 60 * 60 * 1000;
-
-const CREATE_TASK_REMINDERS_TABLE = `
-  CREATE TABLE IF NOT EXISTS task_reminders (
-    user_email TEXT NOT NULL,
-    task_id TEXT NOT NULL,
-    due_at INTEGER NOT NULL,
-    repeat_type TEXT NOT NULL DEFAULT 'once',
-    repeat_days TEXT NOT NULL DEFAULT '[]',
-    notification_enabled INTEGER NOT NULL DEFAULT 1,
-    snoozed_until INTEGER,
-    last_notified_at INTEGER,
-    status TEXT NOT NULL DEFAULT 'scheduled',
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL,
-    PRIMARY KEY (user_email, task_id)
-  )
-`;
-
-const CREATE_TASK_REMINDERS_DUE_INDEX = `
-  CREATE INDEX IF NOT EXISTS task_reminders_due_idx
-  ON task_reminders (notification_enabled, status, due_at)
-`;
-
-const CREATE_FOCUS_REMINDERS_TABLE = `
-  CREATE TABLE IF NOT EXISTS focus_reminders (
-    user_email TEXT PRIMARY KEY,
-    enabled INTEGER NOT NULL DEFAULT 0,
-    message TEXT NOT NULL DEFAULT 'Stay focused',
-    start_time TEXT NOT NULL DEFAULT '08:00',
-    end_time TEXT NOT NULL DEFAULT '23:30',
-    min_minutes INTEGER NOT NULL DEFAULT 60,
-    max_minutes INTEGER NOT NULL DEFAULT 180,
-    next_at INTEGER,
-    updated_at INTEGER NOT NULL
-  )
-`;
 
 export function isTaskReminderRoute(pathname) {
   return pathname === "/api/task-reminders"
@@ -82,26 +47,6 @@ export async function handleTaskReminderRequest(request, env) {
     console.error("Joy task reminder route failed", error);
     return json({ error: String(error?.message || "TASK_REMINDER_FAILED") }, 500);
   }
-}
-
-export async function runTaskReminderSchedule(env) {
-  try {
-    await ensureReminderTables(env);
-    await Promise.allSettled([
-      processDueTaskReminders(env),
-      processDueFocusReminders(env),
-    ]);
-  } catch (error) {
-    console.error("Joy reminder schedule failed", error);
-  }
-}
-
-async function ensureReminderTables(env) {
-  await env.DB.batch([
-    env.DB.prepare(CREATE_TASK_REMINDERS_TABLE),
-    env.DB.prepare(CREATE_TASK_REMINDERS_DUE_INDEX),
-    env.DB.prepare(CREATE_FOCUS_REMINDERS_TABLE),
-  ]);
 }
 
 async function listTaskReminders(email, env) {
@@ -371,165 +316,6 @@ async function disableFocusReminder(email, env) {
   return json({ ok: true, focus: focusRowToApi(null) });
 }
 
-async function processDueTaskReminders(env) {
-  if (!hasPushConfig(env)) return;
-  const now = Date.now();
-  const rows = await env.DB.prepare(`
-    SELECT
-      r.user_email,
-      r.task_id,
-      r.due_at,
-      r.repeat_type,
-      r.repeat_days,
-      r.snoozed_until,
-      t.title
-    FROM task_reminders r
-    JOIN tasks t ON t.id = r.task_id AND t.user_email = r.user_email
-    WHERE r.notification_enabled = 1
-      AND r.status = 'scheduled'
-      AND t.done = 0
-      AND COALESCE(r.snoozed_until, r.due_at) <= ?
-    ORDER BY COALESCE(r.snoozed_until, r.due_at) ASC
-    LIMIT 50
-  `).bind(now).all();
-
-  for (const row of rows.results) {
-    const sent = await sendPushToUser(row.user_email, {
-      title: "Task reminder",
-      body: String(row.title || "You have a task to do."),
-      icon: "/app-icon-192.png",
-      badge: "/app-icon-64.png",
-      tag: `hey-joy-task-${row.task_id}`,
-      renotify: true,
-      actions: [
-        { action: "complete", title: "Complete" },
-        { action: "snooze10", title: "10 min" },
-        { action: "snooze60", title: "1 hour" },
-      ],
-      data: {
-        url: `/?task=${encodeURIComponent(row.task_id)}#to-do`,
-        kind: "task-reminder",
-        taskId: String(row.task_id),
-      },
-    }, env, { ttl: 6 * 60 * 60, topic: `joy-task-${String(row.task_id).slice(-20)}` });
-
-    if (!sent) continue;
-
-    const repeatType = normalizeRepeatType(row.repeat_type);
-    if (repeatType === "once") {
-      await env.DB.prepare(`
-        UPDATE task_reminders
-        SET status = 'notified', snoozed_until = NULL,
-            last_notified_at = ?, updated_at = ?
-        WHERE user_email = ? AND task_id = ?
-      `).bind(now, now, row.user_email, row.task_id).run();
-    } else {
-      const nextDueAt = computeNextDue(
-        Number(row.due_at),
-        repeatType,
-        parseRepeatDays(row.repeat_days),
-        now,
-      );
-      await env.DB.prepare(`
-        UPDATE task_reminders
-        SET due_at = ?, snoozed_until = NULL, status = 'scheduled',
-            last_notified_at = ?, updated_at = ?
-        WHERE user_email = ? AND task_id = ?
-      `).bind(nextDueAt, now, now, row.user_email, row.task_id).run();
-    }
-  }
-}
-
-async function processDueFocusReminders(env) {
-  if (!hasPushConfig(env)) return;
-  const now = Date.now();
-  const rows = await env.DB.prepare(`
-    SELECT user_email, message, start_time, end_time,
-           min_minutes, max_minutes, next_at
-    FROM focus_reminders
-    WHERE enabled = 1 AND next_at IS NOT NULL AND next_at <= ?
-    LIMIT 30
-  `).bind(now).all();
-
-  for (const row of rows.results) {
-    const sent = await sendPushToUser(row.user_email, {
-      title: "Focus reminder",
-      body: String(row.message || "Stay focused"),
-      icon: "/app-icon-192.png",
-      badge: "/app-icon-64.png",
-      tag: "hey-joy-focus",
-      data: { url: "/#to-do", kind: "focus-reminder" },
-    }, env, { ttl: 60 * 60, topic: "hey-joy-focus", urgency: "normal" });
-
-    const nextAt = computeNextFocusAt(now, {
-      startTime: row.start_time,
-      endTime: row.end_time,
-      minMinutes: Number(row.min_minutes),
-      maxMinutes: Number(row.max_minutes),
-    });
-    await env.DB.prepare(`
-      UPDATE focus_reminders
-      SET next_at = ?, updated_at = ?
-      WHERE user_email = ?
-    `).bind(nextAt, Date.now(), row.user_email).run();
-
-    if (!sent) console.warn("Joy focus reminder had no active push subscription", row.user_email);
-  }
-}
-
-async function sendPushToUser(email, payload, env, options = {}) {
-  const rows = await env.DB.prepare(`
-    SELECT endpoint, p256dh, auth
-    FROM push_subscriptions
-    WHERE user_email = ?
-  `).bind(email).all();
-  if (!rows.results.length) return false;
-
-  const vapid = {
-    subject: env.VAPID_SUBJECT,
-    publicKey: env.VAPID_PUBLIC_KEY,
-    privateKey: env.VAPID_PRIVATE_KEY,
-  };
-  const deadEndpoints = [];
-  let sent = 0;
-
-  await Promise.all(rows.results.map(async (row) => {
-    try {
-      const subscription = {
-        endpoint: row.endpoint,
-        expirationTime: null,
-        keys: { p256dh: row.p256dh, auth: row.auth },
-      };
-      const requestInit = await buildPushPayload({
-        data: JSON.stringify(payload),
-        options: {
-          ttl: Number(options.ttl || 300),
-          urgency: options.urgency || "high",
-          ...(options.topic ? { topic: options.topic } : {}),
-        },
-      }, subscription, vapid);
-      const response = await fetch(row.endpoint, requestInit);
-      if (response.ok) {
-        sent += 1;
-      } else if (response.status === 404 || response.status === 410) {
-        deadEndpoints.push(row.endpoint);
-      } else {
-        const details = await response.text().catch(() => "");
-        console.error("Joy task push failed", response.status, details.slice(0, 300));
-      }
-    } catch (error) {
-      console.error("Joy task push encryption failed", error);
-    }
-  }));
-
-  if (deadEndpoints.length) {
-    await env.DB.batch(deadEndpoints.map((endpoint) => (
-      env.DB.prepare("DELETE FROM push_subscriptions WHERE endpoint = ?").bind(endpoint)
-    )));
-  }
-  return sent > 0;
-}
-
 function normalizeReminderInput(body) {
   const taskId = normalizeTaskId(body.taskId);
   if (!taskId) return { ok: false, error: "INVALID_TASK_ID" };
@@ -619,32 +405,6 @@ async function getReminderRow(email, taskId, env) {
   `).bind(email, taskId).first();
 }
 
-function computeNextDue(dueAt, repeatType, repeatDays, now) {
-  if (repeatType === "daily") {
-    let next = Number(dueAt);
-    do next += 24 * 60 * 60 * 1000;
-    while (next <= now);
-    return next;
-  }
-
-  const local = vietnamParts(dueAt);
-  const days = repeatDays.length ? repeatDays : [isoWeekday(dueAt)];
-  for (let offset = 1; offset <= 14; offset += 1) {
-    const date = new Date(Date.UTC(local.year, local.month - 1, local.day + offset));
-    const candidateDay = date.getUTCDay() === 0 ? 7 : date.getUTCDay();
-    if (!days.includes(candidateDay)) continue;
-    const candidate = vietnamTimestamp(
-      date.getUTCFullYear(),
-      date.getUTCMonth() + 1,
-      date.getUTCDate(),
-      local.hour,
-      local.minute,
-    );
-    if (candidate > now) return candidate;
-  }
-  return dueAt + 7 * 24 * 60 * 60 * 1000;
-}
-
 function computeNextFocusAt(now, config) {
   const minMinutes = Math.max(5, Math.round(Number(config.minMinutes || 60)));
   const maxMinutes = Math.max(minMinutes, Math.round(Number(config.maxMinutes || 180)));
@@ -683,65 +443,8 @@ function vietnamTimestamp(year, month, day, hour, minute) {
   return Date.UTC(year, month - 1, day, hour - 7, minute, 0, 0);
 }
 
-function isoWeekday(timestamp) {
-  const shifted = new Date(Number(timestamp) + VIETNAM_OFFSET_MS);
-  const day = shifted.getUTCDay();
-  return day === 0 ? 7 : day;
-}
-
 function normalizeClock(value) {
   const match = String(value || "").trim().match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
   if (!match) return "";
   return `${String(Number(match[1])).padStart(2, "0")}:${match[2]}`;
-}
-
-function hasPushConfig(env) {
-  return Boolean(env.VAPID_SUBJECT && env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY);
-}
-
-async function getSession(request, env) {
-  const token = readCookies(request)[SESSION_COOKIE];
-  if (!token) return null;
-  const tokenHash = await sha256Hex(token);
-  return env.DB.prepare(`
-    SELECT user_email, expires_at
-    FROM sessions
-    WHERE token_hash = ? AND expires_at > ?
-  `).bind(tokenHash, Date.now()).first();
-}
-
-function readCookies(request) {
-  return Object.fromEntries((request.headers.get("Cookie") || "").split(";").map((part) => {
-    const [name, ...rest] = part.trim().split("=");
-    return [name, rest.join("=")];
-  }).filter(([name]) => name));
-}
-
-function isSameOrigin(request) {
-  const origin = request.headers.get("Origin");
-  return !origin || origin === new URL(request.url).origin;
-}
-
-async function sha256Hex(value) {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
-async function readJson(request) {
-  try {
-    return await request.json();
-  } catch {
-    return {};
-  }
-}
-
-function json(value, status = 200) {
-  return new Response(JSON.stringify(value), {
-    status,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store",
-      "X-Content-Type-Options": "nosniff",
-    },
-  });
 }

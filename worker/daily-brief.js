@@ -1,3 +1,6 @@
+import { json } from "./shared/http.js";
+import { CREATE_DAILY_BRIEF_META_TABLE } from "./shared/schema.js";
+
 const DAILY_BRIEF_PATH = "/api/daily-brief";
 const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
 const STORY_TTL_MS = 24 * 60 * 60 * 1000;
@@ -218,13 +221,7 @@ async function ensureDailyBriefTables(env) {
       CREATE INDEX IF NOT EXISTS daily_brief_active_idx
       ON daily_brief_stories (expires_at, score DESC, published_at DESC)
     `),
-    env.DB.prepare(`
-      CREATE TABLE IF NOT EXISTS daily_brief_meta (
-        key TEXT PRIMARY KEY,
-        value TEXT NOT NULL,
-        updated_at INTEGER NOT NULL
-      )
-    `),
+    env.DB.prepare(CREATE_DAILY_BRIEF_META_TABLE),
   ]);
 }
 
@@ -544,14 +541,4 @@ function safeJsonArray(value) {
   } catch {
     return [];
   }
-}
-
-function json(payload, status = 200, extraHeaders = {}) {
-  return new Response(JSON.stringify(payload), {
-    status,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      ...extraHeaders,
-    },
-  });
 }

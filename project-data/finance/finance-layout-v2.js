@@ -1,8 +1,4 @@
 (() => {
-  if (typeof renderMonthView !== "function") return;
-
-  const originalRenderYearView = typeof renderYearView === "function" ? renderYearView : null;
-
   function installSplitMonthStyles() {
     if (document.querySelector("#joy-finance-month-split-v5")) return;
     const style = document.createElement("style");
@@ -144,14 +140,11 @@
 
   installSplitMonthStyles();
 
-  if (originalRenderYearView) {
-    renderYearView = function renderYearWithoutMonthNavigation(content) {
-      document.querySelector("#finance-workspace")?.classList.remove("finance-month-layout-active");
-      originalRenderYearView(content);
-    };
+  function beforeYearView() {
+    document.querySelector("#finance-workspace")?.classList.remove("finance-month-layout-active");
   }
 
-  renderMonthView = function renderCompactMonthView(content) {
+  function renderCompactMonthView(content) {
     const month = financeSummary.months.find((item) => item.key === selectedMonth) || financeSummary.current;
     const nextMonth = nextMonthAfter(month.key);
     const totals = transactionCategoryTotals(monthTransactions);
@@ -203,5 +196,10 @@
     });
     content.querySelector('.finance-next-month [data-finance-tab="year"]')?.addEventListener("click", () => switchWorkspaceView("year"));
     bindInlineCategoryForms(content);
-  };
+  }
+
+  window.JoyFinanceLayout = Object.freeze({
+    beforeYearView,
+    renderMonthView: renderCompactMonthView,
+  });
 })();

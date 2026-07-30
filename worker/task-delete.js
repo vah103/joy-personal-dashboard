@@ -1,31 +1,11 @@
-const SESSION_COOKIE = "__Host-joy_session";
+import { isSameOrigin, json, readJson } from "./shared/http.js";
+import {
+  CREATE_TASK_DELETIONS_TABLE,
+  CREATE_TASK_REMINDERS_TABLE,
+} from "./shared/schema.js";
+import { getSession } from "./shared/session.js";
+
 const TASK_DELETE_PATH = "/api/tasks/delete";
-
-const CREATE_TASK_DELETIONS_TABLE = `
-  CREATE TABLE IF NOT EXISTS task_deletions (
-    user_email TEXT NOT NULL,
-    task_id TEXT NOT NULL,
-    deleted_at INTEGER NOT NULL,
-    PRIMARY KEY (user_email, task_id)
-  )
-`;
-
-const CREATE_TASK_REMINDERS_TABLE = `
-  CREATE TABLE IF NOT EXISTS task_reminders (
-    user_email TEXT NOT NULL,
-    task_id TEXT NOT NULL,
-    due_at INTEGER NOT NULL,
-    repeat_type TEXT NOT NULL DEFAULT 'once',
-    repeat_days TEXT NOT NULL DEFAULT '[]',
-    notification_enabled INTEGER NOT NULL DEFAULT 1,
-    snoozed_until INTEGER,
-    last_notified_at INTEGER,
-    status TEXT NOT NULL DEFAULT 'scheduled',
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL,
-    PRIMARY KEY (user_email, task_id)
-  )
-`;
 
 export function isTaskDeleteRoute(pathname) {
   return pathname === TASK_DELETE_PATH;
@@ -79,62 +59,4 @@ export async function handleTaskDeleteRequest(request, env) {
     console.error("Joy task deletion failed", error);
     return json({ error: "TASK_DELETE_FAILED" }, 500);
   }
-}
-
-async function getSession(request, env) {
-  const token = readCookies(request)[SESSION_COOKIE];
-  if (!token) return null;
-  const tokenHash = await sha256Hex(token);
-  return env.DB.prepare(`
-    SELECT user_email, expires_at
-    FROM sessions
-    WHERE token_hash = ? AND expires_at > ?
-  `).bind(tokenHash, Date.now()).first();
-}
-
-function readCookies(request) {
-  return Object.fromEntries(
-    (request.headers.get("Cookie") || "")
-      .split(";")
-      .map((part) => {
-        const [name, ...rest] = part.trim().split("=");
-        return [name, rest.join("=")];
-      })
-      .filter(([name]) => name),
-  );
-}
-
-function isSameOrigin(request) {
-  const origin = request.headers.get("Origin");
-  return !origin || origin === new URL(request.url).origin;
-}
-
-async function sha256Hex(value) {
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(value),
-  );
-  return [...new Uint8Array(digest)]
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-async function readJson(request) {
-  try {
-    return await request.json();
-  } catch {
-    return {};
-  }
-}
-
-function json(value, status = 200, extraHeaders = {}) {
-  return new Response(JSON.stringify(value), {
-    status,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store",
-      "X-Content-Type-Options": "nosniff",
-      ...extraHeaders,
-    },
-  });
 }

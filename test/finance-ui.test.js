@@ -21,6 +21,9 @@ test("Finance Month view is rendered directly with expandable categories", () =>
 
 test("Finance Month uses a two-thirds current month and one-third next-month summary", () => {
   assert.doesNotMatch(financeOverlay, /MutationObserver/);
+  assert.doesNotMatch(financeOverlay, /renderMonthView\s*=/);
+  assert.doesNotMatch(financeOverlay, /renderYearView\s*=/);
+  assert.match(financeOverlay, /window\.JoyFinanceLayout = Object\.freeze/);
   assert.match(financeOverlay, /finance-month-split/);
   assert.match(financeOverlay, /grid-template-columns:minmax\(0,2fr\) minmax\(270px,1fr\)/);
   assert.match(financeOverlay, /Next month/);
