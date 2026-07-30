@@ -31,7 +31,7 @@
     }
 
     const progress = document.createElement("script");
-    progress.src = "/project-data/turtlebot4/progress-20260730.js?v=turtlebot-stage3-complete-v1";
+    progress.src = "/project-data/turtlebot4/progress-20260730.js?v=turtlebot-stage3-complete-v2";
     progress.dataset.turtlebotProgress20260730 = "true";
     progress.defer = true;
     progress.addEventListener("load", loadReferencePlan, { once: true });
