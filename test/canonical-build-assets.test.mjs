@@ -32,7 +32,7 @@ test("build emits final production asset versions directly", () => {
     "joy-finance-p1008-refine-v7",
     "finance-p1008-capture-v2.css?v=joy-finance-p1008-capture-v3",
     "task-english.js?v=joy-task-english-v7",
-    "task-natural-input.js?v=joy-task-natural-input-v2",
+    "task-natural-input.js?v=joy-task-natural-reminders-v2",
     "speaking-loader.js?v=joy-speaking-loader-v1",
     "vocabulary-loader.js?v=joy-vocabulary-loader-v1",
     "project-hub-performance.js?v=turtlebot-hub-lifecycle-v1",
