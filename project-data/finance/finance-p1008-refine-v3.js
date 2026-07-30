@@ -182,6 +182,8 @@
     ensureCaptureButton(peopleCard);
   }
 
+  workspace.addEventListener("joy:p1008-rendered", refineP1008Layout);
+
   workspace.addEventListener("click", (event) => {
     if (event.target.closest("[data-finance-p1008]")) queueMicrotask(refineP1008Layout);
   });
