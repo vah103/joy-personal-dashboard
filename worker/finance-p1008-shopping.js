@@ -1,5 +1,4 @@
 import { isSameOrigin, json, readJson } from "./shared/http.js";
-import { CREATE_FINANCE_P1008_SHOPPING_TABLE } from "./shared/schema.js";
 import { getSession } from "./shared/session.js";
 
 const FINANCE_P1008_SHOPPING_PATH = "/api/p1008-shopping";
@@ -65,10 +64,6 @@ function parseStoredData(value) {
   }
 }
 
-async function ensureFinanceP1008ShoppingTable(env) {
-  await env.DB.prepare(CREATE_FINANCE_P1008_SHOPPING_TABLE).run();
-}
-
 export async function handleFinanceP1008ShoppingRequest(request, env) {
   try {
     if (request.method !== "GET" && request.method !== "PUT") {
@@ -80,8 +75,6 @@ export async function handleFinanceP1008ShoppingRequest(request, env) {
     if (request.method === "PUT" && !isSameOrigin(request)) {
       return json({ error: "INVALID_ORIGIN" }, 403);
     }
-
-    await ensureFinanceP1008ShoppingTable(env);
 
     if (request.method === "GET") {
       const row = await env.DB.prepare(`
