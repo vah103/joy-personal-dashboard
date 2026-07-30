@@ -56,10 +56,16 @@ test("P1008 capture mode distributes all six member rows across the viewport", (
   assert.match(captureStyles, /safe-area-inset-bottom/);
 });
 
+test("P1008 fullscreen headers stretch across their complete grid columns", () => {
+  assert.match(captureStyles, /thead th:not\(:first-child\):not\(:last-child\)[\s\S]*width: 100%/);
+  assert.match(captureStyles, /thead th:last-child,[\s\S]*justify-self: stretch/);
+  assert.match(captureStyles, /box-sizing: border-box/);
+});
+
 test("P1008 assets are declared by the canonical frontend build", () => {
   assert.match(build, /joy-finance-p1008-v3/);
   assert.match(build, /finance-p1008-refine-v3\.css\?v=joy-finance-p1008-refine-v6/);
   assert.match(build, /finance-p1008-refine-v3\.js\?v=joy-finance-p1008-refine-v6/);
-  assert.match(build, /finance-p1008-capture-v2\.css\?v=joy-finance-p1008-capture-v2/);
+  assert.match(build, /finance-p1008-capture-v2\.css\?v=joy-finance-p1008-capture-v3/);
   assert.doesNotMatch(build, /cache-bust-finance-p1008/);
 });
