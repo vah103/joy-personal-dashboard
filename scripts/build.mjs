@@ -116,6 +116,7 @@ const dashboardFeatureScripts = [
   '    <script src="project-data/finance/finance-p1008-refine-v3.js?v=joy-finance-p1008-refine-v7" defer></script>\n',
   '    <script src="project-data/finance/finance-p1008-shopping-v1.js?v=joy-finance-p1008-shopping-v1" defer></script>\n',
   '    <script src="project-data/finance/finance-p1008-shopping-tables-v1.js?v=joy-finance-p1008-shopping-tables-v3" defer></script>\n',
+  '    <script src="project-data/finance/finance-p1008-amount-input-v1.js?v=joy-finance-p1008-amount-input-v1" defer></script>\n',
 ].join("");
 
 const dashboardScripts = `${languageFeatureScripts}${projectHubScripts}${dashboardFeatureScripts}`;
