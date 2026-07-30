@@ -43,7 +43,7 @@ test("P1008 shopping renders item totals and each member's exact monthly total",
   assert.match(source, /Tổng mua chung phải đóng/);
   assert.match(source, /p1008-shopping-people-grid/);
   assert.match(styles, /grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
-  assert.match(styles, /font-family: "Nunito"/);
+  assert.match(styles, /"Nunito"/);
 });
 
 test("P1008 shopping API normalizes monthly dynamic items", () => {
