@@ -1,5 +1,45 @@
+.p1008-overview-grid {
+  width: min(1000px, 100%);
+  margin: 14px auto 0;
+  display: grid;
+  grid-template-columns: minmax(230px, 260px) minmax(0, 720px);
+  align-items: stretch;
+  justify-content: center;
+  gap: 14px;
+}
+
+.p1008-overview-grid .p1008-summary {
+  margin-top: 0;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.p1008-overview-grid .p1008-summary article {
+  min-height: 92px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.p1008-overview-grid .p1008-summary span {
+  font-size: 10px;
+}
+
+.p1008-overview-grid .p1008-summary strong {
+  margin-top: 6px;
+  font-size: 23px;
+}
+
+.p1008-overview-grid .p1008-summary small {
+  margin-top: 5px;
+  font-size: 8.5px;
+}
+
 .p1008-services-card {
-  width: min(760px, 100%);
+  width: 100%;
+  margin: 0;
+  align-self: stretch;
 }
 
 .p1008-people-card {
@@ -8,40 +48,49 @@
   margin-left: auto;
 }
 
-.p1008-services-card > header,
+.p1008-services-card > header {
+  min-height: 46px;
+  padding: 8px 12px;
+}
+
 .p1008-people-card > header {
   min-height: 50px;
   padding: 10px 14px;
 }
 
-.p1008-services-card h3,
+.p1008-services-card h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
 .p1008-people-card h3 {
   margin: 0;
   font-size: 19px;
 }
 
-.p1008-services-card .p1008-card th,
-.p1008-services-card .p1008-card td,
 .p1008-services-card th,
 .p1008-services-card td {
-  padding: 9px 11px;
+  padding: 7px 9px;
 }
 
 .p1008-services-card table {
-  font-size: 12px;
+  font-size: 11px;
 }
 
-.p1008-services-card thead th,
+.p1008-services-card thead th {
+  font-size: 9px;
+}
+
 .p1008-people-card thead th {
   font-size: 10px;
 }
 
 .p1008-services-table th:nth-child(1) {
-  width: 36%;
+  width: 37%;
 }
 
 .p1008-services-table th:nth-child(2) {
-  width: 28%;
+  width: 27%;
 }
 
 .p1008-services-table th:nth-child(3) {
@@ -55,26 +104,26 @@
 .p1008-services-table tbody th,
 .p1008-share-count,
 .p1008-per-person {
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .p1008-amount-field {
-  width: 160px;
+  width: 132px;
   max-width: 100%;
-  height: 34px;
+  height: 30px;
   margin-left: auto;
-  grid-template-columns: minmax(0, 1fr) 22px;
+  grid-template-columns: minmax(0, 1fr) 20px;
 }
 
 .p1008-amount-field input {
-  padding-right: 4px;
-  padding-left: 9px;
-  font-size: 13px;
+  padding-right: 3px;
+  padding-left: 8px;
+  font-size: 12px;
 }
 
 .p1008-amount-field span {
-  padding-right: 7px;
-  font-size: 10px;
+  padding-right: 6px;
+  font-size: 9px;
 }
 
 .p1008-people-card table {
@@ -104,9 +153,30 @@
   font-size: 8.5px;
 }
 
+@media (max-width: 980px) {
+  .p1008-overview-grid {
+    width: min(760px, 100%);
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .p1008-overview-grid .p1008-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .p1008-overview-grid .p1008-summary article {
+    min-height: 0;
+  }
+}
+
 @media (max-width: 800px) {
+  .p1008-overview-grid,
   .p1008-services-card,
   .p1008-people-card {
     width: 100%;
+  }
+
+  .p1008-overview-grid .p1008-summary {
+    grid-template-columns: 1fr;
   }
 }
