@@ -2,6 +2,8 @@
   "use strict";
 
   const STORAGE_KEY = "joy.finance.p1008.v1";
+  const API_PATH = "/api/p1008";
+  const CLOUD_BACKEND = document.querySelector('meta[name="joy-backend"]')?.content === "cloudflare";
   const MONTHS = [
     { key: "2026-07", label: "Tháng 7/2026", shortLabel: "Tháng 7" },
     { key: "2026-08", label: "Tháng 8/2026", shortLabel: "Tháng 8" },
@@ -20,6 +22,10 @@
   ];
 
   let selectedMonth = defaultMonth();
+  let syncState = CLOUD_BACKEND ? "loading" : "local";
+  let cloudLoadPromise = null;
+  let cloudSaveChain = Promise.resolve();
+  let localMutationVersion = 0;
 
   function defaultMonth() {
     const now = new Date();
@@ -31,15 +37,38 @@
     const workspace = document.querySelector("#finance-workspace");
     const tabs = workspace?.querySelector(".finance-tabs");
     if (!workspace || !tabs) return false;
-    if (tabs.querySelector('[data-finance-p1008]')) return true;
+    if (tabs.querySelector("[data-finance-p1008]")) return true;
 
     const button = document.createElement("button");
     button.type = "button";
     button.dataset.financeP1008 = "true";
     button.textContent = "P1008";
-    button.addEventListener("click", renderP1008View);
+    button.addEventListener("click", () => {
+      renderP1008View();
+      void refreshCloudData();
+    });
     tabs.append(button);
     return true;
+  }
+
+  function syncLabel() {
+    if (syncState === "loading") return "Đang tải từ tài khoản…";
+    if (syncState === "syncing") return "Đang đồng bộ…";
+    if (syncState === "synced") return "Đã đồng bộ tài khoản";
+    if (syncState === "offline") return "Chưa đồng bộ · lưu tạm trên máy";
+    return "Lưu trên thiết bị này";
+  }
+
+  function setSyncState(state) {
+    syncState = state;
+    const badge = document.querySelector(".p1008-local-state");
+    if (!badge) return;
+    badge.dataset.syncState = state;
+    badge.textContent = syncLabel();
+  }
+
+  function isP1008Visible() {
+    return document.querySelector("#finance-workspace-content")?.classList.contains("p1008-view");
   }
 
   function renderP1008View() {
@@ -95,7 +124,7 @@
       <section class="p1008-card p1008-services-card">
         <header>
           <h3>Tiền dịch vụ</h3>
-          <span class="p1008-local-state">Lưu trên thiết bị này</span>
+          <span class="p1008-local-state" data-sync-state="${syncState}">${syncLabel()}</span>
         </header>
         <div class="p1008-table-wrap">
           <table class="p1008-services-table">
@@ -139,6 +168,7 @@
     `;
 
     bindP1008Events(content);
+    workspace.dispatchEvent(new CustomEvent("joy:p1008-rendered"));
   }
 
   function renderServiceRow(service, monthKey, amounts) {
@@ -198,8 +228,7 @@
           ...(data[selectedMonth] || {}),
           [input.dataset.p1008Service]: amount,
         };
-        writeData(data);
-        renderP1008View();
+        persistData(data);
       });
     });
   }
@@ -251,29 +280,138 @@
     return Object.fromEntries(SERVICES.map((service) => [service.id, 0]));
   }
 
+  function normalizeData(input) {
+    if (!input || typeof input !== "object" || Array.isArray(input)) return {};
+
+    const normalized = {};
+    for (const month of MONTHS) {
+      const source = input[month.key];
+      if (!source || typeof source !== "object" || Array.isArray(source)) continue;
+      normalized[month.key] = Object.fromEntries(SERVICES.map((service) => [
+        service.id,
+        parseAmount(source[service.id]),
+      ]));
+    }
+    return normalized;
+  }
+
+  function mergeCloudWithLocal(cloudData, localData) {
+    return normalizeData({ ...normalizeData(localData), ...normalizeData(cloudData) });
+  }
+
+  function dataMatches(left, right) {
+    return JSON.stringify(normalizeData(left)) === JSON.stringify(normalizeData(right));
+  }
+
   function readMonthAmounts(monthKey) {
     return { ...emptyAmounts(), ...(readData()[monthKey] || {}) };
   }
 
   function readData() {
     try {
-      const value = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-      return value && typeof value === "object" ? value : {};
+      return normalizeData(JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"));
     } catch {
       return {};
     }
   }
 
-  function writeData(data) {
+  function writeLocalData(data) {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizeData(data)));
     } catch {
       // The calculator still works for the current session when storage is unavailable.
     }
   }
 
+  function persistData(data) {
+    writeLocalData(data);
+    localMutationVersion += 1;
+    setSyncState(CLOUD_BACKEND ? "syncing" : "local");
+    renderP1008View();
+    if (CLOUD_BACKEND) void queueCloudSave(readData()).catch(() => {});
+  }
+
+  async function cloudRequest(options = {}) {
+    const response = await fetch(API_PATH, {
+      ...options,
+      credentials: "same-origin",
+      headers: {
+        ...(options.body ? { "Content-Type": "application/json" } : {}),
+        ...(options.headers || {}),
+      },
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (response.status === 401) window.location.replace("/login");
+    if (!response.ok) throw new Error(payload.error || `P1008_REQUEST_${response.status}`);
+    return payload;
+  }
+
+  function queueCloudSave(data) {
+    if (!CLOUD_BACKEND) return Promise.resolve(null);
+
+    const snapshot = normalizeData(data);
+    const mutationVersion = localMutationVersion;
+    setSyncState("syncing");
+
+    const operation = cloudSaveChain
+      .catch(() => {})
+      .then(() => cloudRequest({
+        method: "PUT",
+        body: JSON.stringify({ data: snapshot }),
+      }))
+      .then((payload) => {
+        if (mutationVersion === localMutationVersion) setSyncState("synced");
+        return payload;
+      })
+      .catch((error) => {
+        if (mutationVersion === localMutationVersion) setSyncState("offline");
+        throw error;
+      });
+
+    cloudSaveChain = operation;
+    return operation;
+  }
+
+  function refreshCloudData() {
+    if (!CLOUD_BACKEND) return Promise.resolve();
+    if (cloudLoadPromise) return cloudLoadPromise;
+
+    const mutationVersion = localMutationVersion;
+    const localData = readData();
+    setSyncState("loading");
+
+    const operation = cloudRequest()
+      .then(async (payload) => {
+        if (mutationVersion !== localMutationVersion) {
+          await queueCloudSave(readData());
+          return;
+        }
+
+        const cloudData = normalizeData(payload.data);
+        const mergedData = mergeCloudWithLocal(cloudData, localData);
+        writeLocalData(mergedData);
+
+        if (!dataMatches(mergedData, cloudData)) {
+          await queueCloudSave(mergedData);
+        } else {
+          setSyncState("synced");
+        }
+
+        if (isP1008Visible()) renderP1008View();
+      })
+      .catch(() => {
+        setSyncState("offline");
+      })
+      .finally(() => {
+        if (cloudLoadPromise === operation) cloudLoadPromise = null;
+      });
+
+    cloudLoadPromise = operation;
+    return operation;
+  }
+
   function parseAmount(value) {
-    const digits = String(value || "").replace(/\D/g, "");
+    const digits = String(value ?? "").replace(/\D/g, "");
     if (!digits) return 0;
 
     const amount = Number(digits);
@@ -287,6 +425,14 @@
   function formatVnd(value) {
     return `${formatNumber(value)} ₫`;
   }
+
+  window.addEventListener("focus", () => {
+    if (isP1008Visible()) void refreshCloudData();
+  });
+
+  window.addEventListener("storage", (event) => {
+    if (event.key === STORAGE_KEY && isP1008Visible()) renderP1008View();
+  });
 
   if (!installP1008()) {
     window.addEventListener("DOMContentLoaded", installP1008, { once: true });
