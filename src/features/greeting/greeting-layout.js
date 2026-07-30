@@ -54,8 +54,6 @@
     transitioning: false,
   };
 
-  installStyles();
-
   const sourceState = document.createElement("div");
   sourceState.className = "daily-brief-source-state";
   sourceState.hidden = true;
@@ -114,119 +112,6 @@
     subtree: true,
   });
 
-  function installStyles() {
-    if (document.querySelector("#joy-daily-brief-v5-styles")) return;
-    const style = document.createElement("style");
-    style.id = "joy-daily-brief-v5-styles";
-    style.textContent = `
-      .joy-brief.daily-brief-news-first {
-        min-height: 112px;
-        grid-template-columns: auto minmax(0, 1fr) 18px;
-        gap: 10px;
-      }
-      .daily-brief-news-first .joy-message {
-        min-height: 78px;
-        padding-bottom: 6px;
-      }
-      .daily-brief-news-first .daily-brief-stack {
-        min-height: 76px;
-        display: block;
-        overflow: hidden;
-      }
-      .daily-brief-news-first .daily-brief-story-slide {
-        position: relative;
-        opacity: 1;
-        transform: translateY(0);
-        transition: opacity ${TRANSITION_MS}ms ease, transform ${TRANSITION_MS}ms ease;
-      }
-      .daily-brief-news-first .daily-brief-story-slide.is-leaving {
-        opacity: 0;
-        transform: translateY(-18px);
-      }
-      .daily-brief-news-first .daily-brief-story-slide.is-entering {
-        opacity: 0;
-        transform: translateY(18px);
-        transition: none;
-      }
-      .daily-brief-news-first .daily-brief-empty {
-        min-height: 72px;
-        display: grid;
-        align-content: center;
-      }
-      .daily-brief-news-first .daily-brief-empty[hidden] { display: none !important; }
-      .daily-brief-empty span {
-        color: #4c6d78;
-        font-size: 8px;
-        font-weight: 900;
-        letter-spacing: .1em;
-      }
-      .daily-brief-empty strong {
-        margin-top: 4px;
-        color: #334248;
-        font-size: 12.5px;
-      }
-      .daily-brief-empty p {
-        margin: 3px 0 0;
-        color: #6f797e;
-        font-size: 9.5px;
-      }
-      .joy-brief.daily-brief-news-first .joy-message > .daily-brief-personal {
-        position: absolute;
-        left: 0;
-        right: 0;
-        bottom: 1px;
-        display: block;
-        min-height: 0;
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-        border: 0;
-        color: rgba(91, 105, 111, .42);
-        font-size: 7px !important;
-        font-weight: 600;
-        line-height: 1 !important;
-        letter-spacing: .005em;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        pointer-events: none;
-      }
-      .daily-brief-news-first .daily-brief-controls {
-        width: 18px;
-        justify-content: center;
-        gap: 0;
-        opacity: .62;
-      }
-      .daily-brief-news-first .daily-brief-arrow {
-        width: 18px;
-        height: 18px;
-        min-width: 18px;
-        padding: 0;
-        font-size: 14px;
-      }
-      .daily-brief-progress,
-      .daily-brief-counter { display: none !important; }
-      @media (max-width: 760px) {
-        .joy-brief.daily-brief-news-first {
-          min-height: 108px;
-          grid-template-columns: auto minmax(0, 1fr) 16px;
-          gap: 8px;
-        }
-        .daily-brief-news-first .daily-brief-arrow {
-          width: 16px;
-          min-width: 16px;
-          height: 18px;
-        }
-        .joy-brief.daily-brief-news-first .joy-message > .daily-brief-personal {
-          font-size: 6.5px !important;
-        }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .daily-brief-news-first .daily-brief-story-slide { transition: none !important; }
-      }
-    `;
-    document.head.append(style);
-  }
-
   function createDrawer() {
     const backdrop = document.createElement("div");
     backdrop.className = "daily-brief-drawer-backdrop";
@@ -246,11 +131,11 @@
             <p data-drawer-summary></p>
           </section>
           <section>
-            <h3>Why it matters</h3>
+            <h3>Money, opportunity &amp; risk</h3>
             <p data-drawer-why></p>
           </section>
           <section data-drawer-points-section hidden>
-            <h3>Key details</h3>
+            <h3>What to watch</h3>
             <ul data-drawer-points></ul>
           </section>
           <div class="daily-brief-drawer-footer">
