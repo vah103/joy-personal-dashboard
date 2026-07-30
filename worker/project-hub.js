@@ -159,17 +159,8 @@ async function putProjectHub(request, email, env) {
   });
 }
 
-async function ensureProjectHubTable(env) {
-  await env.DB.prepare(`
-    CREATE TABLE IF NOT EXISTS project_hubs (
-      user_email TEXT NOT NULL,
-      project_id TEXT NOT NULL,
-      data_json TEXT NOT NULL DEFAULT '{}',
-      version INTEGER NOT NULL DEFAULT 0,
-      updated_at INTEGER NOT NULL,
-      PRIMARY KEY (user_email, project_id)
-    )
-  `).run();
+async function ensureProjectHubTable() {
+  // project_hubs is provisioned by migrations/20260731_canonical_runtime_schema.sql.
 }
 
 async function githubFile(env, path) {

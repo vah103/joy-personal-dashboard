@@ -14,6 +14,7 @@ const buildSource = fs.readFileSync(new URL("../scripts/build.mjs", import.meta.
 const dashboardHtml = fs.readFileSync(new URL("../src/pages/dashboard/index.html", import.meta.url), "utf8");
 const loginHtml = fs.readFileSync(new URL("../src/pages/login/index.html", import.meta.url), "utf8");
 const accountUi = fs.readFileSync(new URL("../src/features/auth/auth-ui.js", import.meta.url), "utf8");
+const migrationSource = fs.readFileSync(new URL("../migrations/20260731_canonical_runtime_schema.sql", import.meta.url), "utf8");
 
 test("Joy exposes a dedicated Google login flow", () => {
   assert.equal(isGoogleAuthRoute("/auth/login"), true);
@@ -32,10 +33,11 @@ test("Gmail and Sheets APIs are guarded independently", () => {
   assert.equal(integrationForApiPath("/api/sales/viewings"), "sheets");
   assert.equal(integrationForApiPath("/api/finance/summary"), "sheets");
   assert.equal(integrationForApiPath("/api/tasks"), "");
-  assert.ok(authSource.includes("gmail_enabled INTEGER"));
-  assert.ok(authSource.includes("sheets_enabled INTEGER"));
+  assert.ok(migrationSource.includes("gmail_enabled INTEGER"));
+  assert.ok(migrationSource.includes("sheets_enabled INTEGER"));
   assert.ok(authSource.includes("GMAIL_AUTHORIZATION_REQUIRED"));
   assert.ok(authSource.includes("SHEETS_AUTHORIZATION_REQUIRED"));
+  assert.doesNotMatch(authSource, /CREATE TABLE IF NOT EXISTS/);
 });
 
 test("dashboard pages require a Joy session", () => {

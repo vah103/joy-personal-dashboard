@@ -1,5 +1,4 @@
 import { json } from "./shared/http.js";
-import { CREATE_DAILY_BRIEF_META_TABLE } from "./shared/schema.js";
 
 const DAILY_BRIEF_PATH = "/api/daily-brief";
 const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
@@ -95,7 +94,6 @@ export async function handleDailyBriefRequest(request, env, ctx) {
     return json({ error: "METHOD_NOT_ALLOWED" }, 405, { Allow: "GET" });
   }
 
-  await ensureDailyBriefTables(env);
   const now = Date.now();
   const lastRefresh = await getLastRefresh(env);
   const stale = now - lastRefresh >= REFRESH_INTERVAL_MS;
@@ -129,7 +127,6 @@ export async function runDailyBriefSchedule(env) {
 }
 
 export async function refreshDailyBrief(env, { force = false } = {}) {
-  await ensureDailyBriefTables(env);
   const now = Date.now();
   const lastRefresh = await getLastRefresh(env);
   if (!force && now - lastRefresh < REFRESH_INTERVAL_MS) return { skipped: true };
@@ -195,34 +192,6 @@ export async function refreshDailyBrief(env, { force = false } = {}) {
 
   await setLastRefresh(env, now);
   return { skipped: false, fetched: candidates.length, approved: approved.length };
-}
-
-async function ensureDailyBriefTables(env) {
-  await env.DB.batch([
-    env.DB.prepare(`
-      CREATE TABLE IF NOT EXISTS daily_brief_stories (
-        id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        summary TEXT NOT NULL,
-        why_it_matters TEXT NOT NULL,
-        key_points_json TEXT NOT NULL DEFAULT '[]',
-        category TEXT NOT NULL,
-        scope TEXT NOT NULL,
-        source_name TEXT NOT NULL,
-        article_url TEXT NOT NULL,
-        source_count INTEGER NOT NULL DEFAULT 1,
-        score INTEGER NOT NULL,
-        published_at INTEGER NOT NULL,
-        created_at INTEGER NOT NULL,
-        expires_at INTEGER NOT NULL
-      )
-    `),
-    env.DB.prepare(`
-      CREATE INDEX IF NOT EXISTS daily_brief_active_idx
-      ON daily_brief_stories (expires_at, score DESC, published_at DESC)
-    `),
-    env.DB.prepare(CREATE_DAILY_BRIEF_META_TABLE),
-  ]);
 }
 
 async function getLastRefresh(env) {

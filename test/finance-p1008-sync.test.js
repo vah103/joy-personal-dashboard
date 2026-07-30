@@ -8,7 +8,7 @@ import {
 
 const workerSource = await readFile(new URL("../worker/finance-p1008-sync.js", import.meta.url), "utf8");
 const routerSource = await readFile(new URL("../worker/router.js", import.meta.url), "utf8");
-const schemaSource = await readFile(new URL("../worker/shared/schema.js", import.meta.url), "utf8");
+const migrationSource = await readFile(new URL("../migrations/20260731_canonical_runtime_schema.sql", import.meta.url), "utf8");
 
 test("P1008 sync owns one account-scoped API route", () => {
   assert.equal(isFinanceP1008Route("/api/p1008"), true);
@@ -42,11 +42,12 @@ test("P1008 sync normalizes months and service amounts", () => {
 });
 
 test("P1008 sync stores one JSON document per signed-in email", () => {
-  assert.match(schemaSource, /CREATE TABLE IF NOT EXISTS finance_p1008/);
-  assert.match(schemaSource, /user_email TEXT PRIMARY KEY/);
+  assert.match(migrationSource, /CREATE TABLE IF NOT EXISTS finance_p1008/);
+  assert.match(migrationSource, /user_email TEXT PRIMARY KEY/);
   assert.match(workerSource, /INSERT INTO finance_p1008 \(user_email, data_json, updated_at\)/);
   assert.match(workerSource, /ON CONFLICT\(user_email\) DO UPDATE SET/);
   assert.match(workerSource, /SELECT data_json, updated_at[\s\S]*WHERE user_email = \?/);
+  assert.doesNotMatch(workerSource, /CREATE TABLE IF NOT EXISTS/);
 });
 
 test("the main Worker router handles P1008 before Google Sheets integration guards", () => {

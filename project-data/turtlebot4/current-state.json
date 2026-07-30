@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-07-30",
+  "project": {
+    "currentStageId": "stage-4",
+    "currentStatus": "in-progress",
+    "currentFocus": "Set up TurtleBot4 simulation and the first controlled world",
+    "nextAction": "Install the simulation stack, launch one world, then verify simulated LiDAR, RGB-D, odometry and TF",
+    "lastReviewed": "2026-07-30",
+    "currentBlockers": [
+      "TurtleBot4 simulation and the first controlled world are not set up yet.",
+      "Simulated LiDAR, RGB-D, odometry and TF still need verification before frontier development."
+    ],
+    "stage3Result": {
+      "trials": 12,
+      "successes": 12,
+      "successRate": 100,
+      "recoveries": 0,
+      "totalTravelTimeSeconds": 101.11,
+      "meanTravelTimeSeconds": 8.43,
+      "totalPathLengthMeters": 20.62,
+      "meanPathLengthMeters": 1.72,
+      "rosbagMessages": 43542
+    }
+  },
+  "roadmap": {
+    "completedStageId": "stage-3",
+    "activeStageId": "stage-4",
+    "completedChecklistIds": [
+      "s3-goal-set",
+      "s3-logging",
+      "s3-runs",
+      "s3-metrics"
+    ],
+    "result": {
+      "date": "2026-07-30",
+      "summary": "The real TurtleBot4 completed 12 of 12 fixed Nav2 trials with 100% success and zero recoveries. Mean travel time was 8.43 seconds and mean path length was 1.72 metres.",
+      "evidence": [
+        "report/2026-07-30.md"
+      ]
+    }
+  },
+  "plan": {
+    "completedTaskIds": [
+      "w3-d2-t2",
+      "w3-d3-t1",
+      "w3-d3-t3",
+      "w3-d4-t1",
+      "w3-d4-t2",
+      "w3-d5-t2",
+      "w3-d7-t1",
+      "w3-d7-t2"
+    ]
+  },
+  "history": {
+    "date": "2026-07-30",
+    "progressAfter": 32,
+    "title": "Stage 3 navigation benchmark completed",
+    "detail": "The real TurtleBot4 completed 12/12 fixed Nav2 trials with 100% success and zero recoveries."
+  }
+}

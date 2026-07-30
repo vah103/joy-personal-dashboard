@@ -7,7 +7,7 @@ const dashboardSource = fs.readFileSync(new URL("../src/pages/dashboard/app.js",
 const routerSource = fs.readFileSync(new URL("../worker/router.js", import.meta.url), "utf8");
 const deleteSource = fs.readFileSync(new URL("../worker/task-delete.js", import.meta.url), "utf8");
 const syncSource = fs.readFileSync(new URL("../worker/task-sync.js", import.meta.url), "utf8");
-const schemaSource = fs.readFileSync(new URL("../worker/shared/schema.js", import.meta.url), "utf8");
+const migrationSource = fs.readFileSync(new URL("../migrations/20260731_canonical_runtime_schema.sql", import.meta.url), "utf8");
 
 test("to-do history exposes a confirmed delete control", () => {
   assert.ok(browserSource.includes('className = "task-delete-button"'));
@@ -41,16 +41,16 @@ test("router protects imports and deletion with dedicated task sync handlers", (
 });
 
 test("deleted task ids are tombstoned so stale devices cannot restore them", () => {
-  assert.ok(schemaSource.includes("CREATE TABLE IF NOT EXISTS task_deletions"));
-  assert.ok(deleteSource.includes("CREATE_TASK_DELETIONS_TABLE"));
+  assert.ok(migrationSource.includes("CREATE TABLE IF NOT EXISTS task_deletions"));
   assert.ok(deleteSource.includes("INSERT INTO task_deletions"));
   assert.ok(deleteSource.includes("DELETE FROM tasks"));
   assert.ok(deleteSource.includes("WHERE id = ? AND user_email = ?"));
+  assert.doesNotMatch(deleteSource, /CREATE TABLE IF NOT EXISTS/);
 
-  assert.ok(syncSource.includes("CREATE_TASK_DELETIONS_TABLE"));
   assert.ok(syncSource.includes("WHERE NOT EXISTS"));
   assert.ok(syncSource.includes("FROM task_deletions"));
   assert.ok(syncSource.includes("WHERE user_email = ? AND task_id = ?"));
+  assert.doesNotMatch(syncSource, /CREATE TABLE IF NOT EXISTS/);
 });
 
 test("task deletion and protected import remain authenticated", () => {

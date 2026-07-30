@@ -162,7 +162,6 @@ const copies = [
   [resolve(features, "greeting", "greeting-layout.js"), "greeting-layout.js"],
   [resolve(features, "greeting", "greeting-layout.css"), "greeting-layout.css"],
   [resolve(features, "greeting", "daily-brief.css"), "daily-brief.css"],
-  [resolve(features, "greeting", "daily-brief-polish.js"), "daily-brief-polish.js"],
   [resolve(features, "speaking", "speaking-loader.js"), "speaking-loader.js"],
   [resolve(features, "vocabulary", "vocabulary-loader.js"), "vocabulary-loader.js"],
   [resolve(features, "project-hub", "project-hub-performance.js"), "project-hub-performance.js"],

@@ -3,7 +3,6 @@ import {
   isDailyBriefRoute,
   runDailyBriefSchedule as runPolicyDailyBriefSchedule,
 } from "./daily-brief-policy.js";
-import { ensureDailyBriefMetaTable } from "./shared/schema.js";
 
 const DAILY_BRIEF_AI_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const DAILY_BRIEF_BUDGET_KEY = "last_budgeted_ai_refresh";
@@ -25,7 +24,6 @@ export async function runDailyBriefSchedule(env) {
     return runPolicyDailyBriefSchedule(withoutAi(env));
   }
 
-  await ensureBudgetTable(env);
   const now = Date.now();
   const lastRun = await readBudgetTimestamp(env);
   if (now - lastRun < DAILY_BRIEF_AI_INTERVAL_MS) {
@@ -59,10 +57,6 @@ function withBudgetAi(env) {
       return Reflect.get(target, property, receiver);
     },
   });
-}
-
-async function ensureBudgetTable(env) {
-  await ensureDailyBriefMetaTable(env);
 }
 
 async function readBudgetTimestamp(env) {
