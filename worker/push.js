@@ -1,6 +1,7 @@
 import { buildPushPayload } from "@block65/webcrypto-web-push";
+import { isSameOrigin, json, readJson } from "./shared/http.js";
+import { getSession } from "./shared/session.js";
 
-const SESSION_COOKIE = "__Host-joy_session";
 const PLACE_NAME = "Hanoi";
 const WEATHER_ENDPOINT = "https://api.open-meteo.com/v1/forecast?latitude=21.0285&longitude=105.8542&hourly=precipitation_probability,weather_code&timezone=Asia%2FHo_Chi_Minh&forecast_days=1";
 const CHECK_EVERY_MINUTES = 5;
@@ -447,57 +448,10 @@ function normalizeSubscription(value) {
   };
 }
 
-async function getSession(request, env) {
-  const token = readCookies(request)[SESSION_COOKIE];
-  if (!token) return null;
-  const tokenHash = await sha256Hex(token);
-  return env.DB.prepare(`
-    SELECT user_email, expires_at
-    FROM sessions
-    WHERE token_hash = ? AND expires_at > ?
-  `).bind(tokenHash, Date.now()).first();
-}
-
 function hasPushConfig(env) {
   return Boolean(env.VAPID_SUBJECT && env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY);
 }
 
 function requirePushConfig(env) {
   if (!hasPushConfig(env)) throw new Error("PUSH_NOT_CONFIGURED");
-}
-
-function readCookies(request) {
-  return Object.fromEntries((request.headers.get("Cookie") || "").split(";").map((part) => {
-    const [name, ...rest] = part.trim().split("=");
-    return [name, rest.join("=")];
-  }).filter(([name]) => name));
-}
-
-function isSameOrigin(request) {
-  const origin = request.headers.get("Origin");
-  return !origin || origin === new URL(request.url).origin;
-}
-
-async function sha256Hex(value) {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
-async function readJson(request) {
-  try {
-    return await request.json();
-  } catch {
-    return {};
-  }
-}
-
-function json(value, status = 200) {
-  return new Response(JSON.stringify(value), {
-    status,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store",
-      "X-Content-Type-Options": "nosniff",
-    },
-  });
 }

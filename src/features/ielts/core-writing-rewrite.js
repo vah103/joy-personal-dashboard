@@ -30,8 +30,8 @@ function pendingWritingRewrite() {
 }
 
 function rewriteDueLabel(plan) {
-  if (!plan?.dueAt) return "within 48 hours";
-  return new Intl.DateTimeFormat("en-GB", {
+  if (!plan?.dueAt) return "trong vòng 48 giờ";
+  return new Intl.DateTimeFormat(IELTS_LANGUAGE, {
     timeZone: TZ,
     day: "numeric",
     month: "short",
@@ -47,23 +47,14 @@ function writingRewriteCallout(plan) {
   </section>`;
 }
 
-const todayBeforeWritingRewrite = today;
-today = function todayWithWritingRewrite() {
-  todayBeforeWritingRewrite();
+function renderWritingRewriteCallout(surface) {
   const plan = pendingWritingRewrite();
   if (!plan || document.querySelector("#ielts-body .writing-rewrite-mission")) return;
-  const anchor = document.querySelector("#ielts-body .baseline-callout") || document.querySelector("#ielts-body .ielts-hero");
+  const anchor = surface === "coach"
+    ? document.querySelector("#ielts-body .coach")
+    : document.querySelector("#ielts-body .baseline-callout") || document.querySelector("#ielts-body .ielts-hero");
   anchor?.insertAdjacentHTML("afterend", writingRewriteCallout(plan));
-};
-
-const coachBeforeWritingRewrite = coach;
-coach = function coachWithWritingRewrite() {
-  coachBeforeWritingRewrite();
-  const plan = pendingWritingRewrite();
-  if (!plan || document.querySelector("#ielts-body .writing-rewrite-mission")) return;
-  const coachCard = document.querySelector("#ielts-body .coach");
-  coachCard?.insertAdjacentHTML("afterend", writingRewriteCallout(plan));
-};
+}
 
 function openWritingRewrite() {
   const plan = ensureWritingRewriteAssignment();

@@ -23,12 +23,14 @@ test("IELTS includes the consolidated Writing AI reviewer, Vietnamese feedback a
   assert.match(build, /core-writing-rewrite\.js/);
   assert.match(build, /i18n-vi-hooks\.js/);
   assert.doesNotMatch(build, /core-writing-review-freshness\.js/);
-  assert.match(build, /ielts-august-core-v7/);
-  assert.match(card, /ielts-writing-review\.css\?v=ielts-writing-review-v1/);
-  assert.match(card, /ielts-writing-rewrite\.css\?v=ielts-writing-rewrite-v1/);
+  assert.match(build, /ielts-august-core-v8/);
+  assert.match(build, /ielts-writing-review\.css\?v=ielts-writing-review-v1/);
+  assert.match(build, /ielts-writing-rewrite\.css\?v=ielts-writing-rewrite-v1/);
+  assert.doesNotMatch(card, /ielts-writing-review\.css\?v=/);
+  assert.doesNotMatch(card, /ielts-writing-rewrite\.css\?v=/);
   assert.doesNotMatch(card, /REWRITE_SCRIPT/);
   assert.doesNotMatch(card, /ielts-core-writing-rewrite\.js\?v=/);
-  assert.match(card, /ensureCoreStyles/);
+  assert.doesNotMatch(card, /ensureCoreStyles/);
   assert.match(router, /isIeltsDiagnosticReviewRoute/);
   assert.match(router, /handleIeltsDiagnosticReviewRequest/);
 
@@ -37,13 +39,14 @@ test("IELTS includes the consolidated Writing AI reviewer, Vietnamese feedback a
   assert.match(reviewer, /writing-diagnostic-ai-v1/);
   assert.match(reviewer, /reviewFingerprint/);
   assert.match(reviewer, /Essay changed · review again/);
-  assert.match(reviewer, /diagnosticBandWithWritingFreshness/);
+  assert.match(reviewer, /withWritingReviewState/);
+  assert.match(reviewer, /enhanceWritingDiagnosticCard/);
   assert.match(reviewer, /return null/);
   assert.match(rewrite, /Required adaptive mission/);
   assert.match(rewrite, /deadlineHours/);
   assert.match(rewrite, /Minimum 100 words/);
-  assert.match(rewrite, /todayWithWritingRewrite/);
-  assert.match(rewrite, /coachWithWritingRewrite/);
+  assert.match(rewrite, /renderWritingRewriteCallout/);
+  assert.match(model, /__learnerBaseline/);
   assert.match(worker, /Write every explanation, finding, pattern and uncertainty in clear Vietnamese/);
   assert.match(worker, /Đây là band đầu vào do AI ước lượng/);
   assert.match(reviewCss, /writing-review-summary/);

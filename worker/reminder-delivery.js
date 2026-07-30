@@ -1,6 +1,7 @@
 import { buildPushPayload } from "@block65/webcrypto-web-push";
+import { isSameOrigin, json, readJson } from "./shared/http.js";
+import { getSession } from "./shared/session.js";
 
-const SESSION_COOKIE = "__Host-joy_session";
 const RETRY_AFTER_MS = 2 * 60 * 1000;
 const MAX_LATE_MS = 24 * 60 * 60 * 1000;
 const VIETNAM_OFFSET_MS = 7 * 60 * 60 * 1000;
@@ -405,51 +406,4 @@ function normalizeTaskId(value) {
 
 function hasPushConfig(env) {
   return Boolean(env.VAPID_SUBJECT && env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY);
-}
-
-async function getSession(request, env) {
-  const token = readCookies(request)[SESSION_COOKIE];
-  if (!token) return null;
-  const tokenHash = await sha256Hex(token);
-  return env.DB.prepare(`
-    SELECT user_email, expires_at
-    FROM sessions
-    WHERE token_hash = ? AND expires_at > ?
-  `).bind(tokenHash, Date.now()).first();
-}
-
-function readCookies(request) {
-  return Object.fromEntries((request.headers.get("Cookie") || "").split(";").map((part) => {
-    const [name, ...rest] = part.trim().split("=");
-    return [name, rest.join("=")];
-  }).filter(([name]) => name));
-}
-
-function isSameOrigin(request) {
-  const origin = request.headers.get("Origin");
-  return !origin || origin === new URL(request.url).origin;
-}
-
-async function sha256Hex(value) {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
-async function readJson(request) {
-  try {
-    return await request.json();
-  } catch {
-    return {};
-  }
-}
-
-function json(value, status = 200) {
-  return new Response(JSON.stringify(value), {
-    status,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store",
-      "X-Content-Type-Options": "nosniff",
-    },
-  });
 }

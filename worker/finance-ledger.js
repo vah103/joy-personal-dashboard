@@ -1,3 +1,6 @@
+import { isSameOrigin, json, readJson } from "./shared/http.js";
+import { readCookies, sha256Hex } from "./shared/session.js";
+
 const SESSION_COOKIE = "__Host-joy_session";
 const DEFAULT_YEAR = 2026;
 const MAX_AMOUNT = 10_000_000_000;
@@ -324,19 +327,6 @@ async function financeSessionEmail(request, env) {
   return cleanText(session?.user_email).toLowerCase();
 }
 
-function readCookies(request) {
-  return Object.fromEntries((request.headers.get("Cookie") || "").split(";").map((part) => {
-    const index = part.indexOf("=");
-    if (index === -1) return ["", ""];
-    return [part.slice(0, index).trim(), decodeURIComponent(part.slice(index + 1).trim())];
-  }).filter(([key]) => key));
-}
-
-async function sha256Hex(value) {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
 function normalizeYear(value) {
   const year = Number(value || DEFAULT_YEAR);
   return Number.isInteger(year) && year >= 2020 && year <= 2100 ? year : DEFAULT_YEAR;
@@ -359,27 +349,4 @@ function vietnamMonthKey(year) {
 
 function cleanText(value) {
   return String(value ?? "").trim();
-}
-
-function isSameOrigin(request) {
-  const origin = request.headers.get("Origin");
-  return !origin || origin === new URL(request.url).origin;
-}
-
-async function readJson(request) {
-  try {
-    return await request.json();
-  } catch {
-    return {};
-  }
-}
-
-function json(payload, status = 200) {
-  return new Response(JSON.stringify(payload), {
-    status,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store",
-    },
-  });
 }

@@ -1,6 +1,7 @@
 import { buildPushPayload } from "@block65/webcrypto-web-push";
+import { isSameOrigin, json, readJson } from "./shared/http.js";
+import { getSession } from "./shared/session.js";
 
-const SESSION_COOKIE = "__Host-joy_session";
 const MAX_STATE_BYTES = 700_000;
 const PLAN_START = "2026-08-01";
 const PLAN_END = "2026-08-31";
@@ -356,40 +357,6 @@ async function ensureTables(env) {
   ]);
 }
 
-async function getSession(request, env) {
-  const token = readCookies(request)[SESSION_COOKIE];
-  if (!token) return null;
-  const tokenHash = await sha256Hex(token);
-  return env.DB.prepare(
-    "SELECT user_email, expires_at FROM sessions WHERE token_hash = ? AND expires_at > ?",
-  ).bind(tokenHash, Date.now()).first();
-}
-
-async function sha256Hex(value) {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
-function readCookies(request) {
-  return Object.fromEntries((request.headers.get("Cookie") || "").split(";").map((part) => {
-    const [name, ...rest] = part.trim().split("=");
-    return [name, rest.join("=")];
-  }).filter(([name]) => name));
-}
-
-function isSameOrigin(request) {
-  const origin = request.headers.get("Origin");
-  return !origin || origin === new URL(request.url).origin;
-}
-
-async function readJson(request) {
-  try {
-    return await request.json();
-  } catch {
-    return {};
-  }
-}
-
 function safeJsonParse(value, fallback) {
   try {
     return value ? JSON.parse(value) : fallback;
@@ -434,15 +401,4 @@ function mondayFor(dateKey) {
   const offset = weekday === 0 ? -6 : 1 - weekday;
   date.setUTCDate(date.getUTCDate() + offset);
   return date.toISOString().slice(0, 10);
-}
-
-function json(value, status = 200) {
-  return new Response(JSON.stringify(value), {
-    status,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store",
-      "X-Content-Type-Options": "nosniff",
-    },
-  });
 }

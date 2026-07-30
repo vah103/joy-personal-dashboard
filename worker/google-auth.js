@@ -1,3 +1,6 @@
+import { isSameOrigin, json } from "./shared/http.js";
+import { getSession, readCookies, sha256Hex } from "./shared/session.js";
+
 const SESSION_COOKIE = "__Host-joy_session";
 const OAUTH_STATE_COOKIE = "__Host-joy_oauth_state";
 const PKCE_COOKIE = "__Host-joy_pkce";
@@ -402,17 +405,6 @@ async function createSession(email, env) {
   return token;
 }
 
-async function getSession(request, env) {
-  const token = readCookies(request)[SESSION_COOKIE];
-  if (!token) return null;
-  const tokenHash = await sha256Hex(token);
-  return env.DB.prepare(`
-    SELECT user_email, expires_at
-    FROM sessions
-    WHERE token_hash = ? AND expires_at > ?
-  `).bind(tokenHash, Date.now()).first();
-}
-
 async function verifyGoogleIdentity(idToken, env) {
   const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
   if (!response.ok) return null;
@@ -476,13 +468,6 @@ async function sha256Base64Url(value) {
   return base64Url(new Uint8Array(digest));
 }
 
-async function sha256Hex(value) {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-  return [...new Uint8Array(digest)]
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-}
-
 function base64Url(bytes) {
   let binary = "";
   bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
@@ -504,40 +489,12 @@ function constantTimeEqual(a, b) {
   return difference === 0;
 }
 
-function readCookies(request) {
-  return Object.fromEntries(
-    (request.headers.get("Cookie") || "")
-      .split(";")
-      .map((part) => {
-        const [name, ...rest] = part.trim().split("=");
-        return [name, rest.join("=")];
-      })
-      .filter(([name]) => name),
-  );
-}
-
 function cookie(name, value, maxAge) {
   return `${name}=${value}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=Lax`;
 }
 
 function clearCookie(name) {
   return cookie(name, "", 0);
-}
-
-function isSameOrigin(request) {
-  const origin = request.headers.get("Origin");
-  return !origin || origin === new URL(request.url).origin;
-}
-
-function json(value, status = 200) {
-  return new Response(JSON.stringify(value), {
-    status,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store",
-      "X-Content-Type-Options": "nosniff",
-    },
-  });
 }
 
 function htmlError(message, status) {
