@@ -56,10 +56,12 @@ test("Production Finance source owns parsing in both save paths", () => {
 
 test("Finance build composes canonical sources without patching HTML", () => {
   assert.match(bundleSource, /finance-amount-core\.js/);
-  assert.match(bundleSource, /src", "features", "finance", "finance\.js/);
-  assert.match(bundleSource, /writeFile\(financeBundlePath, bundle\)/);
+  assert.match(bundleSource, /finance-dashboard\.js/);
+  assert.match(bundleSource, /finance-month-layout\.js/);
+  assert.match(bundleSource, /writeFile\(resolve\(dist, "finance-demo\.js"\), financeBundle\)/);
+  assert.match(bundleSource, /writeFile\(resolve\(dist, "finance-demo\.css"\), financeCssBundle\)/);
   assert.doesNotMatch(bundleSource, /index\.html|replaceAll?\(/);
-  assert.match(dashboardHtml, /finance-demo\.js\?v=joy-finance-core-v9/);
+  assert.match(dashboardHtml, /finance-demo\.js\?v=joy-finance-core-v10/);
   assert.doesNotMatch(bundleSource, /replaceExact|patchFinanceCore|parserAnchor/);
 
   const build = packageJson.scripts.build;

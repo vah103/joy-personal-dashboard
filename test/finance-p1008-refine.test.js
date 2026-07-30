@@ -2,13 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const source = await readFile(new URL("../project-data/finance/finance-p1008-refine-v3.js", import.meta.url), "utf8");
-const styles = await readFile(new URL("../project-data/finance/finance-p1008-refine-v3.css", import.meta.url), "utf8");
+const source = await readFile(new URL("../src/features/finance/finance-p1008-layout.js", import.meta.url), "utf8");
+const styles = await readFile(new URL("../src/features/finance/finance-p1008-layout.css", import.meta.url), "utf8");
 const captureStyles = await readFile(new URL("../project-data/finance/finance-p1008-capture-v2.css", import.meta.url), "utf8");
 const dashboard = await readFile(new URL("../src/pages/dashboard/index.html", import.meta.url), "utf8");
+const bundleSource = await readFile(new URL("../scripts/build-finance-bundle.mjs", import.meta.url), "utf8");
 const packageSource = await readFile(new URL("../package.json", import.meta.url), "utf8");
 
-test("P1008 refinement source parses and arranges the overview without global observers", () => {
+test("P1008 layout source parses and arranges the overview without global observers", () => {
   assert.doesNotThrow(() => new Function(source));
   assert.doesNotMatch(source, /MutationObserver/);
   assert.match(source, /p1008-overview-grid/);
@@ -17,7 +18,7 @@ test("P1008 refinement source parses and arranges the overview without global ob
   assert.match(source, /p1008-people-card/);
 });
 
-test("P1008 refinement reruns after account data refreshes", () => {
+test("P1008 layout reruns after account data refreshes", () => {
   assert.match(source, /workspace\.addEventListener\("joy:p1008-rendered", refineP1008Layout\)/);
 });
 
@@ -67,10 +68,12 @@ test("P1008 fullscreen headers stretch across their complete grid columns", () =
   assert.match(captureStyles, /box-sizing: border-box/);
 });
 
-test("P1008 assets are declared by canonical dashboard HTML", () => {
-  assert.match(dashboard, /finance-p1008\.js\?v=joy-finance-p1008-v4/);
-  assert.match(dashboard, /finance-p1008-refine-v3\.css\?v=joy-finance-p1008-refine-v7/);
-  assert.match(dashboard, /finance-p1008-refine-v3\.js\?v=joy-finance-p1008-refine-v7/);
+test("P1008 layout is absorbed into the canonical production bundle", () => {
+  assert.match(bundleSource, /finance-p1008-layout\.js/);
+  assert.match(bundleSource, /finance-p1008-layout\.css/);
+  assert.match(dashboard, /finance-p1008\.css\?v=joy-finance-p1008-v5/);
+  assert.match(dashboard, /finance-p1008\.js\?v=joy-finance-p1008-v5/);
+  assert.doesNotMatch(dashboard, /finance-p1008-refine-v3/);
   assert.match(dashboard, /finance-p1008-capture-v2\.css\?v=joy-finance-p1008-capture-v3/);
   assert.doesNotMatch(packageSource, /cache-bust-finance-p1008/);
 });

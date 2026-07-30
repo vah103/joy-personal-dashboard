@@ -25,20 +25,25 @@ test("dashboard HTML is the canonical production asset owner", async () => {
   assert.equal(html.match(/JOY_CLOUDFLARE_BACKEND/g)?.length, 1);
   assert.match(html, /<meta name="application-name" content="Hey Joy!">/);
   assert.match(html, /<title>Hey Joy! — Personal Dashboard<\/title>/);
-  assert.match(html, /finance-demo\.css\?v=joy-finance-core-v4/);
-  assert.match(html, /finance-demo\.js\?v=joy-finance-core-v9/);
-  assert.match(html, /finance-p1008\.js\?v=joy-finance-p1008-v4/);
+  assert.match(html, /finance-demo\.css\?v=joy-finance-core-v5/);
+  assert.match(html, /finance-demo\.js\?v=joy-finance-core-v10/);
+  assert.match(html, /finance-p1008\.css\?v=joy-finance-p1008-v5/);
+  assert.match(html, /finance-p1008\.js\?v=joy-finance-p1008-v5/);
   assert.match(html, /weather-rain\.js\?v=joy-rain-notice-v6/);
   assert.match(html, /project-hub-core\.js\?v=turtlebot-hub-v4/);
   assert.match(html, /finance-p1008-shopping-tables-v1\.css\?v=joy-finance-p1008-shopping-tables-v3/);
   assert.match(html, /finance-p1008-shopping-tables-v1\.js\?v=joy-finance-p1008-shopping-tables-v3/);
   assert.match(html, /finance-p1008-amount-input-v1\.js\?v=joy-finance-p1008-amount-input-v1/);
+  assert.match(html, /finance-p1008-shopping-compact-v1\.js\?v=joy-finance-p1008-shopping-compact-v1/);
 
   for (const legacy of [
     "joy-character-motion-v5",
     "joy-character-motion-v4",
     "joy-finance-p1008-v1",
     "joy-rain-notice-v2",
+    "finance-layout-v2",
+    "finance-dashboard-v1",
+    "finance-p1008-refine-v3",
     "<title>Joy — Personal Dashboard</title>",
   ]) {
     assert.doesNotMatch(html, new RegExp(legacy.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
@@ -60,4 +65,5 @@ test("dashboard HTML is the canonical production asset owner", async () => {
   assertOrder(html, "project-hub-extension-api.js", "project-state-v2.js");
   assertOrder(html, "finance-p1008-shopping-v1.js", "finance-p1008-shopping-tables-v1.js");
   assertOrder(html, "finance-p1008-shopping-tables-v1.js", "finance-p1008-amount-input-v1.js");
+  assertOrder(html, "finance-p1008-amount-input-v1.js", "finance-p1008-shopping-compact-v1.js");
 });

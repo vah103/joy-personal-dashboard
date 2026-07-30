@@ -15,6 +15,13 @@ const removedPatches = [
   "scripts/cache-bust-task-natural-input.mjs",
   "scripts/cache-bust-turtlebot-plan.mjs",
 ];
+const removedFinanceOverlays = [
+  "project-data/finance/finance-layout-v2.js",
+  "project-data/finance/finance-layout-v2.css",
+  "project-data/finance/finance-dashboard-v1.js",
+  "project-data/finance/finance-p1008-refine-v3.js",
+  "project-data/finance/finance-p1008-refine-v3.css",
+];
 
 test("frontend build has one canonical HTML owner", () => {
   assert.equal(
@@ -31,12 +38,15 @@ test("frontend build has one canonical HTML owner", () => {
 
 test("canonical dashboard HTML owns final production asset versions", () => {
   for (const reference of [
-    "finance-demo.js?v=joy-finance-core-v9",
-    "joy-finance-p1008-v4",
-    "joy-finance-p1008-refine-v7",
+    "finance-demo.css?v=joy-finance-core-v5",
+    "finance-demo.js?v=joy-finance-core-v10",
+    "finance-p1008.css?v=joy-finance-p1008-v5",
+    "finance-p1008.js?v=joy-finance-p1008-v5",
     "finance-p1008-capture-v2.css?v=joy-finance-p1008-capture-v3",
     "finance-p1008-shopping-v1.css?v=joy-finance-p1008-shopping-v1",
     "finance-p1008-shopping-v1.js?v=joy-finance-p1008-shopping-v1",
+    "finance-p1008-shopping-compact-v1.css?v=joy-finance-p1008-shopping-compact-v1",
+    "finance-p1008-shopping-compact-v1.js?v=joy-finance-p1008-shopping-compact-v1",
     "task-english.js?v=joy-task-english-v7",
     "task-natural-input.js?v=joy-natural-reminders-v2",
     "speaking-loader.js?v=joy-speaking-loader-v1",
@@ -48,8 +58,28 @@ test("canonical dashboard HTML owns final production asset versions", () => {
   }
 });
 
+test("Finance presentation overlays are absorbed into canonical bundles", () => {
+  for (const path of removedFinanceOverlays) {
+    assert.equal(fs.existsSync(new URL(path, root)), false, `${path} must remain removed`);
+    assert.doesNotMatch(dashboard, new RegExp(path.split("/").at(-1).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+  for (const source of [
+    "finance-dashboard.js",
+    "finance-month-layout.js",
+    "finance-month-layout.css",
+    "finance-p1008-layout.js",
+    "finance-p1008-layout.css",
+  ]) {
+    assert.match(financeBundle, new RegExp(source.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+  assert.match(financeBundle, /extractInlineStyle/);
+  assert.match(financeBundle, /financeCssBundle/);
+  assert.match(financeBundle, /p1008CssBundle/);
+});
+
 test("secondary builders never rewrite dist index HTML", () => {
   assert.doesNotMatch(financeBundle, /index\.html/);
   assert.doesNotMatch(financeBundle, /replaceAll?\(/);
-  assert.match(financeBundle, /writeFile\(financeBundlePath, bundle\)/);
+  assert.match(financeBundle, /writeFile\(resolve\(dist, "finance-demo\.js"\), financeBundle\)/);
+  assert.match(financeBundle, /writeFile\(resolve\(distProjectFinanceDir, "finance-p1008\.js"\), p1008Bundle\)/);
 });

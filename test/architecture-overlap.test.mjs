@@ -84,10 +84,10 @@ test("IELTS card and Journey styles have non-overlapping ownership", () => {
   assert.doesNotMatch(coreStyles, /\.logs form button/);
 });
 
-test("Finance extensions register explicit hooks instead of replacing core renderers", () => {
+test("Finance presentation sources register explicit hooks without replacing core renderers", () => {
   const core = read("src/features/finance/finance.js");
-  const layout = read("project-data/finance/finance-layout-v2.js");
-  const dashboard = read("project-data/finance/finance-dashboard-v1.js");
+  const layout = read("src/features/finance/finance-month-layout.js");
+  const dashboard = read("src/features/finance/finance-dashboard.js");
 
   assert.match(core, /window\.JoyFinanceLayout\?\.renderMonthView/);
   assert.match(layout, /window\.JoyFinanceLayout = Object\.freeze/);
