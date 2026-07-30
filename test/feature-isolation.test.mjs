@@ -28,7 +28,10 @@ test("Finance-only tests do not require IELTS sources", () => {
 
 test("normal deployment verifies a clean origin main worktree", () => {
   assert.equal(packageJson.scripts.deploy, "node scripts/deploy-clean-main.mjs");
-  assert.equal(packageJson.scripts["deploy:current"], "npm run verify && wrangler deploy");
+  assert.equal(
+    packageJson.scripts["deploy:current"],
+    "npm run verify && npm run db:migrate:check:remote && wrangler deploy",
+  );
   assert.match(deploySource, /git", \["fetch", "origin", "main"\]/);
   assert.match(deploySource, /git", \["worktree", "add", "--detach", worktree, "origin\/main"\]/);
   assert.match(deploySource, /npm", \["run", "deploy:current"\]/);
