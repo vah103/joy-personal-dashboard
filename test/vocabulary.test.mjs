@@ -10,7 +10,7 @@ const frontendPath = resolve(root, "project-data/vocabulary/vocabulary.js");
 const stylesPath = resolve(root, "project-data/vocabulary/vocabulary.css");
 const workerPath = resolve(root, "worker/vocabulary.js");
 const routerPath = resolve(root, "worker/router.js");
-const loaderPath = resolve(root, "src/features/project-hub/project-hub-performance.js");
+const loaderPath = resolve(root, "src/features/vocabulary/vocabulary-loader.js");
 const migrationPath = resolve(root, "migrations/20260728_vocabulary.sql");
 
 const [frontend, styles, worker, router, loader, migration] = await Promise.all([
@@ -57,6 +57,7 @@ test("Vocabulary save and review routes use authenticated D1 storage", () => {
 test("Dashboard loader adds the vocabulary assets", () => {
   assert.match(loader, /project-data\/vocabulary\/vocabulary\.css\?v=joy-vocabulary-v1/);
   assert.match(loader, /project-data\/vocabulary\/vocabulary\.js\?v=joy-vocabulary-v1/);
+  assert.match(loader, /vocabulary-mobile-inline\.js\?v=joy-vocabulary-mobile-inline-v2/);
 });
 
 test("Vocabulary JavaScript files pass syntax checks", () => {
