@@ -1,8 +1,4 @@
 import { isSameOrigin, json, readJson } from "./shared/http.js";
-import {
-  CREATE_TASK_DELETIONS_TABLE,
-  CREATE_TASK_REMINDERS_TABLE,
-} from "./shared/schema.js";
 import { getSession } from "./shared/session.js";
 
 const TASK_DELETE_PATH = "/api/tasks/delete";
@@ -26,11 +22,6 @@ export async function handleTaskDeleteRequest(request, env) {
     if (!id || id.length > 100) {
       return json({ error: "INVALID_TASK_ID" }, 400);
     }
-
-    await env.DB.batch([
-      env.DB.prepare(CREATE_TASK_DELETIONS_TABLE),
-      env.DB.prepare(CREATE_TASK_REMINDERS_TABLE),
-    ]);
 
     const now = Date.now();
     const results = await env.DB.batch([
