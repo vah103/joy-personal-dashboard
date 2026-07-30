@@ -1,0 +1,193 @@
+.p1008-view .p1008-local-state {
+  display: none !important;
+}
+
+.p1008-shopping-items-card {
+  width: min(600px, 100%) !important;
+}
+
+.p1008-shopping-items-card > header {
+  min-height: 42px !important;
+  padding: 7px 10px !important;
+}
+
+.p1008-shopping-items-card h3 {
+  font-size: 16px !important;
+}
+
+.p1008-shopping-items-card .p1008-shopping-table-wrap {
+  overflow-x: hidden !important;
+}
+
+.p1008-shopping-items-card .p1008-shopping-table {
+  width: 100% !important;
+  min-width: 0 !important;
+  table-layout: fixed !important;
+}
+
+.p1008-shopping-items-card .p1008-shopping-table th,
+.p1008-shopping-items-card .p1008-shopping-table td {
+  padding: 6px 6px !important;
+}
+
+.p1008-shopping-items-card .p1008-shopping-table th:nth-child(1) {
+  width: 41% !important;
+}
+
+.p1008-shopping-items-card .p1008-shopping-table th:nth-child(2) {
+  width: 26% !important;
+}
+
+.p1008-shopping-items-card .p1008-shopping-table th:nth-child(3) {
+  width: 12% !important;
+}
+
+.p1008-shopping-items-card .p1008-shopping-table th:nth-child(4) {
+  width: 21% !important;
+}
+
+.p1008-shopping-items-card .p1008-shopping-table thead th {
+  font-size: 8.5px !important;
+  line-height: 1.1;
+}
+
+.p1008-shopping-items-card .p1008-shopping-table tbody th,
+.p1008-shopping-items-card .p1008-shopping-name-input,
+.p1008-shopping-items-card .p1008-per-person {
+  font-size: 11px !important;
+}
+
+.p1008-shopping-item-name-control {
+  grid-template-columns: minmax(0, 1fr) 21px !important;
+  gap: 4px !important;
+}
+
+.p1008-shopping-items-card .p1008-shopping-name-input {
+  height: 28px !important;
+}
+
+.p1008-shopping-items-card .p1008-shopping-delete {
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+}
+
+.p1008-shopping-items-card .p1008-shopping-amount-field.p1008-amount-field {
+  width: 108px !important;
+  height: 28px !important;
+  grid-template-columns: minmax(0, 1fr) 17px !important;
+}
+
+.p1008-shopping-items-card .p1008-shopping-amount-field input {
+  padding-right: 2px !important;
+  padding-left: 5px !important;
+  font-size: 11px !important;
+}
+
+.p1008-shopping-items-card .p1008-shopping-amount-field > span {
+  padding-right: 4px !important;
+  font-size: 8px !important;
+}
+
+.p1008-shopping-share-select-cell select {
+  width: 46px !important;
+  height: 28px !important;
+  padding: 0 15px 0 4px !important;
+  border-radius: 8px !important;
+  font-size: 11px !important;
+}
+
+.p1008-shopping-share-select-cell small,
+.p1008-shopping-split-cell small {
+  display: none !important;
+}
+
+.p1008-shopping-items-card .p1008-per-person {
+  white-space: nowrap;
+}
+
+@media (max-width: 620px) {
+  .p1008-shopping-items-card {
+    width: 100% !important;
+  }
+
+  .p1008-shopping-items-card .p1008-shopping-table {
+    min-width: 0 !important;
+  }
+
+  .p1008-shopping-items-card .p1008-shopping-table th,
+  .p1008-shopping-items-card .p1008-shopping-table td {
+    padding: 5px 4px !important;
+  }
+
+  .p1008-shopping-items-card .p1008-shopping-table th:nth-child(1) {
+    width: 38% !important;
+  }
+
+  .p1008-shopping-items-card .p1008-shopping-table th:nth-child(2) {
+    width: 28% !important;
+  }
+
+  .p1008-shopping-items-card .p1008-shopping-table th:nth-child(3) {
+    width: 14% !important;
+  }
+
+  .p1008-shopping-items-card .p1008-shopping-table th:nth-child(4) {
+    width: 20% !important;
+  }
+
+  .p1008-shopping-items-card .p1008-shopping-amount-field.p1008-amount-field {
+    width: 96px !important;
+  }
+
+  .p1008-shopping-share-select-cell select {
+    width: 43px !important;
+    padding-right: 13px !important;
+  }
+
+  .p1008-shopping-item-name-control {
+    grid-template-columns: minmax(0, 1fr) 19px !important;
+    gap: 3px !important;
+  }
+
+  .p1008-shopping-items-card .p1008-shopping-delete {
+    width: 18px !important;
+    height: 18px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .p1008-shopping-items-card > header {
+    min-height: 40px !important;
+    padding: 6px 8px !important;
+  }
+
+  .p1008-shopping-items-card h3 {
+    font-size: 15px !important;
+  }
+
+  .p1008-shopping-items-card .p1008-shopping-table th,
+  .p1008-shopping-items-card .p1008-shopping-table td {
+    padding: 4px 3px !important;
+  }
+
+  .p1008-shopping-items-card .p1008-shopping-table tbody th,
+  .p1008-shopping-items-card .p1008-shopping-name-input,
+  .p1008-shopping-items-card .p1008-per-person {
+    font-size: 10px !important;
+  }
+
+  .p1008-shopping-items-card .p1008-shopping-amount-field.p1008-amount-field {
+    width: 91px !important;
+  }
+
+  .p1008-shopping-items-card .p1008-shopping-amount-field input {
+    font-size: 10px !important;
+  }
+
+  .p1008-shopping-share-select-cell select {
+    width: 41px !important;
+    font-size: 10px !important;
+  }
+}
