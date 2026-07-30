@@ -90,7 +90,7 @@ const projectHubScripts = [
   '    <script src="project-hub-core.js?v=turtlebot-hub-v4" defer></script>\n',
   '    <script src="project-hub-render.js?v=turtlebot-hub-v4" defer></script>\n',
   '    <script src="project-hub-actions.js?v=turtlebot-hub-v4" defer></script>\n',
-  '    <script src="project-hub-extension-api.js?v=project-hub-extension-v1" defer></script>\n',
+  '    <script src="project-hub-extension-api.js?v=turtlebot-hub-extension-v1" defer></script>\n',
   '    <script src="project-data/turtlebot4/project-state-v2.js?v=turtlebot-progress-hooks-v2" defer></script>\n',
   '    <script src="turtlebot-roadmap.js?v=turtlebot-roadmap-v3" defer></script>\n',
   '    <script src="turtlebot-roadmap-language.js?v=turtlebot-roadmap-english-v1" defer></script>\n',
