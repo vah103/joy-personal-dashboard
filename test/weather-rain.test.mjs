@@ -127,8 +127,8 @@ test("weather keeps sunny and no-rain states while rain requires 85 percent", ()
   assert.ok(html.indexOf("weather-rain.js") < html.indexOf("app.js"));
   assert.ok(app.includes("weatherRainNotice.hidden"));
   assert.ok(build.includes('resolve(features, "weather", "weather-rain.js")'));
-  assert.ok(build.includes("rain-threshold-85-v1"));
-  assert.ok(build.includes("joy-rain-notice-v6"));
+  assert.ok(html.includes("rain-threshold-85-v1"));
+  assert.ok(html.includes("joy-rain-notice-v6"));
   assert.match(statusUi, /RAIN_PROBABILITY_THRESHOLD = 85/);
   assert.match(statusUi, /sunnyHours/);
   assert.match(statusUi, /It’s a sunny day\./);
