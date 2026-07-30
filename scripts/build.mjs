@@ -77,8 +77,13 @@ const projectHubHead = [
   '    <link rel="stylesheet" href="dashboard-openai-headings.css?v=joy-openai-headings-v1">\n',
 ].join("");
 
+const languageFeatureScripts = [
+  '    <script src="speaking-loader.js?v=joy-speaking-loader-v1" defer></script>\n',
+  '    <script src="vocabulary-loader.js?v=joy-vocabulary-loader-v1" defer></script>\n',
+].join("");
+
 const projectHubScripts = [
-  '    <script src="project-hub-performance.js?v=turtlebot-hub-v7" defer></script>\n',
+  '    <script src="project-hub-performance.js?v=turtlebot-hub-lifecycle-v1" defer></script>\n',
   '    <script src="project-hub-core.js?v=turtlebot-hub-v4" defer></script>\n',
   '    <script src="project-hub-render.js?v=turtlebot-hub-v4" defer></script>\n',
   '    <script src="project-hub-actions.js?v=turtlebot-hub-v4" defer></script>\n',
@@ -86,6 +91,10 @@ const projectHubScripts = [
   '    <script src="project-data/turtlebot4/project-state-v2.js?v=turtlebot-progress-hooks-v2" defer></script>\n',
   '    <script src="turtlebot-roadmap.js?v=turtlebot-roadmap-v3" defer></script>\n',
   '    <script src="turtlebot-roadmap-language.js?v=turtlebot-roadmap-english-v1" defer></script>\n',
+  '    <script src="turtlebot-plan-loader.js?v=turtlebot-plan-loader-v1" defer></script>\n',
+].join("");
+
+const dashboardFeatureScripts = [
   '    <script id="joy-ielts-core-bundle-v4" data-loaded="true" src="project-data/ielts/ielts-core-bundle.js?v=ielts-journey-v4" defer></script>\n',
   '    <script src="project-data/ielts/ielts-card.js?v=ielts-journey-v4" defer></script>\n',
   '    <script src="weather-status-ui.js?v=rain-threshold-85-v1" defer></script>\n',
@@ -103,6 +112,8 @@ const projectHubScripts = [
   '    <script src="project-data/finance/finance-dashboard-v1.js?v=joy-finance-dashboard-v3" defer></script>\n',
   '    <script src="project-data/finance/finance-p1008-refine-v3.js?v=joy-finance-p1008-refine-v5" defer></script>\n',
 ].join("");
+
+const dashboardScripts = `${languageFeatureScripts}${projectHubScripts}${dashboardFeatureScripts}`;
 
 const sourceHtml = await readFile(resolve(dashboardPage, "index.html"), "utf8");
 const cloudflareHtml = sourceHtml
@@ -124,7 +135,7 @@ const cloudflareHtml = sourceHtml
     "</head>",
     `${projectHubHead}    <meta name="joy-backend" content="cloudflare">\n  </head>`,
   )
-  .replace("</body>", `${projectHubScripts}  </body>`);
+  .replace("</body>", `${dashboardScripts}  </body>`);
 
 const sourceLoginHtml = await readFile(resolve(loginPage, "index.html"), "utf8");
 const cloudflareLoginHtml = sourceLoginHtml.replace(blueFaviconLink, desktopFaviconLink);
@@ -180,11 +191,14 @@ const copies = [
   [resolve(features, "greeting", "greeting-layout.js"), "greeting-layout.js"],
   [resolve(features, "greeting", "greeting-layout.css"), "greeting-layout.css"],
   [resolve(features, "greeting", "daily-brief-polish.js"), "daily-brief-polish.js"],
+  [resolve(features, "speaking", "speaking-loader.js"), "speaking-loader.js"],
+  [resolve(features, "vocabulary", "vocabulary-loader.js"), "vocabulary-loader.js"],
   [resolve(features, "project-hub", "project-hub-performance.js"), "project-hub-performance.js"],
   [resolve(features, "project-hub", "project-hub-core.js"), "project-hub-core.js"],
   [resolve(features, "project-hub", "project-hub-render.js"), "project-hub-render.js"],
   [resolve(features, "project-hub", "project-hub-actions.js"), "project-hub-actions.js"],
   [resolve(features, "project-hub", "project-hub-extension-api.js"), "project-hub-extension-api.js"],
+  [resolve(features, "project-hub", "turtlebot-plan-loader.js"), "turtlebot-plan-loader.js"],
   [resolve(features, "project-hub", "project-hub.css"), "project-hub.css"],
   [resolve(features, "project-hub", "turtlebot-card-art.css"), "turtlebot-card-art.css"],
   [resolve(features, "project-hub", "turtlebot4-card-background.webp"), "turtlebot4-card-background.webp"],
