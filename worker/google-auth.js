@@ -132,7 +132,7 @@ async function startGoogleAuthorization(request, env, flow) {
   if (!isLogin) {
     const session = await getSession(request, env);
     if (!session) return redirect("/login");
-    if (!['gmail', 'sheets'].includes(service)) return json({ error: "INVALID_INTEGRATION" }, 400);
+    if (!["gmail", "sheets"].includes(service)) return json({ error: "INVALID_INTEGRATION" }, 400);
   }
 
   const redirectUri = `${url.origin}/auth/callback`;
@@ -209,7 +209,7 @@ async function finishGoogleAuthorization(request, env) {
     }
 
     const service = flow.split(":")[1];
-    if (!['gmail', 'sheets'].includes(service)) return htmlError("The Google integration was not recognized.", 400);
+    if (!["gmail", "sheets"].includes(service)) return htmlError("The Google integration was not recognized.", 400);
     await saveGoogleIntegrationTokens(email, tokens, service, env);
     headers.set("Location", `/?connected=${encodeURIComponent(service)}`);
   }
@@ -380,15 +380,8 @@ async function revokeAndDeleteGoogleToken(email, env) {
   await env.DB.prepare("DELETE FROM oauth_tokens WHERE user_email = ?").bind(email).run();
 }
 
-async function ensureIntegrationSchema(env) {
-  await env.DB.prepare(`
-    CREATE TABLE IF NOT EXISTS google_integrations (
-      user_email TEXT PRIMARY KEY,
-      gmail_enabled INTEGER NOT NULL DEFAULT 0,
-      sheets_enabled INTEGER NOT NULL DEFAULT 0,
-      updated_at INTEGER NOT NULL
-    )
-  `).run();
+async function ensureIntegrationSchema() {
+  // google_integrations is provisioned by migrations/20260731_canonical_runtime_schema.sql.
 }
 
 async function createSession(email, env) {
