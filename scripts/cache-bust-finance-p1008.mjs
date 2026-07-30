@@ -14,12 +14,12 @@ if (![legacy, previous, next].some((reference) => source.includes(reference))) {
 let output = source.replaceAll(legacy, previous);
 output = output.replaceAll(previous, next);
 
-const refineStyles = '      <link rel="stylesheet" href="project-data/finance/finance-p1008-refine-v3.css?v=joy-finance-p1008-refine-v3">';
-const refineScript = '      <script src="project-data/finance/finance-p1008-refine-v3.js?v=joy-finance-p1008-refine-v3" defer></script>';
+const refineStyles = '      <link rel="stylesheet" href="project-data/finance/finance-p1008-refine-v3.css?v=joy-finance-p1008-refine-v4">';
+const refineScript = '      <script src="project-data/finance/finance-p1008-refine-v3.js?v=joy-finance-p1008-refine-v4" defer></script>';
 
 if (!output.includes("finance-p1008-refine-v3.css")) {
   output = output.replace("</head>", `${refineStyles}\n${refineScript}\n  </head>`);
 }
 
 await writeFile(indexPath, output);
-console.log("P1008 assets cache-busted and refined to v3");
+console.log("P1008 assets cache-busted and side summary refined to v4");
