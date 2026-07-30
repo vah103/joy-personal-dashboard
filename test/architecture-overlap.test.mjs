@@ -25,46 +25,69 @@ test("dashboard build declares every static resource once", () => {
   assert.deepEqual([...new Set(duplicates)], []);
 });
 
-test("IELTS has one resource loader and one dashboard-card controller", () => {
+test("IELTS Journey has one built resource and one dashboard-card controller", () => {
   const build = read("scripts/build.mjs");
   const card = read("src/features/ielts/card.js");
   const actions = read("src/features/ielts/core-actions.js");
-  const translations = read("src/features/ielts/i18n-vi-hooks.js");
+  const scriptDeclarations =
+    build.match(/const projectHubScripts = \[[\s\S]*?\]\.join\(""\);/)?.[0] || "";
 
-  assert.match(build, /id="joy-ielts-core-bundle"/);
-  assert.doesNotMatch(build, /data-loaded="true"/);
-  assert.doesNotMatch(card, /createElement\("script"\)/);
-  assert.doesNotMatch(card, /createElement\("link"\)/);
+  assert.equal(
+    (scriptDeclarations.match(/project-data\/ielts\/ielts-core-bundle\.js/g) || []).length,
+    1,
+  );
+  assert.equal(
+    (scriptDeclarations.match(/project-data\/ielts\/ielts-card\.js/g) || []).length,
+    1,
+  );
+
+  assert.match(build, /id="joy-ielts-core-bundle-v4"/);
+  assert.match(build, /data-loaded="true"/);
+
+  // card.js may provide one fallback loader, but it must first reuse
+  // the script that the normal Cloudflare build already declared.
+  assert.match(card, /const CORE_SCRIPT = \[/);
+  assert.match(card, /document\.querySelector\(`#\$\{id\}`\)/);
+  assert.equal(
+    (card.match(/document\.createElement\("script"\)/g) || []).length,
+    1,
+  );
+  assert.doesNotMatch(card, /document\.createElement\("link"\)/);
+
   assert.equal((card.match(/new MutationObserver/g) || []).length, 1);
   assert.doesNotMatch(actions, /new MutationObserver/);
   assert.doesNotMatch(actions, /project-card\.ielts-project-card/);
-  assert.equal((translations.match(/new MutationObserver/g) || []).length, 1);
-  for (const path of [
-    "src/features/ielts/core-actions.js",
+
+  for (const removedPath of [
     "src/features/ielts/core-diagnostic.js",
     "src/features/ielts/core-writing-review.js",
     "src/features/ielts/core-writing-rewrite.js",
     "src/features/ielts/i18n-vi-hooks.js",
   ]) {
-    assert.doesNotMatch(
-      read(path),
-      /(?:^|\n)[A-Za-z_$][A-Za-z0-9_$]*\s*=\s*function/,
-      `${path} must extend IELTS through named functions, not renderer replacement`,
+    assert.equal(
+      fs.existsSync(new URL(`../${removedPath}`, import.meta.url)),
+      false,
+      `${removedPath} must remain removed from IELTS Journey`,
     );
   }
 });
 
-test("IELTS card and coach styles have non-overlapping ownership", () => {
+test("IELTS card and Journey styles have non-overlapping ownership", () => {
   const cardStyles = read("project-data/ielts/ielts-card.css");
   const coreStyles = read("project-data/ielts/ielts-core.css");
 
   assert.equal(
-    fs.existsSync(new URL("../project-data/ielts/ielts-core-polish.css", import.meta.url)),
+    fs.existsSync(
+      new URL("../project-data/ielts/ielts-core-polish.css", import.meta.url),
+    ),
     false,
   );
+
   assert.match(cardStyles, /\.ielts-project-source[\s\S]*bottom: 46px/);
-  assert.doesNotMatch(coreStyles, /\.ielts-project-source\{bottom:/);
-  assert.match(coreStyles, /\.logs form button\{border-color:#4f7884/);
+  assert.doesNotMatch(coreStyles, /\.ielts-project-source\s*\{/);
+
+  assert.match(coreStyles, /\.ielts-core\s*\{/);
+  assert.doesNotMatch(coreStyles, /\.logs form button/);
 });
 
 test("Finance extensions register explicit hooks instead of replacing core renderers", () => {

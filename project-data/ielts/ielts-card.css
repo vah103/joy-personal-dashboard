@@ -1,4 +1,20 @@
-/* IELTS dashboard card — real document artwork, live HTML content. */
+@font-face {
+  font-family: "Nunito";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url("/fonts/nunito-vietnamese-400-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Nunito";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url("/fonts/nunito-vietnamese-700-normal.woff2") format("woff2");
+}
+
+/* Keep the original IELTS artwork and layout; only the live content changes. */
 .projects-panel .project-card.ielts-project-card {
   position: relative;
   isolation: isolate;
@@ -22,15 +38,13 @@
       rgba(223, 232, 235, 0.12) 100%
     ),
     url("ielts-card-background.webp?v=ielts-card-v2");
-  background-position:
-    center,
-    right bottom;
+  background-position: center, right bottom;
   background-repeat: no-repeat;
-  background-size:
-    100% 100%,
-    64% auto;
+  background-size: 100% 100%, 64% auto;
   color: #283338;
   box-shadow: 0 15px 30px rgba(38, 42, 44, 0.08);
+  cursor: pointer;
+  font-family: "Nunito", sans-serif;
 }
 
 .projects-panel .project-card.ielts-project-card:hover,
@@ -185,7 +199,7 @@
 
 .projects-panel .project-card.ielts-project-card .ielts-target-pill {
   position: absolute;
-  top: 20px;
+  top: 6px;
   right: 22px;
   z-index: 4;
   display: inline-flex;
@@ -233,12 +247,8 @@
         rgba(215, 228, 232, 0.08) 100%
       ),
       url("ielts-card-background.webp?v=ielts-card-v2");
-    background-position:
-      center,
-      center bottom;
-    background-size:
-      100% 100%,
-      100% auto;
+    background-position: center, center bottom;
+    background-size: 100% 100%, 100% auto;
   }
 
   .projects-panel .project-card.ielts-project-card .ielts-target-pill {

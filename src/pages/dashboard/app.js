@@ -28,10 +28,10 @@ const seedProjects = [
   {
     id: 2,
     name: "IELTS",
-    progress: 32,
+    progress: 0,
     accent: "blue",
-    focus: "Speaking fluency",
-    next: "Complete a Part 2 mock",
+    focus: "Band 7.0 · December 2026",
+    next: "Prepare the August baseline",
   },
 ];
 

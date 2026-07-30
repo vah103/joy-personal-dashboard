@@ -3,10 +3,9 @@ import { isSameOrigin, json, readJson } from "./shared/http.js";
 import { getSession } from "./shared/session.js";
 
 const MAX_STATE_BYTES = 700_000;
-const PLAN_START = "2026-08-01";
-const PLAN_END = "2026-08-31";
-const PREP_START = "2026-07-27";
-const COMPLETE_STATUSES = new Set(["completed", "completed-minimum"]);
+const PROGRAM_START = "2026-08-01";
+const PROGRAM_END = "2026-12-31";
+const COMPLETE_STATUSES = new Set(["completed"]);
 
 export function isIeltsCoreRoute(pathname) {
   return pathname === "/api/ielts-core";
@@ -32,7 +31,7 @@ export async function handleIeltsCoreRequest(request, env) {
 
 export async function runIeltsSchedule(env) {
   const clock = vietnamClock(new Date());
-  if (clock.dateKey < PREP_START || clock.dateKey > PLAN_END) return;
+  if (clock.dateKey < PROGRAM_START || clock.dateKey > PROGRAM_END) return;
   const notification = scheduledNotification(clock);
   if (!notification) return;
 
@@ -51,6 +50,8 @@ export async function runIeltsSchedule(env) {
     if (alreadySent) return;
 
     const data = safeJsonParse(row.data_json, {});
+    if (notification.kind === "ielts-evening" && data.settings?.eveningReminder === false) return;
+    if (notification.kind === "ielts-weekly" && data.settings?.weeklyReviewReminder === false) return;
     const payload = enrichNotification(notification, data, clock);
     const result = await sendPushToUser(row.user_email, {
       title: payload.title,
@@ -90,17 +91,19 @@ async function getState(email, env) {
   if (!row) {
     const now = Date.now();
     const initial = JSON.stringify({
-      schemaVersion: 1,
-      strictMode: true,
+      schemaVersion: 2,
+      goal: {
+        overall: 7,
+        minimumSkill: 6.5,
+        date: "2026-12-31"
+      },
       taskStates: {},
-      prelaunch: {},
-      storyBank: [],
-      sentenceBank: [],
+      customTasks: [],
+      courseSessions: [],
+      assessments: [],
       errorLogs: [],
-      weeklyReviews: {},
-      coachNotes: [],
+      rhythmReviews: {},
       settings: {
-        morningReminder: true,
         eveningReminder: true,
         weeklyReviewReminder: true
       }
@@ -114,7 +117,7 @@ async function getState(email, env) {
   }
 
   return json({
-    planId: "ielts-august-2026",
+    planId: "ielts-band-7-december-2026",
     data: safeJsonParse(row.data_json, {}),
     version: Number(row.version || 0),
     updatedAt: Number(row.updated_at || 0),
@@ -165,7 +168,7 @@ async function putState(request, email, env) {
 
   return json({
     ok: true,
-    planId: "ielts-august-2026",
+    planId: "ielts-band-7-december-2026",
     data,
     version: nextVersion,
     updatedAt: now,
@@ -175,17 +178,19 @@ async function putState(request, email, env) {
 function normalizeState(value) {
   const cleanArray = (input, limit) => Array.isArray(input) ? input.slice(-limit) : [];
   return {
-    schemaVersion: 1,
-    strictMode: value.strictMode !== false,
+    schemaVersion: 2,
+    goal: {
+      overall: Number(value.goal?.overall || 7),
+      minimumSkill: Number(value.goal?.minimumSkill || 6.5),
+      date: String(value.goal?.date || "2026-12-31"),
+    },
     taskStates: plainObject(value.taskStates),
-    prelaunch: plainObject(value.prelaunch),
-    storyBank: cleanArray(value.storyBank, 100),
-    sentenceBank: cleanArray(value.sentenceBank, 300),
+    customTasks: cleanArray(value.customTasks, 200),
+    courseSessions: cleanArray(value.courseSessions, 100),
+    assessments: cleanArray(value.assessments, 50),
     errorLogs: cleanArray(value.errorLogs, 500),
-    weeklyReviews: plainObject(value.weeklyReviews),
-    coachNotes: cleanArray(value.coachNotes, 100),
+    rhythmReviews: plainObject(value.rhythmReviews),
     settings: {
-      morningReminder: value.settings?.morningReminder !== false,
       eveningReminder: value.settings?.eveningReminder !== false,
       weeklyReviewReminder: value.settings?.weeklyReviewReminder !== false,
     },
@@ -197,43 +202,24 @@ function plainObject(value) {
 }
 
 function scheduledNotification(clock) {
-  const inMorningWindow = clock.hour === 7 && clock.minute < 5;
   const inEveningWindow = clock.hour === 19 && clock.minute < 5;
   const inWeeklyWindow = clock.weekday === 0 && clock.hour === 20 && clock.minute >= 30 && clock.minute < 35;
 
-  if (inWeeklyWindow && clock.dateKey >= PLAN_START) {
+  if (inWeeklyWindow) {
     return { kind: "ielts-weekly", title: "IELTS weekly review", body: "" };
   }
-  if (inMorningWindow) {
-    return { kind: "ielts-morning", title: "IELTS morning mission", body: "" };
-  }
-  if (inEveningWindow && clock.dateKey >= PLAN_START) {
-    return { kind: "ielts-evening", title: "IELTS Strict Mode", body: "" };
+  if (inEveningWindow) {
+    return { kind: "ielts-evening", title: "IELTS current rhythm", body: "" };
   }
   return null;
 }
 
 function enrichNotification(notification, data, clock) {
-  if (notification.kind === "ielts-morning") {
-    if (clock.dateKey < PLAN_START) {
-      const days = Math.max(0, dayDifference(clock.dateKey, PLAN_START));
-      return {
-        ...notification,
-        body: `${days} ${days === 1 ? "day" : "days"} until the August IELTS intensive. Finish the setup checklist in Joy.`,
-      };
-    }
-    const day = Number(clock.dateKey.slice(-2));
-    return {
-      ...notification,
-      body: `Day ${day} is ready. Complete the fixed morning mission and keep daily Speaking alive.`,
-    };
-  }
-
   if (notification.kind === "ielts-weekly") {
     const summary = stateSummary(data, clock.dateKey);
     return {
       ...notification,
-      body: `${summary.completed} missions recorded this week · ${summary.overdue} overdue. Open Joy and save the required weekly review.`,
+      body: `${summary.completed} IELTS tasks recorded this week. Review the evidence in Joy before ChatGPT prepares the next rhythm.`,
     };
   }
 
@@ -241,12 +227,12 @@ function enrichNotification(notification, data, clock) {
   if (todaySummary.completed > 0 && todaySummary.open === 0) {
     return {
       ...notification,
-      body: "Today’s recorded missions are complete. Open Joy once to confirm the evidence and tomorrow’s focus.",
+      body: "Today’s recorded IELTS work is complete. Open Joy if you need to add evidence or class notes.",
     };
   }
   return {
     ...notification,
-    body: "Required IELTS work is still open today. Finish it or record a valid Minimum Day before the day ends.",
+    body: "Open Joy to see the current IELTS rhythm and the next guided task.",
   };
 }
 

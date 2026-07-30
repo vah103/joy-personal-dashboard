@@ -5,55 +5,23 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 const read = (path) => fs.readFileSync(new URL(path, root), "utf8");
 
-test("IELTS includes the consolidated Writing AI reviewer, Vietnamese feedback and adaptive rewrite", () => {
-  const model = read("src/features/ielts/core-model.js");
-  const ui = read("src/features/ielts/core-ui.js");
+test("ChatGPT teaches while Joy stores structured tasks and course knowledge", () => {
   const actions = read("src/features/ielts/core-actions.js");
-  const diagnostic = read("src/features/ielts/core-diagnostic.js");
-  const reviewer = read("src/features/ielts/core-writing-review.js");
-  const rewrite = read("src/features/ielts/core-writing-rewrite.js");
-  const build = read("scripts/build.mjs");
-  const card = read("src/features/ielts/card.js");
+  const ui = read("src/features/ielts/core-ui.js");
   const router = read("worker/router.js");
-  const worker = read("worker/ielts-diagnostic-review.js");
-  const reviewCss = read("project-data/ielts/ielts-writing-review.css");
-  const rewriteCss = read("project-data/ielts/ielts-writing-rewrite.css");
+  const build = read("scripts/build.mjs");
 
-  assert.match(build, /core-writing-review\.js/);
-  assert.match(build, /core-writing-rewrite\.js/);
-  assert.match(build, /i18n-vi-hooks\.js/);
-  assert.doesNotMatch(build, /core-writing-review-freshness\.js/);
-  assert.match(build, /ielts-august-core-v8/);
-  assert.match(build, /ielts-writing-review\.css\?v=ielts-writing-review-v1/);
-  assert.match(build, /ielts-writing-rewrite\.css\?v=ielts-writing-rewrite-v1/);
-  assert.doesNotMatch(card, /ielts-writing-review\.css\?v=/);
-  assert.doesNotMatch(card, /ielts-writing-rewrite\.css\?v=/);
-  assert.doesNotMatch(card, /REWRITE_SCRIPT/);
-  assert.doesNotMatch(card, /ielts-core-writing-rewrite\.js\?v=/);
-  assert.doesNotMatch(card, /ensureCoreStyles/);
-  assert.match(router, /isIeltsDiagnosticReviewRoute/);
-  assert.match(router, /handleIeltsDiagnosticReviewRequest/);
-
-  assert.match(reviewer, /\/api\/ielts\/diagnostic-review/);
-  assert.match(reviewer, /Reviewing in two passes/);
-  assert.match(reviewer, /writing-diagnostic-ai-v1/);
-  assert.match(reviewer, /reviewFingerprint/);
-  assert.match(reviewer, /Essay changed · review again/);
-  assert.match(reviewer, /withWritingReviewState/);
-  assert.match(reviewer, /enhanceWritingDiagnosticCard/);
-  assert.match(reviewer, /return null/);
-  assert.match(rewrite, /Required adaptive mission/);
-  assert.match(rewrite, /deadlineHours/);
-  assert.match(rewrite, /Minimum 100 words/);
-  assert.match(rewrite, /renderWritingRewriteCallout/);
-  assert.match(model, /__learnerBaseline/);
-  assert.match(worker, /Write every explanation, finding, pattern and uncertainty in clear Vietnamese/);
-  assert.match(worker, /Đây là band đầu vào do AI ước lượng/);
-  assert.match(reviewCss, /writing-review-summary/);
-  assert.match(reviewCss, /review-criteria/);
-  assert.match(rewriteCss, /writing-rewrite-mission/);
-
-  assert.doesNotThrow(() => new Function(
-    `(function(){${model}\n${ui}\n${actions}\n${diagnostic}\n${reviewer}\n${rewrite}\n})();`,
-  ));
+  assert.match(actions, /Start with ChatGPT/);
+  assert.match(actions, /Do not give me the entire lesson or all answers at once/);
+  assert.match(actions, /type: "rhythm_tasks"/);
+  assert.match(actions, /type: "course_session"/);
+  assert.match(actions, /objective/);
+  assert.match(actions, /steps/);
+  assert.match(actions, /doneWhen/);
+  assert.match(ui, /Now/);
+  assert.match(ui, /Course/);
+  assert.match(ui, /Journey/);
+  assert.match(ui, /Progress/);
+  assert.doesNotMatch(router, /ielts-diagnostic-review/);
+  assert.doesNotMatch(build, /core-writing-review|core-writing-rewrite|core-diagnostic/);
 });

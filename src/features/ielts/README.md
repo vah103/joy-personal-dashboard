@@ -1,53 +1,23 @@
-# IELTS feature
+# IELTS Journey
 
-This directory is the single source of truth for the IELTS Coach frontend JavaScript.
+The IELTS feature is a structured learning memory for Vanh's path to overall Band 7.0 by December 2026.
 
-## Core source files
+Joy does not teach or score IELTS with an embedded AI model. ChatGPT is the teacher: it reads exported Joy context, guides each self-study task interactively, reviews evidence and returns structured tasks, course notes or assessments for import.
 
-- `card.js` — enhances the dashboard card and opens the coach.
-- `core-model.js` — curriculum loading, state normalization, persistence, dates, and progress.
-- `core-ui.js` — Today, Roadmap, Practice Log, and Joy Coach rendering.
-- `core-actions.js` — task completion, reviews, modal actions, and public `window.JoyIELTS` methods.
-- `core-diagnostic.js` — learner profile and four-skill baseline workflows.
-- `core-writing-review.js` — Writing AI review, evidence, score freshness, and Error Log import.
-- `core-writing-rewrite.js` — the required adaptive rewrite mission.
+## Interface
 
-## Vietnamese localization
+- `card.js` — replaces the generic dashboard project card with the minimal IELTS status card.
+- `core-model.js` — loads the program, normalizes schema v2 state and syncs it with D1.
+- `core-ui.js` — renders Now, Course, Journey and Progress.
+- `core-actions.js` — task details, ChatGPT prompts, completion evidence and JSON import/export.
 
-The user-facing IELTS Coach is displayed in Vietnamese while official IELTS prompts, quoted learner writing, corrected English sentences, and exam terminology remain in English where required.
+## Learning model
 
-- `i18n-vi-base.js` — Vietnamese labels, week summaries, learner preferences, and localization data container.
-- `i18n-vi-days-01-09.js` — localized curriculum for 1–9 August.
-- `i18n-vi-days-10-16.js` — localized curriculum for 10–16 August.
-- `i18n-vi-days-17-23.js` — localized curriculum for 17–23 August.
-- `i18n-vi-days-24-31.js` — localized curriculum for 24–31 August.
-- `i18n-vi-plan-runtime.js` — applies Vietnamese curriculum data without changing the stored JSON.
-- `i18n-vi-ui-text.js` — interface labels and guidance translations.
-- `i18n-vi-hooks.js` — translates rendered UI, dates, status messages, and toasts.
+- Long-term goal: overall 7.0 by December, minimum 6.5 per skill.
+- August is the Foundation phase.
+- Each week has three six-hour rhythms: Mon–Tue, Wed–Thu and Fri–Sun.
+- External Writing classes count toward the rhythm budget.
+- Course knowledge and demonstrated performance are stored separately.
+- A self-study task is actionable only when it has an objective, steps, materials, output and observable completion rules.
 
-The Writing reviewer instructs Workers AI to explain findings in Vietnamese while preserving exact English evidence and corrected English sentences.
-
-## Build behavior
-
-`scripts/build.mjs` bundles the core and localization files into:
-
-```text
-/project-data/ielts/ielts-core-bundle.js
-```
-
-It also copies `card.js` to the stable public URL:
-
-```text
-/project-data/ielts/ielts-card.js
-```
-
-The generated files exist only in `dist/` and are not committed. Stable public URLs prevent browser, service-worker, and deployment regressions while source code remains organized under `src/features/`.
-
-## Validation
-
-- `scripts/validate-ielts-sources.mjs` compiles the combined bundle before every build.
-- `scripts/run-tests.mjs` checks every IELTS source file and runs the regression suite.
-- `test/ielts-vietnamese-ui.test.mjs` verifies all 31 days are localized and English exam prompts remain unchanged.
-- `npm run deploy` cannot reach Wrangler unless tests and build-time validation pass.
-
-Curriculum JSON, public styles, and card artwork remain in `project-data/ielts/` because they are copied directly as public project data/assets.
+The build joins the three core files into `dist/project-data/ielts/ielts-core-bundle.js` and copies `card.js` to the same public directory.

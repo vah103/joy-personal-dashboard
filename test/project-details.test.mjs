@@ -42,14 +42,10 @@ test("TurtleBot project links to the selected Google Docs tabs", () => {
   assert.ok(projectDetails.includes("tab=t.7feamk65cnlv"));
 });
 
-test("IELTS project contains all four requested sections", () => {
-  assert.ok(projectDetails.includes('["writing", "Writing"]'));
-  assert.ok(projectDetails.includes('["reading", "Reading"]'));
-  assert.ok(projectDetails.includes('["listening", "Listening"]'));
-  assert.ok(
-    projectDetails.includes('["flashcards", "Flashcards"]'),
-  );
-  assert.ok(projectDetails.includes("No study sessions yet"));
+test("legacy IELTS notebook is no longer handled by generic project details", () => {
+  assert.ok(!projectDetails.includes('["writing", "Writing"]'));
+  assert.ok(!projectDetails.includes("IELTS_FLASHCARD_URL"));
+  assert.ok(!projectDetails.includes("No study sessions yet"));
 });
 
 test("project cards open details without interfering with controls", () => {

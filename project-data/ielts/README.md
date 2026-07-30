@@ -1,16 +1,7 @@
-# IELTS public data and assets
+# IELTS public program and styles
 
-This directory contains files that are copied directly to the public Cloudflare asset tree:
+- `program-2026.json` — Band 7 roadmap, August baseline, four weekly outcomes, twelve rhythms and guided task blueprints.
+- `ielts-card.css` — minimal dashboard card.
+- `ielts-core.css` — Now, Course, Journey, Progress and task-drawer interface.
 
-- `august-2026.json` — monthly plan metadata, rules, allocation, and weekly outcomes.
-- `august-days-*.json` — the 31-day task curriculum.
-- `ielts-card-background.webp` — dashboard card artwork.
-- `ielts-*.css` — public card, coach, baseline, review, and rewrite styles.
-
-Frontend JavaScript source does **not** live here. It is maintained in:
-
-```text
-src/features/ielts/
-```
-
-During `npm run build`, the IELTS source is compiled and copied back to stable public URLs under `/project-data/ielts/` inside `dist/`. Generated JavaScript files are intentionally not committed here.
+Frontend JavaScript lives in `src/features/ielts/` and is generated into this public path only during the build.

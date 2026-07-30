@@ -4,41 +4,70 @@ import { readFile } from "node:fs/promises";
 
 const root = new URL("../", import.meta.url);
 
-async function readJson(path) {
-  return JSON.parse(await readFile(new URL(path, root), "utf8"));
+async function program() {
+  return JSON.parse(await readFile(new URL("project-data/ielts/program-2026.json", root), "utf8"));
 }
 
-test("IELTS August curriculum covers every day with valid missions", async () => {
-  const plan = await readJson("project-data/ielts/august-2026.json");
-  const ranges = ["01-09", "10-16", "17-23", "24-31"];
-  const groups = await Promise.all(ranges.map((range) => (
-    readJson(`project-data/ielts/august-days-${range}.json`)
-  )));
-  const days = groups.flat();
+test("IELTS program keeps August inside the Band 7 journey to December", async () => {
+  const plan = await program();
 
-  assert.equal(plan.planId, "ielts-august-2026");
-  assert.equal(plan.targetBand, 7);
-  assert.equal(days.length, 31);
-  assert.equal(new Set(days.map((day) => day.date)).size, 31);
-  assert.equal(days[0].date, "2026-08-01");
-  assert.equal(days.at(-1).date, "2026-08-31");
-  assert.ok(days.every((day) => Array.isArray(day.tasks) && day.tasks.length >= 3));
-  assert.ok(days.every((day) => day.tasks.every((task) => task.length === 7)));
-  assert.ok(days.every((day) => day.tasks.some((task) => task[1] === "speaking")));
+  assert.equal(plan.programId, "ielts-band-7-december-2026");
+  assert.deepEqual(plan.target, {
+    overall: 7,
+    minimumSkill: 6.5,
+    date: "2026-12-31",
+  });
+  assert.deepEqual(
+    plan.phases.map((phase) => phase.month),
+    ["August", "September", "October", "November", "December"],
+  );
+  assert.equal(plan.phases[0].title, "Foundation");
+  assert.equal(plan.phases.at(-1).title, "Peak & Test");
 });
 
-test("IELTS August allocation and strict rules match the agreed plan", async () => {
-  const plan = await readJson("project-data/ielts/august-2026.json");
+test("August contains four weeks, twelve six-hour rhythms and the external course", async () => {
+  const plan = await program();
+  const weeks = plan.august.weeks;
+  const rhythms = weeks.flatMap((week) => week.rhythms);
 
-  assert.deepEqual(plan.allocation, {
-    writing: 55,
-    speaking: 25,
-    reading: 10,
-    listening: 10,
+  assert.equal(weeks.length, 4);
+  assert.equal(rhythms.length, 12);
+  assert.equal(plan.august.weeklyHours, 18);
+  assert.equal(plan.august.rhythmHours, 6);
+  rhythms.forEach((rhythm) => {
+    assert.equal(
+      rhythm.tasks.reduce((sum, task) => sum + task.minutes, 0),
+      360,
+      `${rhythm.id} should contain six hours`,
+    );
   });
-  assert.equal(plan.strictMode.enabledByDefault, true);
-  assert.equal(plan.strictMode.speakingMinimumDaysPerWeek, 5);
-  assert.equal(plan.strictMode.readingSessionsPerWeek, 2);
-  assert.equal(plan.strictMode.listeningSessionsPerWeek, 2);
-  assert.equal(plan.strictMode.requiresEvidence, true);
+  assert.deepEqual(
+    plan.course.schedule.map((item) => item.focus),
+    ["Writing Task 1", "Writing Task 2"],
+  );
+  assert.ok(rhythms.flatMap((rhythm) => rhythm.tasks).some((task) => task.kind === "course"));
+});
+
+test("every self-study task is actionable and every baseline skill is covered", async () => {
+  const plan = await program();
+  const tasks = [
+    ...plan.prelaunch,
+    ...plan.baseline.tasks,
+    ...plan.august.weeks.flatMap((week) => week.rhythms.flatMap((rhythm) => rhythm.tasks)),
+  ];
+  const baselineSkills = new Set(plan.baseline.tasks.map((task) => task.skill));
+
+  assert.deepEqual(
+    [...baselineSkills].sort(),
+    ["listening", "reading", "speaking", "writing"],
+  );
+  tasks.forEach((task) => {
+    assert.ok(task.id);
+    assert.ok(task.title);
+    assert.ok(task.objective);
+    assert.ok(task.minutes > 0);
+    assert.ok(Array.isArray(task.steps) && task.steps.length > 0);
+    assert.ok(task.output);
+    assert.ok(Array.isArray(task.doneWhen) && task.doneWhen.length > 0);
+  });
 });

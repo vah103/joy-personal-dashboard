@@ -5,15 +5,6 @@
   const TURTLEBOT_LOG_URL =
     "https://docs.google.com/document/d/16tNFhp4qvS8rlGTzL_8DQ_3fGJJoasrL1hJAQ16xPkk/edit?tab=t.7feamk65cnlv";
 
-  const IELTS_WRITING_URL =
-    "https://docs.google.com/document/d/18KxStmQagYYJUbySCnUzgvyWPI5IaQXVN7y7B3HPK_s/edit?tab=t.iqpe5zo2h89o";
-
-  const IELTS_DOCUMENT_URL =
-    "https://docs.google.com/document/d/18KxStmQagYYJUbySCnUzgvyWPI5IaQXVN7y7B3HPK_s/edit";
-
-  const IELTS_FLASHCARD_URL =
-    "https://docs.google.com/spreadsheets/d/1rHfC8oz3nwMrpj38Kv7lLAARHpcf81KwU6HrKRkyM-4/edit";
-
   const PROJECTS = {
     turtlebot4: {
       title: "TurtleBot 4",
@@ -96,19 +87,6 @@ ros2 service call /bot1/lifecycle_manager_navigation/manage_nodes \
         },
       ],
     },
-
-    ielts: {
-      title: "IELTS",
-      subtitle: "Writing and skills notebook",
-      status: "Current focus · Writing Task 1",
-      next: "Continue the next Writing topic and start the Reading notebook.",
-      tabs: [
-        ["writing", "Writing"],
-        ["reading", "Reading"],
-        ["listening", "Listening"],
-        ["flashcards", "Flashcards"],
-      ],
-    },
   };
 
   let activeProjectKey = "";
@@ -120,10 +98,6 @@ ros2 service call /bot1/lifecycle_manager_navigation/manage_nodes \
 
     if (name.includes("turtlebot") || name.includes("turtle bot")) {
       return "turtlebot4";
-    }
-
-    if (name.includes("ielts")) {
-      return "ielts";
     }
 
     return "";
@@ -413,141 +387,6 @@ ros2 service call /bot1/lifecycle_manager_navigation/manage_nodes \
     `;
   }
 
-  function renderIeltsWriting() {
-    return `
-      <section class="project-detail-section">
-        <div class="project-detail-section-heading">
-          <div>
-            <p class="project-detail-label">Current notebook</p>
-            <h3>Writing</h3>
-          </div>
-          ${externalLink(IELTS_WRITING_URL, "Open Writing notebook")}
-        </div>
-
-        <div class="ielts-summary-grid">
-          <article class="ielts-focus-card">
-            <small>Task 1 · Current topic</small>
-            <h3>Time Changing</h3>
-
-            <div class="ielts-metrics">
-              <span><strong>4</strong> study sessions</span>
-              <span><strong>2</strong> exercises completed</span>
-            </div>
-
-            <p>
-              Overseas visitors and Tourist enquiries have both been
-              developed from basic sentences into complete body
-              paragraphs.
-            </p>
-
-            <div class="skill-tags">
-              <span>Fold changes</span>
-              <span>Peak and low</span>
-              <span>Overtaking</span>
-              <span>Ranking</span>
-              <span>before + V-ing</span>
-              <span>after which</span>
-            </div>
-          </article>
-
-          <article class="notebook-card">
-            <small>Writing Task 1</small>
-            <h3>Notebook connected</h3>
-            <p>
-              Sessions are organised chronologically inside each topic,
-              including basic sentences, upgraded versions and notes
-              to remember.
-            </p>
-            ${externalLink(IELTS_WRITING_URL, "View Task 1 notes", "notebook-link")}
-          </article>
-
-          <article class="notebook-card pending">
-            <small>Writing Task 2</small>
-            <h3>Notebook reserved</h3>
-            <p>
-              The Task 2 section is kept in the project layout and can
-              be connected to its main notebook in the next data phase.
-            </p>
-            ${externalLink(IELTS_DOCUMENT_URL, "Open IELTS document", "notebook-link")}
-          </article>
-        </div>
-      </section>
-    `;
-  }
-
-  function notebookTemplate(skill, fields) {
-    return `
-      <section class="project-detail-section">
-        <div class="project-detail-section-heading">
-          <div>
-            <p class="project-detail-label">Study notebook</p>
-            <h3>${escapeHtml(skill)}</h3>
-          </div>
-        </div>
-
-        <article class="empty-notebook">
-          <div class="empty-notebook-icon" aria-hidden="true">＋</div>
-          <h3>No study sessions yet</h3>
-          <p>
-            This notebook is already part of the IELTS project, so its
-            layout will not need to be redesigned when the first lesson
-            is added.
-          </p>
-
-          <div class="notebook-fields">
-            ${fields.map((field) => `<span>${escapeHtml(field)}</span>`).join("")}
-          </div>
-
-          <small>
-            Saving and editing entries will be connected to Joy's cloud
-            database in the next data phase.
-          </small>
-        </article>
-      </section>
-    `;
-  }
-
-  function renderIeltsFlashcards() {
-    return `
-      <section class="project-detail-section">
-        <div class="project-detail-section-heading">
-          <div>
-            <p class="project-detail-label">GPT Vocab source</p>
-            <h3>IELTS Flashcards</h3>
-          </div>
-          ${externalLink(IELTS_FLASHCARD_URL, "Open vocabulary sheet")}
-        </div>
-
-        <div class="flashcard-preview">
-          <div class="flashcard-preview-card">
-            <small>Vocabulary preview</small>
-            <h3>humid</h3>
-            <p class="flashcard-ipa">/ˈhjuː.mɪd/</p>
-            <p>Ẩm, có độ ẩm cao</p>
-            <blockquote>
-              It's very humid today, so I feel uncomfortable.
-            </blockquote>
-          </div>
-
-          <div class="flashcard-coming">
-            <p class="project-detail-label">Next data phase</p>
-            <h3>Study progress and spaced review</h3>
-            <p>
-              Joy will read cards from the GPT Vocab sheet and store
-              Again, Hard and Know progress separately.
-            </p>
-
-            <div class="flashcard-actions-preview" aria-hidden="true">
-              <span>Again</span>
-              <span>Hard</span>
-              <span>Know</span>
-            </div>
-          </div>
-        </div>
-      </section>
-    `;
-  }
-
   function renderContent() {
     const ui = elements();
 
@@ -562,33 +401,7 @@ ros2 service call /bot1/lifecycle_manager_navigation/manage_nodes \
       return;
     }
 
-    if (activeTab === "reading") {
-      ui.content.innerHTML = notebookTemplate("Reading", [
-        "Date",
-        "Test / passage",
-        "Score",
-        "Time spent",
-        "Question types",
-        "Mistakes",
-        "New vocabulary",
-        "Next practice",
-      ]);
-    } else if (activeTab === "listening") {
-      ui.content.innerHTML = notebookTemplate("Listening", [
-        "Date",
-        "Test / section",
-        "Score",
-        "Mistake type",
-        "Words not recognised",
-        "Pronunciation issue",
-        "New vocabulary",
-        "Next exercise",
-      ]);
-    } else if (activeTab === "flashcards") {
-      ui.content.innerHTML = renderIeltsFlashcards();
-    } else {
-      ui.content.innerHTML = renderIeltsWriting();
-    }
+    ui.content.innerHTML = "";
   }
 
   function renderProject() {

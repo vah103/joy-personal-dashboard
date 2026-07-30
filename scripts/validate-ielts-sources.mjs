@@ -8,17 +8,6 @@ const bundledSources = [
   "core-model.js",
   "core-ui.js",
   "core-actions.js",
-  "core-diagnostic.js",
-  "core-writing-review.js",
-  "core-writing-rewrite.js",
-  "i18n-vi-base.js",
-  "i18n-vi-days-01-09.js",
-  "i18n-vi-days-10-16.js",
-  "i18n-vi-days-17-23.js",
-  "i18n-vi-days-24-31.js",
-  "i18n-vi-plan-runtime.js",
-  "i18n-vi-ui-text.js",
-  "i18n-vi-hooks.js",
 ];
 
 const standaloneSources = ["card.js"];
@@ -44,4 +33,4 @@ try {
   throw error;
 }
 
-console.log("IELTS frontend sources validated");
+console.log("IELTS Journey frontend sources validated");
