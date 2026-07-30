@@ -47,6 +47,20 @@ test("shared shopping member table provides fullscreen capture and landscape loc
   assert.match(styles, /\.p1008-shopping-fullscreen-actions/);
 });
 
+test("shared shopping fullscreen spreads variable item columns and six member rows across the viewport", () => {
+  assert.match(source, /function configureCaptureGrid/);
+  assert.match(source, /columnCount = Math\.max\(2/);
+  assert.match(source, /repeat\(\$\{itemCount\}, minmax\(0, 1fr\)\)/);
+  assert.match(source, /--p1008-shopping-capture-columns/);
+  assert.match(source, /columnCount > 7 \? columnCount \* 96 : 0/);
+  assert.match(styles, /width: max\(100%, var\(--p1008-shopping-capture-min-width, 0px\)\) !important/);
+  assert.match(styles, /display: grid !important/);
+  assert.match(styles, /grid-template-rows: minmax\(40px, \.72fr\) minmax\(0, 6fr\)/);
+  assert.match(styles, /grid-template-rows: repeat\(6, minmax\(0, 1fr\)\)/);
+  assert.match(styles, /grid-template-columns: var\(/);
+  assert.match(styles, /min-width: 0 !important/);
+});
+
 test("canonical dashboard loads compact shopping assets after the base shopping table assets", () => {
   const tablesCss = "finance-p1008-shopping-tables-v1.css?v=joy-finance-p1008-shopping-tables-v3";
   const compactCss = "finance-p1008-shopping-compact-v1.css?v=joy-finance-p1008-shopping-compact-v1";

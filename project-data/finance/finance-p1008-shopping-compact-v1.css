@@ -181,8 +181,12 @@ body.p1008-shopping-capture-active {
 }
 
 .p1008-shopping-people-card.is-shopping-capture-mode > header {
-  min-height: 46px !important;
-  padding: 6px 10px !important;
+  min-height: 58px !important;
+  padding:
+    max(8px, env(safe-area-inset-top))
+    max(14px, env(safe-area-inset-right))
+    8px
+    max(14px, env(safe-area-inset-left)) !important;
   flex: 0 0 auto;
   background: #f7f5ef;
 }
@@ -190,11 +194,22 @@ body.p1008-shopping-capture-active {
 .p1008-shopping-people-card.is-shopping-capture-mode h3 {
   margin: 0;
   color: #314a51;
-  font-size: 16px !important;
+  font-size: clamp(17px, 1.8vw, 28px) !important;
+}
+
+.p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-fullscreen-actions > span {
+  font-size: clamp(9px, 1vw, 14px);
 }
 
 .p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-wrap {
+  min-width: 0;
   min-height: 0;
+  padding:
+    0
+    max(10px, env(safe-area-inset-right))
+    max(8px, env(safe-area-inset-bottom))
+    max(10px, env(safe-area-inset-left));
+  display: flex;
   flex: 1 1 auto;
   overflow: auto !important;
   overscroll-behavior: contain;
@@ -202,53 +217,125 @@ body.p1008-shopping-capture-active {
 }
 
 .p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table {
-  width: max-content !important;
+  width: max(100%, var(--p1008-shopping-capture-min-width, 0px)) !important;
+  height: 100% !important;
   min-width: 100% !important;
-  table-layout: auto !important;
-  font-size: 10.5px;
+  min-height: 0;
+  display: grid !important;
+  grid-template-rows: minmax(40px, .72fr) minmax(0, 6fr);
+  table-layout: fixed !important;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: clamp(11px, 1.25vw, 18px);
+}
+
+.p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table thead,
+.p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table tbody {
+  min-width: 0;
+  min-height: 0;
+}
+
+.p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table thead {
+  display: grid;
+}
+
+.p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table tbody {
+  display: grid;
+  grid-template-rows: repeat(6, minmax(0, 1fr));
+}
+
+.p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table thead tr,
+.p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table tbody tr {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: var(
+    --p1008-shopping-capture-columns,
+    minmax(0, 1.1fr) minmax(0, 1.15fr)
+  );
 }
 
 .p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table th,
 .p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table td {
-  min-width: 104px;
-  padding: 7px 8px !important;
+  position: static !important;
+  top: auto !important;
+  left: auto !important;
+  z-index: auto !important;
+  width: auto !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  padding: clamp(7px, 1vw, 16px) !important;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(58, 77, 82, .11);
+  background: transparent;
   line-height: 1.2;
+  font-size: inherit;
+  text-align: right;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table th:first-child {
-  position: sticky;
-  left: 0;
-  z-index: 3;
-  min-width: 112px;
-  background: #f7f5ef;
+.p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table thead th {
+  width: 100% !important;
+  justify-self: stretch;
+  justify-content: center;
+  box-sizing: border-box;
+  font-size: clamp(8.5px, .88vw, 13px);
+  line-height: 1.22;
+  text-align: center;
+  white-space: normal;
 }
 
-.p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  font-size: 9px;
-  white-space: normal;
-  background: #f7f5ef;
+.p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table th:first-child,
+.p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table td:first-child {
+  justify-content: flex-start;
+  text-align: left;
 }
 
 .p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table thead th:first-child {
-  z-index: 4;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table tbody th strong,
+.p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table tbody td strong {
+  font-size: clamp(11px, 1.3vw, 18px);
 }
 
 .p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table tbody th small {
   display: none;
 }
 
+.p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table tbody tr.is-vanh > * {
+  background: rgba(67, 111, 116, .075);
+}
+
+.p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+@media (orientation: portrait) {
+  .p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table {
+    width: max(820px, var(--p1008-shopping-capture-min-width, 0px)) !important;
+    min-width: 820px !important;
+  }
+}
+
 @media (orientation: landscape) and (max-height: 520px) {
   .p1008-shopping-people-card.is-shopping-capture-mode > header {
-    min-height: 38px !important;
-    padding: 4px 8px !important;
+    min-height: 44px !important;
+    padding:
+      max(4px, env(safe-area-inset-top))
+      max(10px, env(safe-area-inset-right))
+      4px
+      max(10px, env(safe-area-inset-left)) !important;
   }
 
   .p1008-shopping-people-card.is-shopping-capture-mode h3 {
-    font-size: 14px !important;
+    font-size: clamp(14px, 1.65vw, 20px) !important;
   }
 
   .p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-fullscreen-actions > span {
@@ -261,10 +348,14 @@ body.p1008-shopping-capture-active {
     font-size: 9px;
   }
 
+  .p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table {
+    grid-template-rows: minmax(32px, .65fr) minmax(0, 6fr);
+    font-size: clamp(9.5px, 1.15vw, 14px);
+  }
+
   .p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table th,
   .p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table td {
-    min-width: 96px;
-    padding: 5px 6px !important;
+    padding: clamp(4px, .75vw, 9px) !important;
   }
 }
 
