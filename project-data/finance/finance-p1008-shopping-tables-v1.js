@@ -8,6 +8,7 @@
 
   let refineQueued = false;
   let refining = false;
+  let addPanelOpen = false;
 
   function escapeHtml(value) {
     return String(value ?? "")
@@ -68,96 +69,10 @@
     return people;
   }
 
-  function ensureSummaryStyle() {
-    if (document.querySelector("#p1008-shopping-summary-match-style")) return;
-    const style = document.createElement("style");
-    style.id = "p1008-shopping-summary-match-style";
-    style.textContent = `
-      .p1008-shopping-two-table-section .p1008-shopping-summary.is-service-style {
-        margin-top: 14px;
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 12px;
-      }
-      .p1008-shopping-two-table-section .p1008-shopping-summary.is-service-style article {
-        min-width: 0;
-        padding: 18px 20px;
-        border: 1px solid rgba(58, 77, 82, .11);
-        border-radius: 17px;
-        background: rgba(255, 255, 255, .52);
-      }
-      .p1008-shopping-two-table-section .p1008-shopping-summary.is-service-style article.is-primary {
-        background: linear-gradient(135deg, #426873, #607e79);
-        box-shadow: 0 10px 24px rgba(54, 83, 90, .14);
-      }
-      .p1008-shopping-two-table-section .p1008-shopping-summary.is-service-style span,
-      .p1008-shopping-two-table-section .p1008-shopping-summary.is-service-style strong,
-      .p1008-shopping-two-table-section .p1008-shopping-summary.is-service-style small {
-        display: block;
-      }
-      .p1008-shopping-two-table-section .p1008-shopping-summary.is-service-style span {
-        color: #738286;
-        font-size: 11px;
-        font-weight: 800;
-      }
-      .p1008-shopping-two-table-section .p1008-shopping-summary.is-service-style strong {
-        margin-top: 8px;
-        color: #304a51;
-        font: 700 29px/1.08 "OpenAI Sans", "Instrument Sans", "Segoe UI", sans-serif;
-      }
-      .p1008-shopping-two-table-section .p1008-shopping-summary.is-service-style small {
-        margin-top: 7px;
-        overflow: hidden;
-        color: #849093;
-        font-size: 9px;
-        line-height: 1.35;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .p1008-shopping-two-table-section .p1008-shopping-summary.is-service-style .is-primary span,
-      .p1008-shopping-two-table-section .p1008-shopping-summary.is-service-style .is-primary small {
-        color: rgba(255, 255, 255, .76);
-      }
-      .p1008-shopping-two-table-section .p1008-shopping-summary.is-service-style .is-primary strong {
-        color: #fff;
-      }
-      @media (max-width: 560px) {
-        .p1008-shopping-two-table-section .p1008-shopping-summary.is-service-style {
-          grid-template-columns: 1fr;
-        }
-      }
-    `;
-    document.head.append(style);
-  }
-
-  function updateShoppingSummary(summary, items) {
-    const people = calculateMatrix(items);
-    const total = items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-    summary.classList.add("is-service-style");
-    summary.setAttribute("aria-label", "Tóm tắt tiền mua đồ chung");
-    summary.innerHTML = `
-      <article>
-        <span>Tổng mua chung</span>
-        <strong>${formatVnd(total)}</strong>
-        <small>${items.length} món trong tháng</small>
-      </article>
-      <article class="is-primary">
-        <span>Phần của Vanh</span>
-        <strong>${formatVnd(people.Vanh.total)}</strong>
-        <small>Tự tính theo bảng chia</small>
-      </article>
-      <article>
-        <span>Thành viên</span>
-        <strong>6 người</strong>
-        <small>A Mạnh · A Cường · Vanh · Dương · Hưng · Trung</small>
-      </article>
-    `;
-  }
-
   function buildPeopleTable(items) {
     const people = calculateMatrix(items);
     const table = document.createElement("table");
-    table.className = "p1008-shopping-people-table";
+    table.className = "p1008-people-table p1008-shopping-people-table";
     table.innerHTML = `
       <thead>
         <tr>
@@ -186,23 +101,107 @@
     const wrap = document.createElement("div");
     wrap.className = "p1008-table-wrap p1008-shopping-table-wrap";
     wrap.innerHTML = `
-      <table class="p1008-shopping-table">
-        <thead><tr><th>Món mua</th><th>Tiền</th><th>Chia cho</th><th>Mỗi người</th><th></th></tr></thead>
+      <table class="p1008-shopping-table p1008-services-table p1008-shopping-service-table">
+        <thead><tr><th>Hạng mục</th><th>Tiền</th><th>Chia cho</th><th>Mỗi người</th></tr></thead>
         <tbody></tbody>
-        <tfoot><tr><th>Tổng</th><td>0 ₫</td><td></td><td></td><td></td></tr></tfoot>
+        <tfoot><tr><th>Tổng</th><td>0 ₫</td><td></td><td></td></tr></tfoot>
       </table>
     `;
     return wrap;
   }
 
-  function makeCardHeader(title, meta) {
+  function makeCardHeader(title, trailing) {
     const header = document.createElement("header");
     const heading = document.createElement("h3");
-    const label = document.createElement("span");
     heading.textContent = title;
-    label.textContent = meta;
-    header.append(heading, label);
+    header.append(heading);
+    if (trailing) header.append(trailing);
     return header;
+  }
+
+  function prepareRule(rule) {
+    rule.className = "p1008-rule-note is-standard p1008-shopping-rule-note";
+    rule.innerHTML = `
+      <strong>Quy tắc mua chung</strong>
+      <span>Chia 6: đủ mọi người · Chia 5: không Hưng · Chia 4: không Hưng và A Mạnh. Khoản chốt ngày 15/8 được nhập trong Tháng 8/2026.</span>
+    `;
+  }
+
+  function prepareItemsTable(tableWrap) {
+    const table = tableWrap.querySelector("table");
+    if (!table) return tableWrap;
+
+    table.classList.add("p1008-services-table", "p1008-shopping-service-table");
+    table.classList.remove("p1008-shopping-people-table");
+
+    const headRow = table.tHead?.rows?.[0];
+    if (headRow) {
+      while (headRow.cells.length > 4) headRow.deleteCell(-1);
+      while (headRow.cells.length < 4) headRow.append(document.createElement("th"));
+      ["Hạng mục", "Tiền", "Chia cho", "Mỗi người"].forEach((label, index) => {
+        headRow.cells[index].textContent = label;
+      });
+    }
+
+    table.querySelectorAll("tbody tr").forEach((row) => {
+      const deleteCell = row.cells[4];
+      const deleteButton = deleteCell?.querySelector("[data-shopping-delete]") || null;
+      deleteCell?.remove();
+
+      let nameCell = row.cells[0];
+      if (nameCell && nameCell.tagName !== "TH") {
+        const replacement = document.createElement("th");
+        while (nameCell.firstChild) replacement.append(nameCell.firstChild);
+        nameCell.replaceWith(replacement);
+        nameCell = replacement;
+      }
+
+      if (nameCell) {
+        const nameInput = nameCell.querySelector("[data-shopping-name]");
+        const control = document.createElement("div");
+        control.className = "p1008-shopping-item-name-control";
+        if (nameInput) control.append(nameInput);
+        if (deleteButton) control.append(deleteButton);
+        nameCell.replaceChildren(control);
+      }
+
+      row.cells[1]?.querySelector(".p1008-shopping-amount-field")?.classList.add("p1008-amount-field");
+      row.cells[2]?.classList.add("p1008-shopping-share-select-cell");
+      row.cells[3]?.classList.add("p1008-per-person");
+    });
+
+    const footRow = table.tFoot?.rows?.[0];
+    if (footRow) {
+      while (footRow.cells.length > 4) footRow.deleteCell(-1);
+      while (footRow.cells.length < 4) footRow.append(document.createElement("td"));
+      footRow.cells[0].textContent = "Tổng";
+    }
+
+    return tableWrap;
+  }
+
+  function makeItemsHeader(originalHeader, form) {
+    const actions = document.createElement("div");
+    actions.className = "p1008-shopping-card-header-actions";
+
+    const syncBadge = originalHeader.querySelector(".p1008-shopping-sync");
+    if (syncBadge) actions.append(syncBadge);
+
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "p1008-shopping-add-toggle";
+    toggle.setAttribute("aria-expanded", String(addPanelOpen));
+    toggle.textContent = addPanelOpen ? "Đóng" : "+ Thêm món";
+    toggle.addEventListener("click", () => {
+      addPanelOpen = !addPanelOpen;
+      form.hidden = !addPanelOpen;
+      toggle.setAttribute("aria-expanded", String(addPanelOpen));
+      toggle.textContent = addPanelOpen ? "Đóng" : "+ Thêm món";
+      if (addPanelOpen) form.querySelector("[data-shopping-new-name]")?.focus();
+    });
+    actions.append(toggle);
+
+    return makeCardHeader("Tiền mua đồ chung", actions);
   }
 
   function refineShoppingTables() {
@@ -221,7 +220,7 @@
     const tableWrap = body?.querySelector(":scope > .p1008-shopping-table-wrap");
     const emptyState = body?.querySelector(":scope > .p1008-shopping-empty");
     const oldPeople = body?.querySelector(":scope > .p1008-shopping-people");
-    if (!originalHeader || !body || !rule || !summary || !form) return;
+    if (!originalHeader || !body || !rule || !form) return;
 
     refining = true;
     try {
@@ -229,40 +228,41 @@
       const monthLabel = originalHeader.querySelector(".p1008-shopping-header-meta > span")?.textContent?.trim() || monthKey;
       const items = readMonthItems(monthKey);
 
-      ensureSummaryStyle();
-      updateShoppingSummary(summary, items);
-
-      host.classList.remove("p1008-card");
-      host.classList.add("p1008-shopping-two-table-section");
-      originalHeader.classList.add("p1008-shopping-section-header");
-      originalHeader.querySelector("header p")?.remove();
-
-      const layout = document.createElement("div");
-      layout.className = "p1008-shopping-table-layout";
+      prepareRule(rule);
+      form.classList.add("p1008-shopping-add-panel");
+      form.hidden = !addPanelOpen;
 
       const itemsCard = document.createElement("section");
-      itemsCard.className = "p1008-card p1008-shopping-items-card";
-      itemsCard.append(makeCardHeader("Tiền mua đồ chung", "Nhập tay từng món"));
+      itemsCard.className = "p1008-card p1008-services-card p1008-shopping-items-card";
+      itemsCard.append(makeItemsHeader(originalHeader, form));
 
       const itemsBody = document.createElement("div");
       itemsBody.className = "p1008-shopping-items-body";
       itemsBody.append(form);
-      itemsBody.append(tableWrap || buildEmptyItemsTable());
-      emptyState?.remove();
+      itemsBody.append(prepareItemsTable(tableWrap || buildEmptyItemsTable()));
       itemsCard.append(itemsBody);
 
       const peopleCard = document.createElement("section");
-      peopleCard.className = "p1008-card p1008-shopping-people-card";
-      peopleCard.append(makeCardHeader("Chia tiền mua đồ chung", monthLabel));
+      peopleCard.className = "p1008-card p1008-people-card p1008-shopping-people-card";
+      const month = document.createElement("span");
+      month.textContent = monthLabel;
+      peopleCard.append(makeCardHeader("Chia tiền mua đồ chung", month));
 
       const peopleWrap = document.createElement("div");
       peopleWrap.className = "p1008-table-wrap p1008-shopping-people-wrap";
       peopleWrap.append(buildPeopleTable(items));
       peopleCard.append(peopleWrap);
 
+      const layout = document.createElement("div");
+      layout.className = "p1008-shopping-table-layout";
       layout.append(itemsCard, peopleCard);
+
+      summary?.remove();
+      emptyState?.remove();
       oldPeople?.remove();
-      body.replaceChildren(rule, summary, layout);
+      body.replaceChildren(rule, layout);
+      host.className = "p1008-shopping-card p1008-shopping-two-table-section";
+      host.replaceChildren(body);
     } finally {
       refining = false;
     }
@@ -281,7 +281,9 @@
   document.addEventListener("joy:p1008-shopping-refresh", () => scheduleRefine());
 
   workspace.addEventListener("submit", (event) => {
-    if (event.target.matches("[data-shopping-form]")) scheduleRefine();
+    if (!event.target.matches("[data-shopping-form]")) return;
+    addPanelOpen = false;
+    scheduleRefine();
   });
 
   workspace.addEventListener("focusout", (event) => {
