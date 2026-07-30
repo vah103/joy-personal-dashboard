@@ -96,6 +96,19 @@
     return table;
   }
 
+  function buildEmptyItemsTable() {
+    const wrap = document.createElement("div");
+    wrap.className = "p1008-table-wrap p1008-shopping-table-wrap";
+    wrap.innerHTML = `
+      <table class="p1008-shopping-table">
+        <thead><tr><th>Món mua</th><th>Tiền</th><th>Chia cho</th><th>Mỗi người</th><th></th></tr></thead>
+        <tbody></tbody>
+        <tfoot><tr><th>Tổng</th><td>0 ₫</td><td></td><td></td><td></td></tr></tfoot>
+      </table>
+    `;
+    return wrap;
+  }
+
   function makeCardHeader(title, meta) {
     const header = document.createElement("header");
     const heading = document.createElement("h3");
@@ -145,8 +158,8 @@
       const itemsBody = document.createElement("div");
       itemsBody.className = "p1008-shopping-items-body";
       itemsBody.append(form);
-      if (tableWrap) itemsBody.append(tableWrap);
-      else if (emptyState) itemsBody.append(emptyState);
+      itemsBody.append(tableWrap || buildEmptyItemsTable());
+      emptyState?.remove();
       itemsCard.append(itemsBody);
 
       const peopleCard = document.createElement("section");
