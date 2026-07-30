@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   test-build:
-    name: Test and build
+    name: Test, audit and build
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -31,6 +31,12 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --no-audit
+
+      - name: Audit production dependencies
+        run: npm run audit:prod
+
+      - name: Audit full dependency tree for critical vulnerabilities
+        run: npm run audit:all
 
       - name: Run regression tests
         run: npm test
