@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 const browserSource = fs.readFileSync(new URL("../todo-visibility.js", import.meta.url), "utf8");
-const dashboardSource = fs.readFileSync(new URL("../src/pages/dashboard/app.js", import.meta.url), "utf8");
+const dashboardSource = fs.readFileSync(new URL("../app.js", import.meta.url), "utf8");
 const routerSource = fs.readFileSync(new URL("../worker/router.js", import.meta.url), "utf8");
 const deleteSource = fs.readFileSync(new URL("../worker/task-delete.js", import.meta.url), "utf8");
 const syncSource = fs.readFileSync(new URL("../worker/task-sync.js", import.meta.url), "utf8");
