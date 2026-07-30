@@ -44,12 +44,12 @@ test("natural reminder preview understands Vietnamese half-hour phrases", async 
   assert.ok(parsed.dueAt <= after + 210 * 60_000);
 });
 
-test("natural reminder build cache-busts the updated preview parser", async () => {
-  const [packageJson, cacheBust] = await Promise.all([
+test("natural reminder parser version is owned by the canonical build", async () => {
+  const [packageJson, build] = await Promise.all([
     readFile(new URL("package.json", root), "utf8"),
-    readFile(new URL("scripts/cache-bust-task-natural-input.mjs", root), "utf8"),
+    readFile(new URL("scripts/build.mjs", root), "utf8"),
   ]);
 
-  assert.match(packageJson, /cache-bust-task-natural-input\.mjs/);
-  assert.match(cacheBust, /joy-natural-reminders-v2/);
+  assert.match(build, /task-natural-input\.js\?v=joy-natural-reminders-v2/);
+  assert.doesNotMatch(packageJson, /cache-bust-task-natural-input\.mjs/);
 });
