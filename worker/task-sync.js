@@ -1,6 +1,5 @@
 import { normalizeTaskInput } from "./todos.js";
 import { isSameOrigin, json, readJson } from "./shared/http.js";
-import { CREATE_TASK_DELETIONS_TABLE } from "./shared/schema.js";
 import { getSession } from "./shared/session.js";
 
 const TASK_IMPORT_PATH = "/api/tasks/import";
@@ -26,8 +25,6 @@ export async function handleTaskImportRequest(request, env) {
     if (!valid.length) {
       return json({ ok: true, imported: 0, skippedDeleted: 0 });
     }
-
-    await env.DB.prepare(CREATE_TASK_DELETIONS_TABLE).run();
 
     const statements = valid.map(({ task }) => env.DB.prepare(`
       INSERT INTO tasks (
