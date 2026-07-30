@@ -4,12 +4,14 @@ import { readFile } from "node:fs/promises";
 
 const source = await readFile(new URL("../project-data/finance/finance-p1008.js", import.meta.url), "utf8");
 const styles = await readFile(new URL("../project-data/finance/finance-p1008.css", import.meta.url), "utf8");
+const amountInputSource = await readFile(new URL("../project-data/finance/finance-p1008-amount-input-v1.js", import.meta.url), "utf8");
 const dashboard = await readFile(new URL("../src/pages/dashboard/index.html", import.meta.url), "utf8");
 const packageSource = await readFile(new URL("../package.json", import.meta.url), "utf8");
 const buildSource = await readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8");
 
 test("P1008 source parses and is loaded by the dashboard", () => {
   assert.doesNotThrow(() => new Function(source));
+  assert.doesNotThrow(() => new Function(amountInputSource));
   assert.match(dashboard, /project-data\/finance\/finance-p1008\.css/);
   assert.match(dashboard, /project-data\/finance\/finance-p1008\.js/);
 });
@@ -52,11 +54,14 @@ test("P1008 service table is compact and removes row notes", () => {
   assert.match(styles, /width: min\(860px, 100%\)/);
 });
 
-test("P1008 formats money with thousand separators while typing", () => {
-  assert.match(source, /addEventListener\("input", \(\) => formatMoneyInput\(input\)\)/);
-  assert.match(source, /replace\(\/\\D\/g, ""\)/);
-  assert.match(source, /input\.value = Number\.isSafeInteger\(amount\) \? formatNumber\(amount\) : ""/);
-  assert.doesNotMatch(source, /amount \* 1_000/);
+test("P1008 amount entry stays stable while typing and supports thousand shorthand", () => {
+  assert.match(amountInputSource, /\[data-p1008-service\]/);
+  assert.match(amountInputSource, /\[data-shopping-amount\]/);
+  assert.match(amountInputSource, /\[data-shopping-new-amount\]/);
+  assert.match(amountInputSource, /event\.stopImmediatePropagation\(\)/);
+  assert.match(amountInputSource, /amountCore\.parse\(text\)/);
+  assert.match(amountInputSource, /amountCore\.inputValue\(value\)/);
+  assert.match(amountInputSource, /570 = 570\.000/);
 });
 
 test("P1008 syncs local data through the signed-in account API", () => {
@@ -84,5 +89,6 @@ test("P1008 production assets are emitted directly by the canonical build", () =
   assert.match(buildSource, /finance-p1008-capture-v2\.css\?v=joy-finance-p1008-capture-v3/);
   assert.match(buildSource, /finance-p1008-shopping-v1\.css\?v=joy-finance-p1008-shopping-v1/);
   assert.match(buildSource, /finance-p1008-shopping-v1\.js\?v=joy-finance-p1008-shopping-v1/);
+  assert.match(buildSource, /finance-p1008-amount-input-v1\.js\?v=joy-finance-p1008-amount-input-v1/);
   assert.doesNotMatch(packageSource, /cache-bust-finance-p1008\.mjs/);
 });
