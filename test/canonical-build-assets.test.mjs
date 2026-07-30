@@ -29,7 +29,8 @@ test("build emits final production asset versions directly", () => {
   for (const reference of [
     "finance-demo.js?v=joy-finance-core-v9",
     "joy-finance-p1008-v3",
-    "joy-finance-p1008-refine-v5",
+    "joy-finance-p1008-refine-v6",
+    "finance-p1008-capture-v2.css?v=joy-finance-p1008-capture-v2",
     "task-english.js?v=joy-task-english-v7",
     "task-natural-input.js?v=joy-natural-reminders-v2",
     "speaking-loader.js?v=joy-speaking-loader-v1",
