@@ -61,7 +61,7 @@ await mkdir(fonts, { recursive: true });
 
 const projectHubHead = [
   '    <link rel="stylesheet" href="project-hub.css?v=turtlebot-hub-v4">\n',
-  '    <link rel="stylesheet" href="turtlebot-roadmap-font.css?v=turtlebot-roadmap-nunito-v2">\n',
+  '    <link rel="stylesheet" href="turtlebot-roadmap-font.css?v=turtlebot-inline-header-tabs-v3">\n',
   '    <link rel="stylesheet" href="turtlebot-card-art.css?v=restored-card-v6">\n',
   '    <link rel="stylesheet" href="project-data/ielts/ielts-card.css?v=ielts-journey-v5">\n',
   '    <link rel="stylesheet" href="project-data/ielts/ielts-core.css?v=ielts-journey-v4">\n',
@@ -73,6 +73,7 @@ const projectHubHead = [
   '    <link rel="stylesheet" href="room-summary.css?v=joy-room-summary-v1">\n',
   '    <link rel="stylesheet" href="sales-assistant.css?v=joy-dashboard-sales-assistant-v4">\n',
   '    <link rel="stylesheet" href="project-data/finance/finance-layout-v2.css?v=joy-finance-ledger-v4">\n',
+  '    <link rel="stylesheet" href="project-data/finance/finance-p1008-refine-v3.css?v=joy-finance-p1008-refine-v5">\n',
   '    <link rel="stylesheet" href="dashboard-openai-headings.css?v=joy-openai-headings-v1">\n',
 ].join("");
 
@@ -93,20 +94,22 @@ const projectHubScripts = [
   '    <script src="dashboard-entry.js?v=joy-entry-motion-v1" defer></script>\n',
   '    <script src="greeting-layout.js?v=joy-daily-brief-v4" defer></script>\n',
   '    <script src="daily-brief-polish.js?v=joy-daily-brief-polish-v2" defer></script>\n',
-  '    <script src="task-english.js?v=joy-task-english-v5" defer></script>\n',
+  '    <script src="task-english.js?v=joy-task-english-v7" defer></script>\n',
   '    <script src="task-reminders-events.js?v=joy-task-checkbox-v2" defer></script>\n',
   '    <script src="task-reminders.js?v=joy-tasks-v1" defer></script>\n',
-  '    <script src="task-natural-input.js?v=joy-natural-reminders-v1" defer></script>\n',
+  '    <script src="task-natural-input.js?v=joy-natural-reminders-v2" defer></script>\n',
   '    <script type="module" src="sales-assistant.js?v=joy-dashboard-sales-assistant-v4"></script>\n',
   '    <script src="project-data/finance/finance-layout-v2.js?v=joy-finance-month-layout-v4" defer></script>\n',
   '    <script src="project-data/finance/finance-dashboard-v1.js?v=joy-finance-dashboard-v3" defer></script>\n',
+  '    <script src="project-data/finance/finance-p1008-refine-v3.js?v=joy-finance-p1008-refine-v5" defer></script>\n',
 ].join("");
 
 const sourceHtml = await readFile(resolve(dashboardPage, "index.html"), "utf8");
 const cloudflareHtml = sourceHtml
   .replace(blueFaviconLink, desktopFaviconLink)
   .replace('finance-demo.css?v=joy-character-motion-v5', 'finance-demo.css?v=joy-finance-core-v4')
-  .replace('finance-demo.js?v=joy-character-motion-v4', 'finance-demo.js?v=joy-finance-core-v4')
+  .replace('finance-demo.js?v=joy-character-motion-v4', 'finance-demo.js?v=joy-finance-core-v9')
+  .replaceAll('joy-finance-p1008-v1', 'joy-finance-p1008-v3')
   .replace('<meta name="application-name" content="Joy">', '<meta name="application-name" content="Hey Joy!">')
   .replace('<title>Joy — Personal Dashboard</title>', '<title>Hey Joy! — Personal Dashboard</title>')
   .replace('aria-label="Joy overview"', 'aria-label="Hey Joy! overview"')
