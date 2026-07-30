@@ -23,25 +23,25 @@
     document.body.append(reference);
   }
 
-  function loadProgressUpdate() {
-    const existingProgress = document.querySelector('script[data-turtlebot-progress-20260730="true"]');
-    if (existingProgress) {
+  function loadCurrentState() {
+    const existingState = document.querySelector('script[data-turtlebot-current-state="true"]');
+    if (existingState) {
       loadReferencePlan();
       return;
     }
 
-    const progress = document.createElement("script");
-    progress.src = "/project-data/turtlebot4/progress-20260730.js?v=turtlebot-stage3-complete-v2";
-    progress.dataset.turtlebotProgress20260730 = "true";
-    progress.defer = true;
-    progress.addEventListener("load", loadReferencePlan, { once: true });
-    document.body.append(progress);
+    const state = document.createElement("script");
+    state.src = "/project-data/turtlebot4/project-current-state.js?v=turtlebot-current-state-v1";
+    state.dataset.turtlebotCurrentState = "true";
+    state.defer = true;
+    state.addEventListener("load", loadReferencePlan, { once: true });
+    document.body.append(state);
   }
 
   function load() {
     const existingPlan = document.querySelector('script[data-turtlebot-plan-v3="true"]');
     if (existingPlan) {
-      loadProgressUpdate();
+      loadCurrentState();
       return;
     }
 
@@ -49,7 +49,7 @@
     script.src = "/project-data/turtlebot4/project-plan-v3-ui.js?v=turtlebot-progress-20260729-v1";
     script.dataset.turtlebotPlanV3 = "true";
     script.defer = true;
-    script.addEventListener("load", loadProgressUpdate, { once: true });
+    script.addEventListener("load", loadCurrentState, { once: true });
     document.body.append(script);
   }
 
