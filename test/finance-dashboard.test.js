@@ -2,8 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const dashboardSource = await readFile(new URL("../project-data/finance/finance-dashboard-v1.js", import.meta.url), "utf8");
+const dashboardSource = await readFile(new URL("../src/features/finance/finance-dashboard.js", import.meta.url), "utf8");
 const dashboardHtml = await readFile(new URL("../src/pages/dashboard/index.html", import.meta.url), "utf8");
+const bundleSource = await readFile(new URL("../scripts/build-finance-bundle.mjs", import.meta.url), "utf8");
 
 test("Finance outer dashboard uses the money typography at 35px", () => {
   assert.match(dashboardSource, /panel-title-button\{/);
@@ -41,6 +42,8 @@ test("Finance outer labels are larger and clearer", () => {
   assert.match(dashboardSource, /font-size:clamp\(19px,1\.75vw,24px\)/);
 });
 
-test("dashboard HTML loads Finance dashboard v3", () => {
-  assert.match(dashboardHtml, /project-data\/finance\/finance-dashboard-v1\.js\?v=joy-finance-dashboard-v3/);
+test("dashboard presentation is absorbed into the Finance bundle", () => {
+  assert.match(bundleSource, /finance-dashboard\.js/);
+  assert.match(dashboardHtml, /finance-demo\.js\?v=joy-finance-core-v10/);
+  assert.doesNotMatch(dashboardHtml, /finance-dashboard-v1\.js/);
 });
