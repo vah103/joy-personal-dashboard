@@ -23,10 +23,25 @@
     document.body.append(reference);
   }
 
+  function loadProgressUpdate() {
+    const existingProgress = document.querySelector('script[data-turtlebot-progress-20260730="true"]');
+    if (existingProgress) {
+      loadReferencePlan();
+      return;
+    }
+
+    const progress = document.createElement("script");
+    progress.src = "/project-data/turtlebot4/progress-20260730.js?v=turtlebot-stage3-complete-v1";
+    progress.dataset.turtlebotProgress20260730 = "true";
+    progress.defer = true;
+    progress.addEventListener("load", loadReferencePlan, { once: true });
+    document.body.append(progress);
+  }
+
   function load() {
     const existingPlan = document.querySelector('script[data-turtlebot-plan-v3="true"]');
     if (existingPlan) {
-      loadReferencePlan();
+      loadProgressUpdate();
       return;
     }
 
@@ -34,7 +49,7 @@
     script.src = "/project-data/turtlebot4/project-plan-v3-ui.js?v=turtlebot-progress-20260729-v1";
     script.dataset.turtlebotPlanV3 = "true";
     script.defer = true;
-    script.addEventListener("load", loadReferencePlan, { once: true });
+    script.addEventListener("load", loadProgressUpdate, { once: true });
     document.body.append(script);
   }
 
