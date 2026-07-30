@@ -9,6 +9,10 @@ import {
   isFinanceLedgerRoute,
 } from "./finance-with-seed.js";
 import {
+  handleFinanceP1008Request,
+  isFinanceP1008Route,
+} from "./finance-p1008-sync.js";
+import {
   handleIeltsCoreRequest,
   isIeltsCoreRoute,
   runIeltsSchedule,
@@ -84,6 +88,9 @@ export default {
     try {
       if (isDailyBriefRoute(pathname)) {
         return handleDailyBriefRequest(request, env, ctx);
+      }
+      if (isFinanceP1008Route(pathname)) {
+        return handleFinanceP1008Request(request, env);
       }
       if (isFinanceLedgerRoute(pathname)) {
         return handleFinanceLedgerRequest(request, env);
