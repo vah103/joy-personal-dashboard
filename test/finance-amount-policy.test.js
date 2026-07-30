@@ -8,10 +8,18 @@ const policySource = await readFile(new URL("project-data/finance/finance-amount
 const injectSource = await readFile(new URL("scripts/inject-finance-v3.mjs", root), "utf8");
 const packageJson = JSON.parse(await readFile(new URL("package.json", root), "utf8"));
 
-function policyApi() {
-  const sandbox = { window: {}, Intl, Number };
+function policySandbox() {
+  const window = {
+    location: { origin: "https://app.hey-joy.workers.dev" },
+    fetch: async (input, init) => ({ input, init }),
+  };
+  const sandbox = { window, Intl, Number, URL, Request };
   vm.runInNewContext(policySource, sandbox);
-  return sandbox.window.JoyFinanceAmountPolicy;
+  return sandbox;
+}
+
+function policyApi() {
+  return policySandbox().window.JoyFinanceAmountPolicy;
 }
 
 test("Finance short inputs are interpreted once as thousands of VND", () => {
@@ -48,11 +56,30 @@ test("Edit mode converts stored VND amounts back to safe input values", () => {
   assert.equal(api.financeAmountInputValue(10_000_000), "10000000");
 });
 
+test("Finance API writes normalize shorthand even if form event ordering changes", async () => {
+  const sandbox = policySandbox();
+  const response = await sandbox.window.fetch("/api/finance/transactions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "expense", category: "meals", amount: 40 }),
+  });
+  assert.equal(JSON.parse(response.init.body).amount, 40_000);
+
+  const fullAmountResponse = await sandbox.window.fetch("/api/finance/transactions/example", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "expense", category: "meals", amount: 40_000 }),
+  });
+  assert.equal(JSON.parse(fullAmountResponse.init.body).amount, 40_000);
+});
+
 test("One capture-phase policy owns inline and modal submit paths", () => {
   assert.match(policySource, /FINANCE_FORM_SELECTOR = "#finance-entry-form,\.finance-ledger-composer"/);
   assert.match(policySource, /document\.addEventListener\("submit", handleFinanceSubmit, true\)/);
   assert.match(policySource, /input\.value = String\(amount\)/);
   assert.match(policySource, /queueMicrotask\(\(\) => restoreShortValue/);
+  assert.match(policySource, /installFinanceFetchGuard/);
+  assert.match(policySource, /FINANCE_WRITE_PATH/);
   assert.doesNotMatch(policySource, /pointerdown|requestSubmit|addEventListener\("invalid"/);
 });
 
@@ -63,8 +90,8 @@ test("Finance amount inputs have no native number-step validation", () => {
 });
 
 test("Amount policy loads before the cache-busted Finance core", () => {
-  assert.match(injectSource, /joy-finance-amount-policy-v4/);
-  assert.match(injectSource, /joy-finance-core-v7/);
+  assert.match(injectSource, /joy-finance-amount-policy-v5/);
+  assert.match(injectSource, /joy-finance-core-v8/);
   assert.match(injectSource, /amountIndex > coreIndex/);
   const build = packageJson.scripts.build;
   const coreBuildIndex = build.indexOf("scripts/build.mjs");
