@@ -12,7 +12,8 @@ const appSource = fs.readFileSync(new URL("../worker/index.js", import.meta.url)
 const routerSource = fs.readFileSync(new URL("../worker/router.js", import.meta.url), "utf8");
 
 test("finance summary uses the dedicated D1 ledger route", () => {
-  assert.ok(routerSource.includes('from "./finance-with-seed.js"'));
+  assert.ok(routerSource.includes('from "./finance-ledger.js"'));
+  assert.ok(!routerSource.includes("finance-with-seed"));
   assert.ok(routerSource.includes("isFinanceLedgerRoute(pathname)"));
   assert.ok(routerSource.includes("handleFinanceLedgerRequest(request, env)"));
   assert.ok(!appSource.includes("getFinanceSummary"));
@@ -55,4 +56,5 @@ test("validates new 2026 Sale deals and calculates commission", () => {
   assert.equal(result.value.rate, 0.4);
   assert.equal(result.value.commission, 1_200_000);
   assert.equal(monthHeading(result.value.month), "Jul 2026");
-});
+}
+);
