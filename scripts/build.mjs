@@ -76,6 +76,7 @@ const projectHubHead = [
   '    <link rel="stylesheet" href="project-data/finance/finance-p1008-refine-v3.css?v=joy-finance-p1008-refine-v7">\n',
   '    <link rel="stylesheet" href="project-data/finance/finance-p1008-capture-v2.css?v=joy-finance-p1008-capture-v3">\n',
   '    <link rel="stylesheet" href="project-data/finance/finance-p1008-shopping-v1.css?v=joy-finance-p1008-shopping-v1">\n',
+  '    <link rel="stylesheet" href="project-data/finance/finance-p1008-shopping-tables-v1.css?v=joy-finance-p1008-shopping-tables-v1">\n',
   '    <link rel="stylesheet" href="dashboard-openai-headings.css?v=joy-openai-headings-v1">\n',
 ].join("");
 
@@ -114,6 +115,7 @@ const dashboardFeatureScripts = [
   '    <script src="project-data/finance/finance-dashboard-v1.js?v=joy-finance-dashboard-v3" defer></script>\n',
   '    <script src="project-data/finance/finance-p1008-refine-v3.js?v=joy-finance-p1008-refine-v7" defer></script>\n',
   '    <script src="project-data/finance/finance-p1008-shopping-v1.js?v=joy-finance-p1008-shopping-v1" defer></script>\n',
+  '    <script src="project-data/finance/finance-p1008-shopping-tables-v1.js?v=joy-finance-p1008-shopping-tables-v1" defer></script>\n',
 ].join("");
 
 const dashboardScripts = `${languageFeatureScripts}${projectHubScripts}${dashboardFeatureScripts}`;
