@@ -44,12 +44,12 @@ test("natural reminder preview understands Vietnamese half-hour phrases", async 
   assert.ok(parsed.dueAt <= after + 210 * 60_000);
 });
 
-test("natural reminder parser version is owned by the canonical build", async () => {
-  const [packageJson, build] = await Promise.all([
+test("natural reminder parser version is owned by canonical dashboard HTML", async () => {
+  const [packageJson, dashboard] = await Promise.all([
     readFile(new URL("package.json", root), "utf8"),
-    readFile(new URL("scripts/build.mjs", root), "utf8"),
+    readFile(new URL("src/pages/dashboard/index.html", root), "utf8"),
   ]);
 
-  assert.match(build, /task-natural-input\.js\?v=joy-natural-reminders-v2/);
+  assert.match(dashboard, /task-natural-input\.js\?v=joy-natural-reminders-v2/);
   assert.doesNotMatch(packageJson, /cache-bust-task-natural-input\.mjs/);
 });

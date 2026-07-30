@@ -5,12 +5,12 @@ import { readFile } from "node:fs/promises";
 const root = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, root), "utf8");
 
-const [performance, speaking, vocabulary, turtlebot, build] = await Promise.all([
+const [performance, speaking, vocabulary, turtlebot, dashboard] = await Promise.all([
   read("src/features/project-hub/project-hub-performance.js"),
   read("src/features/speaking/speaking-loader.js"),
   read("src/features/vocabulary/vocabulary-loader.js"),
   read("src/features/project-hub/turtlebot-plan-loader.js"),
-  read("scripts/build.mjs"),
+  read("src/pages/dashboard/index.html"),
 ]);
 
 test("Project Hub performance owns only modal lifecycle behavior", () => {
@@ -30,8 +30,8 @@ test("Speaking and Vocabulary use dedicated loaders with preserved ordering", ()
   assert.match(vocabulary, /JoySpeakingLoader\?\.load/);
   assert.doesNotMatch(vocabulary, /project-plan-v3|project-hub-tabs-cleanup/);
 
-  const speakingIndex = build.indexOf("speaking-loader.js?v=joy-speaking-loader-v1");
-  const vocabularyIndex = build.indexOf("vocabulary-loader.js?v=joy-vocabulary-loader-v1");
+  const speakingIndex = dashboard.indexOf("speaking-loader.js?v=joy-speaking-loader-v1");
+  const vocabularyIndex = dashboard.indexOf("vocabulary-loader.js?v=joy-vocabulary-loader-v1");
   assert.ok(speakingIndex >= 0);
   assert.ok(vocabularyIndex > speakingIndex);
 });
@@ -41,5 +41,5 @@ test("TurtleBot plan chain is isolated from language feature loading", () => {
   assert.match(turtlebot, /project-plan-v3-reference-ui\.js/);
   assert.match(turtlebot, /project-hub-tabs-cleanup\.js/);
   assert.doesNotMatch(turtlebot, /vocabulary|speaking/i);
-  assert.match(build, /turtlebot-plan-loader\.js\?v=turtlebot-plan-loader-v1/);
+  assert.match(dashboard, /turtlebot-plan-loader\.js\?v=turtlebot-plan-loader-v1/);
 });

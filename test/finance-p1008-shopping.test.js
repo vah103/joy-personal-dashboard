@@ -11,7 +11,7 @@ const styles = await readFile(new URL("../project-data/finance/finance-p1008-sho
 const workerSource = await readFile(new URL("../worker/finance-p1008-shopping.js", import.meta.url), "utf8");
 const routerSource = await readFile(new URL("../worker/router.js", import.meta.url), "utf8");
 const schemaSource = await readFile(new URL("../worker/shared/schema.js", import.meta.url), "utf8");
-const buildSource = await readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8");
+const dashboard = await readFile(new URL("../src/pages/dashboard/index.html", import.meta.url), "utf8");
 
 test("P1008 shopping module parses and provides monthly item entry", () => {
   assert.doesNotThrow(() => new Function(source));
@@ -85,7 +85,7 @@ test("P1008 shopping sync is account scoped and independent of Google Sheets", (
   );
 });
 
-test("canonical build emits the P1008 shopping assets", () => {
-  assert.match(buildSource, /finance-p1008-shopping-v1\.css\?v=joy-finance-p1008-shopping-v1/);
-  assert.match(buildSource, /finance-p1008-shopping-v1\.js\?v=joy-finance-p1008-shopping-v1/);
+test("canonical dashboard emits the P1008 shopping assets", () => {
+  assert.match(dashboard, /finance-p1008-shopping-v1\.css\?v=joy-finance-p1008-shopping-v1/);
+  assert.match(dashboard, /finance-p1008-shopping-v1\.js\?v=joy-finance-p1008-shopping-v1/);
 });

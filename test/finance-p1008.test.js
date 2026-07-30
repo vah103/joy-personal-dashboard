@@ -7,7 +7,6 @@ const styles = await readFile(new URL("../project-data/finance/finance-p1008.css
 const amountInputSource = await readFile(new URL("../project-data/finance/finance-p1008-amount-input-v1.js", import.meta.url), "utf8");
 const dashboard = await readFile(new URL("../src/pages/dashboard/index.html", import.meta.url), "utf8");
 const packageSource = await readFile(new URL("../package.json", import.meta.url), "utf8");
-const buildSource = await readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8");
 
 test("P1008 source parses and is loaded by the dashboard", () => {
   assert.doesNotThrow(() => new Function(source));
@@ -33,8 +32,8 @@ test("P1008 applies the July exception only to electricity, water and Wi-Fi", ()
 test("P1008 provides the shopping card that the monthly shopping module enhances", () => {
   assert.match(source, /p1008-shopping-card/);
   assert.match(source, /Chia tiền mua sắm/);
-  assert.match(buildSource, /finance-p1008-shopping-v1\.css/);
-  assert.match(buildSource, /finance-p1008-shopping-v1\.js/);
+  assert.match(dashboard, /finance-p1008-shopping-v1\.css/);
+  assert.match(dashboard, /finance-p1008-shopping-v1\.js/);
 });
 
 test("P1008 uses OpenAI Sans headings and Nunito body text", () => {
@@ -82,13 +81,14 @@ test("P1008 overview uses larger readable typography", () => {
   assert.match(styles, /\.p1008-card table \{[\s\S]*font-size: 11px/);
 });
 
-test("P1008 production assets are emitted directly by the canonical build", () => {
-  assert.match(buildSource, /replaceAll\('joy-finance-p1008-v1', 'joy-finance-p1008-v4'\)/);
-  assert.match(buildSource, /finance-p1008-refine-v3\.css\?v=joy-finance-p1008-refine-v7/);
-  assert.match(buildSource, /finance-p1008-refine-v3\.js\?v=joy-finance-p1008-refine-v7/);
-  assert.match(buildSource, /finance-p1008-capture-v2\.css\?v=joy-finance-p1008-capture-v3/);
-  assert.match(buildSource, /finance-p1008-shopping-v1\.css\?v=joy-finance-p1008-shopping-v1/);
-  assert.match(buildSource, /finance-p1008-shopping-v1\.js\?v=joy-finance-p1008-shopping-v1/);
-  assert.match(buildSource, /finance-p1008-amount-input-v1\.js\?v=joy-finance-p1008-amount-input-v1/);
+test("P1008 production assets are emitted directly by canonical dashboard HTML", () => {
+  assert.match(dashboard, /finance-p1008\.css\?v=joy-finance-p1008-v4/);
+  assert.match(dashboard, /finance-p1008\.js\?v=joy-finance-p1008-v4/);
+  assert.match(dashboard, /finance-p1008-refine-v3\.css\?v=joy-finance-p1008-refine-v7/);
+  assert.match(dashboard, /finance-p1008-refine-v3\.js\?v=joy-finance-p1008-refine-v7/);
+  assert.match(dashboard, /finance-p1008-capture-v2\.css\?v=joy-finance-p1008-capture-v3/);
+  assert.match(dashboard, /finance-p1008-shopping-v1\.css\?v=joy-finance-p1008-shopping-v1/);
+  assert.match(dashboard, /finance-p1008-shopping-v1\.js\?v=joy-finance-p1008-shopping-v1/);
+  assert.match(dashboard, /finance-p1008-amount-input-v1\.js\?v=joy-finance-p1008-amount-input-v1/);
   assert.doesNotMatch(packageSource, /cache-bust-finance-p1008\.mjs/);
 });

@@ -6,6 +6,7 @@ const root = new URL("../", import.meta.url);
 const read = (path) => fs.readFileSync(new URL(path, root), "utf8");
 
 const packageJson = JSON.parse(read("package.json"));
+const dashboard = read("src/pages/dashboard/index.html");
 const build = read("scripts/build.mjs");
 const financeBundle = read("scripts/build-finance-bundle.mjs");
 const removedPatches = [
@@ -20,12 +21,15 @@ test("frontend build has one canonical HTML owner", () => {
     packageJson.scripts.build,
     "node scripts/validate-ielts-sources.mjs && node scripts/build.mjs && node scripts/build-finance-bundle.mjs",
   );
+  assert.match(build, /readFile\(resolve\(dashboardPage, "index\.html"\), "utf8"\)/);
+  assert.match(build, /dashboardBackendAnchor/);
+  assert.doesNotMatch(build, /const projectHubHead =|const dashboardFeatureScripts =/);
   for (const path of removedPatches) {
     assert.equal(fs.existsSync(new URL(path, root)), false, `${path} must remain removed`);
   }
 });
 
-test("build emits final production asset versions directly", () => {
+test("canonical dashboard HTML owns final production asset versions", () => {
   for (const reference of [
     "finance-demo.js?v=joy-finance-core-v9",
     "joy-finance-p1008-v4",
@@ -40,7 +44,7 @@ test("build emits final production asset versions directly", () => {
     "project-hub-performance.js?v=turtlebot-hub-lifecycle-v1",
     "turtlebot-plan-loader.js?v=turtlebot-plan-loader-v1",
   ]) {
-    assert.match(build, new RegExp(reference.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+    assert.match(dashboard, new RegExp(reference.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
 });
 

@@ -6,7 +6,7 @@ import vm from "node:vm";
 const root = new URL("../", import.meta.url);
 const amountCoreSource = await readFile(new URL("src/features/finance/finance-amount-core.js", root), "utf8");
 const p1008AmountSource = await readFile(new URL("project-data/finance/finance-p1008-amount-input-v1.js", root), "utf8");
-const buildSource = await readFile(new URL("scripts/build.mjs", root), "utf8");
+const dashboard = await readFile(new URL("src/pages/dashboard/index.html", root), "utf8");
 
 const window = {};
 vm.runInNewContext(amountCoreSource, { window });
@@ -36,10 +36,10 @@ test("P1008 stops live thousand formatting so mobile zero entry keeps its caret"
   assert.match(p1008AmountSource, /Nhập 570 để lưu 570\.000 ₫/);
 });
 
-test("canonical build loads the P1008 amount helper after both shopping scripts", () => {
+test("canonical dashboard loads the P1008 amount helper after both shopping scripts", () => {
   const shopping = "finance-p1008-shopping-v1.js?v=joy-finance-p1008-shopping-v1";
   const tables = "finance-p1008-shopping-tables-v1.js?v=joy-finance-p1008-shopping-tables-v3";
   const amount = "finance-p1008-amount-input-v1.js?v=joy-finance-p1008-amount-input-v1";
-  assert.ok(buildSource.indexOf(shopping) < buildSource.indexOf(tables));
-  assert.ok(buildSource.indexOf(tables) < buildSource.indexOf(amount));
+  assert.ok(dashboard.indexOf(shopping) < dashboard.indexOf(tables));
+  assert.ok(dashboard.indexOf(tables) < dashboard.indexOf(amount));
 });

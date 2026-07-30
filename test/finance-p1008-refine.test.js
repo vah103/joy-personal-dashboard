@@ -5,7 +5,8 @@ import { readFile } from "node:fs/promises";
 const source = await readFile(new URL("../project-data/finance/finance-p1008-refine-v3.js", import.meta.url), "utf8");
 const styles = await readFile(new URL("../project-data/finance/finance-p1008-refine-v3.css", import.meta.url), "utf8");
 const captureStyles = await readFile(new URL("../project-data/finance/finance-p1008-capture-v2.css", import.meta.url), "utf8");
-const build = await readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8");
+const dashboard = await readFile(new URL("../src/pages/dashboard/index.html", import.meta.url), "utf8");
+const packageSource = await readFile(new URL("../package.json", import.meta.url), "utf8");
 
 test("P1008 refinement source parses and arranges the overview without global observers", () => {
   assert.doesNotThrow(() => new Function(source));
@@ -66,10 +67,10 @@ test("P1008 fullscreen headers stretch across their complete grid columns", () =
   assert.match(captureStyles, /box-sizing: border-box/);
 });
 
-test("P1008 assets are declared by the canonical frontend build", () => {
-  assert.match(build, /joy-finance-p1008-v4/);
-  assert.match(build, /finance-p1008-refine-v3\.css\?v=joy-finance-p1008-refine-v7/);
-  assert.match(build, /finance-p1008-refine-v3\.js\?v=joy-finance-p1008-refine-v7/);
-  assert.match(build, /finance-p1008-capture-v2\.css\?v=joy-finance-p1008-capture-v3/);
-  assert.doesNotMatch(build, /cache-bust-finance-p1008/);
+test("P1008 assets are declared by canonical dashboard HTML", () => {
+  assert.match(dashboard, /finance-p1008\.js\?v=joy-finance-p1008-v4/);
+  assert.match(dashboard, /finance-p1008-refine-v3\.css\?v=joy-finance-p1008-refine-v7/);
+  assert.match(dashboard, /finance-p1008-refine-v3\.js\?v=joy-finance-p1008-refine-v7/);
+  assert.match(dashboard, /finance-p1008-capture-v2\.css\?v=joy-finance-p1008-capture-v3/);
+  assert.doesNotMatch(packageSource, /cache-bust-finance-p1008/);
 });

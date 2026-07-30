@@ -5,26 +5,46 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#1c1f22">
     <meta name="description" content="Vanh's personal command center for email, sales, projects, and daily tasks.">
-    <meta name="application-name" content="Joy">
-    <title>Joy — Personal Dashboard</title>
-    <link rel="icon" href="/joy-blue-icon.png?v=joy-topographic-blue-v1" type="image/png">
+    <meta name="application-name" content="Hey Joy!">
+    <title>Hey Joy! — Personal Dashboard</title>
+    <link rel="icon" href="/joy-web-favicon.svg?v=joy-desktop-wolf-v2" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/joy-blue-icon.png?v=joy-topographic-blue-v1">
-    <link rel="manifest" href="/site.webmanifest?v=joy-topographic-blue-v1">
+    <link rel="manifest" href="/site.webmanifest?v=joy-blue-wolf-v4">
     <link rel="stylesheet" href="styles.css?v=joy-self-hosted-fonts">
     <link rel="stylesheet" href="project-details.css?v=joy-project-details-v2">
-    <script src="weather-rain.js?v=joy-rain-notice-v2" defer></script>
+    <link rel="stylesheet" href="finance-demo.css?v=joy-finance-core-v4">
+    <link rel="stylesheet" href="project-data/finance/finance-p1008.css?v=joy-finance-p1008-v4">
+    <link rel="stylesheet" href="project-hub.css?v=turtlebot-hub-v4">
+    <link rel="stylesheet" href="turtlebot-roadmap-font.css?v=turtlebot-inline-header-tabs-v3">
+    <link rel="stylesheet" href="turtlebot-card-art.css?v=restored-card-v6">
+    <link rel="stylesheet" href="project-data/ielts/ielts-card.css?v=ielts-journey-v5">
+    <link rel="stylesheet" href="project-data/ielts/ielts-core.css?v=ielts-journey-v4">
+    <link rel="stylesheet" href="mobile-notifications.css?v=iphone-rain-bell-v1">
+    <link rel="stylesheet" href="auth-ui.css?v=joy-google-account-v3">
+    <link rel="stylesheet" href="greeting-layout.css?v=joy-daily-brief-v4">
+    <link rel="stylesheet" href="dashboard-entry.css?v=joy-entry-motion-v1">
+    <link rel="stylesheet" href="task-reminders.css?v=joy-tasks-v1">
+    <link rel="stylesheet" href="room-summary.css?v=joy-room-summary-v1">
+    <link rel="stylesheet" href="sales-assistant.css?v=joy-dashboard-sales-assistant-v4">
+    <link rel="stylesheet" href="project-data/finance/finance-layout-v2.css?v=joy-finance-ledger-v4">
+    <link rel="stylesheet" href="project-data/finance/finance-p1008-refine-v3.css?v=joy-finance-p1008-refine-v7">
+    <link rel="stylesheet" href="project-data/finance/finance-p1008-capture-v2.css?v=joy-finance-p1008-capture-v3">
+    <link rel="stylesheet" href="project-data/finance/finance-p1008-shopping-v1.css?v=joy-finance-p1008-shopping-v1">
+    <link rel="stylesheet" href="project-data/finance/finance-p1008-shopping-tables-v1.css?v=joy-finance-p1008-shopping-tables-v3">
+    <link rel="stylesheet" href="dashboard-openai-headings.css?v=joy-openai-headings-v1">
+    <!-- JOY_CLOUDFLARE_BACKEND -->
+    <script src="weather-rain.js?v=joy-rain-notice-v6" defer></script>
     <script src="todo-visibility.js?v=joy-todo-list-v2" defer></script>
+    <script src="todo-display-policy.js?v=joy-task-window-v1" defer></script>
     <script src="app.js?v=joy-dashboard-combined-v1" defer></script>
     <script src="project-details.js?v=joy-project-details-v2" defer></script>
-      <link rel="stylesheet" href="finance-demo.css?v=joy-character-motion-v5">
-      <link rel="stylesheet" href="project-data/finance/finance-p1008.css?v=joy-finance-p1008-v1">
-      <script src="finance-demo.js?v=joy-character-motion-v4" defer></script>
-      <script src="project-data/finance/finance-p1008.js?v=joy-finance-p1008-v1" defer></script>
+    <script src="finance-demo.js?v=joy-finance-core-v9" defer></script>
+    <script src="project-data/finance/finance-p1008.js?v=joy-finance-p1008-v4" defer></script>
   </head>
   <body>
     <main class="dashboard-shell">
       <aside class="sidebar" aria-label="Primary navigation">
-        <a class="brand" href="#overview" aria-label="Joy overview">
+        <a class="brand" href="#overview" aria-label="Hey Joy! overview">
           <span>Hey Joy!</span>
         </a>
 
@@ -90,7 +110,7 @@
           <section class="joy-brief" aria-labelledby="brief-title">
             <div class="brief-icon" aria-hidden="true">✦</div>
             <div class="joy-message">
-              <p class="section-kicker" id="brief-title">Joy</p>
+              <p class="section-kicker" id="brief-title">Hey Joy!</p>
               <p id="brief-copy">You have <strong>2 customer viewings</strong>, <strong>2 tasks due today</strong>, and <strong>Gmail not connected</strong>.</p>
             </div>
           </section>
@@ -268,5 +288,36 @@
 
       <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
     </main>
+
+    <script src="speaking-loader.js?v=joy-speaking-loader-v1" defer></script>
+    <script src="vocabulary-loader.js?v=joy-vocabulary-loader-v1" defer></script>
+    <script src="project-hub-performance.js?v=turtlebot-hub-lifecycle-v1" defer></script>
+    <script src="project-hub-core.js?v=turtlebot-hub-v4" defer></script>
+    <script src="project-hub-render.js?v=turtlebot-hub-v4" defer></script>
+    <script src="project-hub-actions.js?v=turtlebot-hub-v4" defer></script>
+    <script src="project-hub-extension-api.js?v=turtlebot-hub-extension-v1" defer></script>
+    <script src="project-data/turtlebot4/project-state-v2.js?v=turtlebot-progress-hooks-v2" defer></script>
+    <script src="turtlebot-roadmap.js?v=turtlebot-roadmap-v3" defer></script>
+    <script src="turtlebot-roadmap-language.js?v=turtlebot-roadmap-english-v1" defer></script>
+    <script src="turtlebot-plan-loader.js?v=turtlebot-plan-loader-v1" defer></script>
+    <script id="joy-ielts-core-bundle-v4" data-loaded="true" src="project-data/ielts/ielts-core-bundle.js?v=ielts-journey-v4" defer></script>
+    <script src="project-data/ielts/ielts-card.js?v=ielts-journey-v4" defer></script>
+    <script src="weather-status-ui.js?v=rain-threshold-85-v1" defer></script>
+    <script src="push-notifications.js?v=joy-current-device-v1" defer></script>
+    <script src="auth-ui.js?v=joy-google-account-v3" defer></script>
+    <script src="dashboard-entry.js?v=joy-entry-motion-v1" defer></script>
+    <script src="greeting-layout.js?v=joy-daily-brief-v4" defer></script>
+    <script src="daily-brief-polish.js?v=joy-daily-brief-polish-v2" defer></script>
+    <script src="task-english.js?v=joy-task-english-v7" defer></script>
+    <script src="task-reminders-events.js?v=joy-task-checkbox-v2" defer></script>
+    <script src="task-reminders.js?v=joy-tasks-v1" defer></script>
+    <script src="task-natural-input.js?v=joy-natural-reminders-v2" defer></script>
+    <script type="module" src="sales-assistant.js?v=joy-dashboard-sales-assistant-v4"></script>
+    <script src="project-data/finance/finance-layout-v2.js?v=joy-finance-month-layout-v4" defer></script>
+    <script src="project-data/finance/finance-dashboard-v1.js?v=joy-finance-dashboard-v3" defer></script>
+    <script src="project-data/finance/finance-p1008-refine-v3.js?v=joy-finance-p1008-refine-v7" defer></script>
+    <script src="project-data/finance/finance-p1008-shopping-v1.js?v=joy-finance-p1008-shopping-v1" defer></script>
+    <script src="project-data/finance/finance-p1008-shopping-tables-v1.js?v=joy-finance-p1008-shopping-tables-v3" defer></script>
+    <script src="project-data/finance/finance-p1008-amount-input-v1.js?v=joy-finance-p1008-amount-input-v1" defer></script>
   </body>
 </html>

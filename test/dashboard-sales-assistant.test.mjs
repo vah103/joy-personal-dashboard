@@ -2,17 +2,18 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-test("dashboard build loads the visible Sale Assistant", async () => {
-  const [build, script, styles] = await Promise.all([
+test("dashboard HTML loads the visible Sale Assistant", async () => {
+  const [dashboard, build, script, styles] = await Promise.all([
+    readFile(new URL("../src/pages/dashboard/index.html", import.meta.url), "utf8"),
     readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8"),
     readFile(new URL("../src/features/sales/sales-assistant.js", import.meta.url), "utf8"),
     readFile(new URL("../src/features/sales/sales-assistant.css", import.meta.url), "utf8"),
   ]);
 
-  assert.match(build, /sales-assistant\.css\?v=joy-dashboard-sales-assistant-v4/);
-  assert.match(build, /type="module" src="sales-assistant\.js\?v=joy-dashboard-sales-assistant-v4"/);
-  assert.match(build, /room-summary\.css\?v=joy-room-summary-v1/);
-  assert.match(build, /sale-appointment\.js/);
+  assert.match(dashboard, /sales-assistant\.css\?v=joy-dashboard-sales-assistant-v4/);
+  assert.match(dashboard, /type="module" src="sales-assistant\.js\?v=joy-dashboard-sales-assistant-v4"/);
+  assert.match(dashboard, /room-summary\.css\?v=joy-room-summary-v1/);
+  assert.match(build, /resolve\(salesFeatures, "sale-appointment\.js"\)/);
   assert.match(script, /Hẹn khách xem phòng/);
   assert.match(script, /Tóm tắt phòng/);
   assert.match(script, /<strong>Schedule a viewing<\/strong>/);
