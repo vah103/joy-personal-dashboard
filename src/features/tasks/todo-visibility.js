@@ -43,11 +43,15 @@
       && elapsedCalendarDays < COMPLETED_TASK_VISIBLE_DAYS;
   }
 
-  root.JoyTodo = Object.freeze({ shouldShowTask, vietnamDateKey });
+  root.JoyTodo = Object.freeze({
+    shouldShowTask,
+    vietnamDateKey,
+    withoutPendingTaskDeletions,
+  });
 
   if (typeof document === "undefined" || typeof root.fetch !== "function") return;
 
-  const nativeFetch = root.fetch.bind(root);
+  const taskFetch = root.fetch.bind(root);
 
   function readStoredArray(key) {
     try {
@@ -110,61 +114,17 @@
     };
   }
 
-  root.fetch = async function joyTodoFetch(input, init = undefined) {
-    const request = typeof Request !== "undefined" && input instanceof Request
-      ? input
-      : null;
-    const requestUrl = request?.url || String(input || "");
-    const url = new URL(requestUrl, root.location.href);
-    const method = String(init?.method || request?.method || "GET").toUpperCase();
+  function withoutPendingTaskDeletions(tasks) {
     const pendingIds = new Set(loadPendingTaskDeletions());
-    let nextInit = init;
-
-    if (
-      url.pathname === "/api/tasks/import"
-      && method === "POST"
-      && pendingIds.size
-      && typeof init?.body === "string"
-    ) {
-      try {
-        const payload = JSON.parse(init.body);
-        nextInit = {
-          ...init,
-          body: JSON.stringify(filteredTaskPayload(payload, pendingIds)),
-        };
-      } catch {
-        // Keep the original request body.
-      }
-    }
-
-    const response = await nativeFetch(input, nextInit);
-
-    if (
-      url.pathname === "/api/tasks"
-      && method === "GET"
-      && pendingIds.size
-      && response.ok
-    ) {
-      try {
-        const payload = filteredTaskPayload(await response.clone().json(), pendingIds);
-        const headers = new Headers(response.headers);
-        headers.delete("content-length");
-        headers.delete("content-encoding");
-        return new Response(JSON.stringify(payload), {
-          status: response.status,
-          statusText: response.statusText,
-          headers,
-        });
-      } catch {
-        return response;
-      }
-    }
-
-    return response;
-  };
+    const payload = filteredTaskPayload(
+      { tasks: Array.isArray(tasks) ? tasks : [] },
+      pendingIds,
+    );
+    return payload.tasks;
+  }
 
   async function deleteCloudTask(id) {
-    const response = await nativeFetch(TASK_DELETE_ENDPOINT, {
+    const response = await taskFetch(TASK_DELETE_ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),

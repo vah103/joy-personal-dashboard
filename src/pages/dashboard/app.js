@@ -1538,10 +1538,14 @@ async function syncCloudTasks({ silent = false } = {}) {
   try {
     // Existing local tasks are imported once by stable id. D1 keeps its copy authoritative
     // when an id already exists, so an older browser cache cannot undo cloud changes.
-    if (state.tasks.length) {
+    const withoutPendingDeletions = window.JoyTodo?.withoutPendingTaskDeletions;
+    const importTasks = typeof withoutPendingDeletions === "function"
+      ? withoutPendingDeletions(state.tasks)
+      : state.tasks;
+    if (importTasks.length) {
       await backendRequest("/api/tasks/import", {
         method: "POST",
-        body: JSON.stringify({ tasks: state.tasks }),
+        body: JSON.stringify({ tasks: importTasks }),
       });
     }
     for (const id of loadPendingTaskCompletions()) {
@@ -1554,7 +1558,12 @@ async function syncCloudTasks({ silent = false } = {}) {
       }
     }
     const payload = await backendRequest("/api/tasks");
-    state.tasks = Array.isArray(payload.tasks) ? payload.tasks.map(normalizeTask).filter(Boolean) : [];
+    const cloudTasks = Array.isArray(payload.tasks)
+      ? payload.tasks.map(normalizeTask).filter(Boolean)
+      : [];
+    state.tasks = typeof withoutPendingDeletions === "function"
+      ? withoutPendingDeletions(cloudTasks)
+      : cloudTasks;
     saveState();
     renderBrief();
     renderTasks();

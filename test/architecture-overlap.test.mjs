@@ -102,6 +102,16 @@ test("Finance extensions register explicit hooks instead of replacing core rende
   assert.doesNotMatch(dashboard, /new MutationObserver/);
 });
 
+test("feature modules do not replace browser platform methods", () => {
+  const projectPerformance = read("src/features/project-hub/project-hub-performance.js");
+  const todoVisibility = read("src/features/tasks/todo-visibility.js");
+  const reminderEvents = read("src/features/tasks/task-reminders-events.js");
+
+  assert.doesNotMatch(projectPerformance, /MutationObserver\.prototype\.observe\s*=/);
+  assert.doesNotMatch(todoVisibility, /root\.fetch\s*=/);
+  assert.doesNotMatch(reminderEvents, /root\.fetch\s*=/);
+});
+
 test("Worker HTTP and session primitives have one source of truth", () => {
   const workerDirectory = new URL("../worker/", import.meta.url);
   const sharedFiles = new Set(["shared/http.js", "shared/session.js"]);
