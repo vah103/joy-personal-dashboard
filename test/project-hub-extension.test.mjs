@@ -22,16 +22,17 @@ test("TurtleBot Project State uses the Project Hub extension API", () => {
 });
 
 test("Project Hub loads its extension API before Project State", () => {
+  const dashboard = read("src/pages/dashboard/index.html");
   const build = read("scripts/build.mjs");
-  const actionsIndex = build.indexOf("project-hub-actions.js");
-  const apiIndex = build.indexOf("project-hub-extension-api.js");
-  const stateIndex = build.indexOf("project-data/turtlebot4/project-state-v2.js");
+  const actionsIndex = dashboard.indexOf("project-hub-actions.js");
+  const apiIndex = dashboard.indexOf("project-hub-extension-api.js");
+  const stateIndex = dashboard.indexOf("project-data/turtlebot4/project-state-v2.js");
 
   assert.ok(actionsIndex >= 0);
   assert.ok(apiIndex > actionsIndex);
   assert.ok(stateIndex > apiIndex);
-  assert.match(build, /project-hub-extension-api\.js\?v=turtlebot-hub-extension-v1/);
-  assert.match(build, /project-state-v2\.js\?v=turtlebot-progress-hooks-v2/);
+  assert.match(dashboard, /project-hub-extension-api\.js\?v=turtlebot-hub-extension-v1/);
+  assert.match(dashboard, /project-state-v2\.js\?v=turtlebot-progress-hooks-v2/);
   assert.match(
     build,
     /\[resolve\(features, "project-hub", "project-hub-extension-api\.js"\), "project-hub-extension-api\.js"\]/,
