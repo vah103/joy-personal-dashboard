@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 
 const financeSource = await readFile(new URL("../src/features/finance/finance.js", import.meta.url), "utf8");
 const financeOverlay = await readFile(new URL("../project-data/finance/finance-layout-v2.js", import.meta.url), "utf8");
-const buildSource = await readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8");
+const dashboard = await readFile(new URL("../src/pages/dashboard/index.html", import.meta.url), "utf8");
 const financeBundleSource = await readFile(new URL("../scripts/build-finance-bundle.mjs", import.meta.url), "utf8");
 
 test("Finance UI source parses before deployment", () => {
@@ -60,6 +60,6 @@ test("Cloudflare build composes the direct Finance renderer and current month la
   assert.match(financeBundleSource, /finance-amount-core\.js/);
   assert.match(financeBundleSource, /writeFile\(financeBundlePath, bundle\)/);
   assert.doesNotMatch(financeBundleSource, /index\.html|replaceAll?\(/);
-  assert.match(buildSource, /finance-demo\.js\?v=joy-finance-core-v9/);
-  assert.match(buildSource, /project-data\/finance\/finance-layout-v2\.js\?v=joy-finance-month-layout-v4/);
+  assert.match(dashboard, /finance-demo\.js\?v=joy-finance-core-v9/);
+  assert.match(dashboard, /project-data\/finance\/finance-layout-v2\.js\?v=joy-finance-month-layout-v4/);
 });
