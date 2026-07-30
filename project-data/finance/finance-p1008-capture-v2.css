@@ -99,6 +99,16 @@
   white-space: normal;
 }
 
+.p1008-people-card.is-capture-mode .p1008-people-table thead th,
+.p1008-people-card.is-capture-mode .p1008-people-table thead th:first-child,
+.p1008-people-card.is-capture-mode .p1008-people-table thead th:last-child,
+.p1008-people-card.is-capture-mode .p1008-people-table thead th:not(:first-child):not(:last-child) {
+  width: 100%;
+  max-width: none;
+  justify-self: stretch;
+  box-sizing: border-box;
+}
+
 .p1008-people-card.is-capture-mode .p1008-people-table th:first-child,
 .p1008-people-card.is-capture-mode .p1008-people-table td:first-child {
   width: auto;
@@ -108,6 +118,7 @@
 }
 
 .p1008-people-card.is-capture-mode .p1008-people-table thead th:first-child {
+  width: 100%;
   justify-content: flex-start;
   text-align: left;
 }
