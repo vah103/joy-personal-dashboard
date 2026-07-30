@@ -26,10 +26,11 @@ test("30 July TurtleBot progress closes Stage 3 and advances to Stage 4", async 
   assert.match(progress, /recoveries: 0/);
   assert.match(progress, /meanTravelTimeSeconds: 8\.43/);
   assert.match(progress, /meanPathLengthMeters: 1\.72/);
-  assert.match(progress, /STAGE_3_CHECKLIST_IDS/);
+  assert.match(progress, /STAGE_3_DETAILED_CHECKLIST_IDS/);
+  assert.match(progress, /STAGE_3_DETAILED_TASK_ITEM_COUNTS = \[4, 5, 4, 4, 4, 4\]/);
   assert.doesNotMatch(progress, /window\.fetch\s*=/);
   assert.doesNotMatch(progress, /MutationObserver\.prototype/);
-  assert.match(loader, /progress-20260730\.js\?v=turtlebot-stage3-complete-v1/);
+  assert.match(loader, /progress-20260730\.js\?v=turtlebot-stage3-complete-v2/);
   assert.match(loader, /script\.addEventListener\("load", loadProgressUpdate/);
 
   const projectState = {
@@ -42,6 +43,7 @@ test("30 July TurtleBot progress closes Stage 3 and advances to Stage 4", async 
     history: [],
   };
   let cardUpdates = 0;
+  let saves = 0;
   let stores = 0;
   const context = {
     hubState: { projectState, overrides: { checklist: {}, planTasks: {} } },
@@ -53,6 +55,7 @@ test("30 July TurtleBot progress closes Stage 3 and advances to Stage 4", async 
         planTasks: value?.planTasks || {},
       };
     },
+    scheduleHubSave() { saves += 1; },
     storeLocalOverrides() { stores += 1; },
     updateTurtleBotCard() { cardUpdates += 1; },
     renderHub() {},
@@ -69,9 +72,20 @@ test("30 July TurtleBot progress closes Stage 3 and advances to Stage 4", async 
   assert.equal(projectState.project.stage3Result.successRate, 100);
   assert.equal(projectState.project.stage3Result.recoveries, 0);
   assert.equal(projectState.history.at(-1).progressAfter, 32);
+
   for (const id of ["s3-goal-set", "s3-logging", "s3-runs", "s3-metrics"]) {
     assert.equal(context.hubState.overrides.checklist[id], true);
   }
+
+  const detailedIds = [4, 5, 4, 4, 4, 4].flatMap((count, taskIndex) =>
+    Array.from({ length: count }, (_, itemIndex) => `s3-${taskIndex + 1}-${itemIndex + 1}`),
+  );
+  assert.equal(detailedIds.length, 25);
+  for (const id of detailedIds) {
+    assert.equal(context.hubState.overrides.checklist[id], true);
+  }
+
   assert.ok(cardUpdates >= 1);
-  assert.ok(stores >= 1);
+  assert.equal(saves, 1);
+  assert.equal(stores, 0);
 });
