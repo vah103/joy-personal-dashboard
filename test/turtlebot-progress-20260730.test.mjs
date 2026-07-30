@@ -1,91 +1,45 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import vm from "node:vm";
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const progressPath = resolve(root, "project-data/turtlebot4/progress-20260730.js");
+const currentStatePath = resolve(root, "project-data/turtlebot4/current-state.json");
+const mergerPath = resolve(root, "project-data/turtlebot4/project-current-state.js");
 const loaderPath = resolve(root, "src/features/project-hub/turtlebot-plan-loader.js");
+const oldProgressPath = resolve(root, "project-data/turtlebot4/progress-20260730.js");
 
-test("30 July TurtleBot progress closes Stage 3 and advances to Stage 4", async () => {
-  const [progress, loader] = await Promise.all([
-    readFile(progressPath, "utf8"),
+test("canonical TurtleBot state closes Stage 3 and advances to Stage 4", async () => {
+  const [stateSource, merger, loader] = await Promise.all([
+    readFile(currentStatePath, "utf8"),
+    readFile(mergerPath, "utf8"),
     readFile(loaderPath, "utf8"),
   ]);
+  const state = JSON.parse(stateSource);
 
-  assert.doesNotThrow(() => new Function(progress));
+  assert.doesNotThrow(() => new Function(merger));
   assert.doesNotThrow(() => new Function(loader));
-  assert.match(progress, /const plan = hubState\?\.projectState/);
-  assert.doesNotMatch(progress, /window\.hubState/);
-  assert.match(progress, /currentStageId = "stage-4"/);
-  assert.match(progress, /progressAfter: 32/);
-  assert.match(progress, /trials: 12/);
-  assert.match(progress, /successRate: 100/);
-  assert.match(progress, /recoveries: 0/);
-  assert.match(progress, /meanTravelTimeSeconds: 8\.43/);
-  assert.match(progress, /meanPathLengthMeters: 1\.72/);
-  assert.match(progress, /STAGE_3_DETAILED_CHECKLIST_IDS/);
-  assert.match(progress, /STAGE_3_DETAILED_TASK_ITEM_COUNTS = \[4, 5, 4, 4, 4, 4\]/);
-  assert.doesNotMatch(progress, /window\.fetch\s*=/);
-  assert.doesNotMatch(progress, /MutationObserver\.prototype/);
-  assert.match(loader, /progress-20260730\.js\?v=turtlebot-stage3-complete-v2/);
-  assert.match(loader, /script\.addEventListener\("load", loadProgressUpdate/);
+  assert.equal(state.updatedAt, "2026-07-30");
+  assert.equal(state.project.currentStageId, "stage-4");
+  assert.equal(state.project.stage3Result.trials, 12);
+  assert.equal(state.project.stage3Result.successRate, 100);
+  assert.equal(state.project.stage3Result.recoveries, 0);
+  assert.equal(state.project.stage3Result.meanTravelTimeSeconds, 8.43);
+  assert.equal(state.project.stage3Result.meanPathLengthMeters, 1.72);
+  assert.equal(state.history.progressAfter, 32);
+  assert.deepEqual(state.roadmap.completedChecklistIds, [
+    "s3-goal-set",
+    "s3-logging",
+    "s3-runs",
+    "s3-metrics",
+  ]);
 
-  const projectState = {
-    updatedAt: "2026-07-29",
-    project: {
-      totalWeeks: 12,
-      currentStageId: "stage-3",
-      currentBlockers: ["Benchmark pending"],
-    },
-    history: [],
-  };
-  let cardUpdates = 0;
-  let saves = 0;
-  let stores = 0;
-  const context = {
-    hubState: { projectState, overrides: { checklist: {}, planTasks: {} } },
-    hubElements: { modal: { hidden: true } },
-    normalizeOverrides(value) {
-      return {
-        ...value,
-        checklist: value?.checklist || {},
-        planTasks: value?.planTasks || {},
-      };
-    },
-    scheduleHubSave() { saves += 1; },
-    storeLocalOverrides() { stores += 1; },
-    updateTurtleBotCard() { cardUpdates += 1; },
-    renderHub() {},
-  };
-  context.window = {
-    setTimeout(callback) { callback(); },
-    addEventListener() {},
-  };
-
-  vm.runInNewContext(progress, context);
-
-  assert.equal(projectState.updatedAt, "2026-07-30");
-  assert.equal(projectState.project.currentStageId, "stage-4");
-  assert.equal(projectState.project.stage3Result.successRate, 100);
-  assert.equal(projectState.project.stage3Result.recoveries, 0);
-  assert.equal(projectState.history.at(-1).progressAfter, 32);
-
-  for (const id of ["s3-goal-set", "s3-logging", "s3-runs", "s3-metrics"]) {
-    assert.equal(context.hubState.overrides.checklist[id], true);
-  }
-
-  const detailedIds = [4, 5, 4, 4, 4, 4].flatMap((count, taskIndex) =>
-    Array.from({ length: count }, (_, itemIndex) => `s3-${taskIndex + 1}-${itemIndex + 1}`),
-  );
-  assert.equal(detailedIds.length, 25);
-  for (const id of detailedIds) {
-    assert.equal(context.hubState.overrides.checklist[id], true);
-  }
-
-  assert.ok(cardUpdates >= 1);
-  assert.equal(saves, 1);
-  assert.equal(stores, 0);
+  assert.match(merger, /applyRoadmapPatch/);
+  assert.match(merger, /applyPlanPatch/);
+  assert.match(merger, /Object\.defineProperty\(hubState, "source"/);
+  assert.doesNotMatch(merger, /setTimeout|pageshow|localStorage/);
+  assert.match(loader, /project-current-state\.js\?v=turtlebot-current-state-v1/);
+  assert.doesNotMatch(loader, /progress-20260730\.js/);
+  await assert.rejects(access(oldProgressPath));
 });
