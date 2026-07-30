@@ -5,6 +5,8 @@ import { readFile } from "node:fs/promises";
 const source = await readFile(new URL("../project-data/finance/finance-p1008.js", import.meta.url), "utf8");
 const styles = await readFile(new URL("../project-data/finance/finance-p1008.css", import.meta.url), "utf8");
 const dashboard = await readFile(new URL("../src/pages/dashboard/index.html", import.meta.url), "utf8");
+const packageSource = await readFile(new URL("../package.json", import.meta.url), "utf8");
+const cacheBustSource = await readFile(new URL("../scripts/cache-bust-finance-p1008.mjs", import.meta.url), "utf8");
 
 test("P1008 source parses and is loaded by the dashboard", () => {
   assert.doesNotThrow(() => new Function(source));
@@ -60,4 +62,11 @@ test("P1008 overview uses larger readable typography", () => {
   assert.match(styles, /\.p1008-summary strong \{[\s\S]*font-size: 29px/);
   assert.match(styles, /\.p1008-summary span \{[\s\S]*font-size: 11px/);
   assert.match(styles, /\.p1008-card table \{[\s\S]*font-size: 11px/);
+});
+
+test("P1008 refreshed assets are cache-busted during the production build", () => {
+  assert.match(packageSource, /scripts\/cache-bust-finance-p1008\.mjs/);
+  assert.match(cacheBustSource, /joy-finance-p1008-v1/);
+  assert.match(cacheBustSource, /joy-finance-p1008-v2/);
+  assert.match(cacheBustSource, /replaceAll\(previous, next\)/);
 });
