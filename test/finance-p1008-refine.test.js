@@ -26,7 +26,7 @@ test("P1008 places the summary beside a compact service table", () => {
 });
 
 test("P1008 adds a fullscreen capture button for the people table", () => {
-  assert.match(source, /data\.p1008Fullscreen = "true"/);
+  assert.match(source, /dataset\.p1008Fullscreen = "true"/);
   assert.match(source, /Toàn màn hình/);
   assert.match(source, /requestFullscreen/);
   assert.match(source, /document\.exitFullscreen/);
