@@ -107,6 +107,167 @@
   white-space: nowrap;
 }
 
+.p1008-shopping-fullscreen-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.p1008-shopping-fullscreen-actions > span {
+  white-space: nowrap;
+}
+
+.p1008-shopping-fullscreen-button {
+  min-height: 32px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid rgba(55, 76, 82, .15);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .76);
+  color: #3b5961;
+  font: 800 10px "Nunito", Arial, sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.p1008-shopping-fullscreen-button:hover,
+.p1008-shopping-fullscreen-button:focus-visible {
+  border-color: rgba(58, 99, 108, .34);
+  background: #fff;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(70, 113, 121, .08);
+}
+
+.p1008-shopping-fullscreen-button[aria-pressed="true"] {
+  border-color: #456d75;
+  background: #456d75;
+  color: #fff;
+}
+
+.p1008-shopping-fullscreen-button .p1008-fullscreen-icon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+body.p1008-shopping-capture-active {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+
+.p1008-shopping-people-card.is-shopping-capture-mode,
+.p1008-shopping-people-card.is-shopping-capture-mode:fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147483000;
+  width: 100vw !important;
+  max-width: none !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  margin: 0 !important;
+  display: flex !important;
+  flex-direction: column;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: #f7f5ef;
+  color: #42555b;
+  box-shadow: none !important;
+  font-family: "Nunito", Arial, sans-serif;
+}
+
+.p1008-shopping-people-card.is-shopping-capture-mode > header {
+  min-height: 46px !important;
+  padding: 6px 10px !important;
+  flex: 0 0 auto;
+  background: #f7f5ef;
+}
+
+.p1008-shopping-people-card.is-shopping-capture-mode h3 {
+  margin: 0;
+  color: #314a51;
+  font-size: 16px !important;
+}
+
+.p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-wrap {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: auto !important;
+  overscroll-behavior: contain;
+  background: #f7f5ef;
+}
+
+.p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table {
+  width: max-content !important;
+  min-width: 100% !important;
+  table-layout: auto !important;
+  font-size: 10.5px;
+}
+
+.p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table th,
+.p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table td {
+  min-width: 104px;
+  padding: 7px 8px !important;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  min-width: 112px;
+  background: #f7f5ef;
+}
+
+.p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  font-size: 9px;
+  white-space: normal;
+  background: #f7f5ef;
+}
+
+.p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table thead th:first-child {
+  z-index: 4;
+}
+
+.p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table tbody th small {
+  display: none;
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .p1008-shopping-people-card.is-shopping-capture-mode > header {
+    min-height: 38px !important;
+    padding: 4px 8px !important;
+  }
+
+  .p1008-shopping-people-card.is-shopping-capture-mode h3 {
+    font-size: 14px !important;
+  }
+
+  .p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-fullscreen-actions > span {
+    font-size: 8px;
+  }
+
+  .p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-fullscreen-button {
+    min-height: 28px;
+    padding: 0 8px;
+    font-size: 9px;
+  }
+
+  .p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table th,
+  .p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-people-table td {
+    min-width: 96px;
+    padding: 5px 6px !important;
+  }
+}
+
 @media (max-width: 620px) {
   .p1008-shopping-items-card {
     width: 100% !important;
@@ -154,6 +315,14 @@
   .p1008-shopping-items-card .p1008-shopping-delete {
     width: 18px !important;
     height: 18px !important;
+  }
+
+  .p1008-shopping-fullscreen-label {
+    display: none;
+  }
+
+  .p1008-shopping-people-card.is-shopping-capture-mode .p1008-shopping-fullscreen-label {
+    display: inline;
   }
 }
 
