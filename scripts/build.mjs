@@ -76,7 +76,7 @@ const projectHubHead = [
   '    <link rel="stylesheet" href="project-data/finance/finance-p1008-refine-v3.css?v=joy-finance-p1008-refine-v7">\n',
   '    <link rel="stylesheet" href="project-data/finance/finance-p1008-capture-v2.css?v=joy-finance-p1008-capture-v3">\n',
   '    <link rel="stylesheet" href="project-data/finance/finance-p1008-shopping-v1.css?v=joy-finance-p1008-shopping-v1">\n',
-  '    <link rel="stylesheet" href="project-data/finance/finance-p1008-shopping-tables-v1.css?v=joy-finance-p1008-shopping-tables-v1">\n',
+  '    <link rel="stylesheet" href="project-data/finance/finance-p1008-shopping-tables-v1.css?v=joy-finance-p1008-shopping-tables-v3">\n',
   '    <link rel="stylesheet" href="dashboard-openai-headings.css?v=joy-openai-headings-v1">\n',
 ].join("");
 
@@ -90,7 +90,7 @@ const projectHubScripts = [
   '    <script src="project-hub-core.js?v=turtlebot-hub-v4" defer></script>\n',
   '    <script src="project-hub-render.js?v=turtlebot-hub-v4" defer></script>\n',
   '    <script src="project-hub-actions.js?v=turtlebot-hub-v4" defer></script>\n',
-  '    <script src="project-hub-extension-api.js?v=turtlebot-hub-extension-v1" defer></script>\n',
+  '    <script src="project-hub-extension-api.js?v=project-hub-extension-v1" defer></script>\n',
   '    <script src="project-data/turtlebot4/project-state-v2.js?v=turtlebot-progress-hooks-v2" defer></script>\n',
   '    <script src="turtlebot-roadmap.js?v=turtlebot-roadmap-v3" defer></script>\n',
   '    <script src="turtlebot-roadmap-language.js?v=turtlebot-roadmap-english-v1" defer></script>\n',
@@ -115,7 +115,7 @@ const dashboardFeatureScripts = [
   '    <script src="project-data/finance/finance-dashboard-v1.js?v=joy-finance-dashboard-v3" defer></script>\n',
   '    <script src="project-data/finance/finance-p1008-refine-v3.js?v=joy-finance-p1008-refine-v7" defer></script>\n',
   '    <script src="project-data/finance/finance-p1008-shopping-v1.js?v=joy-finance-p1008-shopping-v1" defer></script>\n',
-  '    <script src="project-data/finance/finance-p1008-shopping-tables-v1.js?v=joy-finance-p1008-shopping-tables-v2" defer></script>\n',
+  '    <script src="project-data/finance/finance-p1008-shopping-tables-v1.js?v=joy-finance-p1008-shopping-tables-v3" defer></script>\n',
 ].join("");
 
 const dashboardScripts = `${languageFeatureScripts}${projectHubScripts}${dashboardFeatureScripts}`;
