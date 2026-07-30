@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { access, readFile } from "node:fs/promises";
 import { summarizeFinanceTransactions, validateFinanceTransaction } from "../worker/finance-ledger.js";
-import { buildFinanceTrackerSeed } from "../worker/finance-with-seed.js";
 
 function tx(overrides) {
   const occurred_on = overrides.occurred_on || "2026-01-01";
@@ -27,6 +27,7 @@ test("Carryover is shown in monthly income but excluded from annual income", () 
 
   assert.equal(summary.current.actual.income, 5_500_000);
   assert.equal(summary.current.actual.remaining, 1_600_000);
+  assert.equal(summary.annual.currentBalance, 1_600_000);
   assert.equal(summary.annual.actualIncome, 4_500_000);
 });
 
@@ -69,26 +70,17 @@ test("Transaction validation accepts the requested category model", () => {
   assert.equal(result.value.amount, 70_000);
 });
 
-test("Imported 2026 Finance Tracker keeps every monthly closing balance", () => {
-  const rows = buildFinanceTrackerSeed().map((transaction, index) => ({
-    id: transaction.id,
-    occurred_on: transaction.occurredOn,
-    year: 2026,
-    month: transaction.month,
-    type: transaction.type,
-    category: transaction.category,
-    subcategory: "",
-    amount: transaction.amount,
-    status: transaction.status,
-    note: transaction.note,
-    source: "sheet-import",
-    created_at: index,
-    updated_at: index,
-  }));
-  const summary = summarizeFinanceTransactions(rows, { year: 2026, selectedMonth: "2026-07" });
-  assert.deepEqual(
-    summary.months.map((month) => month.projected.remaining),
-    [280_000, 5_380_000, 7_140_000, 3_210_000, 5_430_000, -1_620_000, 2_510_000, 6_140_000, 10_640_000, 11_240_000, 15_740_000, 20_240_000],
+test("Finance runtime reads D1 directly without a bundled personal seed", async () => {
+  const router = await readFile(new URL("../worker/router.js", import.meta.url), "utf8");
+  const ledger = await readFile(new URL("../worker/finance-ledger.js", import.meta.url), "utf8");
+
+  assert.match(router, /from "\.\/finance-ledger\.js"/);
+  assert.doesNotMatch(router, /finance-with-seed/);
+  assert.match(ledger, /source: "Joy Finance"/);
+  assert.doesNotMatch(ledger, /Finance Tracker 2026 imported once/);
+
+  await assert.rejects(
+    access(new URL("../worker/finance-with-seed.js", import.meta.url)),
+    (error) => error?.code === "ENOENT",
   );
-  assert.equal(summary.annual.projectedYearEnd, 20_240_000);
 });
