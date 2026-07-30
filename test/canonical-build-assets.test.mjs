@@ -31,6 +31,8 @@ test("build emits final production asset versions directly", () => {
     "joy-finance-p1008-v4",
     "joy-finance-p1008-refine-v7",
     "finance-p1008-capture-v2.css?v=joy-finance-p1008-capture-v3",
+    "finance-p1008-shopping-v1.css?v=joy-finance-p1008-shopping-v1",
+    "finance-p1008-shopping-v1.js?v=joy-finance-p1008-shopping-v1",
     "task-english.js?v=joy-task-english-v7",
     "task-natural-input.js?v=joy-natural-reminders-v2",
     "speaking-loader.js?v=joy-speaking-loader-v1",

@@ -59,6 +59,14 @@ export const CREATE_FINANCE_P1008_TABLE = `
   )
 `;
 
+export const CREATE_FINANCE_P1008_SHOPPING_TABLE = `
+  CREATE TABLE IF NOT EXISTS finance_p1008_shopping (
+    user_email TEXT PRIMARY KEY,
+    data_json TEXT NOT NULL DEFAULT '{}',
+    updated_at INTEGER NOT NULL
+  )
+`;
+
 export async function ensureReminderTables(env) {
   await env.DB.batch([
     env.DB.prepare(CREATE_TASK_REMINDERS_TABLE),
