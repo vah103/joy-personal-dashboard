@@ -1,3 +1,4 @@
+const DASHBOARD_CONFIG = window.JoyDashboardConfig || {};
 const STORAGE_KEY = "joy-dashboard-sample";
 const TODO_STORAGE_KEY = "joy-dashboard-todos-v1";
 const TODO_PENDING_COMPLETIONS_KEY = "joy-dashboard-todo-pending-completions-v1";
@@ -5,35 +6,28 @@ const SCRATCHPAD_KEY = "joy-dashboard-scratchpad";
 const SCRATCHPAD_META_KEY = "joy-dashboard-scratchpad-cloud-meta-v1";
 const SCRATCHPAD_CONFLICT_BACKUP_KEY = "joy-dashboard-scratchpad-conflict-backup-v1";
 const PROJECT_PENDING_ARCHIVES_KEY = "joy-dashboard-project-pending-archives-v1";
-const GOOGLE_CLIENT_ID = "711309621878-a4tq37k2bnojpsmtthf37c903ktbupia.apps.googleusercontent.com";
-const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
-const GMAIL_API_ROOT = "https://gmail.googleapis.com/gmail/v1/users/me";
-const GMAIL_INBOX_URL = "https://mail.google.com/mail/u/0/#inbox";
+const GOOGLE_CLIENT_ID = String(DASHBOARD_CONFIG.google?.clientId || "");
+const GMAIL_SCOPE = String(DASHBOARD_CONFIG.google?.gmailScope || "https://www.googleapis.com/auth/gmail.readonly");
+const GMAIL_API_ROOT = String(DASHBOARD_CONFIG.google?.gmailApiRoot || "https://gmail.googleapis.com/gmail/v1/users/me");
+const GMAIL_INBOX_URL = String(DASHBOARD_CONFIG.google?.inboxUrl || "https://mail.google.com/mail/u/0/#inbox");
 const CLOUD_BACKEND = document.querySelector('meta[name="joy-backend"]')?.content === "cloudflare";
-const GMAIL_AUTO_REFRESH_MS = 60_000;
-const SALES_AUTO_REFRESH_MS = 60_000;
-const WEATHER_REFRESH_MS = 15 * 60_000;
-const VIETNAM_TIME_ZONE = "Asia/Ho_Chi_Minh";
-const WEATHER_ENDPOINT = "https://api.open-meteo.com/v1/forecast?latitude=21.0285&longitude=105.8542&current=temperature_2m,apparent_temperature,weather_code&hourly=precipitation_probability,precipitation,weather_code&timezone=Asia%2FHo_Chi_Minh&forecast_days=1";
+const GMAIL_AUTO_REFRESH_MS = Number(DASHBOARD_CONFIG.refresh?.gmailMs || 60_000);
+const SALES_AUTO_REFRESH_MS = Number(DASHBOARD_CONFIG.refresh?.salesMs || 60_000);
+const WEATHER_REFRESH_MS = Number(DASHBOARD_CONFIG.weather?.refreshMinutes || 15) * 60_000;
+const VIETNAM_TIME_ZONE = String(DASHBOARD_CONFIG.timeZone || "Asia/Ho_Chi_Minh");
+const weatherParameters = new URLSearchParams({
+  latitude: String(DASHBOARD_CONFIG.weather?.latitude ?? 21.0285),
+  longitude: String(DASHBOARD_CONFIG.weather?.longitude ?? 105.8542),
+  current: "temperature_2m,apparent_temperature,weather_code",
+  hourly: "precipitation_probability,precipitation,weather_code",
+  timezone: VIETNAM_TIME_ZONE,
+  forecast_days: "1",
+});
+const WEATHER_ENDPOINT = `https://api.open-meteo.com/v1/forecast?${weatherParameters}`;
 
-const seedProjects = [
-  {
-    id: 1,
-    name: "TurtleBot 4",
-    progress: 38,
-    accent: "slate",
-    focus: "Localization & Nav2",
-    next: "Run a map localization test",
-  },
-  {
-    id: 2,
-    name: "IELTS",
-    progress: 0,
-    accent: "blue",
-    focus: "Band 7.0 · December 2026",
-    next: "Prepare the August baseline",
-  },
-];
+const seedProjects = Array.isArray(DASHBOARD_CONFIG.seedProjects)
+  ? DASHBOARD_CONFIG.seedProjects.map((project) => ({ ...project }))
+  : [];
 
 const seedTasks = [];
 
