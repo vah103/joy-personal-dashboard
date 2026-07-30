@@ -68,6 +68,18 @@ async function copyFontWithNunitoFallback(family, file, weight) {
   }
 }
 
+const dashboardAppSourceFiles = [
+  "app-helpers.js",
+  "app-state.js",
+  "app-scratchpad.js",
+  "app-communication.js",
+  "app-render.js",
+  "app-integrations.js",
+  "app-actions.js",
+  "app-sync.js",
+  "app-bootstrap.js",
+];
+
 const ieltsCoreSourceFiles = [
   "core-model.js",
   "core-ui.js",
@@ -125,8 +137,12 @@ await writeFile(resolve(dist, "index.html"), cloudflareHtml);
 await writeFile(resolve(dist, "login.html"), cloudflareLoginHtml);
 await writeFile(resolve(dist, "sale-manager.html"), cloudflareSaleHtml);
 
+const dashboardAppParts = await Promise.all(
+  dashboardAppSourceFiles.map((file) => readFile(resolve(dashboardPage, file), "utf8")),
+);
+await writeFile(resolve(dist, "app.js"), `${dashboardAppParts.join("\n\n")}\n`);
+
 const copies = [
-  [resolve(dashboardPage, "app.js"), "app.js"],
   [resolve(dashboardPage, "styles.css"), "styles.css"],
   [resolve(loginPage, "login.css"), "login.css"],
   [resolve(salePage, "sale-manager.js"), "sale-manager.js"],
