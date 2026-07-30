@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
@@ -23,7 +24,35 @@ const desktopFaviconLink = '    <link rel="icon" href="/joy-web-favicon.svg?v=jo
 const blueFaviconLink = '    <link rel="icon" href="/joy-blue-icon.png?v=joy-topographic-blue-v1" type="image/png">';
 const legacySaleFaviconLink = '    <link rel="icon" href="app-icon-64.png?v=joy-original-wolf-v2" type="image/png" sizes="64x64">';
 const dashboardBackendAnchor = "    <!-- JOY_CLOUDFLARE_BACKEND -->";
-const cloudflareBackendMeta = '    <meta name="joy-backend" content="cloudflare">';
+const buildVersionToken = "__JOY_BUILD_VERSION__";
+
+function resolveBuildVersion() {
+  const candidate = process.env.JOY_BUILD_VERSION
+    || process.env.GITHUB_SHA
+    || (() => {
+      try {
+        return execFileSync("git", ["rev-parse", "HEAD"], {
+          cwd: root,
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "ignore"],
+        }).trim();
+      } catch {
+        return "development";
+      }
+    })();
+
+  const normalized = String(candidate || "development")
+    .trim()
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .slice(0, 16);
+  return `joy-build-${normalized || "development"}`;
+}
+
+const buildVersion = resolveBuildVersion();
+const cloudflareBackendMeta = [
+  '    <meta name="joy-backend" content="cloudflare">',
+  `    <meta name="joy-build-version" content="${buildVersion}">`,
+].join("\n");
 
 const fontFiles = [
   ...[400, 500, 600, 700].flatMap((weight) => [
@@ -55,6 +84,20 @@ function assertBuildTokenRemoved(source, token, label) {
   if (source.includes(token)) {
     throw new Error(`Unresolved build token: ${label}`);
   }
+}
+
+function versionAssetReference(source, asset) {
+  const escaped = asset.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`(["'])${escaped}(?:\\?v=[^"']*)?\\1`, "g");
+  let matches = 0;
+  const versioned = source.replace(pattern, (match, quote) => {
+    matches += 1;
+    return `${quote}${asset}?v=${buildVersion}${quote}`;
+  });
+  if (matches !== 1) {
+    throw new Error(`Expected exactly one dashboard asset reference for ${asset}; found ${matches}`);
+  }
+  return versioned;
 }
 
 async function copyFontWithNunitoFallback(family, file, weight) {
@@ -91,12 +134,15 @@ await mkdir(dist, { recursive: true });
 await mkdir(fonts, { recursive: true });
 
 const sourceHtml = await readFile(resolve(dashboardPage, "index.html"), "utf8");
-const cloudflareHtml = replaceRequired(
+let cloudflareHtml = replaceRequired(
   sourceHtml,
   dashboardBackendAnchor,
   cloudflareBackendMeta,
   "dashboard Cloudflare backend metadata",
 );
+cloudflareHtml = versionAssetReference(cloudflareHtml, "/site.webmanifest");
+cloudflareHtml = versionAssetReference(cloudflareHtml, "styles.css");
+cloudflareHtml = versionAssetReference(cloudflareHtml, "app.js");
 assertBuildTokenRemoved(cloudflareHtml, dashboardBackendAnchor, "dashboard Cloudflare backend metadata");
 
 const sourceLoginHtml = await readFile(resolve(loginPage, "index.html"), "utf8");
@@ -133,9 +179,19 @@ cloudflareSaleHtml = replaceRequired(
   "sale Cloudflare backend metadata",
 );
 
+const sourceServiceWorker = await readFile(resolve(pwa, "sw.js"), "utf8");
+const cloudflareServiceWorker = replaceRequired(
+  sourceServiceWorker,
+  buildVersionToken,
+  buildVersion,
+  "service worker build version",
+);
+assertBuildTokenRemoved(cloudflareServiceWorker, buildVersionToken, "service worker build version");
+
 await writeFile(resolve(dist, "index.html"), cloudflareHtml);
 await writeFile(resolve(dist, "login.html"), cloudflareLoginHtml);
 await writeFile(resolve(dist, "sale-manager.html"), cloudflareSaleHtml);
+await writeFile(resolve(dist, "sw.js"), cloudflareServiceWorker);
 
 const dashboardAppParts = await Promise.all(
   dashboardAppSourceFiles.map((file) => readFile(resolve(dashboardPage, file), "utf8")),
@@ -196,7 +252,6 @@ const copies = [
   [resolve(icons, "wolf-mark.svg"), "wolf-mark.svg"],
   [resolve(icons, "joy-blue-icon.png"), "joy-blue-icon.png"],
   [resolve(icons, "joy-web-favicon.svg"), "joy-web-favicon.svg"],
-  [resolve(pwa, "sw.js"), "sw.js"],
   [resolve(pwa, "site.webmanifest"), "site.webmanifest"],
 ];
 
@@ -227,4 +282,4 @@ const ieltsCoreBundle = [
 ].join("\n");
 await writeFile(resolve(ieltsPublicDir, "ielts-core-bundle.js"), ieltsCoreBundle);
 
-console.log("Hey Joy! frontend built for Cloudflare");
+console.log(`Hey Joy! frontend built for Cloudflare (${buildVersion})`);
