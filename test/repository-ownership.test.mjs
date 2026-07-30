@@ -14,6 +14,12 @@ async function listJavaScriptFiles(directory) {
     .map((entry) => resolve(entry.parentPath || entry.path, entry.name));
 }
 
+function stripComments(source) {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^\s*\/\/.*$/gm, "");
+}
+
 test("TurtleBot current progress has one stable canonical owner", async () => {
   const loader = await read("src/features/project-hub/turtlebot-plan-loader.js");
   const currentState = JSON.parse(await read("project-data/turtlebot4/current-state.json"));
@@ -49,6 +55,7 @@ test("D1 table ownership stays in migrations instead of Worker requests", async 
     "task_reminders",
     "focus_reminders",
     "daily_brief_meta",
+    "daily_brief_stories",
     "finance_p1008",
     "finance_p1008_shopping",
   ]) {
@@ -56,7 +63,7 @@ test("D1 table ownership stays in migrations instead of Worker requests", async 
   }
 
   for (const path of await listJavaScriptFiles("worker")) {
-    const source = await readFile(path, "utf8");
+    const source = stripComments(await readFile(path, "utf8"));
     assert.doesNotMatch(source, /CREATE\s+(?:TABLE|INDEX)\s+IF\s+NOT\s+EXISTS/i, path);
   }
 });
