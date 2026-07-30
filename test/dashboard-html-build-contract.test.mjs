@@ -30,7 +30,9 @@ test("dashboard HTML is the canonical production asset owner", async () => {
   assert.match(html, /finance-p1008\.js\?v=joy-finance-p1008-v4/);
   assert.match(html, /weather-rain\.js\?v=joy-rain-notice-v6/);
   assert.match(html, /project-hub-core\.js\?v=turtlebot-hub-v4/);
-  assert.match(html, /finance-p1008-shopping-tables-v1\.js\?v=joy-finance-p1008-shopping-tables-v2/);
+  assert.match(html, /finance-p1008-shopping-tables-v1\.css\?v=joy-finance-p1008-shopping-tables-v3/);
+  assert.match(html, /finance-p1008-shopping-tables-v1\.js\?v=joy-finance-p1008-shopping-tables-v3/);
+  assert.match(html, /finance-p1008-amount-input-v1\.js\?v=joy-finance-p1008-amount-input-v1/);
 
   for (const legacy of [
     "joy-character-motion-v5",
@@ -57,4 +59,5 @@ test("dashboard HTML is the canonical production asset owner", async () => {
   assertOrder(html, "project-hub-render.js", "project-hub-actions.js");
   assertOrder(html, "project-hub-extension-api.js", "project-state-v2.js");
   assertOrder(html, "finance-p1008-shopping-v1.js", "finance-p1008-shopping-tables-v1.js");
+  assertOrder(html, "finance-p1008-shopping-tables-v1.js", "finance-p1008-amount-input-v1.js");
 });
