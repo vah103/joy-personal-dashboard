@@ -1,3 +1,5 @@
+import { isSameOrigin, json, readJson } from "./shared/http.js";
+
 const TASK_ENGLISH_PATH = "/api/tasks/english";
 const DEFAULT_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
 
@@ -105,29 +107,4 @@ function cleanTaskText(value) {
     .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-}
-
-function isSameOrigin(request) {
-  const origin = request.headers.get("Origin");
-  return !origin || origin === new URL(request.url).origin;
-}
-
-async function readJson(request) {
-  try {
-    return await request.json();
-  } catch {
-    return {};
-  }
-}
-
-function json(value, status = 200, extraHeaders = {}) {
-  return new Response(JSON.stringify(value), {
-    status,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store",
-      "X-Content-Type-Options": "nosniff",
-      ...extraHeaders,
-    },
-  });
 }

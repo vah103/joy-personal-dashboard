@@ -270,47 +270,15 @@
     });
   }
 
-  function guardEnglishChartMonths() {
-    const labels = panel.querySelector("#finance-months");
-    if (!labels || labels.dataset.englishMonthGuard === "true") return;
-
-    labels.dataset.englishMonthGuard = "true";
-    const observer = new MutationObserver(() => useEnglishChartMonths());
-    observer.observe(labels, { childList: true, subtree: true, characterData: true });
-    useEnglishChartMonths();
-  }
-
   function polishFinanceDashboard() {
     panel.classList.add("finance-dashboard-polished");
     makeMonthButton();
     useEnglishChartMonths();
-    guardEnglishChartMonths();
   }
 
   installDashboardStyles();
-
-  if (typeof renderFinanceChart === "function" && !renderFinanceChart.__joyEnglishMonths) {
-    const originalRenderFinanceChart = renderFinanceChart;
-    const englishRenderFinanceChart = function renderFinanceChartWithEnglishMonths(...args) {
-      const result = originalRenderFinanceChart.apply(this, args);
-      useEnglishChartMonths();
-      queueMicrotask(useEnglishChartMonths);
-      return result;
-    };
-    englishRenderFinanceChart.__joyEnglishMonths = true;
-    renderFinanceChart = englishRenderFinanceChart;
-  }
-
-  if (typeof renderFinanceDashboard === "function" && !renderFinanceDashboard.__joyDashboardPolished) {
-    const originalRenderFinanceDashboard = renderFinanceDashboard;
-    const polishedRenderFinanceDashboard = function renderPolishedFinanceDashboard(...args) {
-      const result = originalRenderFinanceDashboard.apply(this, args);
-      polishFinanceDashboard();
-      return result;
-    };
-    polishedRenderFinanceDashboard.__joyDashboardPolished = true;
-    renderFinanceDashboard = polishedRenderFinanceDashboard;
-  }
+  document.addEventListener("joy:finance-chart-rendered", useEnglishChartMonths);
+  document.addEventListener("joy:finance-dashboard-rendered", polishFinanceDashboard);
 
   polishFinanceDashboard();
   if (typeof financeSummary !== "undefined" && financeSummary) renderFinanceDashboard();

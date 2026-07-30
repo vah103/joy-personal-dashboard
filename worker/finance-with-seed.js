@@ -2,6 +2,8 @@ import {
   handleFinanceLedgerRequest as handleBaseFinanceLedgerRequest,
   isFinanceLedgerRoute,
 } from "./finance-ledger.js";
+import { json } from "./shared/http.js";
+import { readCookies, sha256Hex } from "./shared/session.js";
 
 const SESSION_COOKIE = "__Host-joy_session";
 const IMPORT_KEY = "finance-tracker-2026-v1";
@@ -161,19 +163,6 @@ async function financeSessionEmail(request, env) {
   return String(session?.user_email || "").trim().toLowerCase();
 }
 
-function readCookies(request) {
-  return Object.fromEntries((request.headers.get("Cookie") || "").split(";").map((part) => {
-    const index = part.indexOf("=");
-    if (index === -1) return ["", ""];
-    return [part.slice(0, index).trim(), decodeURIComponent(part.slice(index + 1).trim())];
-  }).filter(([key]) => key));
-}
-
-async function sha256Hex(value) {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
 function vietnamMonthKey(year) {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Ho_Chi_Minh",
@@ -182,14 +171,4 @@ function vietnamMonthKey(year) {
   }).formatToParts(new Date());
   const month = parts.find((part) => part.type === "month")?.value || "01";
   return `${year}-${month}`;
-}
-
-function json(payload, status = 200) {
-  return new Response(JSON.stringify(payload), {
-    status,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store",
-    },
-  });
 }

@@ -52,20 +52,16 @@ function writingReviewFresh(diagnostic) {
   );
 }
 
-const diagnosticNormalBeforeWritingReview = diagnosticNormal;
-diagnosticNormal = function diagnosticNormalWithWritingReview(value) {
-  const normalized = diagnosticNormalBeforeWritingReview(value);
+function withWritingReviewState(normalized, value) {
   const source = obj(value);
   normalized.writing.review = writingReviewNormal(source.writing?.review);
   normalized.writing.reviewedAt = Number(source.writing?.reviewedAt || 0);
   normalized.writing.reviewMethod = String(source.writing?.reviewMethod || "").slice(0, 100);
   normalized.writing.reviewFingerprint = String(source.writing?.reviewFingerprint || "").slice(0, 100);
   return normalized;
-};
+}
 
-const diagnosticCardBeforeWritingReview = diagnosticCard;
-diagnosticCard = function diagnosticCardWithWritingReview(skill) {
-  const original = diagnosticCardBeforeWritingReview(skill);
+function enhanceWritingDiagnosticCard(skill, original) {
   if (skill !== "writing") return original;
   const diagnostic = app.data.diagnostics.writing;
   if (!diagnosticDone(diagnostic)) return original;
@@ -73,11 +69,9 @@ diagnosticCard = function diagnosticCardWithWritingReview(skill) {
   const stale = Boolean(diagnostic.review && !fresh);
   const button = `<button class="diagnostic-ai-button" data-writing-review="${fresh ? "view" : "run"}">${fresh ? "View Joy AI review" : stale ? "Essay changed · review again" : "Review with Joy AI"}</button>`;
   return original.replace("</article>", `${button}</article>`);
-};
+}
 
-const baselineBeforeWritingReview = baseline;
-baseline = function baselineWithWritingReview() {
-  baselineBeforeWritingReview();
+function renderWritingReviewSummary() {
   const diagnostic = app.data.diagnostics.writing;
   const review = diagnostic.review;
   if (!review) return;
@@ -88,7 +82,7 @@ baseline = function baselineWithWritingReview() {
     return;
   }
   summary.insertAdjacentHTML("beforebegin", writingReviewSummary(review));
-};
+}
 
 function writingReviewSummary(review) {
   const topPriority = review.learningPriorities?.[0];
@@ -250,12 +244,3 @@ document.addEventListener("click", (event) => {
 
 window.JoyIELTS.reviewWritingDiagnostic = runWritingReview;
 window.JoyIELTS.getWritingReview = () => structuredClone(app.data.diagnostics.writing.review);
-
-const diagnosticBandBeforeWritingFreshness = diagnosticBand;
-diagnosticBand = function diagnosticBandWithWritingFreshness(skill) {
-  if (skill === "writing") {
-    const diagnostic = app.data.diagnostics?.writing;
-    if (diagnostic?.review && !writingReviewFresh(diagnostic)) return null;
-  }
-  return diagnosticBandBeforeWritingFreshness(skill);
-};

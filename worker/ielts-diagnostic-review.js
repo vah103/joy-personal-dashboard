@@ -1,4 +1,6 @@
-const SESSION_COOKIE = "__Host-joy_session";
+import { isSameOrigin, json, readJson } from "./shared/http.js";
+import { getSession } from "./shared/session.js";
+
 const REVIEW_PATH = "/api/ielts/diagnostic-review";
 const DEFAULT_AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const MAX_ANSWER_CHARS = 40_000;
@@ -217,21 +219,3 @@ function boundedNumber(value, fallback, min, max) { const number = Number(value)
 function cleanAnswer(value) { return String(value || "").replace(/\r\n?/g, "\n").replace(/\u0000/g, "").trim(); }
 function cleanText(value, limit) { return String(value || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, limit); }
 function wordCount(value) { return String(value || "").trim().split(/\s+/).filter(Boolean).length; }
-async function getSession(request, env) {
-  const token = readCookies(request)[SESSION_COOKIE];
-  if (!token) return null;
-  const tokenHash = await sha256Hex(token);
-  return env.DB.prepare(`SELECT user_email, expires_at FROM sessions WHERE token_hash = ? AND expires_at > ?`).bind(tokenHash, Date.now()).first();
-}
-function readCookies(request) {
-  return Object.fromEntries((request.headers.get("Cookie") || "").split(";").map((part) => { const [name, ...rest] = part.trim().split("="); return [name, rest.join("=")]; }).filter(([name]) => name));
-}
-function isSameOrigin(request) { const origin = request.headers.get("Origin"); return !origin || origin === new URL(request.url).origin; }
-async function sha256Hex(value) {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-async function readJson(request) { try { return await request.json(); } catch { return {}; } }
-function json(value, status = 200, extraHeaders = {}) {
-  return new Response(JSON.stringify(value), { status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", ...extraHeaders } });
-}

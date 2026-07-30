@@ -103,49 +103,7 @@ function ensureVietnamesePlan() {
   Object.defineProperty(app.plan, "__language", { value: IELTS_LANGUAGE, enumerable: false });
 }
 
-function wrapTranslatedRender(original) {
-  return function translatedRender(...args) {
-    ensureVietnamesePlan();
-    const result = original.apply(this, args);
-    translateIeltsDom(document.querySelector("#ielts-modal") || document);
-    return result;
-  };
-}
-
-const renderBeforeVietnamese = render; render = wrapTranslatedRender(renderBeforeVietnamese);
-const todayBeforeVietnamese = today; today = wrapTranslatedRender(todayBeforeVietnamese);
-const roadmapBeforeVietnamese = roadmap; roadmap = wrapTranslatedRender(roadmapBeforeVietnamese);
-const logBeforeVietnamese = log; log = wrapTranslatedRender(logBeforeVietnamese);
-const coachBeforeVietnamese = coach; coach = wrapTranslatedRender(coachBeforeVietnamese);
-const editorBeforeVietnamese = editor; editor = wrapTranslatedRender(editorBeforeVietnamese);
-const weeklyBeforeVietnamese = weekly; weekly = wrapTranslatedRender(weeklyBeforeVietnamese);
-const finalReviewBeforeVietnamese = finalReview; finalReview = wrapTranslatedRender(finalReviewBeforeVietnamese);
-const baselineBeforeVietnamese = baseline; baseline = wrapTranslatedRender(baselineBeforeVietnamese);
-const editProfileBeforeVietnamese = editProfile; editProfile = wrapTranslatedRender(editProfileBeforeVietnamese);
-const diagnosticEditorBeforeVietnamese = diagnosticEditor; diagnosticEditor = wrapTranslatedRender(diagnosticEditorBeforeVietnamese);
-const openWritingReviewBeforeVietnamese = openWritingReview; openWritingReview = wrapTranslatedRender(openWritingReviewBeforeVietnamese);
-const openWritingRewriteBeforeVietnamese = openWritingRewrite; openWritingRewrite = wrapTranslatedRender(openWritingRewriteBeforeVietnamese);
-
-const updateCardBeforeVietnamese = updateCard;
-updateCard = function updateCardVietnamese(...args) {
-  ensureVietnamesePlan();
-  const result = updateCardBeforeVietnamese.apply(this, args);
-  translateIeltsDom(document.querySelector("#project-list") || document);
-  return result;
-};
-
-const cardBeforeVietnamese = card;
-card = function cardVietnamese(...args) {
-  const result = cardBeforeVietnamese.apply(this, args);
-  translateIeltsDom(document.querySelector("#project-list") || document);
-  return result;
-};
-
-const syncBeforeVietnamese = sync;
-sync = function syncVietnamese(text) { return syncBeforeVietnamese(translateIeltsText(text)); };
-
-const toastBeforeVietnamese = toast;
-toast = function toastVietnamese(text) {
+function translateIeltsToastText(text) {
   const direct = {
     "Strict Mode remains on for August.": "Chế độ nghiêm ngặt tiếp tục được bật trong tháng 8.",
     "Moved to Recovery Queue.": "Đã chuyển vào Hàng đợi học bù.",
@@ -168,25 +126,13 @@ toast = function toastVietnamese(text) {
     "The adaptive rewrite requires at least 100 words of corrected writing.": "Bài viết lại thích ứng yêu cầu tối thiểu 100 từ đã được sửa.",
     "Writing rewrite completed with evidence.": "Đã hoàn thành bài Writing viết lại kèm bằng chứng.",
   };
-  return toastBeforeVietnamese(direct[text] || translateIeltsText(text));
-};
-
-fmt = function formatVietnameseDate(dateKey) {
-  return new Intl.DateTimeFormat(IELTS_LANGUAGE, { timeZone: TZ, weekday: "short", day: "numeric", month: "short" })
-    .format(new Date(`${dateKey}T00:00:00+07:00`));
-};
-
-rewriteDueLabel = function rewriteDueLabelVietnamese(plan) {
-  if (!plan?.dueAt) return "trong vòng 48 giờ";
-  return new Intl.DateTimeFormat(IELTS_LANGUAGE, { timeZone: TZ, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
-    .format(new Date(plan.dueAt));
-};
+  return direct[text] || translateIeltsText(text);
+}
 
 translateIeltsDom(document.querySelector("#ielts-modal") || document);
 translateIeltsDom(document.querySelector("#project-list") || document);
 
-const observer = new MutationObserver(() => {
+const translationObserver = new MutationObserver(() => {
   translateIeltsDom(document.querySelector("#ielts-modal") || document);
-  translateIeltsDom(document.querySelector("#project-list") || document);
 });
-observer.observe(document.documentElement, { childList: true, subtree: true });
+translationObserver.observe(document.documentElement, { childList: true, subtree: true });

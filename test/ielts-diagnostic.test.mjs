@@ -16,7 +16,7 @@ test("IELTS Core exposes a persisted learner profile and four-skill diagnostic",
   assert.ok(plan.prelaunch.some((item) => item.id === "prep-profile"));
   assert.ok(plan.prelaunch.some((item) => item.id === "prep-diagnostic"));
   assert.match(model, /2026\.08\.2/);
-  assert.match(actions, /__learnerBaseline/);
+  assert.match(model, /__learnerBaseline/);
   assert.doesNotMatch(actions, /DOMContentLoaded",load/);
 
   assert.match(diagnostic, /function profileDefault/);

@@ -12,8 +12,9 @@ import {
   scratchpadRowToApi,
 } from "./account-sync.js";
 import { gmailSearchQuery, isGmailMessageNew } from "./gmail-sync.js";
+import { isSameOrigin, json, readJson } from "./shared/http.js";
+import { getSession, readCookies, sha256Hex } from "./shared/session.js";
 
-const SESSION_COOKIE = "__Host-joy_session";
 const APPOINTMENTS_RANGE = "Appointments!A2:F";
 const SALE_LEDGER_RANGE = "Sale!A1:E1000";
 const PERSONAL_FINANCE_YEAR = 2026;
@@ -75,15 +76,6 @@ function requiredConfig(env) {
   const keys = ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "ALLOWED_EMAIL", "TOKEN_ENCRYPTION_SECRET"];
   const missing = keys.filter((key) => !env[key]);
   if (missing.length) throw new Error(`Missing Worker secrets: ${missing.join(", ")}`);
-}
-
-async function getSession(request, env) {
-  const token = readCookies(request)[SESSION_COOKIE];
-  if (!token) return null;
-  const tokenHash = await sha256Hex(token);
-  return env.DB.prepare(
-    "SELECT user_email, expires_at FROM sessions WHERE token_hash = ? AND expires_at > ?",
-  ).bind(tokenHash, Date.now()).first();
 }
 
 async function getAccessToken(email, env) {
@@ -979,11 +971,6 @@ async function encryptionKey(secret) {
   return crypto.subtle.importKey("raw", digest, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
 }
 
-async function sha256Hex(value) {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
 function base64Url(bytes) {
   let binary = "";
   bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
@@ -994,37 +981,6 @@ function fromBase64Url(value) {
   const padded = value.replaceAll("-", "+").replaceAll("_", "/").padEnd(Math.ceil(value.length / 4) * 4, "=");
   const binary = atob(padded);
   return Uint8Array.from(binary, (character) => character.charCodeAt(0));
-}
-
-function readCookies(request) {
-  return Object.fromEntries((request.headers.get("Cookie") || "").split(";").map((part) => {
-    const [name, ...rest] = part.trim().split("=");
-    return [name, rest.join("=")];
-  }).filter(([name]) => name));
-}
-
-function isSameOrigin(request) {
-  const origin = request.headers.get("Origin");
-  return !origin || origin === new URL(request.url).origin;
-}
-
-async function readJson(request) {
-  try {
-    return await request.json();
-  } catch {
-    return {};
-  }
-}
-
-function json(value, status = 200) {
-  return new Response(JSON.stringify(value), {
-    status,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store",
-      "X-Content-Type-Options": "nosniff",
-    },
-  });
 }
 
 function htmlError(message, status) {

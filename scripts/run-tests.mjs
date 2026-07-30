@@ -54,6 +54,9 @@ const compatibilityPaths = [
 ];
 
 const syntaxChecks = [
+  "worker/shared/http.js",
+  "worker/shared/schema.js",
+  "worker/shared/session.js",
   "worker/task-reminders.js",
   "worker/reminder-delivery.js",
   "worker/push.js",

@@ -1,77 +1,9 @@
 (() => {
-  const CORE_STYLES = [
-    ["joy-ielts-core-style", "project-data/ielts/ielts-core.css?v=ielts-august-core-v3"],
-    ["joy-ielts-core-polish", "project-data/ielts/ielts-core-polish.css?v=ielts-august-core-v3"],
-    ["joy-ielts-diagnostic-style", "project-data/ielts/ielts-diagnostic.css?v=ielts-baseline-v2"],
-    ["joy-ielts-writing-review-style", "project-data/ielts/ielts-writing-review.css?v=ielts-writing-review-v1"],
-    ["joy-ielts-writing-rewrite-style", "project-data/ielts/ielts-writing-rewrite.css?v=ielts-writing-rewrite-v1"],
-  ];
-  const CORE_SCRIPT = [
-    "joy-ielts-core-bundle",
-    "project-data/ielts/ielts-core-bundle.js?v=ielts-august-core-v7",
-  ];
-
-  function ensureCoreStyles() {
-    CORE_STYLES.forEach(([id, href]) => {
-      if (document.querySelector(`#${id}`)) return;
-      const link = document.createElement("link");
-      link.id = id;
-      link.rel = "stylesheet";
-      link.href = href;
-      document.head.append(link);
-    });
-    if (!document.querySelector("#joy-ielts-vietnamese-labels")) {
-      const style = document.createElement("style");
-      style.id = "joy-ielts-vietnamese-labels";
-      style.textContent = '.projects-panel .project-card.ielts-project-card .project-top span::after{content:"Tiến độ"}';
-      document.head.append(style);
-    }
-  }
-
-  function loadScript(id, src) {
-    return new Promise((resolve, reject) => {
-      const existing = document.querySelector(`#${id}`);
-      if (existing) {
-        if (window.JoyIELTS || existing.dataset.loaded === "true") resolve();
-        else {
-          existing.addEventListener("load", resolve, { once: true });
-          existing.addEventListener("error", reject, { once: true });
-        }
-        return;
-      }
-      const script = document.createElement("script");
-      script.id = id;
-      script.src = src;
-      script.async = false;
-      script.addEventListener("load", () => {
-        script.dataset.loaded = "true";
-        resolve();
-      }, { once: true });
-      script.addEventListener("error", reject, { once: true });
-      document.body.append(script);
-    });
-  }
-
-  async function loadAugustCore() {
-    ensureCoreStyles();
-    if (window.JoyIELTS) return true;
-    try {
-      await loadScript(...CORE_SCRIPT);
-      return Boolean(window.JoyIELTS);
-    } catch (error) {
-      console.error("Joy không thể tải IELTS Coach tháng 8", error);
-      const source = document.querySelector(".ielts-project-card .ielts-project-source");
-      if (source) source.textContent = "IELTS Coach chưa khả dụng · hãy tải lại Joy";
-      return false;
-    }
-  }
-
-  async function openCoach(event) {
+  function openCoach(event) {
     event?.preventDefault();
     event?.stopImmediatePropagation();
     event?.stopPropagation();
-    const ready = await loadAugustCore();
-    if (ready) {
+    if (window.JoyIELTS?.open) {
       window.JoyIELTS.open();
       return;
     }
@@ -120,18 +52,23 @@
         pill.textContent = "Mục tiêu Band 7.0";
         cardElement.append(pill);
       }
+      if (!cardElement.querySelector(".ielts-metrics")) {
+        const metrics = document.createElement("div");
+        metrics.className = "ielts-metrics";
+        metrics.innerHTML = '<span data-m="today"></span><span data-m="speaking"></span><span data-m="late"></span>';
+        cardElement.append(metrics);
+      }
       if (!cardElement.querySelector(".ielts-project-source")) {
         const source = document.createElement("small");
         source.className = "ielts-project-source";
         source.textContent = window.JoyIELTS ? "IELTS Coach đã sẵn sàng · Bấm để mở" : "Đang tải IELTS Coach…";
         cardElement.append(source);
       }
+      window.JoyIELTS?.refreshCard?.();
     });
   }
 
-  ensureCoreStyles();
   const projectList = document.querySelector("#project-list");
   if (projectList) new MutationObserver(enhanceIeltsCard).observe(projectList, { childList: true });
   enhanceIeltsCard();
-  void loadAugustCore().then(() => enhanceIeltsCard());
 })();

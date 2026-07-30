@@ -28,9 +28,11 @@ test("Finance outer dashboard keeps compact money values", () => {
 
 test("Finance chart months stay English after every render", () => {
   assert.match(dashboardSource, /\["Jan", "Feb", "Mar"/);
-  assert.match(dashboardSource, /renderFinanceChartWithEnglishMonths/);
-  assert.match(dashboardSource, /guardEnglishChartMonths/);
-  assert.match(dashboardSource, /new MutationObserver/);
+  assert.match(dashboardSource, /joy:finance-chart-rendered/);
+  assert.match(dashboardSource, /joy:finance-dashboard-rendered/);
+  assert.doesNotMatch(dashboardSource, /new MutationObserver/);
+  assert.doesNotMatch(dashboardSource, /renderFinanceChart\s*=/);
+  assert.doesNotMatch(dashboardSource, /renderFinanceDashboard\s*=/);
 });
 
 test("Finance outer labels are larger and clearer", () => {
