@@ -34,6 +34,19 @@ test("P1008 account sync remains active but its visible labels are removed", () 
   assert.match(styles, /\.p1008-view \.p1008-local-state[\s\S]*display: none !important/);
 });
 
+test("shared shopping member table provides fullscreen capture and landscape lock", () => {
+  assert.match(source, /data-shopping-fullscreen/);
+  assert.match(source, /Toàn màn hình/);
+  assert.match(source, /requestFullscreen \|\| card\.webkitRequestFullscreen/);
+  assert.match(source, /orientation\.lock\("landscape"\)/);
+  assert.match(source, /document\.exitFullscreen \|\| document\.webkitExitFullscreen/);
+  assert.match(source, /fullscreenchange/);
+  assert.match(styles, /\.p1008-shopping-people-card\.is-shopping-capture-mode/);
+  assert.match(styles, /height: 100dvh !important/);
+  assert.match(styles, /body\.p1008-shopping-capture-active/);
+  assert.match(styles, /\.p1008-shopping-fullscreen-actions/);
+});
+
 test("canonical dashboard loads compact shopping assets after the base shopping table assets", () => {
   const tablesCss = "finance-p1008-shopping-tables-v1.css?v=joy-finance-p1008-shopping-tables-v3";
   const compactCss = "finance-p1008-shopping-compact-v1.css?v=joy-finance-p1008-shopping-compact-v1";
