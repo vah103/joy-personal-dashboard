@@ -73,7 +73,8 @@ const projectHubHead = [
   '    <link rel="stylesheet" href="room-summary.css?v=joy-room-summary-v1">\n',
   '    <link rel="stylesheet" href="sales-assistant.css?v=joy-dashboard-sales-assistant-v4">\n',
   '    <link rel="stylesheet" href="project-data/finance/finance-layout-v2.css?v=joy-finance-ledger-v4">\n',
-  '    <link rel="stylesheet" href="project-data/finance/finance-p1008-refine-v3.css?v=joy-finance-p1008-refine-v5">\n',
+  '    <link rel="stylesheet" href="project-data/finance/finance-p1008-refine-v3.css?v=joy-finance-p1008-refine-v6">\n',
+  '    <link rel="stylesheet" href="project-data/finance/finance-p1008-capture-v2.css?v=joy-finance-p1008-capture-v2">\n',
   '    <link rel="stylesheet" href="dashboard-openai-headings.css?v=joy-openai-headings-v1">\n',
 ].join("");
 
@@ -101,7 +102,7 @@ const projectHubScripts = [
   '    <script type="module" src="sales-assistant.js?v=joy-dashboard-sales-assistant-v4"></script>\n',
   '    <script src="project-data/finance/finance-layout-v2.js?v=joy-finance-month-layout-v4" defer></script>\n',
   '    <script src="project-data/finance/finance-dashboard-v1.js?v=joy-finance-dashboard-v3" defer></script>\n',
-  '    <script src="project-data/finance/finance-p1008-refine-v3.js?v=joy-finance-p1008-refine-v5" defer></script>\n',
+  '    <script src="project-data/finance/finance-p1008-refine-v3.js?v=joy-finance-p1008-refine-v6" defer></script>\n',
 ].join("");
 
 const sourceHtml = await readFile(resolve(dashboardPage, "index.html"), "utf8");

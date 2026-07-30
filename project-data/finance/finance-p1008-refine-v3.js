@@ -8,6 +8,7 @@
   let capturePlaceholder = null;
   let captureScrollY = 0;
   let nativeFullscreenRequested = false;
+  let orientationLocked = false;
 
   function arrangeP1008Overview(content) {
     const summary = content.querySelector(".p1008-summary");
@@ -22,6 +23,30 @@
     }
 
     overview.append(summary, servicesCard);
+  }
+
+  async function lockCaptureLandscape() {
+    const orientation = globalThis.screen?.orientation;
+    if (!orientation?.lock) return;
+
+    try {
+      await orientation.lock("landscape");
+      orientationLocked = true;
+    } catch {
+      orientationLocked = false;
+    }
+  }
+
+  function unlockCaptureOrientation() {
+    const orientation = globalThis.screen?.orientation;
+    if (orientation?.unlock) {
+      try {
+        orientation.unlock();
+      } catch {
+        // Orientation unlock is best-effort across mobile browsers.
+      }
+    }
+    orientationLocked = false;
   }
 
   function setCaptureButtonState(button, active) {
@@ -40,6 +65,7 @@
     setCaptureButtonState(button, false);
     card.classList.remove("is-capture-mode");
     document.body.classList.remove("p1008-capture-active");
+    unlockCaptureOrientation();
 
     const placeholder = capturePlaceholder;
     captureCard = null;
@@ -78,12 +104,18 @@
       try {
         nativeFullscreenRequested = true;
         const request = card.requestFullscreen({ navigationUI: "hide" });
-        Promise.resolve(request).catch(() => {
-          nativeFullscreenRequested = false;
-        });
+        Promise.resolve(request)
+          .then(() => lockCaptureLandscape())
+          .catch(() => {
+            nativeFullscreenRequested = false;
+            lockCaptureLandscape();
+          });
       } catch {
         nativeFullscreenRequested = false;
+        lockCaptureLandscape();
       }
+    } else {
+      lockCaptureLandscape();
     }
   }
 
@@ -128,6 +160,11 @@
     actions.append(button);
   }
 
+  function removeAllocatedFooter(peopleCard) {
+    const footer = peopleCard.querySelector(".p1008-people-table tfoot");
+    if (footer?.textContent.includes("Tổng đã phân bổ")) footer.remove();
+  }
+
   function refineP1008Layout() {
     const content = workspace.querySelector("#finance-workspace-content");
     if (!content?.classList.contains("p1008-view")) return;
@@ -141,6 +178,7 @@
     const heading = peopleCard.querySelector("header h3");
     if (heading) heading.textContent = "Chia tiền dịch vụ";
     peopleCard.querySelector("header p")?.remove();
+    removeAllocatedFooter(peopleCard);
     ensureCaptureButton(peopleCard);
   }
 
@@ -161,6 +199,11 @@
   });
 
   document.addEventListener("fullscreenchange", () => {
+    if (captureCard && document.fullscreenElement) {
+      lockCaptureLandscape();
+      return;
+    }
+
     if (captureCard && nativeFullscreenRequested && !document.fullscreenElement) {
       exitCaptureMode({ skipFullscreenExit: true });
     }

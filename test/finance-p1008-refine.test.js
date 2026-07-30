@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 
 const source = await readFile(new URL("../project-data/finance/finance-p1008-refine-v3.js", import.meta.url), "utf8");
 const styles = await readFile(new URL("../project-data/finance/finance-p1008-refine-v3.css", import.meta.url), "utf8");
+const captureStyles = await readFile(new URL("../project-data/finance/finance-p1008-capture-v2.css", import.meta.url), "utf8");
 const build = await readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8");
 
 test("P1008 refinement source parses and arranges the overview without global observers", () => {
@@ -25,29 +26,40 @@ test("P1008 places the summary beside a compact service table", () => {
   assert.match(styles, /font-size: 12px/);
 });
 
-test("P1008 adds a fullscreen capture button for the people table", () => {
+test("P1008 adds a fullscreen capture button and requests landscape orientation", () => {
   assert.match(source, /dataset\.p1008Fullscreen = "true"/);
   assert.match(source, /Toàn màn hình/);
   assert.match(source, /requestFullscreen/);
   assert.match(source, /document\.exitFullscreen/);
+  assert.match(source, /orientation\.lock\("landscape"\)/);
+  assert.match(source, /orientation\.unlock\(\)/);
   assert.match(source, /event\.key === "Escape"/);
   assert.match(source, /p1008-capture-active/);
   assert.match(source, /is-capture-mode/);
 });
 
-test("P1008 capture mode fills the viewport and compacts the landscape table", () => {
-  assert.match(styles, /\.p1008-people-card\.is-capture-mode[\s\S]*position: fixed/);
-  assert.match(styles, /height: 100dvh/);
-  assert.match(styles, /z-index: 2147483000/);
-  assert.match(styles, /table-layout: fixed/);
-  assert.match(styles, /orientation: landscape/);
-  assert.match(styles, /max-height: 520px/);
-  assert.match(styles, /overflow: hidden !important/);
+test("P1008 removes the allocated-total footer from the member table", () => {
+  assert.match(source, /removeAllocatedFooter/);
+  assert.match(source, /Tổng đã phân bổ/);
+  assert.match(source, /footer\.remove\(\)/);
+  assert.match(captureStyles, /\.p1008-people-table tfoot \{[\s\S]*display: none/);
+});
+
+test("P1008 capture mode distributes all six member rows across the viewport", () => {
+  assert.match(captureStyles, /height: 100%/);
+  assert.match(captureStyles, /display: grid/);
+  assert.match(captureStyles, /grid-template-rows: repeat\(6, minmax\(0, 1fr\)\)/);
+  assert.match(captureStyles, /--p1008-capture-columns:/);
+  assert.match(captureStyles, /grid-template-columns: var\(--p1008-capture-columns\)/);
+  assert.match(captureStyles, /orientation: landscape/);
+  assert.match(captureStyles, /orientation: portrait/);
+  assert.match(captureStyles, /safe-area-inset-bottom/);
 });
 
 test("P1008 assets are declared by the canonical frontend build", () => {
   assert.match(build, /joy-finance-p1008-v3/);
-  assert.match(build, /finance-p1008-refine-v3\.css\?v=joy-finance-p1008-refine-v5/);
-  assert.match(build, /finance-p1008-refine-v3\.js\?v=joy-finance-p1008-refine-v5/);
+  assert.match(build, /finance-p1008-refine-v3\.css\?v=joy-finance-p1008-refine-v6/);
+  assert.match(build, /finance-p1008-refine-v3\.js\?v=joy-finance-p1008-refine-v6/);
+  assert.match(build, /finance-p1008-capture-v2\.css\?v=joy-finance-p1008-capture-v2/);
   assert.doesNotMatch(build, /cache-bust-finance-p1008/);
 });

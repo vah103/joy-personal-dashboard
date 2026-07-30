@@ -1,0 +1,167 @@
+.p1008-people-table tfoot {
+  display: none;
+}
+
+.p1008-people-card.is-capture-mode,
+.p1008-people-card.is-capture-mode:fullscreen {
+  --p1008-capture-columns: minmax(0, 1.1fr) repeat(5, minmax(0, 1fr)) minmax(0, 1.15fr);
+}
+
+.p1008-people-card.is-capture-mode > header {
+  min-height: 58px;
+  padding:
+    max(8px, env(safe-area-inset-top))
+    max(14px, env(safe-area-inset-right))
+    8px
+    max(14px, env(safe-area-inset-left));
+}
+
+.p1008-people-card.is-capture-mode h3 {
+  font-size: clamp(17px, 1.8vw, 28px);
+}
+
+.p1008-people-card.is-capture-mode .p1008-people-header-actions > span {
+  font-size: clamp(9px, 1vw, 14px);
+}
+
+.p1008-people-card.is-capture-mode .p1008-table-wrap {
+  min-width: 0;
+  min-height: 0;
+  padding:
+    0
+    max(10px, env(safe-area-inset-right))
+    max(8px, env(safe-area-inset-bottom))
+    max(10px, env(safe-area-inset-left));
+  display: flex;
+  overflow: hidden;
+}
+
+.p1008-people-card.is-capture-mode .p1008-people-table {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(40px, .72fr) minmax(0, 6fr);
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: clamp(11px, 1.25vw, 18px);
+}
+
+.p1008-people-card.is-capture-mode .p1008-people-table thead,
+.p1008-people-card.is-capture-mode .p1008-people-table tbody {
+  min-width: 0;
+  min-height: 0;
+}
+
+.p1008-people-card.is-capture-mode .p1008-people-table thead {
+  display: grid;
+}
+
+.p1008-people-card.is-capture-mode .p1008-people-table tbody {
+  display: grid;
+  grid-template-rows: repeat(6, minmax(0, 1fr));
+}
+
+.p1008-people-card.is-capture-mode .p1008-people-table thead tr,
+.p1008-people-card.is-capture-mode .p1008-people-table tbody tr {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: var(--p1008-capture-columns);
+}
+
+.p1008-people-card.is-capture-mode .p1008-people-table th,
+.p1008-people-card.is-capture-mode .p1008-people-table td {
+  width: auto;
+  min-width: 0;
+  padding: clamp(7px, 1vw, 16px);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(58, 77, 82, .11);
+  line-height: 1.2;
+  font-size: inherit;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.p1008-people-card.is-capture-mode .p1008-people-table thead th {
+  position: static;
+  top: auto;
+  z-index: auto;
+  justify-content: center;
+  font-size: clamp(8.5px, .88vw, 13px);
+  line-height: 1.22;
+  text-align: center;
+  white-space: normal;
+}
+
+.p1008-people-card.is-capture-mode .p1008-people-table th:first-child,
+.p1008-people-card.is-capture-mode .p1008-people-table td:first-child {
+  width: auto;
+  min-width: 0;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.p1008-people-card.is-capture-mode .p1008-people-table thead th:first-child {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.p1008-people-card.is-capture-mode .p1008-people-table tbody th strong,
+.p1008-people-card.is-capture-mode .p1008-people-table tbody td strong {
+  font-size: clamp(11px, 1.3vw, 18px);
+}
+
+.p1008-people-card.is-capture-mode .p1008-people-table tbody tr.is-vanh > * {
+  background: rgba(67, 111, 116, .075);
+}
+
+.p1008-people-card.is-capture-mode .p1008-people-table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+@media (orientation: landscape) {
+  .p1008-people-card.is-capture-mode .p1008-table-wrap {
+    overflow: hidden;
+  }
+}
+
+@media (orientation: portrait) {
+  .p1008-people-card.is-capture-mode .p1008-table-wrap {
+    overflow: auto;
+  }
+
+  .p1008-people-card.is-capture-mode .p1008-people-table {
+    min-width: 880px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .p1008-people-card.is-capture-mode > header {
+    min-height: 44px;
+    padding:
+      max(4px, env(safe-area-inset-top))
+      max(10px, env(safe-area-inset-right))
+      4px
+      max(10px, env(safe-area-inset-left));
+  }
+
+  .p1008-people-card.is-capture-mode h3 {
+    font-size: clamp(14px, 1.65vw, 20px);
+  }
+
+  .p1008-people-card.is-capture-mode .p1008-people-table {
+    grid-template-rows: minmax(32px, .65fr) minmax(0, 6fr);
+    font-size: clamp(9.5px, 1.15vw, 14px);
+  }
+
+  .p1008-people-card.is-capture-mode .p1008-people-table th,
+  .p1008-people-card.is-capture-mode .p1008-people-table td {
+    padding: clamp(4px, .75vw, 9px);
+  }
+}
