@@ -10,7 +10,7 @@ const source = await readFile(new URL("../project-data/finance/finance-p1008-sho
 const styles = await readFile(new URL("../project-data/finance/finance-p1008-shopping-v1.css", import.meta.url), "utf8");
 const workerSource = await readFile(new URL("../worker/finance-p1008-shopping.js", import.meta.url), "utf8");
 const routerSource = await readFile(new URL("../worker/router.js", import.meta.url), "utf8");
-const schemaSource = await readFile(new URL("../worker/shared/schema.js", import.meta.url), "utf8");
+const migrationSource = await readFile(new URL("../migrations/20260731_canonical_runtime_schema.sql", import.meta.url), "utf8");
 const dashboard = await readFile(new URL("../src/pages/dashboard/index.html", import.meta.url), "utf8");
 
 test("P1008 shopping module parses and provides monthly item entry", () => {
@@ -77,8 +77,9 @@ test("P1008 shopping sync is account scoped and independent of Google Sheets", (
   assert.match(workerSource, /getSession\(request, env\)/);
   assert.match(workerSource, /session\.user_email/);
   assert.match(workerSource, /isSameOrigin\(request\)/);
-  assert.match(schemaSource, /CREATE TABLE IF NOT EXISTS finance_p1008_shopping/);
-  assert.match(schemaSource, /user_email TEXT PRIMARY KEY/);
+  assert.match(migrationSource, /CREATE TABLE IF NOT EXISTS finance_p1008_shopping/);
+  assert.match(migrationSource, /user_email TEXT PRIMARY KEY/);
+  assert.doesNotMatch(workerSource, /CREATE TABLE IF NOT EXISTS/);
   assert.ok(
     routerSource.indexOf("isFinanceP1008ShoppingRoute(pathname)")
       < routerSource.indexOf("integrationForApiPath(pathname)"),
