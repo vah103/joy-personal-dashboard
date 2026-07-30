@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node scripts/validate-ielts-sources.mjs && node scripts/build.mjs && node scripts/patch-finance-core-amount.mjs && node scripts/cache-bust-finance-p1008.mjs && node scripts/cache-bust-task-english.mjs && node scripts/cache-bust-task-natural-input.mjs && node scripts/cache-bust-turtlebot-plan.mjs",
+    "build": "node scripts/validate-ielts-sources.mjs && node scripts/build.mjs && node scripts/build-finance-bundle.mjs && node scripts/cache-bust-finance-p1008.mjs && node scripts/cache-bust-task-english.mjs && node scripts/cache-bust-task-natural-input.mjs && node scripts/cache-bust-turtlebot-plan.mjs",
     "test": "node scripts/run-tests.mjs",
     "test:finance": "node scripts/run-feature-tests.mjs finance",
     "test:ielts": "node scripts/run-feature-tests.mjs ielts",

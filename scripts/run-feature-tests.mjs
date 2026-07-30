@@ -19,7 +19,7 @@ const configurations = {
       "project-data/finance/finance-dashboard-v1.js",
       "worker/finance-ledger.js",
       "worker/finance-with-seed.js",
-      "scripts/patch-finance-core-amount.mjs",
+      "scripts/build-finance-bundle.mjs",
     ],
     testPattern: /finance/i,
   },
