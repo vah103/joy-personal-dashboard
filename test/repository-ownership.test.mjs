@@ -58,6 +58,7 @@ test("D1 table ownership stays in migrations instead of Worker requests", async 
     "daily_brief_stories",
     "finance_p1008",
     "finance_p1008_shopping",
+    "google_integrations",
   ]) {
     assert.match(migration, new RegExp(`CREATE TABLE IF NOT EXISTS ${table}`));
   }
