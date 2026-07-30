@@ -72,3 +72,10 @@ CREATE TABLE IF NOT EXISTS finance_p1008_shopping (
   data_json TEXT NOT NULL DEFAULT '{}',
   updated_at INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS google_integrations (
+  user_email TEXT PRIMARY KEY,
+  gmail_enabled INTEGER NOT NULL DEFAULT 0,
+  sheets_enabled INTEGER NOT NULL DEFAULT 0,
+  updated_at INTEGER NOT NULL
+);
