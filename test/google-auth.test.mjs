@@ -11,6 +11,7 @@ const authSource = fs.readFileSync(new URL("../worker/google-auth.js", import.me
 const routerSource = fs.readFileSync(new URL("../worker/router.js", import.meta.url), "utf8");
 const appSource = fs.readFileSync(new URL("../worker/index.js", import.meta.url), "utf8");
 const buildSource = fs.readFileSync(new URL("../scripts/build.mjs", import.meta.url), "utf8");
+const dashboardHtml = fs.readFileSync(new URL("../src/pages/dashboard/index.html", import.meta.url), "utf8");
 const loginHtml = fs.readFileSync(new URL("../src/pages/login/index.html", import.meta.url), "utf8");
 const accountUi = fs.readFileSync(new URL("../src/features/auth/auth-ui.js", import.meta.url), "utf8");
 
@@ -71,6 +72,6 @@ test("Cloudflare build contains all authentication assets", () => {
   assert.ok(buildSource.includes('resolve(loginPage, "login.css")'));
   assert.ok(buildSource.includes('resolve(features, "auth", "auth-ui.js")'));
   assert.ok(buildSource.includes('resolve(features, "auth", "auth-ui.css")'));
-  assert.ok(buildSource.includes("auth-ui.css?v=joy-google-account-v3"));
-  assert.ok(buildSource.includes("auth-ui.js?v=joy-google-account-v3"));
+  assert.ok(dashboardHtml.includes("auth-ui.css?v=joy-google-account-v3"));
+  assert.ok(dashboardHtml.includes("auth-ui.js?v=joy-google-account-v3"));
 });
