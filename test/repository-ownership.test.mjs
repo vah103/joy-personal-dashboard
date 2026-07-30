@@ -38,6 +38,18 @@ test("public dashboard source contains no private Google Sheet identifier", asyn
   assert.match(html, /data-finance-open/);
 });
 
+test("private project documents are removed from deploy artifacts", async () => {
+  const packageJson = JSON.parse(await read("package.json"));
+  const sanitizer = await read("scripts/sanitize-public-project-data.mjs");
+  const runbook = await read("docs/privacy-history-rewrite.md");
+
+  assert.match(packageJson.scripts.build, /sanitize-public-project-data\.mjs/);
+  assert.match(sanitizer, /docs\\\.google\\\.com|PRIVATE_DOCUMENT_PATTERN/);
+  assert.match(sanitizer, /googleDocUrl/);
+  assert.match(runbook, /git filter-repo/);
+  assert.match(runbook, /must not be performed as part of a normal feature PR/i);
+});
+
 test("Daily Brief stylesheet is owned directly by dashboard HTML", async () => {
   const html = await read("src/pages/dashboard/index.html");
   const build = await read("scripts/build.mjs");
@@ -73,9 +85,24 @@ test("D1 table ownership stays in migrations instead of Worker requests", async 
   }
 });
 
-test("dashboard data routes have a dedicated runtime owner", async () => {
+test("verification smoke-tests migrations and deployment blocks pending remote schema", async () => {
+  const packageJson = JSON.parse(await read("package.json"));
+  const localCheck = await read("scripts/validate-d1-migrations.mjs");
+  const remoteGate = await read("scripts/check-remote-d1-migrations.mjs");
+
+  assert.match(packageJson.scripts.verify, /db:migrate:smoke/);
+  assert.match(packageJson.scripts["deploy:current"], /db:migrate:check:remote/);
+  assert.match(localCheck, /migrations[",\s]+"apply"/);
+  assert.match(localCheck, /--local/);
+  assert.match(remoteGate, /migrations[",\s]+"list"/);
+  assert.match(remoteGate, /--remote/);
+  assert.match(remoteGate, /Deployment has been stopped/);
+});
+
+test("dashboard data routes have one runtime owner", async () => {
   const router = await read("worker/router.js");
   const module = await read("worker/dashboard-data.js");
+  const legacy = await read("worker/index.js");
 
   assert.match(router, /from "\.\/dashboard-data\.js"/);
   assert.match(router, /isDashboardDataRoute\(pathname\)/);
@@ -84,6 +111,23 @@ test("dashboard data routes have a dedicated runtime owner", async () => {
     "/api/scratchpad",
     "/api/tasks",
   ]) {
-    assert.match(module, new RegExp(route.replaceAll("/", "\\/")));
+    const pattern = new RegExp(route.replaceAll("/", "\\/"));
+    assert.match(module, pattern);
+    assert.doesNotMatch(legacy, pattern);
   }
+  assert.doesNotMatch(legacy, /function (?:list|add|import|archive)Project|function (?:get|update)Scratchpad|function (?:list|add|complete)Task/);
+  assert.doesNotMatch(legacy, /from "\.\/todos\.js"|from "\.\/account-sync\.js"/);
+});
+
+test("app shell cache version is derived from the deployed build", async () => {
+  const build = await read("scripts/build.mjs");
+  const serviceWorker = await read("src/pwa/sw.js");
+
+  assert.match(build, /GITHUB_SHA|git", \["rev-parse", "HEAD"\]/);
+  assert.match(build, /joy-build-/);
+  assert.match(build, /joy-build-version/);
+  assert.match(build, /versionAssetReference\(cloudflareHtml, "app\.js"\)/);
+  assert.match(build, /service worker build version/);
+  assert.match(serviceWorker, /__JOY_BUILD_VERSION__/);
+  assert.doesNotMatch(serviceWorker, /joy-mobile-vocabulary-v2/);
 });

@@ -58,7 +58,7 @@ test("Vietnam date helper respects the configured timezone", () => {
 
 test("completed tasks are checked, struck through, and retain normal sorting", () => {
   const app = fs.readFileSync(
-    new URL("../src/pages/dashboard/app.js", import.meta.url),
+    new URL("../app.js", import.meta.url),
     "utf8",
   );
 
@@ -95,7 +95,7 @@ test("project deletion requires confirmation and preserves string ids", () => {
   );
 
   const app = fs.readFileSync(
-    new URL("../src/pages/dashboard/app.js", import.meta.url),
+    new URL("../app.js", import.meta.url),
     "utf8",
   );
 
@@ -133,8 +133,7 @@ test("todo helper is loaded before app and copied into dist", () => {
   );
 
   assert.ok(
-    html.indexOf("todo-visibility.js")
-      < html.indexOf("app.js"),
+    html.indexOf("todo-visibility.js") < html.indexOf("app.js"),
   );
 
   assert.ok(

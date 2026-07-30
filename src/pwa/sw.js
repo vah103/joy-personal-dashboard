@@ -1,4 +1,4 @@
-const APP_SHELL_VERSION = "joy-mobile-vocabulary-v2";
+const APP_SHELL_VERSION = "__JOY_BUILD_VERSION__";
 
 self.addEventListener("install", () => {
   self.skipWaiting();

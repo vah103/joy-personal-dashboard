@@ -107,7 +107,7 @@ test("weather keeps sunny and no-rain states while rain requires 85 percent", ()
     "utf8",
   );
   const app = fs.readFileSync(
-    new URL("../src/pages/dashboard/app.js", import.meta.url),
+    new URL("../app.js", import.meta.url),
     "utf8",
   );
   const build = fs.readFileSync(

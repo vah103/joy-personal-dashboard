@@ -52,7 +52,7 @@ test("maps a D1 project row to the browser shape", () => {
 });
 
 test("worker exposes authenticated project routes", () => {
-  const source = fs.readFileSync(new URL("../worker/index.js", import.meta.url), "utf8");
+  const source = fs.readFileSync(new URL("../worker/dashboard-data.js", import.meta.url), "utf8");
   for (const route of [
     'pathname === "/api/projects"',
     'pathname === "/api/projects/import"',

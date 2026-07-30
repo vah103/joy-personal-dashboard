@@ -19,11 +19,17 @@ test("CI and deployment share the high-severity verification gate", async () => 
   assert.equal(packageJson.scripts["audit:all"], "npm audit --audit-level=high");
   assert.equal(
     packageJson.scripts.verify,
-    "npm run audit:prod && npm run audit:all && npm test && npm run build",
+    "npm run audit:prod && npm run audit:all && npm run db:migrate:smoke && npm test && npm run build",
   );
-  assert.equal(packageJson.scripts["deploy:current"], "npm run verify && wrangler deploy");
+  assert.equal(
+    packageJson.scripts["deploy:current"],
+    "npm run verify && npm run db:migrate:check:remote && wrangler deploy",
+  );
 
   assert.match(workflow, /name: Verify repository[\s\S]*run: npm run verify/);
+  assert.match(workflow, /actions\/checkout@v6/);
+  assert.match(workflow, /actions\/setup-node@v6/);
+  assert.match(workflow, /node-version: 24/);
   assert.doesNotMatch(workflow, /run: npm run audit:(?:prod|all)/);
   assert.doesNotMatch(workflow, /run: npm test/);
   assert.doesNotMatch(workflow, /run: npm run build/);
