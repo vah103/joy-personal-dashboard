@@ -16,6 +16,8 @@ test("30 July TurtleBot progress closes Stage 3 and advances to Stage 4", async 
 
   assert.doesNotThrow(() => new Function(progress));
   assert.doesNotThrow(() => new Function(loader));
+  assert.match(progress, /const plan = hubState\?\.projectState/);
+  assert.doesNotMatch(progress, /window\.hubState/);
   assert.match(progress, /currentStageId = "stage-4"/);
   assert.match(progress, /progressAfter: 32/);
   assert.match(progress, /trials: 12/);
