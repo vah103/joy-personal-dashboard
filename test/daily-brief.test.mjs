@@ -9,13 +9,13 @@ async function source(path) {
 }
 
 test("Daily Brief is wired into the Worker and dashboard", async () => {
-  const [service, policy, budget, router, wrangler, build, script, styles, polish] = await Promise.all([
+  const [service, policy, budget, router, wrangler, dashboard, script, styles, polish] = await Promise.all([
     source("worker/daily-brief.js"),
     source("worker/daily-brief-policy.js"),
     source("worker/daily-brief-budget.js"),
     source("worker/router.js"),
     source("wrangler.jsonc"),
-    source("scripts/build.mjs"),
+    source("src/pages/dashboard/index.html"),
     source("src/features/greeting/greeting-layout.js"),
     source("src/features/greeting/greeting-layout.css"),
     source("src/features/greeting/daily-brief-polish.js"),
@@ -32,9 +32,9 @@ test("Daily Brief is wired into the Worker and dashboard", async () => {
   assert.match(router, /daily-brief-budget\.js/);
   assert.match(router, /runDailyBriefSchedule/);
   assert.match(wrangler, /"ai"\s*:\s*\{\s*"binding"\s*:\s*"AI"/s);
-  assert.match(build, /greeting-layout\.css\?v=joy-daily-brief-v4/);
-  assert.match(build, /greeting-layout\.js\?v=joy-daily-brief-v4/);
-  assert.match(build, /daily-brief-polish\.js\?v=joy-daily-brief-polish-v2/);
+  assert.match(dashboard, /greeting-layout\.css\?v=joy-daily-brief-v4/);
+  assert.match(dashboard, /greeting-layout\.js\?v=joy-daily-brief-v4/);
+  assert.match(dashboard, /daily-brief-polish\.js\?v=joy-daily-brief-polish-v2/);
   assert.match(script, /window\.fetch\("\/api\/daily-brief"/);
   assert.match(script, /daily-brief-drawer/);
   assert.match(script, /const ROTATION_MS = 20_000/);
