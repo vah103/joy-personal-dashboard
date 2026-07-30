@@ -11,8 +11,12 @@ function resourcePaths(source, attribute) {
 }
 
 function arrayDeclaration(build, name) {
-  const pattern = new RegExp(`const ${name} = \\[\\s\\S]*?\\]\\.join\\(""\\);`);
-  return build.match(pattern)?.[0] || "";
+  const start = `const ${name} = [`;
+  const end = '].join("");';
+  const startIndex = build.indexOf(start);
+  if (startIndex < 0) return "";
+  const endIndex = build.indexOf(end, startIndex);
+  return endIndex < 0 ? "" : build.slice(startIndex, endIndex + end.length);
 }
 
 test("dashboard build declares every static resource once", () => {
