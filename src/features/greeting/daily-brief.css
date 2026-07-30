@@ -1,0 +1,159 @@
+.joy-brief.daily-brief-news-first {
+  min-height: 98px;
+  padding: 10px 14px;
+  grid-template-columns: auto minmax(0, 1fr) 16px;
+  gap: 10px;
+}
+
+.joy-brief.daily-brief-news-first .brief-icon {
+  width: 38px;
+  height: 38px;
+}
+
+.joy-brief.daily-brief-news-first .joy-message {
+  min-height: 0;
+  padding: 9px 14px 8px;
+  box-sizing: border-box;
+}
+
+.joy-brief.daily-brief-news-first .daily-brief-stack {
+  min-height: 0;
+  display: block;
+  overflow: hidden;
+}
+
+.daily-brief-news-first .daily-brief-story-slide {
+  position: relative;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.daily-brief-news-first .daily-brief-story-slide.is-leaving {
+  opacity: 0;
+  transform: translateY(-18px);
+}
+
+.daily-brief-news-first .daily-brief-story-slide.is-entering {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: none;
+}
+
+.daily-brief-news-first .daily-brief-empty {
+  min-height: 0;
+  display: grid;
+  align-content: center;
+}
+
+.daily-brief-news-first .daily-brief-empty[hidden] {
+  display: none !important;
+}
+
+.daily-brief-empty span {
+  color: #4c6d78;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .1em;
+}
+
+.daily-brief-empty strong {
+  margin-top: 4px;
+  color: #334248;
+  font-size: 12.5px;
+}
+
+.daily-brief-empty p {
+  margin: 3px 0 0;
+  color: #6f797e;
+  font-size: 9.5px;
+}
+
+.joy-brief.daily-brief-news-first .joy-message > .daily-brief-personal {
+  position: static;
+  display: block;
+  min-height: 0;
+  margin: 5px 0 0;
+  padding: 4px 0 0;
+  overflow: hidden;
+  border: 0;
+  border-top: 1px solid rgba(92, 112, 120, .08);
+  color: rgba(82, 98, 105, .54);
+  font-size: 8.25px;
+  font-weight: 650;
+  line-height: 1.15;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.daily-brief-news-first .daily-brief-controls {
+  width: 16px;
+  justify-content: center;
+  gap: 0;
+  opacity: .62;
+}
+
+.daily-brief-news-first .daily-brief-arrow {
+  width: 16px;
+  min-width: 16px;
+  height: 18px;
+  padding: 0;
+  font-size: 13px;
+}
+
+.daily-brief-progress,
+.daily-brief-counter {
+  display: none !important;
+}
+
+.daily-brief-tag[data-category="ai"] {
+  background: rgba(216, 233, 240, .88);
+  color: #315f72;
+}
+
+.daily-brief-tag[data-category="robotics"] {
+  background: rgba(222, 232, 236, .88);
+  color: #405f6c;
+}
+
+.daily-brief-tag[data-category="money"] {
+  background: rgba(225, 235, 228, .9);
+  color: #456a54;
+}
+
+.daily-brief-tag[data-category="markets"] {
+  background: rgba(235, 232, 222, .9);
+  color: #6d6045;
+}
+
+@media (max-width: 760px) {
+  .joy-brief.daily-brief-news-first {
+    min-height: 94px;
+    padding: 9px 11px;
+    grid-template-columns: auto minmax(0, 1fr) 14px;
+    gap: 8px;
+  }
+
+  .joy-brief.daily-brief-news-first .brief-icon {
+    width: 34px;
+    height: 34px;
+  }
+
+  .joy-brief.daily-brief-news-first .joy-message {
+    padding: 8px 11px 7px;
+  }
+
+  .joy-brief.daily-brief-news-first .joy-message > .daily-brief-personal {
+    margin-top: 4px;
+    padding-top: 3px;
+    font-size: 7.75px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .daily-brief-news-first .daily-brief-story-slide {
+    transition: none !important;
+  }
+}
