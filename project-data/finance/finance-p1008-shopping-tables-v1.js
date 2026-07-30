@@ -68,6 +68,92 @@
     return people;
   }
 
+  function ensureSummaryStyle() {
+    if (document.querySelector("#p1008-shopping-summary-match-style")) return;
+    const style = document.createElement("style");
+    style.id = "p1008-shopping-summary-match-style";
+    style.textContent = `
+      .p1008-shopping-two-table-section .p1008-shopping-summary.is-service-style {
+        margin-top: 14px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .p1008-shopping-two-table-section .p1008-shopping-summary.is-service-style article {
+        min-width: 0;
+        padding: 18px 20px;
+        border: 1px solid rgba(58, 77, 82, .11);
+        border-radius: 17px;
+        background: rgba(255, 255, 255, .52);
+      }
+      .p1008-shopping-two-table-section .p1008-shopping-summary.is-service-style article.is-primary {
+        background: linear-gradient(135deg, #426873, #607e79);
+        box-shadow: 0 10px 24px rgba(54, 83, 90, .14);
+      }
+      .p1008-shopping-two-table-section .p1008-shopping-summary.is-service-style span,
+      .p1008-shopping-two-table-section .p1008-shopping-summary.is-service-style strong,
+      .p1008-shopping-two-table-section .p1008-shopping-summary.is-service-style small {
+        display: block;
+      }
+      .p1008-shopping-two-table-section .p1008-shopping-summary.is-service-style span {
+        color: #738286;
+        font-size: 11px;
+        font-weight: 800;
+      }
+      .p1008-shopping-two-table-section .p1008-shopping-summary.is-service-style strong {
+        margin-top: 8px;
+        color: #304a51;
+        font: 700 29px/1.08 "OpenAI Sans", "Instrument Sans", "Segoe UI", sans-serif;
+      }
+      .p1008-shopping-two-table-section .p1008-shopping-summary.is-service-style small {
+        margin-top: 7px;
+        overflow: hidden;
+        color: #849093;
+        font-size: 9px;
+        line-height: 1.35;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .p1008-shopping-two-table-section .p1008-shopping-summary.is-service-style .is-primary span,
+      .p1008-shopping-two-table-section .p1008-shopping-summary.is-service-style .is-primary small {
+        color: rgba(255, 255, 255, .76);
+      }
+      .p1008-shopping-two-table-section .p1008-shopping-summary.is-service-style .is-primary strong {
+        color: #fff;
+      }
+      @media (max-width: 560px) {
+        .p1008-shopping-two-table-section .p1008-shopping-summary.is-service-style {
+          grid-template-columns: 1fr;
+        }
+      }
+    `;
+    document.head.append(style);
+  }
+
+  function updateShoppingSummary(summary, items) {
+    const people = calculateMatrix(items);
+    const total = items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+    summary.classList.add("is-service-style");
+    summary.setAttribute("aria-label", "Tóm tắt tiền mua đồ chung");
+    summary.innerHTML = `
+      <article>
+        <span>Tổng mua chung</span>
+        <strong>${formatVnd(total)}</strong>
+        <small>${items.length} món trong tháng</small>
+      </article>
+      <article class="is-primary">
+        <span>Phần của Vanh</span>
+        <strong>${formatVnd(people.Vanh.total)}</strong>
+        <small>Tự tính theo bảng chia</small>
+      </article>
+      <article>
+        <span>Thành viên</span>
+        <strong>6 người</strong>
+        <small>A Mạnh · A Cường · Vanh · Dương · Hưng · Trung</small>
+      </article>
+    `;
+  }
+
   function buildPeopleTable(items) {
     const people = calculateMatrix(items);
     const table = document.createElement("table");
@@ -142,6 +228,9 @@
       const monthKey = currentMonthKey();
       const monthLabel = originalHeader.querySelector(".p1008-shopping-header-meta > span")?.textContent?.trim() || monthKey;
       const items = readMonthItems(monthKey);
+
+      ensureSummaryStyle();
+      updateShoppingSummary(summary, items);
 
       host.classList.remove("p1008-card");
       host.classList.add("p1008-shopping-two-table-section");
