@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 const browserSource = fs.readFileSync(new URL("../todo-visibility.js", import.meta.url), "utf8");
+const dashboardSource = fs.readFileSync(new URL("../src/pages/dashboard/app.js", import.meta.url), "utf8");
 const routerSource = fs.readFileSync(new URL("../worker/router.js", import.meta.url), "utf8");
 const deleteSource = fs.readFileSync(new URL("../worker/task-delete.js", import.meta.url), "utf8");
 const syncSource = fs.readFileSync(new URL("../worker/task-sync.js", import.meta.url), "utf8");
@@ -24,10 +25,12 @@ test("task history decoration cannot trigger an infinite mutation loop", () => {
 });
 
 test("pending task deletions cannot be re-imported by the same browser", () => {
-  assert.ok(browserSource.includes('url.pathname === "/api/tasks/import"'));
-  assert.ok(browserSource.includes('url.pathname === "/api/tasks"'));
   assert.ok(browserSource.includes("TODO_PENDING_DELETIONS_KEY"));
   assert.ok(browserSource.includes("filteredTaskPayload"));
+  assert.ok(browserSource.includes("withoutPendingTaskDeletions"));
+  assert.ok(dashboardSource.includes("withoutPendingDeletions(state.tasks)"));
+  assert.ok(dashboardSource.includes("withoutPendingDeletions(cloudTasks)"));
+  assert.doesNotMatch(browserSource, /root\.fetch\s*=/);
 });
 
 test("router protects imports and deletion with dedicated task sync handlers", () => {
