@@ -27,6 +27,9 @@
     return new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(amount);
   }
 
+  globalThis.JoyP1008AmountInput = Object.freeze({ displayValue, editValue, parseCommit });
+  if (typeof document === "undefined") return;
+
   function isAmountInput(target) {
     return target instanceof HTMLInputElement && target.matches(AMOUNT_SELECTOR);
   }
@@ -113,6 +116,4 @@
   });
   observer.observe(document.documentElement, { childList: true, subtree: true });
   decorate();
-
-  globalThis.JoyP1008AmountInput = Object.freeze({ displayValue, editValue, parseCommit });
 })();
