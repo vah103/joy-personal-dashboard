@@ -242,7 +242,10 @@ test("rejects JSON-RPC batches and unsupported transport versions", async () => 
 
 test("the Worker router owns the remote MCP endpoint before the app fallback", async () => {
   const router = await readFile(new URL("../worker/router.js", import.meta.url), "utf8");
+  const mcpRoute = "if (isJoyMcpRoute(pathname))";
+  const actionsRoute = "if (isJoyActionsRoute(pathname))";
   assert.match(router, /handleJoyMcpRequest/);
-  assert.match(router, /isJoyMcpRoute/);
-  assert.ok(router.indexOf("isJoyMcpRoute") < router.indexOf("isJoyActionsRoute"));
+  assert.ok(router.indexOf(mcpRoute) >= 0);
+  assert.ok(router.indexOf(actionsRoute) >= 0);
+  assert.ok(router.indexOf(mcpRoute) < router.indexOf(actionsRoute));
 });
