@@ -5,7 +5,7 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 const read = (path) => fs.readFileSync(new URL(path, root), "utf8");
 
-test("outer Finance card owns its balanced summary layout in the canonical source", () => {
+test("outer Finance card owns layout in the canonical source and money weight in the theme", () => {
   const theme = read("src/features/theme/dashboard-openai-headings.css");
   const dashboard = read("src/features/finance/finance-dashboard.js");
 
@@ -13,6 +13,7 @@ test("outer Finance card owns its balanced summary layout in the canonical sourc
   assert.doesNotMatch(theme, /grid-template-columns|grid-template-rows|nth-child\(/);
   assert.match(theme, /OpenAISans-Regular\.woff2/);
   assert.match(theme, /OpenAISans-Medium\.woff2/);
+  assert.match(theme, /OpenAISans-Bold\.woff2/);
 
   assert.match(
     dashboard,
@@ -35,18 +36,15 @@ test("outer Finance card owns its balanced summary layout in the canonical sourc
     dashboard,
     /nth-child\(4\)\{[\s\S]*grid-column:3;[\s\S]*grid-row:1 \/ 3;/,
   );
-  assert.match(
-    dashboard,
-    /\.finance-available>strong,[\s\S]*font-family:"OpenAI Sans"/,
-  );
-  assert.match(
-    dashboard,
-    /\.finance-available>strong\{[\s\S]*font-weight:500;/,
-  );
-  assert.match(
-    dashboard,
-    /\.finance-overview-stat strong\{[\s\S]*font-weight:400;/,
-  );
   assert.match(dashboard, /@container \(max-width:540px\)/);
-  assert.match(dashboard, /font-synthesis:none/);
+
+  assert.match(
+    theme,
+    /#finance\.finance-dashboard-polished \.finance-available > strong \{[\s\S]*font-weight: 700;[\s\S]*letter-spacing: -\.022em;[\s\S]*line-height: 1\.04;/,
+  );
+  assert.match(
+    theme,
+    /#finance\.finance-dashboard-polished \.finance-overview-stat strong \{[\s\S]*font-weight: 500;[\s\S]*letter-spacing: -\.016em;[\s\S]*line-height: 1\.08;/,
+  );
+  assert.match(theme, /font-synthesis: none/);
 });
