@@ -71,7 +71,7 @@ export async function handleJoyIeltsActionRequest(
         env,
         context,
         decodePathPart(match[1]),
-        await body(request),
+        {},
       ),
       status: 200,
     };
