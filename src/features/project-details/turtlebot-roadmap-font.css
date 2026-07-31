@@ -43,6 +43,16 @@
   min-width: 0;
 }
 
+#turtlebot-hub-modal .turtlebot-hub-header-with-tabs .turtlebot-hub-title::after {
+  content: "|";
+  align-self: center;
+  margin-left: 3px;
+  color: #a8b4ba;
+  font-size: 1.65rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
 #turtlebot-hub-modal .turtlebot-hub-header-with-tabs .turtlebot-hub-tabs {
   min-width: 0;
   align-self: center;
@@ -60,8 +70,16 @@
 
 #turtlebot-hub-modal .turtlebot-hub-header-with-tabs .turtlebot-hub-tabs button {
   flex: 0 0 auto;
-  padding: 9px 12px;
+  padding: 10px 14px;
+  color: #596871;
+  font-size: .9rem;
+  font-weight: 800;
+  letter-spacing: -.01em;
   white-space: nowrap;
+}
+
+#turtlebot-hub-modal .turtlebot-hub-header-with-tabs .turtlebot-hub-tabs button.active {
+  color: #26343b;
 }
 
 #turtlebot-hub-modal .turtlebot-hub-header-with-tabs .turtlebot-hub-header-actions {
@@ -76,6 +94,10 @@
 
   #turtlebot-hub-modal .turtlebot-hub-header-with-tabs .turtlebot-hub-title {
     grid-column: 1;
+  }
+
+  #turtlebot-hub-modal .turtlebot-hub-header-with-tabs .turtlebot-hub-title::after {
+    display: none;
   }
 
   #turtlebot-hub-modal .turtlebot-hub-header-with-tabs .turtlebot-hub-header-actions {
@@ -96,7 +118,7 @@
   }
 
   #turtlebot-hub-modal .turtlebot-hub-header-with-tabs .turtlebot-hub-tabs button {
-    padding: 8px 10px;
-    font-size: .74rem;
+    padding: 9px 11px;
+    font-size: .79rem;
   }
 }
