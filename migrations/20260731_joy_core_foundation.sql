@@ -10,7 +10,7 @@ ON CONFLICT(key) DO UPDATE SET
   value = excluded.value,
   updated_at = excluded.updated_at;
 
-CREATE TABLE IF NOT EXISTS joy_projects (
+CREATE TABLE IF NOT EXISTS joy_core_projects (
   user_email TEXT NOT NULL,
   id TEXT NOT NULL,
   title TEXT NOT NULL,
@@ -32,10 +32,10 @@ CREATE TABLE IF NOT EXISTS joy_projects (
   PRIMARY KEY (user_email, id)
 );
 
-CREATE INDEX IF NOT EXISTS joy_projects_status_idx
-ON joy_projects (user_email, status, updated_at DESC);
+CREATE INDEX IF NOT EXISTS joy_core_projects_status_idx
+ON joy_core_projects (user_email, status, updated_at DESC);
 
-CREATE TABLE IF NOT EXISTS joy_milestones (
+CREATE TABLE IF NOT EXISTS joy_core_milestones (
   user_email TEXT NOT NULL,
   id TEXT NOT NULL,
   project_id TEXT NOT NULL,
@@ -54,13 +54,13 @@ CREATE TABLE IF NOT EXISTS joy_milestones (
   updated_at INTEGER NOT NULL,
   PRIMARY KEY (user_email, id),
   FOREIGN KEY (user_email, project_id)
-    REFERENCES joy_projects(user_email, id) ON DELETE CASCADE
+    REFERENCES joy_core_projects(user_email, id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS joy_milestones_project_idx
-ON joy_milestones (user_email, project_id, position, target_at);
+CREATE INDEX IF NOT EXISTS joy_core_milestones_project_idx
+ON joy_core_milestones (user_email, project_id, position, target_at);
 
-CREATE TABLE IF NOT EXISTS joy_tasks (
+CREATE TABLE IF NOT EXISTS joy_core_tasks (
   user_email TEXT NOT NULL,
   id TEXT NOT NULL,
   project_id TEXT NOT NULL,
@@ -83,16 +83,16 @@ CREATE TABLE IF NOT EXISTS joy_tasks (
   updated_at INTEGER NOT NULL,
   PRIMARY KEY (user_email, id),
   FOREIGN KEY (user_email, project_id)
-    REFERENCES joy_projects(user_email, id) ON DELETE CASCADE
+    REFERENCES joy_core_projects(user_email, id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS joy_tasks_project_idx
-ON joy_tasks (user_email, project_id, status, position, due_at);
+CREATE INDEX IF NOT EXISTS joy_core_tasks_project_idx
+ON joy_core_tasks (user_email, project_id, status, position, due_at);
 
-CREATE INDEX IF NOT EXISTS joy_tasks_due_idx
-ON joy_tasks (user_email, status, due_at);
+CREATE INDEX IF NOT EXISTS joy_core_tasks_due_idx
+ON joy_core_tasks (user_email, status, due_at);
 
-CREATE TABLE IF NOT EXISTS joy_progress_logs (
+CREATE TABLE IF NOT EXISTS joy_core_progress_logs (
   user_email TEXT NOT NULL,
   id TEXT NOT NULL,
   project_id TEXT NOT NULL,
@@ -109,13 +109,13 @@ CREATE TABLE IF NOT EXISTS joy_progress_logs (
   created_at INTEGER NOT NULL,
   PRIMARY KEY (user_email, id),
   FOREIGN KEY (user_email, project_id)
-    REFERENCES joy_projects(user_email, id) ON DELETE CASCADE
+    REFERENCES joy_core_projects(user_email, id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS joy_progress_logs_project_idx
-ON joy_progress_logs (user_email, project_id, occurred_at DESC);
+CREATE INDEX IF NOT EXISTS joy_core_progress_logs_project_idx
+ON joy_core_progress_logs (user_email, project_id, occurred_at DESC);
 
-CREATE TABLE IF NOT EXISTS joy_evidence (
+CREATE TABLE IF NOT EXISTS joy_core_evidence (
   user_email TEXT NOT NULL,
   id TEXT NOT NULL,
   project_id TEXT NOT NULL,
@@ -132,13 +132,13 @@ CREATE TABLE IF NOT EXISTS joy_evidence (
   created_at INTEGER NOT NULL,
   PRIMARY KEY (user_email, id),
   FOREIGN KEY (user_email, project_id)
-    REFERENCES joy_projects(user_email, id) ON DELETE CASCADE
+    REFERENCES joy_core_projects(user_email, id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS joy_evidence_project_idx
-ON joy_evidence (user_email, project_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS joy_core_evidence_project_idx
+ON joy_core_evidence (user_email, project_id, created_at DESC);
 
-CREATE TABLE IF NOT EXISTS joy_access_grants (
+CREATE TABLE IF NOT EXISTS joy_core_access_grants (
   user_email TEXT NOT NULL,
   subject_type TEXT NOT NULL CHECK (subject_type IN ('user', 'client')),
   subject_id TEXT NOT NULL,
@@ -150,10 +150,10 @@ CREATE TABLE IF NOT EXISTS joy_access_grants (
   PRIMARY KEY (user_email, subject_type, subject_id)
 );
 
-CREATE INDEX IF NOT EXISTS joy_access_grants_subject_idx
-ON joy_access_grants (subject_type, subject_id, revoked_at);
+CREATE INDEX IF NOT EXISTS joy_core_access_grants_subject_idx
+ON joy_core_access_grants (subject_type, subject_id, revoked_at);
 
-CREATE TABLE IF NOT EXISTS joy_audit_events (
+CREATE TABLE IF NOT EXISTS joy_core_audit_events (
   user_email TEXT NOT NULL,
   id TEXT NOT NULL,
   actor_type TEXT NOT NULL CHECK (actor_type IN ('user', 'assistant', 'system', 'import')),
@@ -166,5 +166,5 @@ CREATE TABLE IF NOT EXISTS joy_audit_events (
   PRIMARY KEY (user_email, id)
 );
 
-CREATE INDEX IF NOT EXISTS joy_audit_events_entity_idx
-ON joy_audit_events (user_email, entity_type, entity_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS joy_core_audit_events_entity_idx
+ON joy_core_audit_events (user_email, entity_type, entity_id, created_at DESC);
