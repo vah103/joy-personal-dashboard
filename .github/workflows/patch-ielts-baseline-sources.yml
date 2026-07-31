@@ -1,0 +1,226 @@
+name: Patch IELTS baseline sources
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/patch-ielts-baseline-sources.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Add official baseline sources
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          program_path = Path("project-data/ielts/program-2026.json")
+          data = json.loads(program_path.read_text(encoding="utf-8"))
+
+          official_page = "https://www.ielts.org/take-a-test/preparation-resources/sample-test-questions/academic-test"
+          sources = {
+              "baseline-listening": {
+                  "material": "Official IELTS Academic computer practice: full Listening test, 4 parts and 40 questions.",
+                  "materialUrl": "https://demo-ielts.inspera.com/player/?assessmentRunId=131012334&context=exam",
+                  "steps": [
+                      "Open the attached official Listening test only when you are ready to begin.",
+                      "Set a 30-minute timer because the official practice interface is not timed.",
+                      "Complete all 40 questions without pausing or replaying the recordings.",
+                      "Check every answer after finishing the full test.",
+                      "Classify each mistake as comprehension, spelling, distraction or prediction."
+                  ]
+              },
+              "baseline-reading": {
+                  "material": "Official IELTS Academic computer practice: full Academic Reading test, 3 passages and 40 questions.",
+                  "materialUrl": "https://demo-ielts.inspera.com/player/?assessmentRunId=131013388&context=exam",
+                  "steps": [
+                      "Open the attached official Academic Reading test only when you are ready to begin.",
+                      "Set a strict 60-minute timer because the official practice interface is not timed.",
+                      "Complete all three passages and 40 questions without a dictionary.",
+                      "Check the answers and locate evidence for every wrong or guessed answer.",
+                      "Record passage timing, time pressure and weak question types."
+                  ]
+              },
+              "baseline-writing": {
+                  "material": "Official IELTS Academic computer practice: one Task 1 prompt and one Task 2 prompt.",
+                  "materialUrl": "https://demo-ielts.inspera.com/player/?assessmentRunId=131013741&context=exam",
+                  "steps": [
+                      "Open the attached official Writing test only when you are ready to begin.",
+                      "Write Task 1 in 20 minutes and Task 2 in 40 minutes.",
+                      "Do not use ChatGPT, a dictionary, grammar tools or sample answers while writing.",
+                      "After the 60-minute test, send both unchanged responses to ChatGPT for criterion-based feedback.",
+                      "Save the estimated scores, evidence and recurring errors."
+                  ]
+              },
+              "baseline-speaking": {
+                  "material": "Official IELTS Speaking sample tasks: Part 1, Part 2 and Part 3 prompts in one PDF.",
+                  "materialUrl": "https://ielts.org/cdn/ielts-sample-tests/ielts-speaking-sample-tasks-2023.pdf",
+                  "steps": [
+                      "Open the attached official Speaking sample only when you are ready to begin.",
+                      "Start with ChatGPT and ask it to act as the examiner using the official prompts without showing future questions.",
+                      "Complete and record Parts 1, 2 and 3 in one continuous mock.",
+                      "Listen once and note pauses, repetition and unclear answers.",
+                      "Send the recording or transcript to ChatGPT for structured feedback."
+                  ]
+              }
+          }
+
+          prep = next(task for task in data["prelaunch"] if task["id"] == "prep-baseline")
+          prep["objective"] = "Confirm that the official four-skill baseline links and test setup are ready before 1 August."
+          prep["steps"] = [
+              "Open each attached official IELTS source only far enough to confirm that it loads.",
+              "Do not preview the questions, prompts, recordings or answers.",
+              "Prepare a timer, microphone, headphones and a quiet study space.",
+              "Use the direct links attached to each baseline task on 1–2 August."
+          ]
+          prep["material"] = "Official IELTS Academic sample-test hub and computer practice experience."
+          prep["materialUrl"] = official_page
+          prep["materialFallbackUrl"] = official_page
+          prep["output"] = "All official baseline links load and the test setup is ready for 1–2 August."
+          prep["doneWhen"] = [
+              "All four official source links are available in the baseline tasks.",
+              "The timer, audio and Speaking recording setup work.",
+              "No test content or answers have been previewed."
+          ]
+
+          baseline_tasks = {task["id"]: task for task in data["baseline"]["tasks"]}
+          for task_id, source in sources.items():
+              task = baseline_tasks[task_id]
+              task["material"] = source["material"]
+              task["materialUrl"] = source["materialUrl"]
+              task["materialFallbackUrl"] = official_page
+              task["sourceProvider"] = "IELTS.org"
+              task["steps"] = source["steps"]
+
+          program_path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+          PY
+
+      - name: Make material links clickable
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("src/features/ielts/core-actions.js")
+          text = path.read_text(encoding="utf-8")
+
+          marker = '''function closeDrawer() {
+            const drawer = document.querySelector("#ielts-drawer");
+            drawer.hidden = true;
+            drawer.innerHTML = "";
+          }
+          '''
+          helper = marker + '''
+          function externalMaterialLink(url, label) {
+            if (!url) return "";
+            try {
+              const parsed = new URL(url, window.location.origin);
+              if (parsed.protocol !== "https:") return "";
+              return `<a class="ielts-material-link" href="${escapeHtml(parsed.href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+            } catch {
+              return "";
+            }
+          }
+
+          function taskMaterialLinks(task) {
+            const direct = externalMaterialLink(task.materialUrl, "Open official material");
+            const fallback = task.materialFallbackUrl && task.materialFallbackUrl !== task.materialUrl
+              ? externalMaterialLink(task.materialFallbackUrl, "Open official source page")
+              : "";
+            if (!direct && !fallback) return "";
+            return `<div class="ielts-material-links">${direct}${fallback}</div>`;
+          }
+          '''
+          if "function taskMaterialLinks(task)" not in text:
+              if marker not in text:
+                  raise SystemExit("Could not locate closeDrawer marker")
+              text = text.replace(marker, helper, 1)
+
+          old = '${task.material ? `<div><small>Materials</small><p>${escapeHtml(task.material)}</p></div>` : ""}'
+          new = '${task.material ? `<div><small>Materials</small><p>${escapeHtml(task.material)}</p>${taskMaterialLinks(task)}</div>` : ""}'
+          if old in text:
+              text = text.replace(old, new, 1)
+          elif new not in text:
+              raise SystemExit("Could not locate material rendering block")
+
+          old_prompt = '''    material: task.material,
+              output: task.output,'''
+          new_prompt = '''    material: task.material,
+              materialUrl: task.materialUrl,
+              materialFallbackUrl: task.materialFallbackUrl,
+              output: task.output,'''
+          if old_prompt in text:
+              text = text.replace(old_prompt, new_prompt, 1)
+          elif "materialUrl: task.materialUrl" not in text:
+              raise SystemExit("Could not locate teaching prompt material block")
+
+          path.write_text(text, encoding="utf-8")
+          PY
+
+      - name: Style material links
+        shell: bash
+        run: |
+          cat >> project-data/ielts/ielts-core.css <<'CSS'
+
+          .ielts-material-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+          }
+
+          .ielts-material-link {
+            display: inline-flex;
+            align-items: center;
+            min-height: 36px;
+            padding: 8px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 10px;
+            color: inherit;
+            font-weight: 700;
+            text-decoration: none;
+          }
+
+          .ielts-material-link:hover,
+          .ielts-material-link:focus-visible {
+            border-color: currentColor;
+            text-decoration: underline;
+          }
+          CSS
+
+      - name: Install dependencies
+        run: npm ci --no-audit
+
+      - name: Validate IELTS changes
+        run: |
+          npm run test:ielts
+          npm run build
+
+      - name: Commit the patch and remove this temporary workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/patch-ielts-baseline-sources.yml
+          git add project-data/ielts/program-2026.json project-data/ielts/ielts-core.css src/features/ielts/core-actions.js
+          git commit -m "Add official IELTS baseline sources"
+          git push origin HEAD:main
