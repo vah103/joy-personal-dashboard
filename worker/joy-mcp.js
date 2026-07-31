@@ -20,6 +20,7 @@ import {
   updateJoyProject,
   updateJoyTask,
 } from "./joy-core/service.js";
+import { json as sharedJson } from "./shared/http.js";
 
 const MCP_PATH = "/mcp";
 const MCP_HEALTH_PATH = "/mcp/health";
@@ -254,19 +255,12 @@ export const JOY_MCP_TOOLS = Object.freeze([
   },
 ]);
 
-function headers(extra = {}) {
-  return {
-    "Content-Type": "application/json; charset=utf-8",
-    "Cache-Control": "no-store",
-    "X-Content-Type-Options": "nosniff",
+function mcpJson(value, status = 200, extra = {}) {
+  return sharedJson(value, status, {
     "X-Robots-Tag": "noindex, nofollow",
     "MCP-Protocol-Version": MCP_PROTOCOL_VERSION,
     ...extra,
-  };
-}
-
-function json(value, status = 200, extra = {}) {
-  return new Response(JSON.stringify(value), { status, headers: headers(extra) });
+  });
 }
 
 function result(idValue, value) {
@@ -475,7 +469,7 @@ async function processMessage(message, request, env, context, service) {
 
 function authenticationFailure(cause) {
   const status = Number(cause?.status || 500);
-  return json({
+  return mcpJson({
     error: String(cause?.code || "JOY_MCP_AUTH_FAILED"),
     details: cause?.details || null,
   }, status, status === 401 ? { "WWW-Authenticate": "Bearer realm=\"Joy MCP\"" } : {});
@@ -492,9 +486,9 @@ export async function handleJoyMcpRequest(request, env, dependencies = {}) {
 
   if (url.pathname === MCP_HEALTH_PATH) {
     if (request.method !== "GET") {
-      return json({ error: "METHOD_NOT_ALLOWED" }, 405, { Allow: "GET" });
+      return mcpJson({ error: "METHOD_NOT_ALLOWED" }, 405, { Allow: "GET" });
     }
-    return json({
+    return mcpJson({
       ok: true,
       configured: Boolean(env?.JOY_GPT_ACTION_KEY && env?.JOY_OWNER_EMAIL),
       transport: "streamable-http",
@@ -511,7 +505,7 @@ export async function handleJoyMcpRequest(request, env, dependencies = {}) {
     });
   }
   if (request.method !== "POST") {
-    return json({ error: "METHOD_NOT_ALLOWED" }, 405, { Allow: "POST, OPTIONS" });
+    return mcpJson({ error: "METHOD_NOT_ALLOWED" }, 405, { Allow: "POST, OPTIONS" });
   }
 
   let context;
@@ -526,13 +520,16 @@ export async function handleJoyMcpRequest(request, env, dependencies = {}) {
     message = await readMessage(request);
   } catch (cause) {
     if (cause?.code === "JOY_MCP_PARSE_ERROR") {
-      return json(error(null, -32700, "Parse error"), 400);
+      return mcpJson(error(null, -32700, "Parse error"), 400);
     }
-    return json(error(null, -32600, String(cause?.code || "Invalid Request")), Number(cause?.status || 400));
+    return mcpJson(
+      error(null, -32600, String(cause?.code || "Invalid Request")),
+      Number(cause?.status || 400),
+    );
   }
 
   if (Array.isArray(message)) {
-    return json(error(null, -32600, "JSON-RPC batching is not supported"), 400);
+    return mcpJson(error(null, -32600, "JSON-RPC batching is not supported"), 400);
   }
 
   try {
@@ -546,11 +543,11 @@ export async function handleJoyMcpRequest(request, env, dependencies = {}) {
         },
       });
     }
-    return json(rpcResponse);
+    return mcpJson(rpcResponse);
   } catch (cause) {
     const status = Number(cause?.status || 500);
     if (status >= 500) console.error("Joy MCP request failed", cause);
-    return json(error(
+    return mcpJson(error(
       message?.id,
       status >= 500 ? -32603 : -32602,
       String(cause?.code || "JOY_MCP_REQUEST_FAILED"),
