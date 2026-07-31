@@ -4,10 +4,8 @@
     "joy-ielts-core-bundle-v4",
     "project-data/ielts/ielts-core-bundle.js?v=ielts-journey-v4",
   ];
-  const HUB_STYLE = [
-    "joy-ielts-hub-v1",
-    "/project-data/ielts/ielts-hub.css?v=ielts-hub-v1",
-  ];
+  const HUB_STYLE_ID = "joy-ielts-hub-v1";
+  const HUB_STYLE_URL = "/project-data/ielts/ielts-hub.css?v=ielts-hub-v1";
   let hubFrame = 0;
 
   function loadScript(id, src) {
@@ -35,13 +33,11 @@
   }
 
   function ensureHubStyle() {
-    const [id, href] = HUB_STYLE;
-    if (document.querySelector(`#${id}`)) return;
-    const link = document.createElement("link");
-    link.id = id;
-    link.rel = "stylesheet";
-    link.href = href;
-    document.head.append(link);
+    if (document.querySelector(`#${HUB_STYLE_ID}`)) return;
+    const style = document.createElement("style");
+    style.id = HUB_STYLE_ID;
+    style.textContent = `@import url("${HUB_STYLE_URL}");`;
+    document.head.append(style);
   }
 
   function directChild(parent, selector) {
@@ -189,17 +185,36 @@
   }
 
   const projectList = document.querySelector("#project-list");
-  if (projectList) {
-    new MutationObserver(() => {
+  new MutationObserver((mutations) => {
+    let projectListChanged = false;
+    let ieltsModalChanged = false;
+
+    for (const mutation of mutations) {
+      if (projectList && mutation.target === projectList) {
+        projectListChanged = true;
+      }
+
+      const target = mutation.target instanceof Element
+        ? mutation.target
+        : mutation.target.parentElement;
+      if (target?.closest?.("#ielts-modal")) {
+        ieltsModalChanged = true;
+      }
+
+      if (!ieltsModalChanged) {
+        ieltsModalChanged = [...mutation.addedNodes].some((node) => (
+          node instanceof Element
+          && (node.id === "ielts-modal" || node.querySelector?.("#ielts-modal"))
+        ));
+      }
+    }
+
+    if (projectListChanged) {
       enhanceCard();
       window.JoyIELTS?.refreshCard?.();
-    }).observe(projectList, { childList: true });
-  }
-
-  new MutationObserver(scheduleHubEnhancement).observe(document.body, {
-    childList: true,
-    subtree: true,
-  });
+    }
+    if (ieltsModalChanged) scheduleHubEnhancement();
+  }).observe(document.body, { childList: true, subtree: true });
 
   ensureHubStyle();
   enhanceCard();
