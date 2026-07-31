@@ -1,6 +1,14 @@
-@import url("/project-data/finance/finance-dashboard-card-v1.css?v=finance-dashboard-stats-v2");
+@import url("/project-data/finance/finance-dashboard-card-v1.css?v=finance-dashboard-stats-v3");
 
 /* OpenAI Sans typography for the outer Hey Joy dashboard. */
+@font-face {
+  font-family: "OpenAI Sans";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url("https://cdn.openai.com/common/fonts/openai-sans/v4/OpenAISans-Regular.woff2") format("woff2");
+}
+
 @font-face {
   font-family: "OpenAI Sans";
   font-style: normal;
