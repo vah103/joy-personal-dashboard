@@ -87,7 +87,7 @@ function enumValue(value, allowed, fallback, field) {
 }
 
 function timestamp(value, fallback = Date.now()) {
-  if (value === null) return null;
+  if (value === null || value === undefined || value === "") return fallback;
   const numeric = Number(value);
   return Number.isFinite(numeric) && numeric >= 0 ? Math.trunc(numeric) : fallback;
 }
