@@ -144,7 +144,7 @@ const evidenceSchema = {
 };
 
 export const JOY_ACTIONS_OPENAPI = {
-  openapi: "3.0.3",
+  openapi: "3.1.0",
   info: {
     title: "Joy Personal Dashboard Actions",
     version: "1.0.1",
