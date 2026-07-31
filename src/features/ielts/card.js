@@ -56,11 +56,17 @@
     const title = modal.querySelector(".ielts-title");
     const eyebrow = title?.querySelector("small");
     const heading = title?.querySelector("h2");
-    if (eyebrow) eyebrow.textContent = "IELTS LEARNING HUB";
-    if (heading) heading.textContent = "IELTS Band 7";
+    if (eyebrow && eyebrow.textContent !== "IELTS LEARNING HUB") {
+      eyebrow.textContent = "IELTS LEARNING HUB";
+    }
+    if (heading && heading.textContent !== "IELTS Band 7") {
+      heading.textContent = "IELTS Band 7";
+    }
 
     const overviewTab = modal.querySelector('[data-ielts-tab="now"]');
-    if (overviewTab) overviewTab.textContent = "Overview";
+    if (overviewTab && overviewTab.textContent !== "Overview") {
+      overviewTab.textContent = "Overview";
+    }
 
     const body = modal.querySelector("#ielts-body");
     if (!body) return;
