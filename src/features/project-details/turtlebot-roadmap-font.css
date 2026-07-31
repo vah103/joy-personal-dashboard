@@ -1,4 +1,10 @@
-@import url("https://fonts.googleapis.com/css2?family=Open+Sans:wght@500&display=swap");
+@font-face {
+  font-family: "OpenAI Sans";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url("https://cdn.openai.com/common/fonts/openai-sans/v4/OpenAISans-Medium.woff2") format("woff2");
+}
 
 @font-face {
   font-family: "Nunito";
@@ -74,9 +80,10 @@
   flex: 0 0 auto;
   padding: 11px 16px;
   color: #596871;
-  font-family: "Open Sans", "Segoe UI", Arial, sans-serif !important;
+  font-family: "OpenAI Sans", "Instrument Sans", "Segoe UI", Arial, sans-serif !important;
   font-size: 1rem;
   font-weight: 500;
+  font-synthesis: none;
   letter-spacing: -.015em;
   white-space: nowrap;
 }
