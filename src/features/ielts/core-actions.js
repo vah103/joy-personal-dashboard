@@ -10,6 +10,26 @@ function closeDrawer() {
   drawer.innerHTML = "";
 }
 
+function externalMaterialLink(url, label) {
+  if (!url) return "";
+  try {
+    const parsed = new URL(url, window.location.origin);
+    if (parsed.protocol !== "https:") return "";
+    return `<a class="ielts-material-link" href="${escapeHtml(parsed.href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+  } catch {
+    return "";
+  }
+}
+
+function taskMaterialLinks(task) {
+  const direct = externalMaterialLink(task.materialUrl, "Open official material");
+  const fallback = task.materialFallbackUrl && task.materialFallbackUrl !== task.materialUrl
+    ? externalMaterialLink(task.materialFallbackUrl, "Open official source page")
+    : "";
+  if (!direct && !fallback) return "";
+  return `<div class="ielts-material-links">${direct}${fallback}</div>`;
+}
+
 function taskDrawer(task) {
   const state = taskState(task);
   openDrawer(`
@@ -33,7 +53,7 @@ function taskDrawer(task) {
         <small>Steps</small>
         <ol>${task.steps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ol>
       </div>
-      ${task.material ? `<div><small>Materials</small><p>${escapeHtml(task.material)}</p></div>` : ""}
+      ${task.material ? `<div><small>Materials</small><p>${escapeHtml(task.material)}</p>${taskMaterialLinks(task)}</div>` : ""}
       <div>
         <small>Output</small>
         <p>${escapeHtml(task.output)}</p>
@@ -101,6 +121,8 @@ ${JSON.stringify({
     objective: task.objective,
     steps: task.steps,
     material: task.material,
+    materialUrl: task.materialUrl,
+    materialFallbackUrl: task.materialFallbackUrl,
     output: task.output,
     doneWhen: task.doneWhen,
   }, null, 2)}

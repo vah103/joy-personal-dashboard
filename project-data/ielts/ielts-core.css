@@ -1218,3 +1218,28 @@ body.ielts-open {
     grid-column: 1;
   }
 }
+
+.ielts-material-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.ielts-material-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  color: inherit;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.ielts-material-link:hover,
+.ielts-material-link:focus-visible {
+  border-color: currentColor;
+  text-decoration: underline;
+}

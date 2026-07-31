@@ -87,19 +87,22 @@
       "skill": "review",
       "title": "Prepare the August baseline",
       "minutes": 30,
-      "objective": "Make sure the four-skill baseline can start without setup work.",
+      "objective": "Confirm that the official four-skill baseline links and test setup are ready before 1 August.",
       "steps": [
-        "Choose one official or reliable full Listening test.",
-        "Choose one full Academic Reading test.",
-        "Prepare a timer, microphone and a quiet study space.",
-        "Do not preview the answers or prompts."
+        "Open each attached official IELTS source only far enough to confirm that it loads.",
+        "Do not preview the questions, prompts, recordings or answers.",
+        "Prepare a timer, microphone, headphones and a quiet study space.",
+        "Use the direct links attached to each baseline task on 1–2 August."
       ],
-      "output": "Baseline materials and test setup ready for 1–2 August.",
+      "output": "All official baseline links load and the test setup is ready for 1–2 August.",
       "doneWhen": [
-        "Listening and Reading sources are ready.",
-        "Speaking recording works.",
-        "Writing will be completed without assistance."
-      ]
+        "All four official source links are available in the baseline tasks.",
+        "The timer, audio and Speaking recording setup work.",
+        "No test content or answers have been previewed."
+      ],
+      "material": "Official IELTS Academic sample-test hub and computer practice experience.",
+      "materialUrl": "https://www.ielts.org/take-a-test/preparation-resources/sample-test-questions/academic-test",
+      "materialFallbackUrl": "https://www.ielts.org/take-a-test/preparation-resources/sample-test-questions/academic-test"
     }
   ],
   "baseline": {
@@ -114,15 +117,21 @@
         "minutes": 90,
         "objective": "Measure Listening performance and identify the causes of lost marks.",
         "steps": [
-          "Complete one full IELTS Listening test without pausing or replaying.",
-          "Check every answer.",
+          "Open the attached official Listening test only when you are ready to begin.",
+          "Set a 30-minute timer because the official practice interface is not timed.",
+          "Complete all 40 questions without pausing or replaying the recordings.",
+          "Check every answer after finishing the full test.",
           "Classify each mistake as comprehension, spelling, distraction or prediction."
         ],
         "output": "Answer score, source and a categorised mistake list.",
         "doneWhen": [
           "All questions are completed under test conditions.",
           "Every wrong answer has a reason."
-        ]
+        ],
+        "material": "Official IELTS Academic computer practice: full Listening test, 4 parts and 40 questions.",
+        "materialUrl": "https://demo-ielts.inspera.com/player/?assessmentRunId=131012334&context=exam",
+        "materialFallbackUrl": "https://www.ielts.org/take-a-test/preparation-resources/sample-test-questions/academic-test",
+        "sourceProvider": "IELTS.org"
       },
       {
         "id": "baseline-reading",
@@ -132,15 +141,21 @@
         "minutes": 130,
         "objective": "Measure Reading accuracy, timing and weak question types.",
         "steps": [
-          "Complete a full Academic Reading test in 60 minutes without a dictionary.",
+          "Open the attached official Academic Reading test only when you are ready to begin.",
+          "Set a strict 60-minute timer because the official practice interface is not timed.",
+          "Complete all three passages and 40 questions without a dictionary.",
           "Check the answers and locate evidence for every wrong or guessed answer.",
-          "Record time pressure and weak question types."
+          "Record passage timing, time pressure and weak question types."
         ],
         "output": "Answer score, passage timing and an evidence-based error list.",
         "doneWhen": [
           "The full test is completed in 60 minutes.",
           "Every wrong or guessed answer is reviewed."
-        ]
+        ],
+        "material": "Official IELTS Academic computer practice: full Academic Reading test, 3 passages and 40 questions.",
+        "materialUrl": "https://demo-ielts.inspera.com/player/?assessmentRunId=131013388&context=exam",
+        "materialFallbackUrl": "https://www.ielts.org/take-a-test/preparation-resources/sample-test-questions/academic-test",
+        "sourceProvider": "IELTS.org"
       },
       {
         "id": "baseline-writing",
@@ -150,16 +165,21 @@
         "minutes": 120,
         "objective": "Measure unaided Task 1 and Task 2 performance.",
         "steps": [
-          "Write Task 1 in 20 minutes.",
-          "Write Task 2 in 40 minutes.",
-          "Send both responses to ChatGPT for criterion-based feedback.",
+          "Open the attached official Writing test only when you are ready to begin.",
+          "Write Task 1 in 20 minutes and Task 2 in 40 minutes.",
+          "Do not use ChatGPT, a dictionary, grammar tools or sample answers while writing.",
+          "After the 60-minute test, send both unchanged responses to ChatGPT for criterion-based feedback.",
           "Save the estimated scores, evidence and recurring errors."
         ],
         "output": "Two timed responses and one structured assessment.",
         "doneWhen": [
           "Both responses were written without help.",
           "Feedback covers all four Writing criteria."
-        ]
+        ],
+        "material": "Official IELTS Academic computer practice: one Task 1 prompt and one Task 2 prompt.",
+        "materialUrl": "https://demo-ielts.inspera.com/player/?assessmentRunId=131013741&context=exam",
+        "materialFallbackUrl": "https://www.ielts.org/take-a-test/preparation-resources/sample-test-questions/academic-test",
+        "sourceProvider": "IELTS.org"
       },
       {
         "id": "baseline-speaking",
@@ -169,7 +189,9 @@
         "minutes": 75,
         "objective": "Measure fluency, vocabulary, grammar and pronunciation across all three parts.",
         "steps": [
-          "Complete and record a full Speaking mock.",
+          "Open the attached official Speaking sample only when you are ready to begin.",
+          "Start with ChatGPT and ask it to act as the examiner using the official prompts without showing future questions.",
+          "Complete and record Parts 1, 2 and 3 in one continuous mock.",
           "Listen once and note pauses, repetition and unclear answers.",
           "Send the recording or transcript to ChatGPT for structured feedback."
         ],
@@ -177,7 +199,11 @@
         "doneWhen": [
           "All three Speaking parts are completed.",
           "The main fluency and language problems are recorded."
-        ]
+        ],
+        "material": "Official IELTS Speaking sample tasks: Part 1, Part 2 and Part 3 prompts in one PDF.",
+        "materialUrl": "https://ielts.org/cdn/ielts-sample-tests/ielts-speaking-sample-tasks-2023.pdf",
+        "materialFallbackUrl": "https://www.ielts.org/take-a-test/preparation-resources/sample-test-questions/academic-test",
+        "sourceProvider": "IELTS.org"
       }
     ]
   },
