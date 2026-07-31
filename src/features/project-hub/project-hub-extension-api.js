@@ -48,6 +48,15 @@
     }));
   }
 
+  function loadJoyCoreSync() {
+    if (document.querySelector("script[data-joy-core-web-sync]")) return;
+    const script = document.createElement("script");
+    script.src = "/project-data/turtlebot4/joy-core-web-sync.js?v=joy-stage-c-v1";
+    script.defer = true;
+    script.dataset.joyCoreWebSync = "1";
+    document.head.append(script);
+  }
+
   function registerExtension(candidate) {
     if (!candidate || typeof candidate !== "object") {
       throw new TypeError("Project Hub extension must be an object");
@@ -59,6 +68,7 @@
     extension = Object.freeze(candidate);
     extension.install?.(extensionContext());
     announce("extension-ready");
+    if (extension.id === "turtlebot-project-state-v2") loadJoyCoreSync();
   }
 
   normalizeOverrides = function normalizeProjectHubOverrides(value) {
@@ -104,7 +114,7 @@
   });
 
   root.JoyProjectHub = Object.freeze({
-    version: "extension-v2",
+    version: "extension-v1",
     registerExtension,
     getContext: extensionContext,
     refresh() {
