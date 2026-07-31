@@ -1,6 +1,10 @@
 import { readJson } from "./shared/http.js";
 import { JoyCoreError } from "./joy-core/service.js";
 import { STABLE_IELTS_ASSISTANT_SERVICE } from "./ielts-assistant-service.js";
+import {
+  IELTS_ACTIONS,
+  assertIeltsPermission,
+} from "./ielts-permissions.js";
 
 const IELTS_ACTION_PREFIX = "/api/joy/v1/ielts";
 const MAX_BODY_BYTES = 128_000;
@@ -41,6 +45,7 @@ export async function handleJoyIeltsActionRequest(
 
   if (pathname === `${IELTS_ACTION_PREFIX}/today`) {
     if (request.method !== "GET") return methodNotAllowed(["GET"]);
+    assertIeltsPermission(context, IELTS_ACTIONS.READ);
     return {
       value: await service.getTeachingContext(env, context, {
         date: url.searchParams.get("date") || undefined,
@@ -52,6 +57,7 @@ export async function handleJoyIeltsActionRequest(
   let match = pathname.match(/^\/api\/joy\/v1\/ielts\/tasks\/([^/]+)$/);
   if (match) {
     if (request.method !== "GET") return methodNotAllowed(["GET"]);
+    assertIeltsPermission(context, IELTS_ACTIONS.READ);
     return {
       value: await service.getTeachingTask(
         env,
@@ -66,6 +72,7 @@ export async function handleJoyIeltsActionRequest(
   match = pathname.match(/^\/api\/joy\/v1\/ielts\/tasks\/([^/]+)\/start$/);
   if (match) {
     if (request.method !== "POST") return methodNotAllowed(["POST"]);
+    assertIeltsPermission(context, IELTS_ACTIONS.TASK_UPDATE);
     return {
       value: await service.startTask(
         env,
@@ -80,6 +87,7 @@ export async function handleJoyIeltsActionRequest(
   match = pathname.match(/^\/api\/joy\/v1\/ielts\/tasks\/([^/]+)\/complete$/);
   if (match) {
     if (request.method !== "POST") return methodNotAllowed(["POST"]);
+    assertIeltsPermission(context, IELTS_ACTIONS.TASK_UPDATE);
     return {
       value: await service.completeTask(
         env,
@@ -93,6 +101,7 @@ export async function handleJoyIeltsActionRequest(
 
   if (pathname === `${IELTS_ACTION_PREFIX}/assessments`) {
     if (request.method !== "POST") return methodNotAllowed(["POST"]);
+    assertIeltsPermission(context, IELTS_ACTIONS.ASSESSMENT_CREATE);
     return {
       value: await service.addAssessment(env, context, await body(request)),
       status: 201,
@@ -101,6 +110,7 @@ export async function handleJoyIeltsActionRequest(
 
   if (pathname === `${IELTS_ACTION_PREFIX}/errors`) {
     if (request.method !== "POST") return methodNotAllowed(["POST"]);
+    assertIeltsPermission(context, IELTS_ACTIONS.ERROR_CREATE);
     return {
       value: await service.addRecurringError(env, context, await body(request)),
       status: 201,
@@ -109,6 +119,7 @@ export async function handleJoyIeltsActionRequest(
 
   if (pathname === `${IELTS_ACTION_PREFIX}/course-sessions`) {
     if (request.method !== "POST") return methodNotAllowed(["POST"]);
+    assertIeltsPermission(context, IELTS_ACTIONS.COURSE_CREATE);
     return {
       value: await service.addCourseSession(env, context, await body(request)),
       status: 201,
@@ -118,6 +129,7 @@ export async function handleJoyIeltsActionRequest(
   match = pathname.match(/^\/api\/joy\/v1\/ielts\/rhythms\/([^/]+)\/tasks$/);
   if (match) {
     if (request.method !== "PUT") return methodNotAllowed(["PUT"]);
+    assertIeltsPermission(context, IELTS_ACTIONS.PLAN_UPDATE);
     return {
       value: await service.replaceRhythmTasks(
         env,
