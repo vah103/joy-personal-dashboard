@@ -6,7 +6,7 @@ import {
   handleJoyActionsRequest,
   isJoyActionsRoute,
 } from "../worker/joy-actions.js";
-import { JOY_ACTIONS_OPENAPI } from "../worker/joy-actions-openapi.js";
+import { JOY_ACTIONS_OPENAPI } from "../worker/joy-actions-openapi-extended.js";
 
 const ENV = {
   JOY_GPT_ACTION_KEY: "test-secret-key",
@@ -46,6 +46,7 @@ test("publishes a GPT Actions schema without destructive operations", async () =
   const schema = await responseJson(response);
   assert.equal(schema.openapi, "3.1.0");
   assert.equal(schema.paths["/api/joy/v1/overview"].get.operationId, "getJoyOverview");
+  assert.equal(schema.paths["/api/joy/v1/ielts/today"].get.operationId, "getIeltsToday");
   assert.equal(typeof schema.components.schemas, "object");
   assert.equal(Array.isArray(schema.components.schemas), false);
   assert.ok(Object.keys(schema.components.schemas).length > 0);
