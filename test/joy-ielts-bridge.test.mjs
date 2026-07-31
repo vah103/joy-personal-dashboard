@@ -130,9 +130,12 @@ test("assessment writes are idempotent by clientRequestId", async () => {
 
 test("Joy Actions publishes all IELTS teaching operations without destructive endpoints", () => {
   const paths = JOY_ACTIONS_OPENAPI.paths;
+  const startOperation = paths["/api/joy/v1/ielts/tasks/{taskId}/start"]?.post;
+  assert.equal(JOY_ACTIONS_OPENAPI.info.version, "1.1.1");
   assert.ok(paths["/api/joy/v1/ielts/today"]?.get);
   assert.ok(paths["/api/joy/v1/ielts/tasks/{taskId}"]?.get);
-  assert.ok(paths["/api/joy/v1/ielts/tasks/{taskId}/start"]?.post);
+  assert.ok(startOperation);
+  assert.equal(Object.hasOwn(startOperation, "requestBody"), false);
   assert.ok(paths["/api/joy/v1/ielts/tasks/{taskId}/complete"]?.post);
   assert.ok(paths["/api/joy/v1/ielts/assessments"]?.post);
   assert.ok(paths["/api/joy/v1/ielts/errors"]?.post);
@@ -171,4 +174,35 @@ test("authenticated GPT Actions route delegates IELTS today reads to the bridge"
   const body = await response.json();
   assert.equal(body.current.id, "baseline");
   assert.equal(received.context.actorId, "chatgpt-custom-gpt");
+});
+
+test("authenticated GPT Actions can start an IELTS task without a request body", async () => {
+  let received = null;
+  const ieltsService = {
+    async startTask(env, context, taskId, input) {
+      received = { env, context, taskId, input };
+      return {
+        ok: true,
+        taskId,
+        state: { status: "in_progress" },
+        stateVersion: 1,
+      };
+    },
+  };
+  const response = await handleJoyActionsRequest(
+    new Request("https://app.hey-joy.workers.dev/api/joy/v1/ielts/tasks/baseline-listening/start", {
+      method: "POST",
+      headers: { Authorization: "Bearer test" },
+    }),
+    {},
+    {
+      authenticate: async () => CONTEXT,
+      ieltsService,
+    },
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(received.taskId, "baseline-listening");
+  assert.deepEqual(received.input, {});
+  assert.equal((await response.json()).state.status, "in_progress");
 });
