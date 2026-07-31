@@ -79,6 +79,7 @@ const syntaxChecks = [
   "worker/push-subscription-cleanup.js",
   "worker/sale-viewing-create.js",
   "worker/router.js",
+  "worker/joy-mcp.js",
   "worker/ielts-core.js",
   "worker/task-delete.js",
   "worker/task-english.js",
