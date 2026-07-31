@@ -1,6 +1,6 @@
 import { readJson } from "./shared/http.js";
 import { JoyCoreError } from "./joy-core/service.js";
-import { IELTS_ASSISTANT_SERVICE } from "./ielts-assistant.js";
+import { STABLE_IELTS_ASSISTANT_SERVICE } from "./ielts-assistant-service.js";
 
 const IELTS_ACTION_PREFIX = "/api/joy/v1/ielts";
 const MAX_BODY_BYTES = 128_000;
@@ -35,7 +35,7 @@ export async function handleJoyIeltsActionRequest(
   context,
   dependencies = {},
 ) {
-  const service = dependencies.service || IELTS_ASSISTANT_SERVICE;
+  const service = dependencies.service || STABLE_IELTS_ASSISTANT_SERVICE;
   const url = new URL(request.url);
   const { pathname } = url;
 
