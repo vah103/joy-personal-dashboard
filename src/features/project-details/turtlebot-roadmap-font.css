@@ -89,15 +89,15 @@
   justify-self: end;
 }
 
-/* Keep the large TurtleBot visual on the left and the complete overview summary on the right. */
+/* Keep the TurtleBot visual on the left and stack the complete overview summary on the right. */
 #turtlebot-hub-modal .rp-overview {
-  grid-template-columns: minmax(400px, 46%) minmax(0, 1fr);
+  grid-template-columns: minmax(430px, 48%) minmax(0, 1fr);
   grid-template-areas:
     "visual hero"
     "visual info"
     "current current"
     "next next";
-  gap: 14px 16px;
+  gap: 14px 18px;
   align-items: stretch;
 }
 
@@ -107,18 +107,63 @@
 
 #turtlebot-hub-modal .rp-overview-top .rp-visual-card {
   grid-area: visual;
-  min-height: 340px;
+  min-height: 500px;
 }
 
 #turtlebot-hub-modal .rp-overview-top .rp-hero {
+  position: relative;
   grid-area: hero;
-  min-height: 210px;
+  min-height: 178px;
+  overflow: hidden;
+  padding: 24px 24px 24px 30px;
+  border-color: #aebfc7;
+  background:
+    radial-gradient(circle at 88% 5%, rgba(109, 150, 169, .24), transparent 36%),
+    linear-gradient(135deg, #f8fbfc, #eaf2f5);
+  box-shadow: 0 12px 28px rgba(58, 80, 90, .11);
+}
+
+#turtlebot-hub-modal .rp-overview-top .rp-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: #547887;
+}
+
+#turtlebot-hub-modal .rp-overview-top .rp-hero h3 {
+  margin-top: 7px;
+  font-size: 1.16rem;
+  font-weight: 800;
+  letter-spacing: -.012em;
+}
+
+#turtlebot-hub-modal .rp-overview-top .rp-hero p {
+  max-width: 680px;
+  margin-top: 10px;
+  font-size: .82rem;
+}
+
+#turtlebot-hub-modal .rp-overview-top .rp-hero > b {
+  border: 1px solid #c4d5dc;
+  background: #dce9ee;
+  color: #314d59;
+  font-weight: 800;
 }
 
 #turtlebot-hub-modal .rp-overview > .rp-info-grid {
   grid-area: info;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  align-self: end;
+  grid-template-columns: 1fr;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  align-self: stretch;
+}
+
+#turtlebot-hub-modal .rp-overview > .rp-info-grid article {
+  display: grid;
+  align-content: center;
+  min-height: 0;
+  padding: 12px 16px;
 }
 
 #turtlebot-hub-modal .rp-overview > .rp-current {
@@ -167,17 +212,15 @@
   }
 
   #turtlebot-hub-modal .rp-overview-top .rp-visual-card {
-    min-height: 300px;
+    min-height: 320px;
   }
 
   #turtlebot-hub-modal .rp-overview-top .rp-hero {
     min-height: auto;
   }
-}
 
-@media (max-width: 760px) {
   #turtlebot-hub-modal .rp-overview > .rp-info-grid {
-    grid-template-columns: 1fr;
+    grid-template-rows: none;
   }
 }
 
@@ -193,5 +236,9 @@
 
   #turtlebot-hub-modal .rp-overview-top .rp-visual-card {
     min-height: 230px;
+  }
+
+  #turtlebot-hub-modal .rp-overview-top .rp-hero {
+    padding: 20px 18px 20px 24px;
   }
 }
