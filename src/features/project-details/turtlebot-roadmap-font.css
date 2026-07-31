@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Open+Sans:wght@700;800&display=swap");
+
 @font-face {
   font-family: "Nunito";
   src: url("/fonts/nunito-latin-400-normal.woff2") format("woff2");
@@ -70,11 +72,12 @@
 
 #turtlebot-hub-modal .turtlebot-hub-header-with-tabs .turtlebot-hub-tabs button {
   flex: 0 0 auto;
-  padding: 10px 14px;
+  padding: 11px 16px;
   color: #596871;
-  font-size: .9rem;
+  font-family: "Open Sans", "Segoe UI", Arial, sans-serif !important;
+  font-size: 1rem;
   font-weight: 800;
-  letter-spacing: -.01em;
+  letter-spacing: -.015em;
   white-space: nowrap;
 }
 
@@ -118,7 +121,7 @@
   }
 
   #turtlebot-hub-modal .turtlebot-hub-header-with-tabs .turtlebot-hub-tabs button {
-    padding: 9px 11px;
-    font-size: .79rem;
+    padding: 10px 12px;
+    font-size: .85rem;
   }
 }
