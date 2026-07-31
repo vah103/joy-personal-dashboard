@@ -13,6 +13,8 @@ const ENV = {
   JOY_OWNER_EMAIL: "owner@example.com",
 };
 
+const HTTP_METHODS = new Set(["get", "post", "put", "patch", "delete", "options", "head", "trace"]);
+
 function authorizedRequest(path, init = {}) {
   const headers = new Headers(init.headers || {});
   headers.set("Authorization", `Bearer ${ENV.JOY_GPT_ACTION_KEY}`);
@@ -42,11 +44,25 @@ test("publishes a GPT Actions schema without destructive operations", async () =
   );
   assert.equal(response.status, 200);
   const schema = await responseJson(response);
-  assert.equal(schema.openapi, "3.1.0");
+  assert.equal(schema.openapi, "3.0.3");
   assert.equal(schema.paths["/api/joy/v1/overview"].get.operationId, "getJoyOverview");
-  const methods = Object.values(schema.paths)
-    .flatMap((path) => Object.keys(path))
-    .map((method) => method.toLowerCase());
+  assert.equal(typeof schema.components.schemas, "object");
+  assert.equal(Array.isArray(schema.components.schemas), false);
+  assert.ok(Object.keys(schema.components.schemas).length > 0);
+
+  const methods = [];
+  for (const [path, pathItem] of Object.entries(schema.paths)) {
+    assert.equal(Object.hasOwn(pathItem, "parameters"), false, `${path} must not use path-level parameters`);
+    for (const [method, operation] of Object.entries(pathItem)) {
+      assert.equal(HTTP_METHODS.has(method), true, `${path} has unsupported path-item key ${method}`);
+      methods.push(method);
+      if (path.includes("{")) {
+        assert.ok(Array.isArray(operation.parameters), `${path} ${method} needs operation parameters`);
+        assert.ok(operation.parameters.some((parameter) => parameter.in === "path"));
+      }
+    }
+  }
+
   assert.equal(methods.includes("delete"), false);
   assert.deepEqual(schema, JOY_ACTIONS_OPENAPI);
 });
