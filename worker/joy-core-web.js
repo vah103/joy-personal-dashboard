@@ -87,6 +87,24 @@ function errorResponse(error) {
   }, status);
 }
 
+async function updateProjectWithConflictRetry(service, env, context, projectId, body) {
+  try {
+    return await service.updateProject(env, context, projectId, body);
+  } catch (error) {
+    const requestedVersion = Number(body?.baseVersion);
+    const currentVersion = Number(error?.details?.current?.version);
+    const canRetry = error?.code === "JOY_PROJECT_VERSION_CONFLICT"
+      && Number.isFinite(requestedVersion)
+      && Number.isFinite(currentVersion)
+      && currentVersion > requestedVersion;
+    if (!canRetry) throw error;
+    return service.updateProject(env, context, projectId, {
+      ...body,
+      baseVersion: currentVersion,
+    });
+  }
+}
+
 export async function handleJoyCoreWebRequest(request, env, dependencies = {}) {
   const service = dependencies.service || defaultService;
   const readSession = dependencies.getSession || getSession;
@@ -121,11 +139,13 @@ export async function handleJoyCoreWebRequest(request, env, dependencies = {}) {
         return apiJson(await service.getProject(env, context, projectId));
       }
       if (request.method === "PATCH") {
-        return apiJson(await service.updateProject(
+        const body = await requestBody(request);
+        return apiJson(await updateProjectWithConflictRetry(
+          service,
           env,
           context,
           projectId,
-          await requestBody(request),
+          body,
         ));
       }
       return methodNotAllowed(["GET", "PATCH"]);
