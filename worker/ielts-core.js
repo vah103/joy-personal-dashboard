@@ -5,7 +5,39 @@ import { getSession } from "./shared/session.js";
 const MAX_STATE_BYTES = 700_000;
 const PROGRAM_START = "2026-08-01";
 const PROGRAM_END = "2026-12-31";
+const PLAN_ID = "ielts-band-7-december-2026";
 const COMPLETE_STATUSES = new Set(["completed"]);
+
+export class IeltsStateError extends Error {
+  constructor(code, status = 500, details = null) {
+    super(code);
+    this.name = "IeltsStateError";
+    this.code = code;
+    this.status = status;
+    this.details = details;
+  }
+}
+
+export function blankIeltsState() {
+  return {
+    schemaVersion: 2,
+    goal: {
+      overall: 7,
+      minimumSkill: 6.5,
+      date: "2026-12-31",
+    },
+    taskStates: {},
+    customTasks: [],
+    courseSessions: [],
+    assessments: [],
+    errorLogs: [],
+    rhythmReviews: {},
+    settings: {
+      eveningReminder: true,
+      weeklyReviewReminder: true,
+    },
+  };
+}
 
 export function isIeltsCoreRoute(pathname) {
   return pathname === "/api/ielts-core";
@@ -66,7 +98,7 @@ export async function runIeltsSchedule(env) {
         dateKey: clock.dateKey,
       },
     }, env, {
-      ttl: payload.kind === "ielts-morning" ? 8 * 60 * 60 : 4 * 60 * 60,
+      ttl: notification.kind === "ielts-morning" ? 8 * 60 * 60 : 4 * 60 * 60,
       topic: `hey-joy-${payload.kind}`,
       urgency: payload.kind === "ielts-evening" ? "high" : "normal",
     });
@@ -80,121 +112,145 @@ export async function runIeltsSchedule(env) {
   }));
 }
 
-async function getState(email, env) {
+export function normalizeIeltsState(value) {
+  const cleanArray = (input, limit) => Array.isArray(input) ? input.slice(-limit) : [];
+  return {
+    schemaVersion: 2,
+    goal: {
+      overall: Number(value?.goal?.overall || 7),
+      minimumSkill: Number(value?.goal?.minimumSkill || 6.5),
+      date: String(value?.goal?.date || "2026-12-31"),
+    },
+    taskStates: plainObject(value?.taskStates),
+    customTasks: cleanArray(value?.customTasks, 200),
+    courseSessions: cleanArray(value?.courseSessions, 100),
+    assessments: cleanArray(value?.assessments, 50),
+    errorLogs: cleanArray(value?.errorLogs, 500),
+    rhythmReviews: plainObject(value?.rhythmReviews),
+    settings: {
+      eveningReminder: value?.settings?.eveningReminder !== false,
+      weeklyReviewReminder: value?.settings?.weeklyReviewReminder !== false,
+    },
+  };
+}
+
+export async function readIeltsState(email, env) {
   await ensureTables(env);
+  const userEmail = String(email || "").trim().toLowerCase();
+  if (!userEmail) throw new IeltsStateError("IELTS_USER_REQUIRED", 400);
+
   let row = await env.DB.prepare(`
     SELECT data_json, version, updated_at
     FROM ielts_core_states
     WHERE user_email = ?
-  `).bind(email).first();
+  `).bind(userEmail).first();
 
   if (!row) {
     const now = Date.now();
-    const initial = JSON.stringify({
-      schemaVersion: 2,
-      goal: {
-        overall: 7,
-        minimumSkill: 6.5,
-        date: "2026-12-31"
-      },
-      taskStates: {},
-      customTasks: [],
-      courseSessions: [],
-      assessments: [],
-      errorLogs: [],
-      rhythmReviews: {},
-      settings: {
-        eveningReminder: true,
-        weeklyReviewReminder: true
-      }
-    });
+    const initial = JSON.stringify(blankIeltsState());
     await env.DB.prepare(`
-      INSERT INTO ielts_core_states (
+      INSERT OR IGNORE INTO ielts_core_states (
         user_email, data_json, version, updated_at
       ) VALUES (?, ?, 0, ?)
-    `).bind(email, initial, now).run();
-    row = { data_json: initial, version: 0, updated_at: now };
+    `).bind(userEmail, initial, now).run();
+    row = await env.DB.prepare(`
+      SELECT data_json, version, updated_at
+      FROM ielts_core_states
+      WHERE user_email = ?
+    `).bind(userEmail).first();
   }
 
-  return json({
-    planId: "ielts-band-7-december-2026",
-    data: safeJsonParse(row.data_json, {}),
-    version: Number(row.version || 0),
-    updatedAt: Number(row.updated_at || 0),
-  });
+  return {
+    planId: PLAN_ID,
+    data: normalizeIeltsState(safeJsonParse(row?.data_json, blankIeltsState())),
+    version: Number(row?.version || 0),
+    updatedAt: Number(row?.updated_at || 0),
+  };
+}
+
+export async function saveIeltsState(email, env, value, baseVersion) {
+  const userEmail = String(email || "").trim().toLowerCase();
+  const data = normalizeIeltsState(value);
+  const serialized = JSON.stringify(data);
+  if (new TextEncoder().encode(serialized).byteLength > MAX_STATE_BYTES) {
+    throw new IeltsStateError("IELTS_STATE_TOO_LARGE", 413);
+  }
+
+  const current = await readIeltsState(userEmail, env);
+  const expectedVersion = Number(baseVersion);
+  if (!Number.isInteger(expectedVersion) || expectedVersion < 0) {
+    throw new IeltsStateError("IELTS_INVALID_BASE_VERSION", 400, { baseVersion });
+  }
+  if (expectedVersion !== current.version) {
+    throw new IeltsStateError("IELTS_STATE_VERSION_CONFLICT", 409, current);
+  }
+
+  const nextVersion = current.version + 1;
+  const now = Date.now();
+  const result = await env.DB.prepare(`
+    UPDATE ielts_core_states
+    SET data_json = ?, version = ?, updated_at = ?
+    WHERE user_email = ? AND version = ?
+  `).bind(serialized, nextVersion, now, userEmail, current.version).run();
+
+  if (Number(result?.meta?.changes || 0) !== 1) {
+    throw new IeltsStateError(
+      "IELTS_STATE_VERSION_CONFLICT",
+      409,
+      await readIeltsState(userEmail, env),
+    );
+  }
+
+  return {
+    ok: true,
+    planId: PLAN_ID,
+    data,
+    version: nextVersion,
+    updatedAt: now,
+  };
+}
+
+export async function mutateIeltsState(email, env, updater, options = {}) {
+  const attempts = Math.max(1, Math.min(5, Number(options.attempts || 3)));
+  let latestConflict = null;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const current = await readIeltsState(email, env);
+    const draft = JSON.parse(JSON.stringify(current.data));
+    const updated = await updater(draft, current);
+    try {
+      return await saveIeltsState(email, env, updated || draft, current.version);
+    } catch (error) {
+      if (error?.code !== "IELTS_STATE_VERSION_CONFLICT") throw error;
+      latestConflict = error;
+    }
+  }
+  throw latestConflict || new IeltsStateError("IELTS_STATE_VERSION_CONFLICT", 409);
+}
+
+async function getState(email, env) {
+  return json(await readIeltsState(email, env));
 }
 
 async function putState(request, email, env) {
   const body = await readJson(request);
   const data = body && typeof body.data === "object" && !Array.isArray(body.data)
-    ? normalizeState(body.data)
+    ? body.data
     : null;
-  const baseVersion = Number(body.baseVersion || 0);
   if (!data) return json({ error: "INVALID_IELTS_STATE" }, 400);
 
-  const serialized = JSON.stringify(data);
-  if (new TextEncoder().encode(serialized).byteLength > MAX_STATE_BYTES) {
-    return json({ error: "IELTS_STATE_TOO_LARGE" }, 413);
+  try {
+    return json(await saveIeltsState(email, env, data, Number(body.baseVersion || 0)));
+  } catch (error) {
+    if (error?.code === "IELTS_STATE_VERSION_CONFLICT") {
+      return json({
+        error: error.code,
+        data: error.details?.data || {},
+        version: Number(error.details?.version || 0),
+        updatedAt: Number(error.details?.updatedAt || 0),
+      }, 409);
+    }
+    return json({ error: error?.code || "IELTS_STATE_SAVE_FAILED" }, Number(error?.status || 500));
   }
-
-  await ensureTables(env);
-  const current = await env.DB.prepare(`
-    SELECT data_json, version, updated_at
-    FROM ielts_core_states
-    WHERE user_email = ?
-  `).bind(email).first();
-
-  const currentVersion = Number(current?.version || 0);
-  if (current && baseVersion !== currentVersion) {
-    return json({
-      error: "IELTS_STATE_VERSION_CONFLICT",
-      data: safeJsonParse(current.data_json, {}),
-      version: currentVersion,
-      updatedAt: Number(current.updated_at || 0),
-    }, 409);
-  }
-
-  const nextVersion = currentVersion + 1;
-  const now = Date.now();
-  await env.DB.prepare(`
-    INSERT INTO ielts_core_states (
-      user_email, data_json, version, updated_at
-    ) VALUES (?, ?, ?, ?)
-    ON CONFLICT(user_email) DO UPDATE SET
-      data_json = excluded.data_json,
-      version = excluded.version,
-      updated_at = excluded.updated_at
-  `).bind(email, serialized, nextVersion, now).run();
-
-  return json({
-    ok: true,
-    planId: "ielts-band-7-december-2026",
-    data,
-    version: nextVersion,
-    updatedAt: now,
-  });
-}
-
-function normalizeState(value) {
-  const cleanArray = (input, limit) => Array.isArray(input) ? input.slice(-limit) : [];
-  return {
-    schemaVersion: 2,
-    goal: {
-      overall: Number(value.goal?.overall || 7),
-      minimumSkill: Number(value.goal?.minimumSkill || 6.5),
-      date: String(value.goal?.date || "2026-12-31"),
-    },
-    taskStates: plainObject(value.taskStates),
-    customTasks: cleanArray(value.customTasks, 200),
-    courseSessions: cleanArray(value.courseSessions, 100),
-    assessments: cleanArray(value.assessments, 50),
-    errorLogs: cleanArray(value.errorLogs, 500),
-    rhythmReviews: plainObject(value.rhythmReviews),
-    settings: {
-      eveningReminder: value.settings?.eveningReminder !== false,
-      weeklyReviewReminder: value.settings?.weeklyReviewReminder !== false,
-    },
-  };
 }
 
 function plainObject(value) {
@@ -351,10 +407,6 @@ function vietnamClock(now) {
     minute: Number(parts.minute),
     weekday: weekdayMap[parts.weekday],
   };
-}
-
-function dayDifference(from, to) {
-  return Math.round((new Date(`${to}T00:00:00Z`) - new Date(`${from}T00:00:00Z`)) / 86_400_000);
 }
 
 function addDays(dateKey, days) {
