@@ -27,6 +27,7 @@ import {
 } from "./ielts-core.js";
 import { handleJoyActionsRequest, isJoyActionsRoute } from "./joy-actions.js";
 import { handleJoyCoreWebRequest, isJoyCoreWebRoute } from "./joy-core-web.js";
+import { handleJoyMcpRequest, isJoyMcpRoute } from "./joy-mcp.js";
 import { handleProjectHubRequest, isProjectHubRoute } from "./project-hub.js";
 import {
   guardGoogleIntegration,
@@ -96,6 +97,9 @@ export default {
     const pathname = new URL(request.url).pathname;
 
     try {
+      if (isJoyMcpRoute(pathname)) {
+        return handleJoyMcpRequest(request, env);
+      }
       if (isJoyActionsRoute(pathname)) {
         return handleJoyActionsRequest(request, env);
       }
@@ -170,7 +174,7 @@ export default {
       return app.fetch(request, env, ctx);
     } catch (error) {
       console.error("Joy router failed", error);
-      if (pathname.startsWith("/api/")) {
+      if (pathname.startsWith("/api/") || pathname === "/mcp") {
         return new Response(JSON.stringify({ error: "JOY_AUTH_FAILED" }), {
           status: 500,
           headers: {
