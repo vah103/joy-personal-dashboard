@@ -195,8 +195,7 @@ export async function handleJoyActionsRequest(request, env, dependencies = {}) {
       return apiJson({
         ok: true,
         configured: Boolean(env?.JOY_GPT_ACTION_KEY && env?.JOY_OWNER_EMAIL),
-        version: 2,
-        ieltsBridge: true,
+        version: 1,
       });
     }
     if (request.method === "OPTIONS") {
