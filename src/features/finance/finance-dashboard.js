@@ -117,7 +117,7 @@
       #finance.finance-dashboard-polished .finance-available>span{
         color:#687b81;
         font-family:"Instrument Sans",Arial,sans-serif;
-        font-size:9px;
+        font-size:10px;
         font-weight:700;
         letter-spacing:.105em;
       }
@@ -200,14 +200,14 @@
       #finance.finance-dashboard-polished .finance-overview-stat small{
         color:#60747a;
         font-family:"Instrument Sans",Arial,sans-serif;
-        font-size:9px;
+        font-size:10.5px;
         font-weight:700;
       }
 
       #finance.finance-dashboard-polished .finance-overview-stat strong{
         min-height:0;
         margin-top:6px;
-        font-size:clamp(17px,1.55vw,20px);
+        font-size:clamp(19px,1.75vw,24px);
         font-weight:400;
         line-height:1.12;
       }
