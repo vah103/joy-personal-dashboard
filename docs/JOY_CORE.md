@@ -28,7 +28,7 @@ An access grant can restrict a role further with explicit action scopes. Scopes 
 
 ## Storage
 
-`migrations/20260731_joy_core_foundation.sql` creates normalized D1 tables prefixed with `joy_`. It does not delete or rewrite legacy tables.
+`migrations/20260731_joy_core_foundation.sql` creates normalized D1 tables prefixed with `joy_core_`. The separate prefix avoids conflicting with the dashboard's existing legacy `joy_projects` table. The migration does not delete or rewrite legacy tables.
 
 The normalized schema is designed so REST Actions and MCP tools can call the same future service functions. API and MCP adapters must not query the tables directly; they should use a shared repository/service layer and record audit events for writes.
 
