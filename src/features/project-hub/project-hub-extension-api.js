@@ -48,12 +48,26 @@
     }));
   }
 
+  function loadJoyCoreReferenceLayout() {
+    if (document.querySelector("script[data-joy-core-reference-layout]")) return;
+    const script = document.createElement("script");
+    script.src = "/project-data/turtlebot4/joy-core-reference-layout.js?v=joy-stage-c-reference-v1";
+    script.defer = true;
+    script.dataset.joyCoreReferenceLayout = "1";
+    document.head.append(script);
+  }
+
   function loadJoyCoreSync() {
-    if (document.querySelector("script[data-joy-core-web-sync]")) return;
+    const existing = document.querySelector("script[data-joy-core-web-sync]");
+    if (existing) {
+      loadJoyCoreReferenceLayout();
+      return;
+    }
     const script = document.createElement("script");
     script.src = "/project-data/turtlebot4/joy-core-web-sync.js?v=joy-stage-c-v1";
     script.defer = true;
     script.dataset.joyCoreWebSync = "1";
+    script.addEventListener("load", loadJoyCoreReferenceLayout, { once: true });
     document.head.append(script);
   }
 
