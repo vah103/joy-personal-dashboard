@@ -1,5 +1,9 @@
 import { json, readJson } from "./shared/http.js";
-import { JOY_ACTIONS_OPENAPI } from "./joy-actions-openapi.js";
+import { JOY_ACTIONS_OPENAPI } from "./joy-actions-openapi-extended.js";
+import {
+  handleJoyIeltsActionRequest,
+  isJoyIeltsActionRoute,
+} from "./joy-actions-ielts.js";
 import {
   JoyCoreError,
   appendJoyProgressLog,
@@ -57,11 +61,11 @@ function privacyResponse() {
   <h1>Joy Actions Privacy</h1>
   <p>Joy Actions is a private integration for the owner of the Joy Personal Dashboard.</p>
   <h2>Data used</h2>
-  <p>When the owner invokes an action, Joy may return or update project, task, milestone, progress-log, and evidence-reference data stored in the owner's Cloudflare-backed Joy account.</p>
+  <p>When the owner invokes an action, Joy may return or update project, task, milestone, progress-log, evidence-reference, IELTS task-state, assessment, recurring-error, and course-session data stored in the owner's Cloudflare-backed Joy account.</p>
   <h2>Sharing</h2>
-  <p>Action request and response data is sent to ChatGPT to complete the owner's request. Joy does not sell this data or expose it through unauthenticated project endpoints.</p>
+  <p>Action request and response data is sent to ChatGPT to complete the owner's request. Joy does not sell this data or expose it through unauthenticated project or IELTS endpoints.</p>
   <h2>Security and retention</h2>
-  <p>Requests require a private bearer key. Writes are recorded in Joy's audit table. The assistant credential cannot delete projects, tasks, milestones, logs, or evidence.</p>
+  <p>Requests require a private bearer key. Project writes are recorded in Joy's audit table. Assistant credentials cannot delete projects or IELTS records, and IELTS completion must be based on owner-confirmed work.</p>
   <h2>Contact</h2>
   <p>This integration is maintained privately through the Joy Personal Dashboard repository.</p>
 </body>
@@ -191,20 +195,28 @@ export async function handleJoyActionsRequest(request, env, dependencies = {}) {
       return apiJson({
         ok: true,
         configured: Boolean(env?.JOY_GPT_ACTION_KEY && env?.JOY_OWNER_EMAIL),
-        version: 1,
+        version: 2,
+        ieltsBridge: true,
       });
     }
     if (request.method === "OPTIONS") {
       return new Response(null, {
         status: 204,
         headers: {
-          Allow: "GET, POST, PATCH, OPTIONS",
+          Allow: "GET, POST, PUT, PATCH, OPTIONS",
           "Cache-Control": "no-store",
         },
       });
     }
 
     const context = await (dependencies.authenticate || authenticateJoyActions)(request, env);
+
+    if (isJoyIeltsActionRoute(pathname)) {
+      const result = await handleJoyIeltsActionRequest(request, env, context, {
+        service: dependencies.ieltsService,
+      });
+      return apiJson(result.value, result.status);
+    }
 
     if (pathname === `${API_PREFIX}/overview`) {
       if (request.method !== "GET") return methodNotAllowed(["GET"]);
