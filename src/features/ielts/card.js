@@ -4,8 +4,6 @@
     "joy-ielts-core-bundle-v4",
     "project-data/ielts/ielts-core-bundle.js?v=ielts-journey-v4",
   ];
-  const HUB_STYLE_ID = "joy-ielts-hub-v1";
-  const HUB_STYLE_URL = "/project-data/ielts/ielts-hub.css?v=ielts-hub-v1";
   let hubFrame = 0;
 
   function loadScript(id, src) {
@@ -32,20 +30,11 @@
     });
   }
 
-  function ensureHubStyle() {
-    if (document.querySelector(`#${HUB_STYLE_ID}`)) return;
-    const style = document.createElement("style");
-    style.id = HUB_STYLE_ID;
-    style.textContent = `@import url("${HUB_STYLE_URL}");`;
-    document.head.append(style);
-  }
-
   function directChild(parent, selector) {
     return [...parent.children].find((child) => child.matches(selector)) || null;
   }
 
   function enhanceHub() {
-    ensureHubStyle();
     const modal = document.querySelector("#ielts-modal");
     if (!modal) return;
 
@@ -102,7 +91,6 @@
   }
 
   async function ensureCore() {
-    ensureHubStyle();
     if (window.JoyIELTS?.version === JOURNEY_VERSION) {
       scheduleHubEnhancement();
       return true;
@@ -216,7 +204,6 @@
     if (ieltsModalChanged) scheduleHubEnhancement();
   }).observe(document.body, { childList: true, subtree: true });
 
-  ensureHubStyle();
   enhanceCard();
   scheduleHubEnhancement();
   void ensureCore().then(() => {
