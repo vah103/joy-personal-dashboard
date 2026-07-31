@@ -44,7 +44,7 @@ test("publishes a GPT Actions schema without destructive operations", async () =
   );
   assert.equal(response.status, 200);
   const schema = await responseJson(response);
-  assert.equal(schema.openapi, "3.0.3");
+  assert.equal(schema.openapi, "3.1.0");
   assert.equal(schema.paths["/api/joy/v1/overview"].get.operationId, "getJoyOverview");
   assert.equal(typeof schema.components.schemas, "object");
   assert.equal(Array.isArray(schema.components.schemas), false);
