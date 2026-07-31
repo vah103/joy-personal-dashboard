@@ -26,6 +26,7 @@ import {
   runIeltsSchedule,
 } from "./ielts-core.js";
 import { handleJoyActionsRequest, isJoyActionsRoute } from "./joy-actions.js";
+import { handleJoyCoreWebRequest, isJoyCoreWebRoute } from "./joy-core-web.js";
 import { handleProjectHubRequest, isProjectHubRoute } from "./project-hub.js";
 import {
   guardGoogleIntegration,
@@ -97,6 +98,9 @@ export default {
     try {
       if (isJoyActionsRoute(pathname)) {
         return handleJoyActionsRequest(request, env);
+      }
+      if (isJoyCoreWebRoute(pathname)) {
+        return handleJoyCoreWebRequest(request, env);
       }
       if (isDailyBriefRoute(pathname)) {
         return handleDailyBriefRequest(request, env, ctx);

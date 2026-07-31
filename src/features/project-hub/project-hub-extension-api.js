@@ -32,12 +32,29 @@
       updateStatus: updateHubStatus,
       render: renderHub,
       updateCard: updateTurtleBotCard,
+      projectProgress: () => projectProgress(),
+      effectivePlan: () => effectivePlan(),
       selectTab(tab) {
         if (!HUB_TABS.includes(tab)) return;
         hubState.activeTab = tab;
         renderHub();
       },
     });
+  }
+
+  function announce(type) {
+    document.dispatchEvent(new CustomEvent(`joy-project-hub:${type}`, {
+      detail: { extensionId: extension?.id || null },
+    }));
+  }
+
+  function loadJoyCoreSync() {
+    if (document.querySelector("script[data-joy-core-web-sync]")) return;
+    const script = document.createElement("script");
+    script.src = "/project-data/turtlebot4/joy-core-web-sync.js?v=joy-stage-c-v1";
+    script.defer = true;
+    script.dataset.joyCoreWebSync = "1";
+    document.head.append(script);
   }
 
   function registerExtension(candidate) {
@@ -50,6 +67,8 @@
 
     extension = Object.freeze(candidate);
     extension.install?.(extensionContext());
+    announce("extension-ready");
+    if (extension.id === "turtlebot-project-state-v2") loadJoyCoreSync();
   }
 
   normalizeOverrides = function normalizeProjectHubOverrides(value) {
@@ -70,13 +89,17 @@
   };
 
   renderHub = function renderProjectHubWithExtension() {
-    if (extension?.renderTab?.(hubState.activeTab, extensionContext()) === true) return;
-    base.renderHub();
+    if (extension?.renderTab?.(hubState.activeTab, extensionContext()) !== true) {
+      base.renderHub();
+    }
+    announce("rendered");
   };
 
   updateTurtleBotCard = function updateProjectCardWithExtension() {
-    if (extension?.updateCard?.(extensionContext()) === true) return;
-    base.updateCard();
+    if (extension?.updateCard?.(extensionContext()) !== true) {
+      base.updateCard();
+    }
+    announce("card-updated");
   };
 
   answerProjectQuestion = function answerWithProjectHubExtension(question) {
@@ -93,5 +116,10 @@
   root.JoyProjectHub = Object.freeze({
     version: "extension-v1",
     registerExtension,
+    getContext: extensionContext,
+    refresh() {
+      updateTurtleBotCard();
+      if (!hubElements.modal?.hidden) renderHub();
+    },
   });
 })(window);
