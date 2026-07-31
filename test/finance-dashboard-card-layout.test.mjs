@@ -5,7 +5,7 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 const read = (path) => fs.readFileSync(new URL(path, root), "utf8");
 
-test("outer Finance card owns layout in the canonical source and money weight in the theme", () => {
+test("outer Finance card owns layout in the canonical source and uses Nunito for money", () => {
   const theme = read("src/features/theme/dashboard-openai-headings.css");
   const dashboard = read("src/features/finance/finance-dashboard.js");
 
@@ -40,11 +40,11 @@ test("outer Finance card owns layout in the canonical source and money weight in
 
   assert.match(
     theme,
-    /#finance\.finance-dashboard-polished \.finance-available > strong \{[\s\S]*font-weight: 700;[\s\S]*letter-spacing: -\.022em;[\s\S]*line-height: 1\.04;/,
+    /#finance\.finance-dashboard-polished \.finance-available > strong \{[\s\S]*font-family: "Nunito"[\s\S]*font-weight: 700;[\s\S]*letter-spacing: -\.022em;[\s\S]*line-height: 1\.04;/,
   );
   assert.match(
     theme,
-    /#finance\.finance-dashboard-polished \.finance-overview-stat strong \{[\s\S]*font-weight: 500;[\s\S]*letter-spacing: -\.016em;[\s\S]*line-height: 1\.08;/,
+    /#finance\.finance-dashboard-polished \.finance-overview-stat strong \{[\s\S]*font-family: "Nunito"[\s\S]*font-weight: 500;[\s\S]*letter-spacing: -\.016em;[\s\S]*line-height: 1\.08;/,
   );
   assert.match(theme, /font-synthesis: none/);
 });

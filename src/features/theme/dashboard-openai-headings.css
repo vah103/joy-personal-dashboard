@@ -37,7 +37,7 @@
 
 /* Finance money typography only. Layout remains owned by the canonical Finance bundle. */
 #finance.finance-dashboard-polished .finance-available > strong {
-  font-family: "OpenAI Sans", "Instrument Sans", "Segoe UI", Arial, sans-serif;
+  font-family: "Nunito", "Instrument Sans", "Segoe UI", Arial, sans-serif;
   font-weight: 700;
   font-synthesis: none;
   font-variant-numeric: proportional-nums lining-nums;
@@ -47,7 +47,7 @@
 }
 
 #finance.finance-dashboard-polished .finance-overview-stat strong {
-  font-family: "OpenAI Sans", "Instrument Sans", "Segoe UI", Arial, sans-serif;
+  font-family: "Nunito", "Instrument Sans", "Segoe UI", Arial, sans-serif;
   font-weight: 500;
   font-synthesis: none;
   font-variant-numeric: proportional-nums lining-nums;
