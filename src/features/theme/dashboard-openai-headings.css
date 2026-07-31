@@ -1,5 +1,3 @@
-@import url("/project-data/finance/finance-dashboard-card-v1.css?v=finance-dashboard-stats-v4");
-
 /* OpenAI Sans typography for the outer Hey Joy dashboard. */
 @font-face {
   font-family: "OpenAI Sans";
@@ -35,4 +33,17 @@
   font-family: "OpenAI Sans", "Instrument Sans", "Segoe UI", sans-serif;
   font-weight: 700;
   font-synthesis: none;
+}
+
+/* Typography only: the canonical Finance bundle remains the sole layout owner. */
+.finance-panel .finance-overview [data-finance-field] {
+  font-family: "OpenAI Sans", "Instrument Sans", "Segoe UI", Arial, sans-serif;
+  font-weight: 400;
+  font-synthesis: none;
+  font-variant-numeric: proportional-nums lining-nums;
+  letter-spacing: 0;
+}
+
+.finance-panel .finance-available [data-finance-field] {
+  font-weight: 500;
 }
