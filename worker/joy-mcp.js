@@ -1,5 +1,13 @@
 import { authenticateJoyActions } from "./joy-actions.js";
 import {
+  EVIDENCE_KINDS,
+  MILESTONE_STATUSES,
+  PROGRESS_LOG_KINDS,
+  PROJECT_STATUSES,
+  TASK_PRIORITIES,
+  TASK_STATUSES,
+} from "./joy-core/model.js";
+import {
   JoyCoreError,
   appendJoyProgressLog,
   attachJoyEvidence,
@@ -36,257 +44,217 @@ const defaultService = {
   attachEvidence: attachJoyEvidence,
 };
 
-const noArgumentsSchema = {
-  type: "object",
-  properties: {},
-  additionalProperties: false,
-};
-
-const projectStatusSchema = {
-  type: "string",
-  enum: ["planned", "active", "paused", "blocked", "completed"],
-};
-
-const taskStatusSchema = {
-  type: "string",
-  enum: ["todo", "in_progress", "blocked", "done"],
-};
-
-const prioritySchema = {
-  type: "string",
-  enum: ["low", "normal", "high", "critical"],
-};
-
-const timestampSchema = {
-  anyOf: [{ type: "integer" }, { type: "null" }],
-  description: "Unix timestamp in milliseconds, or null.",
-};
-
-const versionSchema = {
-  type: "integer",
-  minimum: 0,
-  description: "Entity version returned by the latest read. Used for optimistic concurrency.",
-};
-
-const clientRequestIdSchema = {
-  type: "string",
-  minLength: 1,
-  maxLength: 60,
-  description: "Stable idempotency key. Reuse the same value when retrying the same create request.",
-};
-
-const readAnnotations = {
+const readAnnotations = Object.freeze({
   readOnlyHint: true,
   destructiveHint: false,
   idempotentHint: true,
   openWorldHint: false,
-};
-
-const writeAnnotations = {
+});
+const writeAnnotations = Object.freeze({
   readOnlyHint: false,
   destructiveHint: false,
   idempotentHint: false,
   openWorldHint: false,
+});
+
+const id = (description) => ({
+  type: "string",
+  minLength: 1,
+  maxLength: 80,
+  description,
+});
+const nullableId = (description) => ({
+  anyOf: [id(description), { type: "null" }],
+});
+const enumSchema = (values) => ({ type: "string", enum: [...values] });
+const timestamp = (description = "Unix timestamp in milliseconds, or null.") => ({
+  anyOf: [{ type: "integer", minimum: 0 }, { type: "null" }],
+  description,
+});
+const metadata = { type: "object", additionalProperties: true };
+const baseVersion = {
+  type: "integer",
+  minimum: 0,
+  description: "Entity version from the latest read, used for optimistic concurrency.",
 };
+const clientRequestId = {
+  type: "string",
+  minLength: 1,
+  maxLength: 60,
+  description: "Stable idempotency key. Reuse it only when retrying the same create request.",
+};
+const noArguments = { type: "object", properties: {}, additionalProperties: false };
+const safeProjectStatuses = PROJECT_STATUSES.filter((status) => status !== "archived");
+
+function objectSchema(properties, required = []) {
+  return {
+    type: "object",
+    properties,
+    ...(required.length ? { required } : {}),
+    additionalProperties: false,
+  };
+}
 
 export const JOY_MCP_TOOLS = Object.freeze([
   {
     name: "get_overview",
     title: "Get Joy overview",
     description: "Read active projects, open project tasks, inbox tasks, and recent progress logs from Joy Core.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        taskLimit: { type: "integer", minimum: 1, maximum: 200 },
-        inboxLimit: { type: "integer", minimum: 1, maximum: 200 },
-        logLimit: { type: "integer", minimum: 1, maximum: 200 },
-      },
-      additionalProperties: false,
-    },
+    inputSchema: objectSchema({
+      taskLimit: { type: "integer", minimum: 1, maximum: 200 },
+      inboxLimit: { type: "integer", minimum: 1, maximum: 200 },
+      logLimit: { type: "integer", minimum: 1, maximum: 200 },
+    }),
     annotations: readAnnotations,
   },
   {
     name: "list_projects",
     title: "List Joy projects",
     description: "List projects visible to the private Joy assistant.",
-    inputSchema: noArgumentsSchema,
+    inputSchema: noArguments,
     annotations: readAnnotations,
   },
   {
     name: "get_project",
     title: "Get Joy project",
-    description: "Read one project together with its tasks, milestones, progress logs, and evidence.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        projectId: { type: "string", minLength: 1, maxLength: 80 },
-      },
-      required: ["projectId"],
-      additionalProperties: false,
-    },
+    description: "Read one project with its tasks, milestones, progress logs, and evidence.",
+    inputSchema: objectSchema({ projectId: id("Joy project id.") }, ["projectId"]),
     annotations: readAnnotations,
   },
   {
     name: "update_project",
     title: "Update Joy project",
-    description: "Update safe project status fields. Archiving and deletion are not available.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        projectId: { type: "string", minLength: 1, maxLength: 80 },
-        baseVersion: versionSchema,
-        title: { type: "string", minLength: 1, maxLength: 200 },
-        summary: { type: "string", maxLength: 4000 },
-        status: projectStatusSchema,
-        progress: { type: "number", minimum: 0, maximum: 100 },
-        currentStageId: { anyOf: [{ type: "string", maxLength: 80 }, { type: "null" }] },
-        currentFocus: { type: "string", maxLength: 2000 },
-        nextAction: { type: "string", maxLength: 2000 },
-        blockers: { type: "array", items: { type: "string", maxLength: 1000 }, maxItems: 50 },
-        metadata: { type: "object", additionalProperties: true },
+    description: "Update safe project fields. Archiving and deletion are not available.",
+    inputSchema: objectSchema({
+      projectId: id("Joy project id."),
+      baseVersion,
+      title: { type: "string", minLength: 1, maxLength: 240 },
+      summary: { type: "string", maxLength: 4000 },
+      status: enumSchema(safeProjectStatuses),
+      progress: { type: "number", minimum: 0, maximum: 100 },
+      currentStageId: nullableId("Current stage id."),
+      currentFocus: { type: "string", maxLength: 1000 },
+      nextAction: { type: "string", maxLength: 1000 },
+      blockers: {
+        type: "array",
+        items: { type: "string", maxLength: 500 },
+        maxItems: 30,
       },
-      required: ["projectId", "baseVersion"],
-      additionalProperties: false,
-    },
+      metadata,
+    }, ["projectId", "baseVersion"]),
     annotations: writeAnnotations,
   },
   {
     name: "create_task",
     title: "Create Joy project task",
-    description: "Create a task inside a Joy Core project. Supply clientRequestId for retry-safe creation.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        projectId: { type: "string", minLength: 1, maxLength: 80 },
-        milestoneId: { anyOf: [{ type: "string", maxLength: 80 }, { type: "null" }] },
-        title: { type: "string", minLength: 1, maxLength: 300 },
-        description: { type: "string", maxLength: 8000 },
-        status: taskStatusSchema,
-        priority: prioritySchema,
-        dueAt: timestampSchema,
-        scheduledFor: timestampSchema,
-        position: { type: "integer", minimum: 0 },
-        metadata: { type: "object", additionalProperties: true },
-        clientRequestId: clientRequestIdSchema,
-      },
-      required: ["projectId", "title", "clientRequestId"],
-      additionalProperties: false,
-    },
+    description: "Create a task inside a Joy project using a retry-safe clientRequestId.",
+    inputSchema: objectSchema({
+      projectId: id("Joy project id."),
+      milestoneId: nullableId("Optional milestone id."),
+      title: { type: "string", minLength: 1, maxLength: 240 },
+      description: { type: "string", maxLength: 4000 },
+      status: enumSchema(TASK_STATUSES),
+      priority: enumSchema(TASK_PRIORITIES),
+      dueAt: timestamp(),
+      scheduledFor: timestamp(),
+      position: { type: "integer" },
+      metadata,
+      clientRequestId,
+    }, ["projectId", "title", "clientRequestId"]),
     annotations: writeAnnotations,
   },
   {
     name: "update_task",
     title: "Update Joy project task",
-    description: "Update a Joy Core task using the latest baseVersion. Deletion is not available.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        taskId: { type: "string", minLength: 1, maxLength: 80 },
-        baseVersion: versionSchema,
-        milestoneId: { anyOf: [{ type: "string", maxLength: 80 }, { type: "null" }] },
-        title: { type: "string", minLength: 1, maxLength: 300 },
-        description: { type: "string", maxLength: 8000 },
-        status: taskStatusSchema,
-        priority: prioritySchema,
-        dueAt: timestampSchema,
-        scheduledFor: timestampSchema,
-        position: { type: "integer", minimum: 0 },
-        metadata: { type: "object", additionalProperties: true },
-      },
-      required: ["taskId", "baseVersion"],
-      additionalProperties: false,
-    },
+    description: "Update a task using its latest baseVersion. Deletion is not available.",
+    inputSchema: objectSchema({
+      taskId: id("Joy task id."),
+      baseVersion,
+      milestoneId: nullableId("Optional milestone id."),
+      title: { type: "string", minLength: 1, maxLength: 240 },
+      description: { type: "string", maxLength: 4000 },
+      status: enumSchema(TASK_STATUSES),
+      priority: enumSchema(TASK_PRIORITIES),
+      dueAt: timestamp(),
+      scheduledFor: timestamp(),
+      position: { type: "integer" },
+      metadata,
+    }, ["taskId", "baseVersion"]),
     annotations: writeAnnotations,
   },
   {
     name: "create_milestone",
     title: "Create Joy milestone",
-    description: "Create a milestone in a Joy Core project with a stable clientRequestId.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        projectId: { type: "string", minLength: 1, maxLength: 80 },
-        title: { type: "string", minLength: 1, maxLength: 300 },
-        description: { type: "string", maxLength: 8000 },
-        status: { type: "string", enum: ["planned", "in_progress", "blocked", "completed"] },
-        targetAt: timestampSchema,
-        position: { type: "integer", minimum: 0 },
-        metadata: { type: "object", additionalProperties: true },
-        clientRequestId: clientRequestIdSchema,
-      },
-      required: ["projectId", "title", "clientRequestId"],
-      additionalProperties: false,
-    },
+    description: "Create a milestone in a Joy project using a retry-safe clientRequestId.",
+    inputSchema: objectSchema({
+      projectId: id("Joy project id."),
+      title: { type: "string", minLength: 1, maxLength: 240 },
+      description: { type: "string", maxLength: 4000 },
+      status: enumSchema(MILESTONE_STATUSES),
+      targetAt: timestamp(),
+      position: { type: "integer" },
+      metadata,
+      clientRequestId,
+    }, ["projectId", "title", "clientRequestId"]),
     annotations: writeAnnotations,
   },
   {
     name: "update_milestone",
     title: "Update Joy milestone",
-    description: "Update a Joy Core milestone using the latest baseVersion. Deletion is not available.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        milestoneId: { type: "string", minLength: 1, maxLength: 80 },
-        baseVersion: versionSchema,
-        title: { type: "string", minLength: 1, maxLength: 300 },
-        description: { type: "string", maxLength: 8000 },
-        status: { type: "string", enum: ["planned", "in_progress", "blocked", "completed"] },
-        targetAt: timestampSchema,
-        position: { type: "integer", minimum: 0 },
-        metadata: { type: "object", additionalProperties: true },
-      },
-      required: ["milestoneId", "baseVersion"],
-      additionalProperties: false,
-    },
+    description: "Update a milestone using its latest baseVersion. Deletion is not available.",
+    inputSchema: objectSchema({
+      milestoneId: id("Joy milestone id."),
+      baseVersion,
+      title: { type: "string", minLength: 1, maxLength: 240 },
+      description: { type: "string", maxLength: 4000 },
+      status: enumSchema(MILESTONE_STATUSES),
+      targetAt: timestamp(),
+      position: { type: "integer" },
+      metadata,
+    }, ["milestoneId", "baseVersion"]),
     annotations: writeAnnotations,
   },
   {
     name: "append_progress_log",
     title: "Append Joy progress log",
-    description: "Record a non-destructive project progress entry with an idempotency key.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        projectId: { type: "string", minLength: 1, maxLength: 80 },
-        taskId: { anyOf: [{ type: "string", maxLength: 80 }, { type: "null" }] },
-        kind: { type: "string", enum: ["note", "progress", "decision", "blocker", "result"] },
-        title: { type: "string", minLength: 1, maxLength: 300 },
-        detail: { type: "string", maxLength: 12000 },
-        progressAfter: { anyOf: [{ type: "number", minimum: 0, maximum: 100 }, { type: "null" }] },
-        occurredAt: timestampSchema,
-        metadata: { type: "object", additionalProperties: true },
-        clientRequestId: clientRequestIdSchema,
+    description: "Record a non-destructive project progress entry using an idempotency key.",
+    inputSchema: objectSchema({
+      projectId: id("Joy project id."),
+      taskId: nullableId("Optional related task id."),
+      kind: enumSchema(PROGRESS_LOG_KINDS),
+      title: { type: "string", minLength: 1, maxLength: 240 },
+      detail: { type: "string", maxLength: 20000 },
+      progressAfter: {
+        anyOf: [{ type: "number", minimum: 0, maximum: 100 }, { type: "null" }],
       },
-      required: ["projectId", "kind", "title", "clientRequestId"],
-      additionalProperties: false,
-    },
+      occurredAt: timestamp(),
+      metadata,
+      clientRequestId,
+    }, ["projectId", "kind", "title", "clientRequestId"]),
     annotations: writeAnnotations,
   },
   {
     name: "attach_evidence",
     title: "Attach Joy evidence reference",
-    description: "Attach a safe evidence reference such as a report, screenshot, log, map, or video URL.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        projectId: { type: "string", minLength: 1, maxLength: 80 },
-        taskId: { anyOf: [{ type: "string", maxLength: 80 }, { type: "null" }] },
-        progressLogId: { anyOf: [{ type: "string", maxLength: 80 }, { type: "null" }] },
-        kind: { type: "string", enum: ["link", "document", "screenshot", "image", "video", "log", "map", "dataset", "other"] },
-        label: { type: "string", minLength: 1, maxLength: 300 },
-        uri: { type: "string", minLength: 1, maxLength: 4000 },
-        contentType: { anyOf: [{ type: "string", maxLength: 200 }, { type: "null" }] },
-        metadata: { type: "object", additionalProperties: true },
-        clientRequestId: clientRequestIdSchema,
+    description: "Attach a report, URL, image, log, commit, or other evidence reference to a project.",
+    inputSchema: objectSchema({
+      projectId: id("Joy project id."),
+      taskId: nullableId("Optional related task id."),
+      progressLogId: nullableId("Optional related progress-log id."),
+      kind: enumSchema(EVIDENCE_KINDS),
+      label: { type: "string", minLength: 1, maxLength: 240 },
+      uri: { type: "string", minLength: 1, maxLength: 2000 },
+      contentType: {
+        anyOf: [{ type: "string", maxLength: 200 }, { type: "null" }],
       },
-      required: ["projectId", "kind", "label", "uri", "clientRequestId"],
-      additionalProperties: false,
-    },
+      metadata,
+      clientRequestId,
+    }, ["projectId", "kind", "label", "uri", "clientRequestId"]),
     annotations: writeAnnotations,
   },
 ]);
 
-function responseHeaders(extra = {}) {
+function headers(extra = {}) {
   return {
     "Content-Type": "application/json; charset=utf-8",
     "Cache-Control": "no-store",
@@ -297,24 +265,23 @@ function responseHeaders(extra = {}) {
   };
 }
 
-function jsonResponse(value, status = 200, extra = {}) {
-  return new Response(JSON.stringify(value), {
-    status,
-    headers: responseHeaders(extra),
-  });
+function json(value, status = 200, extra = {}) {
+  return new Response(JSON.stringify(value), { status, headers: headers(extra) });
 }
 
-function rpcResult(id, result) {
-  return { jsonrpc: "2.0", id, result };
+function result(idValue, value) {
+  return { jsonrpc: "2.0", id: idValue, result: value };
 }
 
-function rpcError(id, code, message, data = undefined) {
-  const error = { code, message };
-  if (data !== undefined) error.data = data;
-  return { jsonrpc: "2.0", id: id ?? null, error };
+function error(idValue, code, message, data) {
+  return {
+    jsonrpc: "2.0",
+    id: idValue ?? null,
+    error: { code, message, ...(data === undefined ? {} : { data }) },
+  };
 }
 
-function toolSuccess(value) {
+function toolResult(value) {
   return {
     content: [{ type: "text", text: JSON.stringify(value) }],
     structuredContent: value,
@@ -322,28 +289,30 @@ function toolSuccess(value) {
   };
 }
 
-function toolFailure(error) {
-  const payload = {
-    error: String(error?.code || error?.message || "JOY_MCP_TOOL_FAILED"),
-    details: error?.details || null,
+function toolError(cause) {
+  const value = {
+    error: String(cause?.code || cause?.message || "JOY_MCP_TOOL_FAILED"),
+    details: cause?.details || null,
   };
   return {
-    content: [{ type: "text", text: JSON.stringify(payload) }],
-    structuredContent: payload,
+    content: [{ type: "text", text: JSON.stringify(value) }],
+    structuredContent: value,
     isError: true,
   };
 }
 
-function withoutKeys(value, keys) {
+function requiredString(value, field) {
+  const normalized = String(value || "").trim();
+  if (!normalized) {
+    throw new JoyCoreError("JOY_MCP_INVALID_ARGUMENTS", 400, { field });
+  }
+  return normalized;
+}
+
+function omit(value, keys) {
   const output = { ...(value || {}) };
   for (const key of keys) delete output[key];
   return output;
-}
-
-function requireString(value, field) {
-  const normalized = String(value || "").trim();
-  if (!normalized) throw new JoyCoreError("JOY_MCP_INVALID_ARGUMENTS", 400, { field });
-  return normalized;
 }
 
 async function callTool(name, args, env, context, service) {
@@ -353,65 +322,59 @@ async function callTool(name, args, env, context, service) {
     case "list_projects":
       return { projects: await service.listProjects(env, context) };
     case "get_project":
-      return service.getProject(env, context, requireString(args.projectId, "projectId"));
+      return service.getProject(env, context, requiredString(args.projectId, "projectId"));
     case "update_project":
       return service.updateProject(
         env,
         context,
-        requireString(args.projectId, "projectId"),
-        withoutKeys(args, ["projectId"]),
+        requiredString(args.projectId, "projectId"),
+        omit(args, ["projectId"]),
       );
     case "create_task":
       return service.createTask(
         env,
         context,
-        requireString(args.projectId, "projectId"),
-        withoutKeys(args, ["projectId"]),
+        requiredString(args.projectId, "projectId"),
+        omit(args, ["projectId"]),
       );
     case "update_task":
       return service.updateTask(
         env,
         context,
-        requireString(args.taskId, "taskId"),
-        withoutKeys(args, ["taskId"]),
+        requiredString(args.taskId, "taskId"),
+        omit(args, ["taskId"]),
       );
     case "create_milestone":
       return service.createMilestone(
         env,
         context,
-        requireString(args.projectId, "projectId"),
-        withoutKeys(args, ["projectId"]),
+        requiredString(args.projectId, "projectId"),
+        omit(args, ["projectId"]),
       );
     case "update_milestone":
       return service.updateMilestone(
         env,
         context,
-        requireString(args.milestoneId, "milestoneId"),
-        withoutKeys(args, ["milestoneId"]),
+        requiredString(args.milestoneId, "milestoneId"),
+        omit(args, ["milestoneId"]),
       );
     case "append_progress_log":
       return service.appendProgressLog(
         env,
         context,
-        requireString(args.projectId, "projectId"),
-        withoutKeys(args, ["projectId"]),
+        requiredString(args.projectId, "projectId"),
+        omit(args, ["projectId"]),
       );
     case "attach_evidence":
       return service.attachEvidence(
         env,
         context,
-        requireString(args.projectId, "projectId"),
-        withoutKeys(args, ["projectId"]),
+        requiredString(args.projectId, "projectId"),
+        omit(args, ["projectId"]),
       );
     default:
       throw new JoyCoreError("JOY_MCP_TOOL_NOT_FOUND", 404, { name });
   }
-}
-
-function negotiatedVersion(requested) {
-  return SUPPORTED_PROTOCOL_VERSIONS.has(requested)
-    ? requested
-    : MCP_PROTOCOL_VERSION;
 }
 
 function validateProtocolHeader(request, method) {
@@ -430,8 +393,8 @@ async function readMessage(request) {
   if (declaredLength > MAX_BODY_BYTES) {
     throw new JoyCoreError("JOY_MCP_BODY_TOO_LARGE", 413);
   }
-  const contentType = request.headers.get("Content-Type") || "";
-  if (!contentType.toLowerCase().startsWith("application/json")) {
+  const contentType = String(request.headers.get("Content-Type") || "").toLowerCase();
+  if (!contentType.startsWith("application/json")) {
     throw new JoyCoreError("JOY_MCP_CONTENT_TYPE_REQUIRED", 415);
   }
   const text = await request.text();
@@ -445,10 +408,9 @@ async function readMessage(request) {
   }
 }
 
-async function authenticateJoyMcp(request, env) {
-  const context = await authenticateJoyActions(request, env);
+async function authenticateMcp(request, env) {
   return {
-    ...context,
+    ...await authenticateJoyActions(request, env),
     actorType: "assistant",
     actorId: "chatgpt-mcp",
   };
@@ -456,28 +418,27 @@ async function authenticateJoyMcp(request, env) {
 
 async function processMessage(message, request, env, context, service) {
   if (!message || typeof message !== "object" || Array.isArray(message)) {
-    return rpcError(null, -32600, "Invalid Request");
+    return error(null, -32600, "Invalid Request");
   }
   if (message.jsonrpc !== "2.0" || typeof message.method !== "string") {
-    return rpcError(message.id, -32600, "Invalid Request");
+    return error(message.id, -32600, "Invalid Request");
   }
 
-  const { id, method } = message;
-  const isNotification = id === undefined;
+  const { id: idValue, method } = message;
   validateProtocolHeader(request, method);
 
   if (method === "notifications/initialized" || method === "notifications/cancelled") {
     return null;
   }
-  if (isNotification) return null;
+  if (idValue === undefined) return null;
 
   if (method === "initialize") {
-    const requestedVersion = String(message.params?.protocolVersion || "");
-    return rpcResult(id, {
-      protocolVersion: negotiatedVersion(requestedVersion),
-      capabilities: {
-        tools: { listChanged: false },
-      },
+    const requested = String(message.params?.protocolVersion || "");
+    return result(idValue, {
+      protocolVersion: SUPPORTED_PROTOCOL_VERSIONS.has(requested)
+        ? requested
+        : MCP_PROTOCOL_VERSION,
+      capabilities: { tools: { listChanged: false } },
       serverInfo: {
         name: "joy-personal-dashboard",
         title: "Joy Personal Dashboard",
@@ -487,36 +448,37 @@ async function processMessage(message, request, env, context, service) {
     });
   }
 
-  if (method === "ping") return rpcResult(id, {});
-  if (method === "tools/list") return rpcResult(id, { tools: JOY_MCP_TOOLS });
+  if (method === "ping") return result(idValue, {});
+  if (method === "tools/list") return result(idValue, { tools: JOY_MCP_TOOLS });
 
   if (method === "tools/call") {
-    const name = requireString(message.params?.name, "name");
+    const name = requiredString(message.params?.name, "name");
     const args = message.params?.arguments;
     if (args !== undefined && (!args || typeof args !== "object" || Array.isArray(args))) {
-      return rpcError(id, -32602, "Invalid params", { field: "arguments" });
+      return error(idValue, -32602, "Invalid params", { field: "arguments" });
     }
     try {
-      const value = await callTool(name, args || {}, env, context, service);
-      return rpcResult(id, toolSuccess(value));
-    } catch (error) {
-      if (error instanceof JoyCoreError || error?.code) {
-        return rpcResult(id, toolFailure(error));
+      return result(idValue, toolResult(
+        await callTool(name, args || {}, env, context, service),
+      ));
+    } catch (cause) {
+      if (cause instanceof JoyCoreError || cause?.code) {
+        return result(idValue, toolError(cause));
       }
-      console.error("Joy MCP tool failed", error);
-      return rpcResult(id, toolFailure(new JoyCoreError("JOY_MCP_TOOL_FAILED", 500)));
+      console.error("Joy MCP tool failed", cause);
+      return result(idValue, toolError(new JoyCoreError("JOY_MCP_TOOL_FAILED", 500)));
     }
   }
 
-  return rpcError(id, -32601, "Method not found", { method });
+  return error(idValue, -32601, "Method not found", { method });
 }
 
-function authErrorResponse(error) {
-  const status = Number(error?.status || 500);
-  const code = String(error?.code || "JOY_MCP_AUTH_FAILED");
-  return jsonResponse({ error: code, details: error?.details || null }, status, status === 401
-    ? { "WWW-Authenticate": "Bearer realm=\"Joy MCP\"" }
-    : {});
+function authenticationFailure(cause) {
+  const status = Number(cause?.status || 500);
+  return json({
+    error: String(cause?.code || "JOY_MCP_AUTH_FAILED"),
+    details: cause?.details || null,
+  }, status, status === 401 ? { "WWW-Authenticate": "Bearer realm=\"Joy MCP\"" } : {});
 }
 
 export function isJoyMcpRoute(pathname) {
@@ -526,13 +488,13 @@ export function isJoyMcpRoute(pathname) {
 export async function handleJoyMcpRequest(request, env, dependencies = {}) {
   const url = new URL(request.url);
   const service = dependencies.service || defaultService;
-  const authenticate = dependencies.authenticate || authenticateJoyMcp;
+  const authenticate = dependencies.authenticate || authenticateMcp;
 
   if (url.pathname === MCP_HEALTH_PATH) {
     if (request.method !== "GET") {
-      return jsonResponse({ error: "METHOD_NOT_ALLOWED" }, 405, { Allow: "GET" });
+      return json({ error: "METHOD_NOT_ALLOWED" }, 405, { Allow: "GET" });
     }
-    return jsonResponse({
+    return json({
       ok: true,
       configured: Boolean(env?.JOY_GPT_ACTION_KEY && env?.JOY_OWNER_EMAIL),
       transport: "streamable-http",
@@ -545,40 +507,37 @@ export async function handleJoyMcpRequest(request, env, dependencies = {}) {
   if (request.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
-      headers: {
-        Allow: "POST, OPTIONS",
-        "Cache-Control": "no-store",
-      },
+      headers: { Allow: "POST, OPTIONS", "Cache-Control": "no-store" },
     });
   }
   if (request.method !== "POST") {
-    return jsonResponse({ error: "METHOD_NOT_ALLOWED" }, 405, { Allow: "POST, OPTIONS" });
+    return json({ error: "METHOD_NOT_ALLOWED" }, 405, { Allow: "POST, OPTIONS" });
   }
 
   let context;
   try {
     context = await authenticate(request, env);
-  } catch (error) {
-    return authErrorResponse(error);
+  } catch (cause) {
+    return authenticationFailure(cause);
   }
 
   let message;
   try {
     message = await readMessage(request);
-  } catch (error) {
-    if (error?.code === "JOY_MCP_PARSE_ERROR") {
-      return jsonResponse(rpcError(null, -32700, "Parse error"), 400);
+  } catch (cause) {
+    if (cause?.code === "JOY_MCP_PARSE_ERROR") {
+      return json(error(null, -32700, "Parse error"), 400);
     }
-    return jsonResponse(rpcError(null, -32600, String(error?.code || "Invalid Request")), Number(error?.status || 400));
+    return json(error(null, -32600, String(cause?.code || "Invalid Request")), Number(cause?.status || 400));
   }
 
   if (Array.isArray(message)) {
-    return jsonResponse(rpcError(null, -32600, "JSON-RPC batching is not supported"), 400);
+    return json(error(null, -32600, "JSON-RPC batching is not supported"), 400);
   }
 
   try {
-    const response = await processMessage(message, request, env, context, service);
-    if (response === null) {
+    const rpcResponse = await processMessage(message, request, env, context, service);
+    if (rpcResponse === null) {
       return new Response(null, {
         status: 202,
         headers: {
@@ -587,15 +546,15 @@ export async function handleJoyMcpRequest(request, env, dependencies = {}) {
         },
       });
     }
-    return jsonResponse(response);
-  } catch (error) {
-    const status = Number(error?.status || 500);
-    if (status >= 500) console.error("Joy MCP request failed", error);
-    return jsonResponse(rpcError(
+    return json(rpcResponse);
+  } catch (cause) {
+    const status = Number(cause?.status || 500);
+    if (status >= 500) console.error("Joy MCP request failed", cause);
+    return json(error(
       message?.id,
       status >= 500 ? -32603 : -32602,
-      String(error?.code || "JOY_MCP_REQUEST_FAILED"),
-      error?.details || undefined,
+      String(cause?.code || "JOY_MCP_REQUEST_FAILED"),
+      cause?.details || undefined,
     ), status);
   }
 }
