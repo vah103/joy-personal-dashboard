@@ -32,12 +32,20 @@
       updateStatus: updateHubStatus,
       render: renderHub,
       updateCard: updateTurtleBotCard,
+      projectProgress: () => projectProgress(),
+      effectivePlan: () => effectivePlan(),
       selectTab(tab) {
         if (!HUB_TABS.includes(tab)) return;
         hubState.activeTab = tab;
         renderHub();
       },
     });
+  }
+
+  function announce(type) {
+    document.dispatchEvent(new CustomEvent(`joy-project-hub:${type}`, {
+      detail: { extensionId: extension?.id || null },
+    }));
   }
 
   function registerExtension(candidate) {
@@ -50,6 +58,7 @@
 
     extension = Object.freeze(candidate);
     extension.install?.(extensionContext());
+    announce("extension-ready");
   }
 
   normalizeOverrides = function normalizeProjectHubOverrides(value) {
@@ -70,13 +79,17 @@
   };
 
   renderHub = function renderProjectHubWithExtension() {
-    if (extension?.renderTab?.(hubState.activeTab, extensionContext()) === true) return;
-    base.renderHub();
+    if (extension?.renderTab?.(hubState.activeTab, extensionContext()) !== true) {
+      base.renderHub();
+    }
+    announce("rendered");
   };
 
   updateTurtleBotCard = function updateProjectCardWithExtension() {
-    if (extension?.updateCard?.(extensionContext()) === true) return;
-    base.updateCard();
+    if (extension?.updateCard?.(extensionContext()) !== true) {
+      base.updateCard();
+    }
+    announce("card-updated");
   };
 
   answerProjectQuestion = function answerWithProjectHubExtension(question) {
@@ -91,7 +104,12 @@
   });
 
   root.JoyProjectHub = Object.freeze({
-    version: "extension-v1",
+    version: "extension-v2",
     registerExtension,
+    getContext: extensionContext,
+    refresh() {
+      updateTurtleBotCard();
+      if (!hubElements.modal?.hidden) renderHub();
+    },
   });
 })(window);
