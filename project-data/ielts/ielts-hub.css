@@ -1,5 +1,13 @@
 /* IELTS Project Hub: shared visual language with TurtleBot4 without changing learning logic. */
 
+@font-face {
+  font-family: "OpenAI Sans";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url("https://cdn.openai.com/common/fonts/openai-sans/v4/OpenAISans-Medium.woff2") format("woff2");
+}
+
 #ielts-modal .ielts-core {
   grid-template-columns: max-content minmax(0, 1fr) max-content;
   grid-template-rows: auto minmax(0, 1fr);
@@ -71,9 +79,10 @@
   flex: 0 0 auto;
   padding: 11px 15px;
   color: #596871;
-  font-family: "Open Sans", "Segoe UI", Arial, sans-serif;
+  font-family: "OpenAI Sans", "Instrument Sans", "Segoe UI", Arial, sans-serif;
   font-size: 1rem;
   font-weight: 500;
+  font-synthesis: none;
   letter-spacing: -.015em;
 }
 
