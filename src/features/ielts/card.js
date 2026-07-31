@@ -4,6 +4,11 @@
     "joy-ielts-core-bundle-v4",
     "project-data/ielts/ielts-core-bundle.js?v=ielts-journey-v4",
   ];
+  const HUB_STYLE = [
+    "joy-ielts-hub-v1",
+    "/project-data/ielts/ielts-hub.css?v=ielts-hub-v1",
+  ];
+  let hubFrame = 0;
 
   function loadScript(id, src) {
     return new Promise((resolve, reject) => {
@@ -29,10 +34,80 @@
     });
   }
 
+  function ensureHubStyle() {
+    const [id, href] = HUB_STYLE;
+    if (document.querySelector(`#${id}`)) return;
+    const link = document.createElement("link");
+    link.id = id;
+    link.rel = "stylesheet";
+    link.href = href;
+    document.head.append(link);
+  }
+
+  function directChild(parent, selector) {
+    return [...parent.children].find((child) => child.matches(selector)) || null;
+  }
+
+  function enhanceHub() {
+    ensureHubStyle();
+    const modal = document.querySelector("#ielts-modal");
+    if (!modal) return;
+
+    const title = modal.querySelector(".ielts-title");
+    const eyebrow = title?.querySelector("small");
+    const heading = title?.querySelector("h2");
+    if (eyebrow) eyebrow.textContent = "IELTS LEARNING HUB";
+    if (heading) heading.textContent = "IELTS Band 7";
+
+    const overviewTab = modal.querySelector('[data-ielts-tab="now"]');
+    if (overviewTab) overviewTab.textContent = "Overview";
+
+    const body = modal.querySelector("#ielts-body");
+    if (!body) return;
+    const overviewActive = modal.querySelector('[data-ielts-tab="now"]')?.classList.contains("active");
+    body.classList.toggle("ielts-hub-overview-active", Boolean(overviewActive));
+    if (!overviewActive || directChild(body, ".ielts-overview-grid")) return;
+
+    const hero = directChild(body, ".ielts-now-hero");
+    if (!hero) return;
+
+    const grid = document.createElement("section");
+    grid.className = "ielts-overview-grid";
+    const visual = document.createElement("div");
+    visual.className = "ielts-overview-visual";
+    visual.setAttribute("aria-hidden", "true");
+    const summary = document.createElement("div");
+    summary.className = "ielts-overview-summary";
+
+    body.insertBefore(grid, hero);
+    grid.append(visual, summary);
+    summary.append(hero);
+
+    const progress = directChild(body, ".ielts-rhythm-progress");
+    const next = directChild(body, ".ielts-next");
+    const action = directChild(body, ".ielts-action-panel");
+    if (progress) summary.append(progress);
+    if (next) summary.append(next);
+    if (action) summary.append(action);
+  }
+
+  function scheduleHubEnhancement() {
+    if (hubFrame) return;
+    hubFrame = requestAnimationFrame(() => {
+      hubFrame = 0;
+      enhanceHub();
+    });
+  }
+
   async function ensureCore() {
-    if (window.JoyIELTS?.version === JOURNEY_VERSION) return true;
+    ensureHubStyle();
+    if (window.JoyIELTS?.version === JOURNEY_VERSION) {
+      scheduleHubEnhancement();
+      return true;
+    }
     try {
       await loadScript(...CORE_SCRIPT);
+      scheduleHubEnhancement();
       return window.JoyIELTS?.version === JOURNEY_VERSION;
     } catch (error) {
       console.error("IELTS Journey could not load", error);
@@ -44,7 +119,10 @@
     event?.preventDefault();
     event?.stopPropagation();
     event?.stopImmediatePropagation();
-    if (await ensureCore()) window.JoyIELTS.open();
+    if (await ensureCore()) {
+      window.JoyIELTS.open();
+      scheduleHubEnhancement();
+    }
   }
 
   function bindOpenHandler(card) {
@@ -111,9 +189,18 @@
       window.JoyIELTS?.refreshCard?.();
     }).observe(projectList, { childList: true });
   }
+
+  new MutationObserver(scheduleHubEnhancement).observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
+
+  ensureHubStyle();
   enhanceCard();
+  scheduleHubEnhancement();
   void ensureCore().then(() => {
     enhanceCard();
+    scheduleHubEnhancement();
     window.JoyIELTS?.refreshCard?.();
   });
 })();
