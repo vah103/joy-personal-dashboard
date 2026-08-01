@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const dashboardSource = await readFile(new URL("../src/features/finance/finance-dashboard.js", import.meta.url), "utf8");
+const dashboardSummarySource = await readFile(new URL("../src/features/finance/finance-dashboard-summary.js", import.meta.url), "utf8");
+const financeCoreSource = await readFile(new URL("../src/features/finance/finance.js", import.meta.url), "utf8");
 const dashboardHtml = await readFile(new URL("../src/pages/dashboard/index.html", import.meta.url), "utf8");
 const bundleSource = await readFile(new URL("../scripts/build-finance-bundle.mjs", import.meta.url), "utf8");
 
@@ -27,6 +29,20 @@ test("Finance outer dashboard keeps compact money values", () => {
   assert.doesNotMatch(dashboardSource, /element\.dataset\.financeValue = formatVnd\(amount\)/);
 });
 
+test("Finance outer dashboard mirrors the popup projected month totals", () => {
+  assert.match(dashboardSummarySource, /const projected = financeSummary\?\.current\?\.projected/);
+  assert.match(dashboardSummarySource, /remaining: projected\.remaining/);
+  assert.match(dashboardSummarySource, /income: projected\.income/);
+  assert.match(dashboardSummarySource, /expenses: projected\.expenses/);
+  assert.match(dashboardSummarySource, /Closing balance/);
+  assert.match(dashboardSummarySource, /Actual \+ planned/);
+  assert.match(dashboardSummarySource, /setFinancePrivacy\(financeValuesHidden\)/);
+
+  assert.match(financeCoreSource, /incomeTotal = Number\(month\.projected\?\.income/);
+  assert.match(financeCoreSource, /expenseTotal = Number\(month\.projected\?\.expenses/);
+  assert.match(financeCoreSource, /closing = Number\(month\.projected\?\.remaining/);
+});
+
 test("Finance chart months stay English after every render", () => {
   assert.match(dashboardSource, /\["Jan", "Feb", "Mar"/);
   assert.match(dashboardSource, /joy:finance-chart-rendered/);
@@ -44,6 +60,8 @@ test("Finance outer labels are larger and clearer", () => {
 
 test("dashboard presentation is absorbed into the Finance bundle", () => {
   assert.match(bundleSource, /finance-dashboard\.js/);
+  assert.match(bundleSource, /finance-dashboard-summary\.js/);
+  assert.match(bundleSource, /dashboardSummarySource\.trim\(\)/);
   assert.match(dashboardHtml, /finance-demo\.js\?v=joy-finance-core-v10/);
   assert.doesNotMatch(dashboardHtml, /finance-dashboard-v1\.js/);
 });
