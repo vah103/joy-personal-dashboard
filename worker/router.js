@@ -85,7 +85,7 @@ import {
 } from "./vocabulary.js";
 
 const PROTECTED_ASSETS = new Set(["/", "/index.html", "/sale-manager.html"]);
-const DASHBOARD_HEADING_STYLESHEET = "dashboard-openai-headings.css?v=joy-openai-headings-v2";
+const DASHBOARD_HEADING_STYLESHEET = "dashboard-openai-headings.css?v=joy-openai-headings-v3";
 
 function scheduleIndependentJob(ctx, label, job) {
   ctx.waitUntil(
