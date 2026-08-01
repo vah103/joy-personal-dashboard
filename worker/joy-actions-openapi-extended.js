@@ -66,6 +66,67 @@ const COMMON_PROJECT_PATHS = new Set([
   "/api/joy/v1/projects/{projectId}/evidence",
 ]);
 
+const STRING_ARRAY = {
+  type: "array",
+  items: { type: "string" },
+};
+
+const IELTS_ASSISTANT_PROFILE_SCHEMA = {
+  type: "object",
+  properties: {
+    profileVersion: { type: "string" },
+    profileId: { type: "string", enum: ["ielts"] },
+    actorId: { type: "string", enum: ["gpt-ielts"] },
+    fixedProjectId: { type: "string", enum: ["ielts"] },
+    identity: { type: "string" },
+    roles: STRING_ARRAY,
+    startupSequence: STRING_ARRAY,
+    teachingContract: {
+      type: "object",
+      properties: {
+        goal: { type: "string" },
+        skills: STRING_ARRAY,
+        rules: STRING_ARRAY,
+      },
+      required: ["goal", "skills", "rules"],
+      additionalProperties: false,
+    },
+    developmentContract: {
+      type: "object",
+      properties: {
+        repository: { type: "string" },
+        branchPrefix: { type: "string" },
+        preferredCheckSuite: { type: "string" },
+        rules: STRING_ARRAY,
+      },
+      required: ["repository", "branchPrefix", "preferredCheckSuite", "rules"],
+      additionalProperties: false,
+    },
+    sessionContract: {
+      type: "object",
+      properties: {
+        meaningfulEvents: STRING_ARRAY,
+        finishRules: STRING_ARRAY,
+      },
+      required: ["meaningfulEvents", "finishRules"],
+      additionalProperties: false,
+    },
+  },
+  required: [
+    "profileVersion",
+    "profileId",
+    "actorId",
+    "fixedProjectId",
+    "identity",
+    "roles",
+    "startupSequence",
+    "teachingContract",
+    "developmentContract",
+    "sessionContract",
+  ],
+  additionalProperties: false,
+};
+
 function selectPaths({ includeIelts = false, includeCommonProjectPaths = true } = {}) {
   return Object.fromEntries(Object.entries(JOY_ACTIONS_OPENAPI.paths).filter(([path]) => {
     if (includeCommonProjectPaths && COMMON_PROJECT_PATHS.has(path)) return true;
@@ -90,21 +151,43 @@ function builderSafeSchema(value) {
   return normalized;
 }
 
+function schemaComponents(includeAssistantProfile) {
+  if (!includeAssistantProfile) return JOY_ACTIONS_OPENAPI.components;
+  const workspace = JOY_ACTIONS_OPENAPI.components.schemas.WorkspaceBootstrapResult;
+  return {
+    ...JOY_ACTIONS_OPENAPI.components,
+    schemas: {
+      ...JOY_ACTIONS_OPENAPI.components.schemas,
+      JoySpecializedAssistantProfile: IELTS_ASSISTANT_PROFILE_SCHEMA,
+      WorkspaceBootstrapResult: {
+        ...workspace,
+        properties: {
+          ...workspace.properties,
+          assistantProfile: { $ref: "#/components/schemas/JoySpecializedAssistantProfile" },
+        },
+        required: [...new Set([...(workspace.required || []), "assistantProfile"])],
+      },
+    },
+  };
+}
+
 function specializedSchema({
   title,
   description,
   includeIelts,
   includeCommonProjectPaths,
+  includeAssistantProfile = false,
 }) {
   return Object.freeze(builderSafeSchema({
     ...JOY_ACTIONS_OPENAPI,
     info: {
       ...JOY_ACTIONS_OPENAPI.info,
       title,
-      version: "1.5.0",
+      version: "1.6.0",
       description,
     },
     paths: selectPaths({ includeIelts, includeCommonProjectPaths }),
+    components: schemaComponents(includeAssistantProfile),
   }));
 }
 
@@ -113,6 +196,7 @@ export const JOY_IELTS_ACTIONS_OPENAPI = specializedSchema({
   description: "Private Actions for the owner's IELTS teacher-developer GPT. The server locks this credential to the IELTS project while permitting safe branch-based repository work.",
   includeIelts: true,
   includeCommonProjectPaths: false,
+  includeAssistantProfile: true,
 });
 
 export const JOY_TURTLEBOT4_ACTIONS_OPENAPI = specializedSchema({
