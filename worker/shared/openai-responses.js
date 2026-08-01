@@ -100,26 +100,36 @@ export async function createOpenAiResponse(env, {
 export async function readLanguageCache({ feature, userEmail, input }) {
   const cache = globalThis.caches?.default;
   if (!cache) return null;
-  const request = await languageCacheRequest(feature, userEmail, input);
-  const response = await cache.match(request);
-  if (!response) return null;
-  const payload = await response.json().catch(() => null);
-  return payload && typeof payload === "object" ? payload : null;
+  try {
+    const request = await languageCacheRequest(feature, userEmail, input);
+    const response = await cache.match(request);
+    if (!response) return null;
+    const payload = await response.json().catch(() => null);
+    return payload && typeof payload === "object" ? payload : null;
+  } catch (error) {
+    console.warn("Joy language cache read failed", error?.message || error);
+    return null;
+  }
 }
 
 export async function writeLanguageCache({ feature, userEmail, input, value, ttlSeconds }) {
   const cache = globalThis.caches?.default;
   if (!cache || !value || typeof value !== "object") return false;
-  const request = await languageCacheRequest(feature, userEmail, input);
-  const ttl = Math.max(60, Math.floor(Number(ttlSeconds || 3600)));
-  const response = new Response(JSON.stringify(value), {
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": `public, max-age=${ttl}`,
-    },
-  });
-  await cache.put(request, response);
-  return true;
+  try {
+    const request = await languageCacheRequest(feature, userEmail, input);
+    const ttl = Math.max(60, Math.floor(Number(ttlSeconds || 3600)));
+    const response = new Response(JSON.stringify(value), {
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": `public, max-age=${ttl}`,
+      },
+    });
+    await cache.put(request, response);
+    return true;
+  } catch (error) {
+    console.warn("Joy language cache write failed", error?.message || error);
+    return false;
+  }
 }
 
 async function languageCacheRequest(feature, userEmail, input) {
