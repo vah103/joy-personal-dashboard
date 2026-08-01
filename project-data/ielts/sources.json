@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Approved source catalog for selecting IELTS practice without inventing tests or answer keys.",
+  "selectionPolicy": {
+    "fixedTaskMaterialFirst": true,
+    "teacherRecommendedCheckedPracticeSkills": [
+      "listening",
+      "reading"
+    ],
+    "rules": [
+      "Use the exact materialUrl attached to an IELTS Journey task whenever one is present.",
+      "For ordinary Listening or Reading practice without a fixed material, prefer a teacher-recommended provider from this catalog.",
+      "The owner opens and completes a concrete test on the provider platform; Joy does not scrape or reproduce the full test.",
+      "Treat the provider result and answer check as practice evidence, not as an official IELTS score.",
+      "Use official IELTS materials for baseline tests and any claim labelled official."
+    ],
+    "storeOnly": [
+      "providerId",
+      "testTitle",
+      "testUrl",
+      "rawResult",
+      "wrongItems",
+      "platformChecked",
+      "learnerReflection"
+    ],
+    "neverStore": [
+      "fullTestContent",
+      "copiedPassages",
+      "copiedAudio",
+      "fullThirdPartyAnswerKey"
+    ]
+  },
+  "providers": [
+    {
+      "id": "study4",
+      "name": "STUDY4",
+      "sourceType": "teacher-recommended-third-party-practice",
+      "homepageUrl": "https://study4.com/tests/",
+      "allowedHosts": [
+        "study4.com",
+        "www.study4.com"
+      ],
+      "availableSkills": [
+        "listening",
+        "reading"
+      ],
+      "checkedSkills": [
+        "listening",
+        "reading"
+      ],
+      "teacherRecommended": true,
+      "official": false,
+      "usage": "Choose one concrete Listening or Reading test, complete it on STUDY4, then send Joy the platform result and the wrong-question evidence."
+    },
+    {
+      "id": "youpass",
+      "name": "YouPass",
+      "sourceType": "teacher-recommended-third-party-practice",
+      "homepageUrl": "https://youpass.vn/",
+      "allowedHosts": [
+        "youpass.vn",
+        "www.youpass.vn"
+      ],
+      "availableSkills": [
+        "listening",
+        "reading",
+        "writing",
+        "speaking"
+      ],
+      "checkedSkills": [
+        "listening",
+        "reading"
+      ],
+      "teacherRecommended": true,
+      "official": false,
+      "usage": "Choose one concrete Listening or Reading test, complete it on YouPass, then send Joy the platform result, answer explanation evidence, and wrong questions."
+    }
+  ]
+}
