@@ -6,6 +6,7 @@
     "/project-data/vocabulary/vocabulary-modal-fit.css?v=joy-vocabulary-modal-fit-v1",
     "/project-data/vocabulary/vocabulary-compact.css?v=joy-vocabulary-compact-v2",
   ];
+  const BROWSER_SPEECH_SCRIPT_URL = "/project-data/shared/browser-speech.js?v=joy-browser-speech-v1";
   const SCRIPT_URL = "/project-data/vocabulary/vocabulary.js?v=joy-vocabulary-v2";
   const COMPACT_SCRIPT_URL = "/project-data/vocabulary/vocabulary-compact.js?v=joy-vocabulary-compact-v2";
   const MOBILE_SCRIPT_URL = "/project-data/vocabulary/vocabulary-mobile-inline.js?v=joy-vocabulary-mobile-inline-v3";
@@ -57,8 +58,7 @@
     document.body.append(script);
   }
 
-  function load() {
-    loadStyles();
+  function loadVocabulary() {
     const existing = document.querySelector('script[data-joy-vocabulary="true"]');
     if (existing && existing.src.includes("joy-vocabulary-v2")) {
       if (window.JoyVocabulary) loadCompactCard();
@@ -72,6 +72,29 @@
     script.dataset.joyVocabulary = "true";
     script.addEventListener("load", loadCompactCard, { once: true });
     document.body.append(script);
+  }
+
+  function loadBrowserSpeech() {
+    const existing = document.querySelector('script[data-joy-browser-speech="true"]');
+    if (existing && existing.src.includes("joy-browser-speech-v1")) {
+      if (existing.dataset.loaded === "true" || window.__joyBrowserSpeechInstalled) loadVocabulary();
+      else existing.addEventListener("load", loadVocabulary, { once: true });
+      return;
+    }
+    existing?.remove();
+
+    const script = document.createElement("script");
+    script.src = BROWSER_SPEECH_SCRIPT_URL;
+    script.dataset.joyBrowserSpeech = "true";
+    script.addEventListener("load", () => { script.dataset.loaded = "true"; }, { once: true });
+    script.addEventListener("load", loadVocabulary, { once: true });
+    script.addEventListener("error", loadVocabulary, { once: true });
+    document.body.append(script);
+  }
+
+  function load() {
+    loadStyles();
+    loadBrowserSpeech();
   }
 
   if (document.readyState === "loading") window.addEventListener("DOMContentLoaded", load, { once: true });
