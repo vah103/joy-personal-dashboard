@@ -68,3 +68,31 @@
 #finance.finance-dashboard-polished.finance-full-money-values [data-finance-field="year-end"] {
   font-size: clamp(16px, 1.35vw, 19px);
 }
+
+#finance.finance-dashboard-polished .finance-year-end-gold {
+  margin-top: 11px;
+  padding-top: 9px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid rgba(103, 113, 91, .18);
+}
+
+#finance.finance-dashboard-polished .finance-year-end-gold > span {
+  color: #6f7d78;
+  font-family: "Instrument Sans", Arial, sans-serif;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: .02em;
+}
+
+#finance.finance-dashboard-polished .finance-year-end-gold > b {
+  color: #75613e;
+  font-family: "Nunito", "Instrument Sans", "Segoe UI", Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  font-synthesis: none;
+  letter-spacing: -.01em;
+  white-space: nowrap;
+}
