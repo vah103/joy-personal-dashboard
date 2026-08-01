@@ -1,6 +1,10 @@
 import { isSameOrigin, json, readJson } from "./shared/http.js";
 import { getSession } from "./shared/session.js";
 import {
+  handleProjectMemoryRequest,
+  isProjectMemoryRoute,
+} from "./project-memory-http.js";
+import {
   JoyCoreError,
   appendJoyProgressLog,
   attachJoyEvidence,
@@ -64,7 +68,7 @@ async function requestBody(request) {
 
 function apiJson(value, status = 200, headers = {}) {
   return json(value, status, {
-    "X-Joy-Core-Version": "1",
+    "X-Joy-Core-Version": "2",
     ...headers,
   });
 }
@@ -121,6 +125,14 @@ export async function handleJoyCoreWebRequest(request, env, dependencies = {}) {
     }
 
     const context = ownerContext(session);
+
+    if (isProjectMemoryRoute(pathname, API_PREFIX)) {
+      const result = await handleProjectMemoryRequest(request, env, context, {
+        prefix: API_PREFIX,
+        service: dependencies.projectMemoryService,
+      });
+      return apiJson(result.value, result.status);
+    }
 
     if (pathname === `${API_PREFIX}/overview`) {
       if (request.method !== "GET") return methodNotAllowed(["GET"]);
