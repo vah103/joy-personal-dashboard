@@ -131,7 +131,7 @@ test("assessment writes are idempotent by clientRequestId", async () => {
 test("Joy Actions publishes all IELTS teaching operations without destructive endpoints", () => {
   const paths = JOY_ACTIONS_OPENAPI.paths;
   const startOperation = paths["/api/joy/v1/ielts/tasks/{taskId}/start"]?.post;
-  assert.equal(JOY_ACTIONS_OPENAPI.info.version, "1.1.1");
+  assert.equal(JOY_ACTIONS_OPENAPI.info.version, "1.2.0");
   assert.ok(paths["/api/joy/v1/ielts/today"]?.get);
   assert.ok(paths["/api/joy/v1/ielts/tasks/{taskId}"]?.get);
   assert.ok(startOperation);
@@ -141,6 +141,13 @@ test("Joy Actions publishes all IELTS teaching operations without destructive en
   assert.ok(paths["/api/joy/v1/ielts/errors"]?.post);
   assert.ok(paths["/api/joy/v1/ielts/course-sessions"]?.post);
   assert.ok(paths["/api/joy/v1/ielts/rhythms/{rhythmId}/tasks"]?.put);
+  assert.ok(paths["/api/joy/v1/ielts/listening/submissions"]?.post);
+  assert.ok(paths["/api/joy/v1/ielts/listening/submissions/{submissionId}"]?.get);
+  assert.ok(paths["/api/joy/v1/ielts/listening/submissions/{submissionId}/review"]?.post);
+  const fileRefs = JOY_ACTIONS_OPENAPI.components.schemas
+    .IeltsListeningSubmissionInput.properties.openaiFileIdRefs;
+  assert.equal(fileRefs.type, "array");
+  assert.equal(fileRefs.items.type, "string");
   assert.equal(Object.values(paths).some((methods) => Object.hasOwn(methods, "delete")), false);
 });
 
