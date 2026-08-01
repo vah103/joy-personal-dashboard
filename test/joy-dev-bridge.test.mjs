@@ -7,6 +7,9 @@ import {
   applyJoyRepositoryChanges,
   createJoyWorkBranch,
   describeJoyDevPolicy,
+  getJoyRepositoryContext,
+  readJoyRepositoryFile,
+  searchJoyRepository,
 } from "../worker/joy-dev-bridge.js";
 import {
   JOY_CORE_ACTIONS,
@@ -71,6 +74,50 @@ test("assistant can develop on branches while viewer stays read-only", () => {
   assert.equal(canPerformJoyCoreAction("assistant", JOY_CORE_ACTIONS.REPOSITORY_WRITE), true);
   assert.equal(canPerformJoyCoreAction("assistant", JOY_CORE_ACTIONS.REPOSITORY_CHECK_RUN), true);
   assert.equal(canPerformJoyCoreAction("assistant", JOY_CORE_ACTIONS.REPOSITORY_PR_CREATE), true);
+});
+
+test("repository context, search, and file reads send the required GitHub REST headers", async () => {
+  const calls = [];
+  const fetchMock = async (url, init = {}) => {
+    calls.push({ url, headers: new Headers(init.headers) });
+    if (url.endsWith("/repos/vah103/joy-personal-dashboard")) {
+      return response(200, {
+        default_branch: "main",
+        private: true,
+        html_url: "https://github.com/vah103/joy-personal-dashboard",
+      });
+    }
+    if (url.endsWith("/git/ref/heads/main")) {
+      return response(200, { object: { sha: "main-sha" } });
+    }
+    if (url.includes("/pulls?")) return response(200, []);
+    if (url.includes("/search/code?")) {
+      return response(200, { total_count: 1, items: [{ path: "worker/joy-dev-bridge.js" }] });
+    }
+    if (url.includes("/contents/worker/joy-dev-bridge.js?")) {
+      return response(200, {
+        type: "file",
+        size: 12,
+        sha: "file-sha",
+        encoding: "base64",
+        content: btoa("export {};\n"),
+      });
+    }
+    throw new Error(`Unexpected request: ${init.method || "GET"} ${url}`);
+  };
+  const options = { fetch: fetchMock };
+
+  await getJoyRepositoryContext(ENV, CONTEXT, {}, options);
+  await searchJoyRepository(ENV, CONTEXT, { query: "githubRequest" }, options);
+  await readJoyRepositoryFile(ENV, CONTEXT, { path: "worker/joy-dev-bridge.js" }, options);
+
+  assert.equal(calls.length, 5);
+  for (const call of calls) {
+    assert.equal(call.headers.get("User-Agent"), "Joy-Personal-Dashboard/1.0", call.url);
+    assert.equal(call.headers.get("Authorization"), "Bearer github-test-token", call.url);
+    assert.equal(call.headers.get("Accept"), "application/vnd.github+json", call.url);
+    assert.equal(call.headers.get("X-GitHub-Api-Version"), "2022-11-28", call.url);
+  }
 });
 
 test("createJoyWorkBranch creates a deterministic branch from current main", async () => {

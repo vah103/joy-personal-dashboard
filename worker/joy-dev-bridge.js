@@ -8,6 +8,7 @@ import { appendProjectWorkSessionEvent } from "./project-memory/service.js";
 const DEFAULT_REPOSITORY = "vah103/joy-personal-dashboard";
 const DEFAULT_BRANCH = "main";
 const WORKFLOW_FILE = "joy-dev-check.yml";
+const GITHUB_USER_AGENT = "Joy-Personal-Dashboard/1.0";
 const MAX_FILE_CHARS = 220_000;
 const MAX_TOTAL_CHARS = 650_000;
 const MAX_CHANGES = 12;
@@ -129,6 +130,7 @@ async function githubRequest(env, path, options = {}) {
   const headers = new Headers(options.headers || {});
   headers.set("Accept", options.accept || "application/vnd.github+json");
   headers.set("Authorization", `Bearer ${githubToken(env)}`);
+  headers.set("User-Agent", GITHUB_USER_AGENT);
   headers.set("X-GitHub-Api-Version", "2022-11-28");
   if (options.body !== undefined) headers.set("Content-Type", "application/json");
   const response = await request(`https://api.github.com${path}`, {
