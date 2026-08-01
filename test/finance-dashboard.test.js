@@ -10,7 +10,7 @@ const dashboardStylesSource = await readFile(new URL("../src/pages/dashboard/sty
 const dashboardHtml = await readFile(new URL("../src/pages/dashboard/index.html", import.meta.url), "utf8");
 const bundleSource = await readFile(new URL("../scripts/build-finance-bundle.mjs", import.meta.url), "utf8");
 
-test("Finance heading uses the shared 17px panel title rule", () => {
+test("dashboard panel headings use the shared 20px title rule", () => {
   assert.match(dashboardSource, /panel-title-button\{/);
   assert.match(dashboardSource, /color:#2e454d/);
   assert.doesNotMatch(
@@ -20,6 +20,10 @@ test("Finance heading uses the shared 17px panel title rule", () => {
   assert.match(
     dashboardStylesSource,
     /\.panel-heading h2 \{[\s\S]*font-size: 17px;[\s\S]*font-weight: 800;/,
+  );
+  assert.match(
+    dashboardThemeSource,
+    /\.dashboard-shell \.panel-heading h2,[\s\S]*\.dashboard-shell \.panel-title-button h2 \{[\s\S]*font-size: 20px;/,
   );
   assert.match(dashboardSource, /finance-period-button/);
   assert.match(dashboardSource, /font-size:15px/);
