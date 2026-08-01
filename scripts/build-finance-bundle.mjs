@@ -12,8 +12,10 @@ const paths = {
   core: resolve(financeSourceDir, "finance.js"),
   dashboard: resolve(financeSourceDir, "finance-dashboard.js"),
   dashboardSummary: resolve(financeSourceDir, "finance-dashboard-summary.js"),
+  dashboardGoldLive: resolve(financeSourceDir, "finance-gold-live-value.js"),
   monthLayout: resolve(financeSourceDir, "finance-month-layout.js"),
   coreCss: resolve(financeSourceDir, "finance.css"),
+  dashboardGoldLiveCss: resolve(financeSourceDir, "finance-gold-live-value.css"),
   monthLayoutCss: resolve(financeSourceDir, "finance-month-layout.css"),
   p1008: resolve(projectFinanceDir, "finance-p1008.js"),
   p1008Layout: resolve(financeSourceDir, "finance-p1008-layout.js"),
@@ -58,8 +60,10 @@ const [
   financeSource,
   dashboardSource,
   dashboardSummarySource,
+  dashboardGoldLiveSource,
   monthLayoutSource,
   financeCss,
+  dashboardGoldLiveCss,
   monthLayoutCss,
   p1008Source,
   p1008LayoutSource,
@@ -70,8 +74,10 @@ const [
   readFile(paths.core, "utf8"),
   readFile(paths.dashboard, "utf8"),
   readFile(paths.dashboardSummary, "utf8"),
+  readFile(paths.dashboardGoldLive, "utf8"),
   readFile(paths.monthLayout, "utf8"),
   readFile(paths.coreCss, "utf8"),
+  readFile(paths.dashboardGoldLiveCss, "utf8"),
   readFile(paths.monthLayoutCss, "utf8"),
   readFile(paths.p1008, "utf8"),
   readFile(paths.p1008Layout, "utf8"),
@@ -87,6 +93,9 @@ if (!financeSource.includes("window.JoyFinanceAmount")) {
 }
 if (!dashboardSummarySource.includes("syncProjectedFinanceSummary")) {
   throw new Error("Finance projected dashboard summary source is missing");
+}
+if (!dashboardGoldLiveSource.includes('const GOLD_PRICE_ENDPOINT = "/api/finance/gold-price"')) {
+  throw new Error("Finance live gold value source is missing its price endpoint");
 }
 if (!p1008Source.includes('const API_PATH = "/api/p1008"')) {
   throw new Error("P1008 core source is missing its account API");
@@ -110,6 +119,7 @@ const financeBundle = [
   financeSource.trim(),
   dashboard.javascript,
   dashboardSummarySource.trim(),
+  dashboardGoldLiveSource.trim(),
   monthLayout.javascript,
   "",
 ].join("\n\n");
@@ -117,6 +127,7 @@ const financeCssBundle = [
   financeCss.trim(),
   monthLayoutCss.trim(),
   dashboard.css,
+  dashboardGoldLiveCss.trim(),
   monthLayout.css,
   "",
 ].join("\n\n");
