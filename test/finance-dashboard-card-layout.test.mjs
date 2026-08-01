@@ -44,7 +44,11 @@ test("outer Finance card owns layout in the canonical source and uses Nunito for
   );
   assert.match(
     theme,
-    /#finance\.finance-dashboard-polished \.finance-overview-stat strong \{[\s\S]*font-family: "Nunito"[\s\S]*font-weight: 500;[\s\S]*letter-spacing: -\.016em;[\s\S]*line-height: 1\.08;/,
+    /#finance\.finance-dashboard-polished \.finance-overview-stat strong \{[\s\S]*font-family: "Nunito"[\s\S]*font-weight: 600;[\s\S]*letter-spacing: -\.016em;[\s\S]*line-height: 1\.08;/,
+  );
+  assert.match(
+    theme,
+    /\[data-finance-field="year-end"\] \{[\s\S]*font-size: clamp\(18px, 1\.55vw, 24px\) !important;[\s\S]*font-weight: 700 !important;/,
   );
   assert.match(theme, /font-synthesis: none/);
 });
