@@ -43,7 +43,7 @@ test("Finance year-end cash value overrides the later injected card rule", () =>
   );
   assert.match(
     dashboardThemeSource,
-    /\[data-finance-field="year-end"\] \{[\s\S]*font-size: clamp\(18px, 1\.55vw, 24px\) !important;[\s\S]*font-weight: 600 !important;[\s\S]*letter-spacing: -\.014em !important;[\s\S]*line-height: 1\.08 !important;/,
+    /\[data-finance-field="year-end"\] \{[\s\S]*font-size: clamp\(18px, 1\.55vw, 24px\) !important;[\s\S]*font-weight: 700 !important;[\s\S]*letter-spacing: -\.014em !important;[\s\S]*line-height: 1\.08 !important;/,
   );
 });
 
