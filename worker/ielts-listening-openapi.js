@@ -29,7 +29,7 @@ export const IELTS_LISTENING_ACTION_PATHS = {
     post: {
       operationId: "prepareIeltsListeningSubmission",
       summary: "Transcribe an attached IELTS Listening audio file",
-      description: "Use when the owner attaches one Listening audio file and screenshots or documents showing the questions and their entered answers. First inspect the screenshots yourself and copy the learner's answers exactly, preserving blanks, spelling and uncertainty. Send every relevant conversation attachment through openaiFileIdRefs. Joy downloads only the single audio file from the temporary OpenAI URL, transcribes it, stores a private draft submission in IELTS Core, and returns the transcript for grading. This action does not complete the task or save an assessment.",
+      description: "Use when the owner attaches one Listening audio file and screenshots or documents showing the questions and entered answers. Inspect the screenshots directly in the conversation and copy the learner's answers exactly, preserving blanks, spelling and uncertainty. Put only the single audio attachment in openaiFileIdRefs; do not send the screenshots because their extracted answers are already supplied in studentAnswers. Joy downloads the audio from the temporary OpenAI URL, transcribes it, stores a private draft submission in IELTS Core, and returns the transcript for grading. This action does not complete the task or save an assessment.",
       requestBody: {
         required: true,
         content: {
@@ -139,9 +139,9 @@ export const IELTS_LISTENING_ACTION_SCHEMAS = {
       openaiFileIdRefs: {
         type: "array",
         minItems: 1,
-        maxItems: 10,
+        maxItems: 1,
         items: { type: "string" },
-        description: "All relevant files attached in the current conversation: exactly one audio file (mp3, mp4, mpeg, mpga, m4a, wav, webm or flac) plus the screenshots/documents used to read the learner's questions and answers. At runtime ChatGPT expands each string into file metadata with a five-minute download URL.",
+        description: "The single audio file attached in the current conversation (mp3, mp4, mpeg, mpga, m4a, wav or webm). Do not include answer screenshots; inspect them directly and put the extracted answers in studentAnswers. At runtime ChatGPT expands the audio reference into file metadata with a five-minute download URL.",
       },
       studentAnswers: {
         type: "array",
