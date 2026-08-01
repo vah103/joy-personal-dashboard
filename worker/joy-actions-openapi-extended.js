@@ -71,6 +71,28 @@ const STRING_ARRAY = {
   items: { type: "string" },
 };
 
+const DEVELOPMENT_CONTRACT_SCHEMA = {
+  type: "object",
+  properties: {
+    repository: { type: "string" },
+    branchPrefix: { type: "string" },
+    preferredCheckSuite: { type: "string" },
+    rules: STRING_ARRAY,
+  },
+  required: ["repository", "branchPrefix", "preferredCheckSuite", "rules"],
+  additionalProperties: false,
+};
+
+const SESSION_CONTRACT_SCHEMA = {
+  type: "object",
+  properties: {
+    meaningfulEvents: STRING_ARRAY,
+    finishRules: STRING_ARRAY,
+  },
+  required: ["meaningfulEvents", "finishRules"],
+  additionalProperties: false,
+};
+
 const IELTS_ASSISTANT_PROFILE_SCHEMA = {
   type: "object",
   properties: {
@@ -91,26 +113,8 @@ const IELTS_ASSISTANT_PROFILE_SCHEMA = {
       required: ["goal", "skills", "rules"],
       additionalProperties: false,
     },
-    developmentContract: {
-      type: "object",
-      properties: {
-        repository: { type: "string" },
-        branchPrefix: { type: "string" },
-        preferredCheckSuite: { type: "string" },
-        rules: STRING_ARRAY,
-      },
-      required: ["repository", "branchPrefix", "preferredCheckSuite", "rules"],
-      additionalProperties: false,
-    },
-    sessionContract: {
-      type: "object",
-      properties: {
-        meaningfulEvents: STRING_ARRAY,
-        finishRules: STRING_ARRAY,
-      },
-      required: ["meaningfulEvents", "finishRules"],
-      additionalProperties: false,
-    },
+    developmentContract: DEVELOPMENT_CONTRACT_SCHEMA,
+    sessionContract: SESSION_CONTRACT_SCHEMA,
   },
   required: [
     "profileVersion",
@@ -121,6 +125,43 @@ const IELTS_ASSISTANT_PROFILE_SCHEMA = {
     "roles",
     "startupSequence",
     "teachingContract",
+    "developmentContract",
+    "sessionContract",
+  ],
+  additionalProperties: false,
+};
+
+const TURTLEBOT4_ASSISTANT_PROFILE_SCHEMA = {
+  type: "object",
+  properties: {
+    profileVersion: { type: "string" },
+    profileId: { type: "string", enum: ["turtlebot4"] },
+    actorId: { type: "string", enum: ["gpt-turtlebot4"] },
+    fixedProjectId: { type: "string", enum: ["turtlebot4"] },
+    identity: { type: "string" },
+    roles: STRING_ARRAY,
+    startupSequence: STRING_ARRAY,
+    engineeringContract: {
+      type: "object",
+      properties: {
+        domains: STRING_ARRAY,
+        rules: STRING_ARRAY,
+      },
+      required: ["domains", "rules"],
+      additionalProperties: false,
+    },
+    developmentContract: DEVELOPMENT_CONTRACT_SCHEMA,
+    sessionContract: SESSION_CONTRACT_SCHEMA,
+  },
+  required: [
+    "profileVersion",
+    "profileId",
+    "actorId",
+    "fixedProjectId",
+    "identity",
+    "roles",
+    "startupSequence",
+    "engineeringContract",
     "developmentContract",
     "sessionContract",
   ],
@@ -151,14 +192,14 @@ function builderSafeSchema(value) {
   return normalized;
 }
 
-function schemaComponents(includeAssistantProfile) {
-  if (!includeAssistantProfile) return JOY_ACTIONS_OPENAPI.components;
+function schemaComponents(assistantProfileSchema = null) {
+  if (!assistantProfileSchema) return JOY_ACTIONS_OPENAPI.components;
   const workspace = JOY_ACTIONS_OPENAPI.components.schemas.WorkspaceBootstrapResult;
   return {
     ...JOY_ACTIONS_OPENAPI.components,
     schemas: {
       ...JOY_ACTIONS_OPENAPI.components.schemas,
-      JoySpecializedAssistantProfile: IELTS_ASSISTANT_PROFILE_SCHEMA,
+      JoySpecializedAssistantProfile: assistantProfileSchema,
       WorkspaceBootstrapResult: {
         ...workspace,
         properties: {
@@ -176,7 +217,7 @@ function specializedSchema({
   description,
   includeIelts,
   includeCommonProjectPaths,
-  includeAssistantProfile = false,
+  assistantProfileSchema = null,
 }) {
   return Object.freeze(builderSafeSchema({
     ...JOY_ACTIONS_OPENAPI,
@@ -187,7 +228,7 @@ function specializedSchema({
       description,
     },
     paths: selectPaths({ includeIelts, includeCommonProjectPaths }),
-    components: schemaComponents(includeAssistantProfile),
+    components: schemaComponents(assistantProfileSchema),
   }));
 }
 
@@ -196,7 +237,7 @@ export const JOY_IELTS_ACTIONS_OPENAPI = specializedSchema({
   description: "Private Actions for the owner's IELTS teacher-developer GPT. The server locks this credential to the IELTS project while permitting safe branch-based repository work.",
   includeIelts: true,
   includeCommonProjectPaths: false,
-  includeAssistantProfile: true,
+  assistantProfileSchema: IELTS_ASSISTANT_PROFILE_SCHEMA,
 });
 
 export const JOY_TURTLEBOT4_ACTIONS_OPENAPI = specializedSchema({
@@ -204,4 +245,5 @@ export const JOY_TURTLEBOT4_ACTIONS_OPENAPI = specializedSchema({
   description: "Private Actions for the owner's TurtleBot4 engineer-developer GPT. The server locks this credential to the TurtleBot4 project while permitting safe branch-based repository work.",
   includeIelts: false,
   includeCommonProjectPaths: true,
+  assistantProfileSchema: TURTLEBOT4_ASSISTANT_PROFILE_SCHEMA,
 });
