@@ -50,18 +50,25 @@ test("Finance outer dashboard mirrors the popup projected month totals", () => {
   assert.match(financeCoreSource, /closing = Number\(month\.projected\?\.remaining/);
 });
 
-test("Finance year-end card displays the current gold holding separately", () => {
-  assert.match(dashboardSummarySource, /const GOLD_HELD_CHI = 0\.5/);
-  assert.match(dashboardSummarySource, /function formatGoldHolding/);
-  assert.match(dashboardSummarySource, /finance-year-end-gold/);
-  assert.match(dashboardSummarySource, /label\.textContent = "Gold held"/);
+test("Finance year-end card presents gold as an icon asset in taels", () => {
+  assert.match(dashboardSummarySource, /const GOLD_HELD_TAEL = 0\.05/);
+  assert.match(dashboardSummarySource, /minimumFractionDigits: 2/);
+  assert.match(dashboardSummarySource, /return `\$\{amount\} tael`/);
+  assert.match(dashboardSummarySource, /finance-year-end-card/);
+  assert.match(dashboardSummarySource, /finance-year-end-content/);
+  assert.match(dashboardSummarySource, /finance-year-end-gold-icon/);
+  assert.match(dashboardSummarySource, /<svg viewBox="0 0 24 24"/);
+  assert.match(dashboardSummarySource, /Projected cash balance/);
+  assert.doesNotMatch(dashboardSummarySource, /label\.textContent = "Gold held"/);
+  assert.doesNotMatch(dashboardSummarySource, /chỉ/);
   assert.match(dashboardSummarySource, /value\.dataset\.financeMask = "•••"/);
   assert.match(dashboardSummarySource, /syncYearEndGoldHolding\(\)/);
-  assert.match(dashboardThemeSource, /\.finance-year-end-gold/);
-  assert.match(dashboardThemeSource, /color: #75613e/);
+  assert.match(dashboardThemeSource, /\.finance-year-end-gold-icon/);
+  assert.match(dashboardThemeSource, /border-radius: 999px/);
+  assert.doesNotMatch(dashboardThemeSource, /border-top:/);
 
   const cashValues = dashboardSummarySource.match(/const values = \{([\s\S]*?)\n    \};/)?.[1] || "";
-  assert.doesNotMatch(cashValues, /GOLD_HELD_CHI|gold/i);
+  assert.doesNotMatch(cashValues, /GOLD_HELD_TAEL|gold/i);
 });
 
 test("Finance chart months stay English after every render", () => {
