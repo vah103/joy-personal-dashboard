@@ -183,7 +183,7 @@ function specializedSchema({
     info: {
       ...JOY_ACTIONS_OPENAPI.info,
       title,
-      version: "1.6.0",
+      version: "1.5.0",
       description,
     },
     paths: selectPaths({ includeIelts, includeCommonProjectPaths }),
