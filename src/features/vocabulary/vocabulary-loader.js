@@ -3,6 +3,7 @@
     "/project-data/vocabulary/vocabulary.css?v=joy-vocabulary-v1",
     "/project-data/vocabulary/vocabulary-openai.css?v=joy-vocabulary-openai-v2",
     "/project-data/vocabulary/vocabulary-result-size.css?v=joy-vocabulary-result-size-v1",
+    "/project-data/vocabulary/vocabulary-modal-fit.css?v=joy-vocabulary-modal-fit-v1",
     "/project-data/vocabulary/vocabulary-compact.css?v=joy-vocabulary-compact-v2",
   ];
   const SCRIPT_URL = "/project-data/vocabulary/vocabulary.js?v=joy-vocabulary-v2";
