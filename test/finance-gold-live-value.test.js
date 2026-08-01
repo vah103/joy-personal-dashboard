@@ -51,7 +51,7 @@ test("Finance gold price route is narrow and explicit", () => {
   assert.equal(isFinanceGoldPriceRoute("/api/finance/gold-price/other"), false);
 });
 
-test("outer Finance gold chip toggles a live buy-back valuation", async () => {
+test("outer Finance gold chip toggles a live buy-back valuation without opening Year-end", async () => {
   const [client, styles, build, router, worker] = await Promise.all([
     read("src/features/finance/finance-gold-live-value.js"),
     read("src/features/finance/finance-gold-live-value.css"),
@@ -66,8 +66,11 @@ test("outer Finance gold chip toggles a live buy-back valuation", async () => {
   assert.match(client, /buyPricePerChi[\s\S]*GOLD_HELD_TAEL \* CHI_PER_TAEL/);
   assert.match(client, /displayMode === "value"/);
   assert.match(client, /credentials: "same-origin"/);
-  assert.match(client, /asset\.addEventListener\("click", toggleGoldValue\)/);
-  assert.match(client, /event\.key !== "Enter" && event\.key !== " "/);
+  assert.match(client, /function handleGoldChipClick\(event\)/);
+  assert.match(client, /handleGoldChipClick\(event\)[\s\S]*event\.preventDefault\(\);[\s\S]*event\.stopPropagation\(\);[\s\S]*toggleGoldValue\(\);/);
+  assert.match(client, /handleGoldChipKeydown\(event\)[\s\S]*event\.preventDefault\(\);[\s\S]*event\.stopPropagation\(\);[\s\S]*toggleGoldValue\(\);/);
+  assert.match(client, /asset\.addEventListener\("click", handleGoldChipClick\)/);
+  assert.match(client, /asset\.addEventListener\("keydown", handleGoldChipKeydown\)/);
   assert.match(client, /financeValuesHidden/);
   assert.doesNotMatch(client, /sellPricePerChi/);
 
