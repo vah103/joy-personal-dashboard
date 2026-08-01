@@ -2,6 +2,12 @@
   const panel = document.querySelector("#finance");
   if (!panel) return;
 
+  function setFullCardMoneyValue(element, amount) {
+    if (!element) return;
+    element.dataset.financeValue = formatVnd(amount);
+    element.textContent = financeValuesHidden ? element.dataset.financeMask : element.dataset.financeValue;
+  }
+
   function syncProjectedFinanceSummary() {
     if (typeof financeSummary === "undefined") return;
 
@@ -12,10 +18,12 @@
       remaining: projected.remaining,
       income: projected.income,
       expenses: projected.expenses,
+      "year-end": financeSummary?.annual?.projectedYearEnd,
     };
 
+    panel.classList.add("finance-full-money-values");
     Object.entries(values).forEach(([field, value]) => {
-      setMoneyValue(panel.querySelector(`[data-finance-field="${field}"]`), value);
+      setFullCardMoneyValue(panel.querySelector(`[data-finance-field="${field}"]`), value);
     });
 
     const balanceLabel = panel.querySelector(".finance-available > small b");
