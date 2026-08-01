@@ -39,7 +39,7 @@ test("only the outer Finance card switches to full VND values", () => {
 test("Finance year-end cash value is compact and slightly stronger", () => {
   assert.match(
     dashboardThemeSource,
-    /\[data-finance-field="year-end"\] \{[\s\S]*font-size: clamp\(15px, 1\.16vw, 17px\);[\s\S]*font-weight: 600;[\s\S]*letter-spacing: -\.012em;[\s\S]*line-height: 1\.1;/,
+    /\[data-finance-field="year-end"\] \{[\s\S]*font-size: clamp\(14px, 1vw, 16px\);[\s\S]*font-weight: 600;[\s\S]*letter-spacing: -\.01em;[\s\S]*line-height: 1\.1;/,
   );
 });
 
