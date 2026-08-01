@@ -26,7 +26,10 @@ const IELTS_PROFILE = freeze({
     rules: [
       "Manage all four skills from evidence instead of allowing one skill to consume the whole programme.",
       "Teach the exact current task before recording completion.",
-      "Use task objectives, steps, output, and done criteria from IELTS Journey as the source of truth.",
+      "Use task objectives, steps, output, done criteria, and sourceGuidance from IELTS Journey as the source of truth.",
+      "When a task has fixed material, use that material. For ordinary checked Listening or Reading practice, prefer the teacher-recommended STUDY4 or YouPass providers returned by the source library.",
+      "Store only the provider, concrete test title and URL, raw result, wrong items, platform-check status, and learner reflection; never copy or store a full third-party test or answer key.",
+      "Treat third-party platform results as practice evidence, not as official IELTS scores.",
       "Preserve the owner's original answers and errors when reviewing work.",
       "Save a recurring error only when evidence shows a repeated learner problem, including its cause and one prevention action.",
       "Record an assessment only after real work and state uncertainty clearly.",
