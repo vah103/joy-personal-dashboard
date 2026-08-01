@@ -1,9 +1,12 @@
 (() => {
   const API_PATH = "/api/speaking/english";
-  const state = {
-    sentence: "",
-    busy: false,
-  };
+  const TONE_LABELS = Object.freeze({
+    natural: "Natural",
+    casual: "Casual",
+    polite: "Polite",
+    work: "Work",
+  });
+  const state = { sentence: "", tone: "natural", busy: false };
 
   const modal = createModal();
   document.body.append(modal);
@@ -22,15 +25,21 @@
     backdrop.innerHTML = `
       <section class="modal speaking-modal" role="dialog" aria-modal="true" aria-labelledby="speaking-title">
         <div class="modal-heading">
-          <div>
-            <p class="section-kicker">Speaking</p>
-            <h2 id="speaking-title">How do I say this?</h2>
-          </div>
+          <div><p class="section-kicker">Speaking</p><h2 id="speaking-title">How do I say this?</h2></div>
           <button type="button" aria-label="Close speaking tool" data-speaking-close>×</button>
         </div>
         <form class="speaking-form" data-speaking-form>
           <label for="speaking-vietnamese-input">Vietnamese sentence</label>
           <textarea id="speaking-vietnamese-input" name="text" maxlength="500" rows="4" autocomplete="off" placeholder="e.g. Tôi có thể ngồi ở đây không?" required></textarea>
+          <div class="speaking-tone-row">
+            <label for="speaking-tone">Tone</label>
+            <select id="speaking-tone" name="tone">
+              <option value="natural">Natural</option>
+              <option value="casual">Casual</option>
+              <option value="polite">Polite</option>
+              <option value="work">Work</option>
+            </select>
+          </div>
           <button class="primary-button" type="submit">Make it English</button>
         </form>
         <p class="speaking-status" data-speaking-status aria-live="polite"></p>
@@ -44,7 +53,7 @@
   }
 
   function observeVocabularyRenders() {
-    const observer = new MutationObserver(() => decorateVocabularyActions());
+    const observer = new MutationObserver(decorateVocabularyActions);
     const desktopWidget = document.querySelector(".vocabulary-widget");
     const mobileWidget = document.querySelector(".vocabulary-mobile-modal");
     if (desktopWidget) observer.observe(desktopWidget, { childList: true, subtree: true });
@@ -90,11 +99,7 @@
 
   function handleKeydown(event) {
     if (event.key === "Escape" && !modal.hidden) closeModal();
-    if (
-      event.key === "Enter"
-      && (event.ctrlKey || event.metaKey)
-      && event.target.closest("[data-speaking-form]")
-    ) {
+    if (event.key === "Enter" && (event.ctrlKey || event.metaKey) && event.target.closest("[data-speaking-form]")) {
       event.preventDefault();
       event.target.closest("[data-speaking-form]")?.requestSubmit();
     }
@@ -102,6 +107,7 @@
 
   function openModal() {
     state.sentence = "";
+    state.tone = "natural";
     renderResult();
     modal.querySelector("[data-speaking-status]").textContent = "";
     modal.querySelector("[data-speaking-form]")?.reset();
@@ -127,24 +133,27 @@
   async function translateSentence(form) {
     if (state.busy) return;
     const text = cleanText(form.elements.text.value);
+    const tone = cleanText(form.elements.tone.value).toLowerCase() || "natural";
     if (!text) return;
 
     const status = modal.querySelector("[data-speaking-status]");
     const button = form.querySelector('button[type="submit"]');
     state.busy = true;
     state.sentence = "";
+    state.tone = tone;
     renderResult();
-    status.textContent = "Joy is finding the most natural way to say it…";
+    status.textContent = "Joy is finding one concise English sentence…";
     button.disabled = true;
 
     try {
       const payload = await requestJson(API_PATH, {
         method: "POST",
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, tone }),
       });
       state.sentence = cleanText(payload.sentence);
+      state.tone = cleanText(payload.tone) || tone;
       if (!state.sentence) throw new Error("SPEAKING_RESULT_INVALID");
-      status.textContent = "One natural English sentence.";
+      status.textContent = responseStatus(payload);
       renderResult();
     } catch (error) {
       status.textContent = speakingErrorMessage(error.code || error.message);
@@ -154,6 +163,12 @@
     }
   }
 
+  function responseStatus(payload) {
+    if (payload.cached) return "Reused a previous sentence — no new AI call used.";
+    if (payload.provider === "openai") return "One GPT-generated English sentence.";
+    return "One fallback English sentence.";
+  }
+
   function renderResult() {
     const container = modal.querySelector("[data-speaking-result]");
     if (!container) return;
@@ -161,10 +176,10 @@
       container.innerHTML = "";
       return;
     }
-
+    const toneLabel = TONE_LABELS[state.tone] || TONE_LABELS.natural;
     container.innerHTML = `
       <article class="speaking-result-card">
-        <small>Natural English</small>
+        <small>${escapeHtml(toneLabel)} English</small>
         <p>${escapeHtml(state.sentence)}</p>
         <div class="speaking-result-actions">
           <button class="secondary-button" type="button" data-speaking-speak>🔊 Hear</button>
@@ -210,8 +225,7 @@
   function clearResult() {
     state.sentence = "";
     renderResult();
-    const status = modal.querySelector("[data-speaking-status]");
-    status.textContent = "";
+    modal.querySelector("[data-speaking-status]").textContent = "";
     const textarea = modal.querySelector('textarea[name="text"]');
     if (textarea) {
       textarea.value = "";
@@ -221,7 +235,8 @@
 
   function speakingErrorMessage(code) {
     if (code === "INVALID_SPEAKING_INPUT") return "Enter one Vietnamese sentence.";
-    if (code === "AI_DAILY_LIMIT_REACHED") return "The daily AI limit has been reached. Try again after 7:00 AM.";
+    if (code === "INVALID_SPEAKING_TONE") return "Choose Natural, Casual, Polite, or Work.";
+    if (code === "AI_DAILY_LIMIT_REACHED") return "The fallback AI daily limit has been reached. Try again after 7:00 AM.";
     if (code === "SPEAKING_AI_UNAVAILABLE") return "The speaking tool is temporarily unavailable.";
     if (code === "SPEAKING_RESULT_INVALID") return "Joy could not form one clear sentence. Try wording it more specifically.";
     if (code === "UNAUTHENTICATED") return "Your Joy session expired. Refresh and sign in again.";
@@ -231,11 +246,7 @@
   async function requestJson(path, options = {}) {
     const headers = new Headers(options.headers || {});
     if (options.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-    const response = await window.fetch(path, {
-      ...options,
-      headers,
-      credentials: "same-origin",
-    });
+    const response = await window.fetch(path, { ...options, headers, credentials: "same-origin" });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
       const error = new Error(payload.error || `Speaking request failed with ${response.status}`);
