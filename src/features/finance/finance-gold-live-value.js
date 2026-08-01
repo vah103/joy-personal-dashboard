@@ -139,6 +139,19 @@
     void showLiveGoldValue();
   }
 
+  function handleGoldChipClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    toggleGoldValue();
+  }
+
+  function handleGoldChipKeydown(event) {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    event.stopPropagation();
+    toggleGoldValue();
+  }
+
   function enhanceGoldChip() {
     const { asset, value } = currentElements();
     if (!asset || !value) return;
@@ -148,12 +161,8 @@
       asset.dataset.financeGoldLiveBound = "true";
       asset.setAttribute("role", "button");
       asset.setAttribute("tabindex", "0");
-      asset.addEventListener("click", toggleGoldValue);
-      asset.addEventListener("keydown", (event) => {
-        if (event.key !== "Enter" && event.key !== " ") return;
-        event.preventDefault();
-        toggleGoldValue();
-      });
+      asset.addEventListener("click", handleGoldChipClick);
+      asset.addEventListener("keydown", handleGoldChipKeydown);
     }
 
     renderGoldValue();
