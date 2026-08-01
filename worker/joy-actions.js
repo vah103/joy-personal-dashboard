@@ -203,7 +203,6 @@ export async function handleJoyActionsRequest(request, env, dependencies = {}) {
       return apiJson({
         ok: true,
         configured: Boolean(env?.JOY_GPT_ACTION_KEY && env?.JOY_OWNER_EMAIL),
-        githubConfigured: Boolean(env?.JOY_GITHUB_TOKEN),
         version: 1,
       });
     }
