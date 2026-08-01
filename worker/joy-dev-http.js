@@ -176,11 +176,9 @@ export async function handleJoyDevRequest(
 
   if (path === `${prefix}/dev/files`) {
     method(request.method, ["GET"]);
-    const input = queryInput(url);
-    if (input.ref) assertBranchAccess(context, input.ref);
     return {
       status: 200,
-      value: await service.readRepositoryFile(env, context, input),
+      value: await service.readRepositoryFile(env, context, queryInput(url)),
     };
   }
 
