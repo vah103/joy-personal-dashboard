@@ -7,6 +7,8 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const frontendPath = resolve(root, "project-data/vocabulary/vocabulary.js");
+const compactFrontendPath = resolve(root, "project-data/vocabulary/vocabulary-compact.js");
+const compactStylesPath = resolve(root, "project-data/vocabulary/vocabulary-compact.css");
 const extraStylesPath = resolve(root, "project-data/vocabulary/vocabulary-openai.css");
 const workerPath = resolve(root, "worker/vocabulary.js");
 const openAiPath = resolve(root, "worker/shared/openai-responses.js");
@@ -15,8 +17,21 @@ const loaderPath = resolve(root, "src/features/vocabulary/vocabulary-loader.js")
 const migrationPath = resolve(root, "migrations/20260728_vocabulary.sql");
 const wranglerPath = resolve(root, "wrangler.jsonc");
 
-const [frontend, extraStyles, worker, openAi, router, loader, migration, wrangler] = await Promise.all([
+const [
+  frontend,
+  compactFrontend,
+  compactStyles,
+  extraStyles,
+  worker,
+  openAi,
+  router,
+  loader,
+  migration,
+  wrangler,
+] = await Promise.all([
   readFile(frontendPath, "utf8"),
+  readFile(compactFrontendPath, "utf8"),
+  readFile(compactStylesPath, "utf8"),
   readFile(extraStylesPath, "utf8"),
   readFile(workerPath, "utf8"),
   readFile(openAiPath, "utf8"),
@@ -33,6 +48,20 @@ test("Vocabulary keeps flashcards and adds optional context", () => {
   assert.match(frontend, /optional · use this for the exact meaning/);
   assert.match(frontend, /renderMeanings/);
   assert.match(extraStyles, /\.vocabulary-context-field/);
+});
+
+test("Vocabulary outside card is a compact launcher while practice stays in the popup", () => {
+  assert.match(compactFrontend, /data-vocab-practice-root="desktop"/);
+  assert.match(compactFrontend, /vocabulary-compact-card/);
+  assert.match(compactFrontend, /data-vocab-open-practice/);
+  assert.match(compactFrontend, /data-vocab-open-lookup/);
+  assert.match(compactFrontend, /data-speaking-open/);
+  assert.doesNotMatch(compactFrontend, /data-vocab-practice-form|Your answer|Show answer|Check/);
+  assert.match(frontend, /data-vocab-practice-root="mobile"/);
+  assert.match(frontend, /data-vocab-practice-form/);
+  assert.match(frontend, /data-vocab-show-answer/);
+  assert.match(compactStyles, /min-height:\s*118px/);
+  assert.match(compactStyles, /-webkit-line-clamp:\s*2/);
 });
 
 test("Vocabulary uses one cached OpenAI request with a strict token cap", () => {
@@ -74,14 +103,17 @@ test("Vocabulary save and review routes retain authenticated D1 storage", () => 
   assert.match(migration, /UNIQUE \(user_email, english_key\)/);
 });
 
-test("Dashboard loader cache-busts OpenAI Vocabulary assets", () => {
+test("Dashboard loader cache-busts all Vocabulary assets", () => {
   assert.match(loader, /vocabulary-openai\.css\?v=joy-vocabulary-openai-v1/);
+  assert.match(loader, /vocabulary-compact\.css\?v=joy-vocabulary-compact-v1/);
   assert.match(loader, /vocabulary\.js\?v=joy-vocabulary-v2/);
+  assert.match(loader, /vocabulary-compact\.js\?v=joy-vocabulary-compact-v1/);
   assert.match(loader, /vocabulary-mobile-inline\.js\?v=joy-vocabulary-mobile-inline-v2/);
+  assert.match(loader, /loadCompactCard/);
 });
 
 test("Vocabulary JavaScript files pass syntax checks", () => {
-  for (const path of [frontendPath, workerPath, openAiPath, routerPath, loaderPath]) {
+  for (const path of [frontendPath, compactFrontendPath, workerPath, openAiPath, routerPath, loaderPath]) {
     const result = spawnSync(process.execPath, ["--check", path], { encoding: "utf8" });
     assert.equal(result.status, 0, result.stderr || result.stdout);
   }
