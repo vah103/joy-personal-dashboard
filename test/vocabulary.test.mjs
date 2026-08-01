@@ -7,61 +7,81 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const frontendPath = resolve(root, "project-data/vocabulary/vocabulary.js");
-const stylesPath = resolve(root, "project-data/vocabulary/vocabulary.css");
+const extraStylesPath = resolve(root, "project-data/vocabulary/vocabulary-openai.css");
 const workerPath = resolve(root, "worker/vocabulary.js");
+const openAiPath = resolve(root, "worker/shared/openai-responses.js");
 const routerPath = resolve(root, "worker/router.js");
 const loaderPath = resolve(root, "src/features/vocabulary/vocabulary-loader.js");
 const migrationPath = resolve(root, "migrations/20260728_vocabulary.sql");
+const wranglerPath = resolve(root, "wrangler.jsonc");
 
-const [frontend, styles, worker, router, loader, migration] = await Promise.all([
+const [frontend, extraStyles, worker, openAi, router, loader, migration, wrangler] = await Promise.all([
   readFile(frontendPath, "utf8"),
-  readFile(stylesPath, "utf8"),
+  readFile(extraStylesPath, "utf8"),
   readFile(workerPath, "utf8"),
+  readFile(openAiPath, "utf8"),
   readFile(routerPath, "utf8"),
   readFile(loaderPath, "utf8"),
   readFile(migrationPath, "utf8"),
+  readFile(wranglerPath, "utf8"),
 ]);
 
-test("Vocabulary replaces the visible Scratchpad with a vertical flashcard", () => {
+test("Vocabulary keeps flashcards and adds optional context", () => {
   assert.match(frontend, /document\.querySelector\("\.scratchpad"\)/);
   assert.match(frontend, /scratchpad\.className = "vocabulary-widget"/);
-  assert.match(frontend, /Translate into \$\{target\}/);
-  assert.match(frontend, /data-vocab-practice-form/);
-  assert.match(styles, /\.vocabulary-practice\s*\{[\s\S]*flex-direction:\s*column/);
+  assert.match(frontend, /name="context"/);
+  assert.match(frontend, /optional · use this for the exact meaning/);
+  assert.match(frontend, /renderMeanings/);
+  assert.match(extraStyles, /\.vocabulary-context-field/);
 });
 
-test("Lookup returns one English word and one Vietnamese meaning", () => {
-  assert.match(worker, /return exactly one best dictionary pair/i);
-  assert.match(worker, /The English result must be one word only/i);
-  assert.match(worker, /Never return alternatives/i);
-  assert.match(worker, /\^\[a-z\]\+/);
-  assert.match(frontend, /One best match found\./);
+test("Vocabulary uses one cached OpenAI request with a strict token cap", () => {
+  assert.match(worker, /DEFAULT_OPENAI_MODEL = "gpt-5-mini"/);
+  assert.match(worker, /OPENAI_VOCABULARY_MODEL/);
+  assert.match(worker, /maxOutputTokens:\s*220/);
+  assert.match(worker, /reasoningEffort:\s*"minimal"/);
+  assert.match(worker, /verbosity:\s*"low"/);
+  assert.match(worker, /readLanguageCache/);
+  assert.match(worker, /writeLanguageCache/);
+  assert.match(openAi, /store:\s*false/);
+  assert.match(openAi, /max_output_tokens/);
+  assert.match(openAi, /text\.format/);
+  assert.doesNotMatch(worker, /retrying plain JSON/i);
+  assert.match(wrangler, /"OPENAI_VOCABULARY_MODEL"\s*:\s*"gpt-5-mini"/);
 });
 
-test("Vocabulary lookup uses structured output with a plain JSON retry", () => {
-  assert.match(worker, /response_format:\s*\{[\s\S]*type:\s*"json_schema"/);
-  assert.match(worker, /VOCABULARY_JSON_SCHEMA/);
-  assert.match(worker, /retrying plain JSON/);
-  assert.match(worker, /VOCABULARY_AI_FAILED/);
-  assert.match(worker, /pathname === VOCABULARY_LOOKUP_PATH[\s\S]*return lookupVocabularyWord\(request, env\);[\s\S]*ensureVocabularySchema\(env\)/);
+test("Vocabulary returns one contextual meaning or at most two common meanings", () => {
+  assert.match(worker, /const maxMeanings = context \? 1 : 2/);
+  assert.match(worker, /one or two most useful meanings, separated only by a semicolon/);
+  assert.match(worker, /exactly one meaning that fits the supplied context/);
+  assert.match(worker, /exampleVietnamese/);
+  assert.match(frontend, /split\(\/\\s\*;\\s\*\//);
+  assert.match(frontend, /\.slice\(0, 2\)/);
 });
 
-test("Vocabulary save and review routes use authenticated D1 storage", () => {
+test("Vocabulary uses saved data first and Workers AI only as fallback", () => {
+  assert.match(worker, /findSavedVocabularyResult/);
+  assert.match(worker, /provider:\s*"saved"/);
+  assert.match(worker, /using Workers AI fallback/);
+  assert.match(worker, /@cf\/meta\/llama-3\.1-8b-instruct-fast/);
   assert.match(router, /isVocabularyRoute\(pathname\)/);
+});
+
+test("Vocabulary save and review routes retain authenticated D1 storage", () => {
   assert.match(worker, /FROM vocabulary_words/);
   assert.match(worker, /INSERT INTO vocabulary_words/);
   assert.match(worker, /review_count = review_count \+ 1/);
   assert.match(migration, /UNIQUE \(user_email, english_key\)/);
 });
 
-test("Dashboard loader adds the vocabulary assets", () => {
-  assert.match(loader, /project-data\/vocabulary\/vocabulary\.css\?v=joy-vocabulary-v1/);
-  assert.match(loader, /project-data\/vocabulary\/vocabulary\.js\?v=joy-vocabulary-v1/);
+test("Dashboard loader cache-busts OpenAI Vocabulary assets", () => {
+  assert.match(loader, /vocabulary-openai\.css\?v=joy-vocabulary-openai-v1/);
+  assert.match(loader, /vocabulary\.js\?v=joy-vocabulary-v2/);
   assert.match(loader, /vocabulary-mobile-inline\.js\?v=joy-vocabulary-mobile-inline-v2/);
 });
 
 test("Vocabulary JavaScript files pass syntax checks", () => {
-  for (const path of [frontendPath, workerPath, routerPath, loaderPath]) {
+  for (const path of [frontendPath, workerPath, openAiPath, routerPath, loaderPath]) {
     const result = spawnSync(process.execPath, ["--check", path], { encoding: "utf8" });
     assert.equal(result.status, 0, result.stderr || result.stdout);
   }

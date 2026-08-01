@@ -40,15 +40,17 @@
     modal.innerHTML = `
       <section class="modal vocabulary-lookup-modal" role="dialog" aria-modal="true" aria-labelledby="vocabulary-lookup-title">
         <div class="modal-heading">
-          <div><p class="section-kicker">Vocabulary</p><h2 id="vocabulary-lookup-title">Add one word</h2></div>
+          <div><p class="section-kicker">Vocabulary</p><h2 id="vocabulary-lookup-title">Add a word or phrase</h2></div>
           <button type="button" aria-label="Close vocabulary lookup" data-vocab-close-lookup>×</button>
         </div>
         <form class="vocabulary-lookup-form" data-vocab-lookup-form>
-          <label for="vocabulary-lookup-input">English or Vietnamese word</label>
-          <div class="vocabulary-lookup-row">
-            <input id="vocabulary-lookup-input" name="query" type="text" maxlength="80" autocomplete="off" placeholder="e.g. abandon or từ bỏ" required>
-            <button class="primary-button" type="submit">Look up</button>
-          </div>
+          <label for="vocabulary-lookup-input">English or Vietnamese entry</label>
+          <input id="vocabulary-lookup-input" name="query" type="text" maxlength="80" autocomplete="off" placeholder="e.g. issue or vấn đề" required>
+          <label class="vocabulary-context-field" for="vocabulary-context-input">
+            <span>Context <small>optional · use this for the exact meaning</small></span>
+            <input id="vocabulary-context-input" name="context" type="text" maxlength="240" autocomplete="off" placeholder="e.g. The company issued a certificate.">
+          </label>
+          <button class="primary-button vocabulary-lookup-submit" type="submit">Look up</button>
         </form>
         <p class="vocabulary-lookup-status" data-vocab-lookup-status aria-live="polite"></p>
         <div data-vocab-lookup-result></div>
@@ -116,11 +118,14 @@
     if (!english || !vietnamese) return null;
     return {
       id: cleanText(word.id) || `${english}-${Date.now()}`,
+      inputLanguage: word.inputLanguage === "vi" ? "vi" : "en",
       english,
+      partOfSpeech: cleanText(word.partOfSpeech || word.part_of_speech),
       vietnamese,
       ipa: cleanText(word.ipa),
       pronunciationVi: cleanText(word.pronunciationVi || word.pronunciation_vi),
       example: cleanText(word.example),
+      exampleVietnamese: cleanText(word.exampleVietnamese || word.example_vietnamese),
       reviewCount: Number(word.reviewCount || word.review_count || 0),
       correctCount: Number(word.correctCount || word.correct_count || 0),
       createdAt: Number(word.createdAt || word.created_at || Date.now()),
@@ -136,7 +141,7 @@
       state.words = Array.isArray(payload.words) ? payload.words.map(normalizeWord).filter(Boolean) : [];
       saveLocalWords();
     } catch {
-      // Keep the last local cache so flashcards remain available during a temporary outage.
+      // Keep the last local cache so flashcards remain usable during a temporary outage.
     } finally {
       state.loading = false;
       ensureCurrentWord();
@@ -229,7 +234,6 @@
       checkAnswer(practiceForm);
       return;
     }
-
     const lookupForm = event.target.closest("[data-vocab-lookup-form]");
     if (lookupForm) {
       event.preventDefault();
@@ -240,7 +244,6 @@
   async function handleClick(event) {
     const control = event.target.closest("button, [data-vocab-action]");
     if (!control) return;
-
     if (control.matches("[data-vocab-open-lookup]")) openLookupModal();
     if (control.matches("[data-vocab-close-lookup]")) closeLookupModal();
     if (control.matches("[data-vocab-open-practice]")) openPracticeModal();
@@ -265,15 +268,12 @@
     const feedback = form.parentElement.querySelector("[data-vocab-feedback]");
     const expected = state.direction === "vi-en" ? word.english : word.vietnamese;
     const correct = answersMatch(input.value, expected, state.direction === "en-vi");
-
     feedback.className = `vocabulary-feedback is-${correct ? "correct" : "wrong"}`;
     feedback.textContent = correct ? "Correct ✓" : "Try again";
-
     if (!state.reviewRecorded) {
       state.reviewRecorded = true;
       recordReview(word.id, correct);
     }
-
     if (correct) {
       input.disabled = true;
       state.nextTimer = window.setTimeout(nextWord, 1000);
@@ -312,7 +312,7 @@
         body: JSON.stringify({ id, correct }),
       });
     } catch {
-      // Review statistics should never block the flashcard interaction.
+      // Review statistics should never block practice.
     }
   }
 
@@ -320,8 +320,7 @@
     mobilePracticeModal.hidden = true;
     state.lookupResult = null;
     renderLookupResult();
-    const status = lookupModal.querySelector("[data-vocab-lookup-status]");
-    status.textContent = "";
+    lookupModal.querySelector("[data-vocab-lookup-status]").textContent = "";
     lookupModal.hidden = false;
     document.body.classList.add("modal-open");
     window.setTimeout(() => lookupModal.querySelector('input[name="query"]')?.focus(), 0);
@@ -356,6 +355,7 @@
   async function lookupWord(form) {
     if (state.lookupBusy) return;
     const query = cleanText(form.elements.query.value);
+    const context = cleanText(form.elements.context.value);
     if (!query) return;
 
     state.lookupBusy = true;
@@ -363,17 +363,17 @@
     renderLookupResult();
     const status = lookupModal.querySelector("[data-vocab-lookup-status]");
     const button = form.querySelector('button[type="submit"]');
-    status.textContent = "Joy is finding one best match…";
+    status.textContent = "Joy is checking saved and cached results…";
     button.disabled = true;
 
     try {
       const payload = await requestJson(`${API_ROOT}/lookup`, {
         method: "POST",
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query, context }),
       });
       state.lookupResult = normalizeWord(payload.word);
       if (!state.lookupResult) throw new Error("INVALID_VOCABULARY_RESULT");
-      status.textContent = "One best match found.";
+      status.textContent = lookupStatus(payload);
       renderLookupResult();
     } catch (error) {
       status.textContent = vocabularyErrorMessage(error.code || error.message);
@@ -381,6 +381,13 @@
       state.lookupBusy = false;
       button.disabled = false;
     }
+  }
+
+  function lookupStatus(payload) {
+    if (payload.cached && payload.provider === "saved") return "Already saved — no AI call used.";
+    if (payload.cached) return "Reused a previous result — no new AI call used.";
+    if (payload.provider === "openai") return "GPT found a concise dictionary result.";
+    return "Fallback result found.";
   }
 
   function renderLookupResult() {
@@ -395,22 +402,37 @@
     container.innerHTML = `
       <article class="vocabulary-result-card">
         <div class="vocabulary-result-main">
-          <div><small>English</small><strong>${escapeHtml(word.english)}</strong></div>
-          <button type="button" data-vocab-speak aria-label="Hear the English word">🔊</button>
+          <div>
+            <small>English${word.partOfSpeech ? ` · ${escapeHtml(word.partOfSpeech)}` : ""}</small>
+            <strong>${escapeHtml(word.english)}</strong>
+          </div>
+          <button type="button" data-vocab-speak aria-label="Hear the English entry">🔊</button>
         </div>
         <dl>
-          <div><dt>Vietnamese</dt><dd>${escapeHtml(word.vietnamese)}</dd></div>
+          <div><dt>Vietnamese</dt><dd>${renderMeanings(word.vietnamese)}</dd></div>
           <div><dt>IPA</dt><dd>${escapeHtml(word.ipa || "—")}</dd></div>
           <div><dt>Vietnamese reading</dt><dd>${escapeHtml(word.pronunciationVi || "—")}</dd></div>
-          <div class="vocabulary-example"><dt>Example</dt><dd>${escapeHtml(word.example || "—")}</dd></div>
+          <div class="vocabulary-example">
+            <dt>Example</dt>
+            <dd><span>${escapeHtml(word.example || "—")}</span>${word.exampleVietnamese ? `<small>${escapeHtml(word.exampleVietnamese)}</small>` : ""}</dd>
+          </div>
         </dl>
-        <p>Save this word?</p>
+        <p>Save this entry?</p>
         <div class="modal-actions vocabulary-save-actions">
           <button class="secondary-button" type="button" data-vocab-no-save>No</button>
           <button class="primary-button" type="button" data-vocab-save ${state.saveBusy ? "disabled" : ""}>Yes</button>
         </div>
       </article>
     `;
+  }
+
+  function renderMeanings(value) {
+    return cleanText(value)
+      .split(/\s*;\s*/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((meaning, index) => `<span class="vocabulary-meaning">${index + 1}. ${escapeHtml(meaning)}</span>`)
+      .join("");
   }
 
   async function saveLookupResult() {
@@ -434,7 +456,7 @@
       state.currentId = saved.id;
       state.direction = Math.random() < 0.5 ? "vi-en" : "en-vi";
       renderPracticeRoots();
-      status.textContent = payload.created === false ? "This word was already saved." : "Saved.";
+      status.textContent = payload.created === false ? "This entry was already saved." : "Saved.";
       window.setTimeout(closeLookupModal, 450);
     } catch (error) {
       status.textContent = vocabularyErrorMessage(error.code || error.message);
@@ -454,9 +476,10 @@
   }
 
   function vocabularyErrorMessage(code) {
-    if (code === "INVALID_VOCABULARY_INPUT") return "Enter one English or Vietnamese word.";
+    if (code === "INVALID_VOCABULARY_INPUT") return "Enter one English or Vietnamese word or short phrase.";
+    if (code === "INVALID_VOCABULARY_CONTEXT") return "Keep the optional context to one short sentence.";
     if (code === "VOCABULARY_AI_UNAVAILABLE") return "Vocabulary lookup is temporarily unavailable.";
-    if (code === "VOCABULARY_RESULT_INVALID") return "Joy could not find one clear match. Try a more specific word.";
+    if (code === "VOCABULARY_RESULT_INVALID") return "Joy could not form a clear dictionary entry. Add a short context sentence.";
     if (code === "UNAUTHENTICATED") return "Your Joy session expired. Refresh and sign in again.";
     return "Joy could not complete this vocabulary request.";
   }
@@ -464,11 +487,7 @@
   async function requestJson(path, options = {}) {
     const headers = new Headers(options.headers || {});
     if (options.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-    const response = await window.fetch(path, {
-      ...options,
-      headers,
-      credentials: "same-origin",
-    });
+    const response = await window.fetch(path, { ...options, headers, credentials: "same-origin" });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
       const error = new Error(payload.error || `Vocabulary request failed with ${response.status}`);
@@ -481,24 +500,22 @@
 
   function answersMatch(actual, expected, allowVietnameseWithoutMarks = false) {
     const normalizedActual = normalizeAnswer(actual);
-    const normalizedExpected = normalizeAnswer(expected);
-    if (normalizedActual === normalizedExpected) return true;
+    const alternatives = cleanText(expected).split(/\s*;\s*/).filter(Boolean).map(normalizeAnswer);
+    if (alternatives.includes(normalizedActual)) return true;
     if (!allowVietnameseWithoutMarks) return false;
-    return removeVietnameseMarks(normalizedActual) === removeVietnameseMarks(normalizedExpected);
+    const unmarked = removeVietnameseMarks(normalizedActual);
+    return alternatives.some((candidate) => removeVietnameseMarks(candidate) === unmarked);
   }
 
   function normalizeAnswer(value) {
     return cleanText(value)
       .toLocaleLowerCase("vi")
-      .replace(/[.!?;,]+$/g, "")
+      .replace(/[.!?,]+$/g, "")
       .replace(/\s+/g, " ");
   }
 
   function removeVietnameseMarks(value) {
-    return String(value)
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/đ/g, "d");
+    return String(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d");
   }
 
   function cleanText(value) {
