@@ -35,6 +35,11 @@
   font-synthesis: none;
 }
 
+.dashboard-shell .panel-heading h2,
+.dashboard-shell .panel-title-button h2 {
+  font-size: 20px;
+}
+
 /* Finance money typography only. Layout remains owned by the canonical Finance bundle. */
 #finance.finance-dashboard-polished .finance-available > strong {
   font-family: "Nunito", "Instrument Sans", "Segoe UI", Arial, sans-serif;
