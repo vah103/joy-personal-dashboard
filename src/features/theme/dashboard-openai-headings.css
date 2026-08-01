@@ -65,6 +65,6 @@
   font-size: clamp(16px, 1.45vw, 20px);
 }
 
-#finance.finance-dashboard-polished.finance-full-money-values .finance-overview > .finance-overview-stat:nth-child(4) strong {
+#finance.finance-dashboard-polished.finance-full-money-values [data-finance-field="year-end"] {
   font-size: clamp(16px, 1.35vw, 19px);
 }
