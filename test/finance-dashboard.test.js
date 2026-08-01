@@ -6,15 +6,21 @@ const dashboardSource = await readFile(new URL("../src/features/finance/finance-
 const dashboardSummarySource = await readFile(new URL("../src/features/finance/finance-dashboard-summary.js", import.meta.url), "utf8");
 const financeCoreSource = await readFile(new URL("../src/features/finance/finance.js", import.meta.url), "utf8");
 const dashboardThemeSource = await readFile(new URL("../src/features/theme/dashboard-openai-headings.css", import.meta.url), "utf8");
+const dashboardStylesSource = await readFile(new URL("../src/pages/dashboard/styles.css", import.meta.url), "utf8");
 const dashboardHtml = await readFile(new URL("../src/pages/dashboard/index.html", import.meta.url), "utf8");
 const bundleSource = await readFile(new URL("../scripts/build-finance-bundle.mjs", import.meta.url), "utf8");
 
-test("Finance outer dashboard uses the money typography at 35px", () => {
+test("Finance heading uses the shared 17px panel title rule", () => {
   assert.match(dashboardSource, /panel-title-button\{/);
   assert.match(dashboardSource, /color:#2e454d/);
-  assert.match(dashboardSource, /font-family:"Instrument Sans",Arial,sans-serif!important/);
-  assert.match(dashboardSource, /font-size:35px/);
-  assert.match(dashboardSource, /letter-spacing:-\.04em!important/);
+  assert.doesNotMatch(
+    dashboardSource,
+    /panel-title-button\{[\s\S]{0,220}font-size:35px/,
+  );
+  assert.match(
+    dashboardStylesSource,
+    /\.panel-heading h2 \{[\s\S]*font-size: 17px;[\s\S]*font-weight: 800;/,
+  );
   assert.match(dashboardSource, /finance-period-button/);
   assert.match(dashboardSource, /font-size:15px/);
 });
