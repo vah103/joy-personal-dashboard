@@ -25,6 +25,11 @@ export const JOY_CORE_ACTIONS = Object.freeze({
   SESSION_CREATE: "session:create",
   SESSION_UPDATE: "session:update",
   MEMORY_CREATE: "memory:create",
+  REPOSITORY_READ: "repository:read",
+  REPOSITORY_BRANCH_CREATE: "repository:branch:create",
+  REPOSITORY_WRITE: "repository:write",
+  REPOSITORY_CHECK_RUN: "repository:checks:run",
+  REPOSITORY_PR_CREATE: "repository:pr:create",
   ACCESS_READ: "access:read",
   ACCESS_MANAGE: "access:manage",
   AUDIT_READ: "audit:read",
@@ -37,6 +42,7 @@ const READ_ACTIONS = [
   JOY_CORE_ACTIONS.LOG_READ,
   JOY_CORE_ACTIONS.EVIDENCE_READ,
   JOY_CORE_ACTIONS.WORKSPACE_READ,
+  JOY_CORE_ACTIONS.REPOSITORY_READ,
 ];
 
 const ROLE_PERMISSIONS = Object.freeze({
@@ -54,6 +60,10 @@ const ROLE_PERMISSIONS = Object.freeze({
     JOY_CORE_ACTIONS.SESSION_CREATE,
     JOY_CORE_ACTIONS.SESSION_UPDATE,
     JOY_CORE_ACTIONS.MEMORY_CREATE,
+    JOY_CORE_ACTIONS.REPOSITORY_BRANCH_CREATE,
+    JOY_CORE_ACTIONS.REPOSITORY_WRITE,
+    JOY_CORE_ACTIONS.REPOSITORY_CHECK_RUN,
+    JOY_CORE_ACTIONS.REPOSITORY_PR_CREATE,
   ]),
   owner: new Set(Object.values(JOY_CORE_ACTIONS)),
 });

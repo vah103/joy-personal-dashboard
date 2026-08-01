@@ -11,6 +11,10 @@ import {
   PROJECT_MEMORY_ACTION_PATHS,
   PROJECT_MEMORY_ACTION_SCHEMAS,
 } from "./project-memory-openapi.js";
+import {
+  JOY_DEV_ACTION_PATHS,
+  JOY_DEV_ACTION_SCHEMAS,
+} from "./joy-dev-openapi.js";
 
 const START_TASK_PATH = "/api/joy/v1/ielts/tasks/{taskId}/start";
 const {
@@ -30,12 +34,13 @@ export const JOY_ACTIONS_OPENAPI = Object.freeze({
   ...BASE_OPENAPI,
   info: {
     ...BASE_OPENAPI.info,
-    version: "1.3.0",
-    description: `${BASE_OPENAPI.info.description} It also exposes shared project workspaces and sessions, IELTS Journey teaching context, safe learning-record updates, and private Listening transcription.`,
+    version: "1.4.0",
+    description: `${BASE_OPENAPI.info.description} It also exposes shared project memory, safe branch-based repository development, IELTS teaching context, learning-record updates, and private Listening transcription.`,
   },
   paths: {
     ...BASE_OPENAPI.paths,
     ...PROJECT_MEMORY_ACTION_PATHS,
+    ...JOY_DEV_ACTION_PATHS,
     ...GPT_IELTS_ACTION_PATHS,
     ...IELTS_LISTENING_ACTION_PATHS,
   },
@@ -44,6 +49,7 @@ export const JOY_ACTIONS_OPENAPI = Object.freeze({
     schemas: {
       ...BASE_OPENAPI.components.schemas,
       ...PROJECT_MEMORY_ACTION_SCHEMAS,
+      ...JOY_DEV_ACTION_SCHEMAS,
       ...IELTS_ACTION_SCHEMAS,
       ...IELTS_LISTENING_ACTION_SCHEMAS,
     },

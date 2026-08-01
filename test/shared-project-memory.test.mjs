@@ -287,7 +287,7 @@ test("assistant and viewer roles receive safe memory permissions", () => {
 });
 
 test("GPT Actions publishes four project-memory operations with Builder-safe descriptions", () => {
-  assert.equal(JOY_ACTIONS_OPENAPI.info.version, "1.3.0");
+  assert.equal(JOY_ACTIONS_OPENAPI.info.version, "1.4.0");
   const operations = Object.values(JOY_ACTIONS_OPENAPI.paths)
     .flatMap((methods) => Object.values(methods))
     .filter((operation) => operation && typeof operation === "object" && operation.operationId);

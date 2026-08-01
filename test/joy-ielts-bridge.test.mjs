@@ -131,7 +131,7 @@ test("assessment writes are idempotent by clientRequestId", async () => {
 test("Joy Actions publishes all IELTS teaching operations without destructive endpoints", () => {
   const paths = JOY_ACTIONS_OPENAPI.paths;
   const startOperation = paths["/api/joy/v1/ielts/tasks/{taskId}/start"]?.post;
-  assert.equal(JOY_ACTIONS_OPENAPI.info.version, "1.3.0");
+  assert.equal(JOY_ACTIONS_OPENAPI.info.version, "1.4.0");
   assert.ok(paths["/api/joy/v1/ielts/today"]?.get);
   assert.ok(paths["/api/joy/v1/ielts/tasks/{taskId}"]?.get);
   assert.ok(startOperation);
