@@ -85,6 +85,7 @@ import {
 } from "./vocabulary.js";
 
 const PROTECTED_ASSETS = new Set(["/", "/index.html", "/sale-manager.html"]);
+const DASHBOARD_HEADING_STYLESHEET = "dashboard-openai-headings.css?v=joy-openai-headings-v2";
 
 function scheduleIndependentJob(ctx, label, job) {
   ctx.waitUntil(
@@ -96,11 +97,46 @@ function scheduleIndependentJob(ctx, label, job) {
   );
 }
 
+function noStoreResponse(response) {
+  const headers = new Headers(response.headers);
+  headers.set("Cache-Control", "no-store, max-age=0");
+  headers.set("Pragma", "no-cache");
+  headers.delete("Content-Length");
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+async function withDashboardHeadingAssetVersion(response) {
+  const contentType = response.headers.get("Content-Type") || "";
+  if (!response.ok || !contentType.includes("text/html")) return response;
+
+  const html = await response.text();
+  const versionedHtml = html.replace(
+    /dashboard-openai-headings\.css\?v=[^"'\s>]+/g,
+    DASHBOARD_HEADING_STYLESHEET,
+  );
+  const headers = new Headers(response.headers);
+  headers.set("Cache-Control", "no-store, max-age=0");
+  headers.set("Pragma", "no-cache");
+  headers.delete("Content-Length");
+  return new Response(versionedHtml, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 export default {
   async fetch(request, env, ctx) {
     const pathname = new URL(request.url).pathname;
 
     try {
+      if (pathname === "/dashboard-openai-headings.css" && request.method === "GET") {
+        return noStoreResponse(await env.ASSETS.fetch(request));
+      }
       if (isJoyMcpRoute(pathname)) {
         return handleJoyMcpRequest(request, env);
       }
@@ -153,7 +189,7 @@ export default {
         return handleGoogleAuthRequest(request, env);
       }
       if (PROTECTED_ASSETS.has(pathname) && request.method === "GET") {
-        return protectJoyAsset(request, env);
+        return withDashboardHeadingAssetVersion(await protectJoyAsset(request, env));
       }
       if (isProjectHubRoute(pathname)) {
         return handleProjectHubRequest(request, env);
