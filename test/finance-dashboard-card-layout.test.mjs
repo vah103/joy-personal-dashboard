@@ -48,7 +48,7 @@ test("outer Finance card owns layout in the canonical source and uses Nunito for
   );
   assert.match(
     theme,
-    /\[data-finance-field="year-end"\] \{[\s\S]*font-size: clamp\(18px, 1\.55vw, 24px\) !important;[\s\S]*font-weight: 700 !important;/,
+    /\[data-finance-field="year-end"\] \{[\s\S]*font-size: clamp\(20px, 1\.7vw, 26px\) !important;[\s\S]*font-weight: 700 !important;/,
   );
   assert.match(theme, /font-synthesis: none/);
 });

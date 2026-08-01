@@ -71,7 +71,7 @@
  * so the selected value is applied after every dashboard render.
  */
 #finance.finance-dashboard-polished.finance-full-money-values [data-finance-field="year-end"] {
-  font-size: clamp(18px, 1.55vw, 24px) !important;
+  font-size: clamp(20px, 1.7vw, 26px) !important;
   font-weight: 700 !important;
   letter-spacing: -.014em !important;
   line-height: 1.08 !important;
