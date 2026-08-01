@@ -8,6 +8,10 @@ import {
 } from "./ielts-core.js";
 import { IELTS_LISTENING_SERVICE } from "./ielts-listening.js";
 import { JoyCoreError } from "./joy-core/service.js";
+import {
+  decorateIeltsTeachingContext,
+  decorateIeltsTeachingTask,
+} from "./ielts-source-library.js";
 
 const LISTENING_STATE_KEY = "__joyListeningSubmissions";
 const MAX_STORED_LISTENING_SUBMISSIONS = 8;
@@ -65,6 +69,27 @@ function listeningDependencies(dependencies = {}) {
       });
     },
   };
+}
+
+async function getTeachingContext(env, context, input = {}, dependencies = {}) {
+  const result = await IELTS_ASSISTANT_SERVICE.getTeachingContext(
+    env,
+    context,
+    input,
+    dependencies,
+  );
+  return decorateIeltsTeachingContext(result);
+}
+
+async function getTeachingTask(env, context, taskId, input = {}, dependencies = {}) {
+  const result = await IELTS_ASSISTANT_SERVICE.getTeachingTask(
+    env,
+    context,
+    taskId,
+    input,
+    dependencies,
+  );
+  return decorateIeltsTeachingTask(result);
 }
 
 async function startTask(env, context, taskId, input = {}, dependencies = {}) {
@@ -139,6 +164,8 @@ async function saveListeningReview(
 
 export const STABLE_IELTS_ASSISTANT_SERVICE = Object.freeze({
   ...IELTS_ASSISTANT_SERVICE,
+  getTeachingContext,
+  getTeachingTask,
   startTask,
   prepareListeningSubmission,
   getListeningSubmission,
