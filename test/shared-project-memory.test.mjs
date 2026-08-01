@@ -46,6 +46,7 @@ function memoryHarness() {
   };
 
   const values = (map, predicate = () => true) => [...map.values()].filter(predicate);
+  const cloneList = (items) => items.map((item) => structuredClone(item));
   const repository = {
     getProjectSnapshot: async (_db, _email, projectId) => state.snapshots.get(projectId) || null,
     saveProjectSnapshot: async (_db, _email, value) => {
@@ -59,10 +60,10 @@ function memoryHarness() {
     getOpenWorkSession: async (_db, _email, projectId) => structuredClone(
       values(state.sessions, (item) => item.projectId === projectId && item.status === "open")[0] || null,
     ),
-    listWorkSessions: async (_db, _email, projectId, limit) => values(
+    listWorkSessions: async (_db, _email, projectId, limit) => cloneList(values(
       state.sessions,
       (item) => item.projectId === projectId,
-    ).sort((a, b) => b.startedAt - a.startedAt).slice(0, limit).map(structuredClone),
+    ).sort((a, b) => b.startedAt - a.startedAt).slice(0, limit)),
     saveWorkSession: async (_db, _email, value) => {
       state.sessions.set(value.id, structuredClone(value));
       return structuredClone(value);
@@ -71,48 +72,48 @@ function memoryHarness() {
     getWorkSessionEventByRequestId: async (_db, _email, requestId) => structuredClone(
       values(state.events, (item) => item.clientRequestId === requestId)[0] || null,
     ),
-    listWorkSessionEvents: async (_db, _email, sessionId, limit) => values(
+    listWorkSessionEvents: async (_db, _email, sessionId, limit) => cloneList(values(
       state.events,
       (item) => item.sessionId === sessionId,
-    ).sort((a, b) => a.occurredAt - b.occurredAt).slice(0, limit).map(structuredClone),
-    listRecentProjectEvents: async (_db, _email, projectId, limit) => values(
+    ).sort((a, b) => a.occurredAt - b.occurredAt).slice(0, limit)),
+    listRecentProjectEvents: async (_db, _email, projectId, limit) => cloneList(values(
       state.events,
       (item) => item.projectId === projectId,
-    ).sort((a, b) => b.occurredAt - a.occurredAt).slice(0, limit).map(structuredClone),
+    ).sort((a, b) => b.occurredAt - a.occurredAt).slice(0, limit)),
     saveWorkSessionEvent: async (_db, _email, value) => {
       state.events.set(value.id, structuredClone(value));
       return structuredClone(value);
     },
     getProjectDecision: async (_db, _email, id) => structuredClone(state.decisions.get(id) || null),
-    listProjectDecisions: async (_db, _email, projectId, limit) => values(
+    listProjectDecisions: async (_db, _email, projectId, limit) => cloneList(values(
       state.decisions,
       (item) => item.projectId === projectId,
-    ).slice(0, limit).map(structuredClone),
+    ).slice(0, limit)),
     saveProjectDecision: async (_db, _email, value) => {
       state.decisions.set(value.id, structuredClone(value));
       return structuredClone(value);
     },
     getProjectBlocker: async (_db, _email, id) => structuredClone(state.blockers.get(id) || null),
-    listProjectBlockers: async (_db, _email, projectId, status, limit) => values(
+    listProjectBlockers: async (_db, _email, projectId, status, limit) => cloneList(values(
       state.blockers,
       (item) => item.projectId === projectId && (!status || item.status === status),
-    ).slice(0, limit).map(structuredClone),
+    ).slice(0, limit)),
     saveProjectBlocker: async (_db, _email, value) => {
       state.blockers.set(value.id, structuredClone(value));
       return structuredClone(value);
     },
-    listProjectMemoryEvidence: async (_db, _email, projectId, limit) => values(
+    listProjectMemoryEvidence: async (_db, _email, projectId, limit) => cloneList(values(
       state.evidence,
       (item) => item.projectId === projectId,
-    ).slice(0, limit).map(structuredClone),
+    ).slice(0, limit)),
     saveProjectMemoryEvidence: async (_db, _email, value) => {
       state.evidence.set(value.id, structuredClone(value));
       return structuredClone(value);
     },
-    listProjectRepoRefs: async (_db, _email, projectId, limit) => values(
+    listProjectRepoRefs: async (_db, _email, projectId, limit) => cloneList(values(
       state.repoRefs,
       (item) => item.projectId === projectId,
-    ).slice(0, limit).map(structuredClone),
+    ).slice(0, limit)),
     saveProjectRepoRef: async (_db, _email, value) => {
       state.repoRefs.set(value.id, structuredClone(value));
       return structuredClone(value);
@@ -122,7 +123,7 @@ function memoryHarness() {
   const options = {
     now: NOW,
     repository,
-    audit: false,
+    audit: async () => {},
     getProject: async () => ({
       project: structuredClone(state.project),
       tasks: [],
