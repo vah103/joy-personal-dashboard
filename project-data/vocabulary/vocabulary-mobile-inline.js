@@ -2,8 +2,7 @@
   const MOBILE_BREAKPOINT = 760;
   const mobileMedia = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`);
   const coarsePointer = window.matchMedia("(pointer: coarse)");
-  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-  let installed = false;
+  let renderScheduled = false;
 
   function isStandalone() {
     return window.matchMedia("(display-mode: standalone)").matches
@@ -18,72 +17,52 @@
       || ((coarsePointer.matches || isStandalone()) && shortestScreenSide <= MOBILE_BREAKPOINT);
   }
 
-  function installMobilePractice(attempt = 0) {
-    if (installed) return;
-
-    const mobilePractice = document.querySelector("[data-vocab-practice-modal]");
+  function installMobileLauncher(attempt = 0) {
     const topWidgets = document.querySelector(".top-widgets");
-    const mobileCard = mobilePractice?.querySelector(".vocabulary-mobile-modal");
-    if (!mobilePractice || !topWidgets || !mobileCard) {
+    const vocabularyWidget = document.querySelector(".vocabulary-widget");
+    const compactCard = vocabularyWidget?.querySelector(".vocabulary-compact-card");
+    const practiceModal = document.querySelector("[data-vocab-practice-modal]");
+
+    if (!topWidgets || !vocabularyWidget || !compactCard || !practiceModal) {
       if (attempt < 120) {
-        window.requestAnimationFrame(() => installMobilePractice(attempt + 1));
+        window.requestAnimationFrame(() => installMobileLauncher(attempt + 1));
       }
       return;
     }
 
-    installed = true;
-    const lookupModal = document.querySelector("[data-vocab-lookup-modal]");
+    let launcher = document.querySelector('[data-vocab-mobile-launcher="true"]');
+    if (!launcher) {
+      launcher = document.createElement("div");
+      launcher.className = "vocabulary-mobile-inline";
+      launcher.dataset.vocabMobileLauncher = "true";
+      topWidgets.insertAdjacentElement("afterend", launcher);
+    }
 
-    mobilePractice.className = "vocabulary-mobile-inline";
-    mobilePractice.dataset.vocabPracticeInline = "true";
-    delete mobilePractice.dataset.vocabPracticeModal;
-    mobileCard.removeAttribute("role");
-    mobileCard.removeAttribute("aria-modal");
-    mobileCard.removeAttribute("aria-labelledby");
-    mobileCard.querySelector(":scope > .modal-heading")?.remove();
-    topWidgets.insertAdjacentElement("afterend", mobilePractice);
+    ensureStyles();
 
-    if (!document.querySelector('style[data-joy-vocabulary-mobile-inline="true"]')) {
-      const style = document.createElement("style");
-      style.dataset.joyVocabularyMobileInline = "true";
-      style.textContent = `
-        .vocabulary-mobile-inline { display: none; }
-        .vocabulary-mobile-inline.is-mobile-layout {
-          display: block;
-          margin: 14px 0 18px;
-          scroll-margin-top: 16px;
-        }
-        .vocabulary-mobile-inline.is-mobile-layout[hidden] { display: none !important; }
-        .vocabulary-mobile-inline.is-mobile-layout > .vocabulary-mobile-modal {
-          width: 100%;
-          max-width: none;
-          padding: 0;
-          border: 0;
-          border-radius: 0;
-          background: transparent;
-          box-shadow: none;
-        }
-        .vocabulary-mobile-inline.is-mobile-layout [data-vocab-practice-root] {
-          overflow: hidden;
-          border: 1px solid rgba(66, 72, 74, 0.14);
-          border-radius: 18px;
-          background: rgba(247, 246, 242, 0.66);
-          box-shadow: inset 0 1px rgba(255, 255, 255, 0.52);
-        }
-        @media (max-width: 760px) {
-          .vocabulary-mobile-inline { display: block; }
-          .vocabulary-mobile-inline[hidden] { display: none !important; }
-        }
-      `;
-      document.head.append(style);
+    function syncLauncher() {
+      renderScheduled = false;
+      const source = vocabularyWidget.querySelector(".vocabulary-compact-card");
+      if (!source) return;
+      const clone = source.cloneNode(true);
+      clone.classList.add("vocabulary-compact-card-mobile");
+      launcher.replaceChildren(clone);
+    }
+
+    function scheduleLauncherSync() {
+      if (renderScheduled) return;
+      renderScheduled = true;
+      queueMicrotask(syncLauncher);
     }
 
     function syncVisibility() {
       const visible = isMobileLayout();
-      mobilePractice.classList.toggle("is-mobile-layout", visible);
-      mobilePractice.hidden = !visible;
-      if (!visible) document.body.classList.remove("modal-open");
+      launcher.classList.toggle("is-mobile-layout", visible);
+      launcher.hidden = !visible;
     }
+
+    const observer = new MutationObserver(scheduleLauncherSync);
+    observer.observe(vocabularyWidget, { childList: true, subtree: true });
 
     const registerMediaChange = (mediaQuery) => {
       if (typeof mediaQuery.addEventListener === "function") {
@@ -98,51 +77,41 @@
     window.addEventListener("resize", syncVisibility, { passive: true });
     window.addEventListener("orientationchange", syncVisibility);
 
-    mobilePractice.addEventListener("mousedown", (event) => {
-      if (event.target === mobilePractice) event.stopImmediatePropagation();
-    }, { capture: true });
-
-    document.addEventListener("click", (event) => {
-      const trigger = event.target.closest("[data-vocab-open-practice]");
-      if (!trigger || !isMobileLayout()) return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      mobilePractice.classList.add("is-mobile-layout");
-      mobilePractice.hidden = false;
-      mobilePractice.scrollIntoView({
-        behavior: reduceMotion.matches ? "auto" : "smooth",
-        block: "start",
-      });
-      window.setTimeout(() => {
-        mobilePractice.querySelector('input[name="answer"]')?.focus({ preventScroll: true });
-      }, reduceMotion.matches ? 0 : 350);
-    }, { capture: true });
-
-    document.addEventListener("keydown", (event) => {
-      if (event.key !== "Escape" || !isMobileLayout() || mobilePractice.hidden) return;
-      const hasOpenModal = [...document.querySelectorAll(".modal-backdrop")]
-        .some((modal) => !modal.hidden);
-      if (!hasOpenModal) {
-        event.stopImmediatePropagation();
-        return;
-      }
-
-      mobilePractice.hidden = true;
-      window.setTimeout(syncVisibility, 0);
-    }, { capture: true });
-
-    if (lookupModal) {
-      new MutationObserver(() => {
-        if (lookupModal.hidden) syncVisibility();
-      }).observe(lookupModal, { attributes: true, attributeFilter: ["hidden"] });
-    }
-
+    syncLauncher();
     syncVisibility();
   }
 
+  function ensureStyles() {
+    if (document.querySelector('style[data-joy-vocabulary-mobile-inline="true"]')) return;
+    const style = document.createElement("style");
+    style.dataset.joyVocabularyMobileInline = "true";
+    style.textContent = `
+      .vocabulary-mobile-inline {
+        display: none;
+      }
+      .vocabulary-mobile-inline.is-mobile-layout {
+        display: block;
+        margin: 14px 0 18px;
+        scroll-margin-top: 16px;
+      }
+      .vocabulary-mobile-inline.is-mobile-layout[hidden] {
+        display: none !important;
+      }
+      .vocabulary-mobile-inline .vocabulary-compact-card {
+        width: 100%;
+        min-height: 118px;
+        border: 1px solid rgba(66, 72, 74, 0.14);
+        border-radius: 18px;
+        background: rgba(247, 246, 242, 0.66);
+        box-shadow: inset 0 1px rgba(255, 255, 255, 0.52);
+      }
+    `;
+    document.head.append(style);
+  }
+
   if (document.readyState === "loading") {
-    window.addEventListener("DOMContentLoaded", () => installMobilePractice(), { once: true });
+    window.addEventListener("DOMContentLoaded", () => installMobileLauncher(), { once: true });
   } else {
-    installMobilePractice();
+    installMobileLauncher();
   }
 })();
