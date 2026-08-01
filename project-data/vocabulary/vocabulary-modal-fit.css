@@ -1,0 +1,126 @@
+@media (min-width: 901px) {
+  .vocabulary-lookup-modal {
+    max-height: calc(100dvh - 24px);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    overflow: hidden;
+  }
+
+  .vocabulary-lookup-modal > [data-vocab-lookup-result] {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .vocabulary-result-card {
+    max-height: 100%;
+    overflow: auto;
+    scrollbar-gutter: stable;
+  }
+}
+
+@media (min-width: 901px) and (max-height: 720px) {
+  .vocabulary-lookup-modal {
+    max-height: calc(100dvh - 16px);
+    column-gap: 24px;
+    row-gap: 7px;
+    padding: 18px 24px 16px;
+    border-radius: 24px;
+  }
+
+  .vocabulary-lookup-modal > .modal-heading {
+    margin-bottom: 0;
+  }
+
+  .vocabulary-lookup-modal > .modal-heading h2 {
+    font-size: 30px;
+  }
+
+  .vocabulary-lookup-modal > .modal-heading .section-kicker {
+    font-size: 10px;
+  }
+
+  .vocabulary-lookup-modal > .modal-heading > button {
+    width: 36px;
+    height: 36px;
+  }
+
+  .vocabulary-lookup-form {
+    gap: 8px;
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .vocabulary-lookup-form > #vocabulary-lookup-input,
+  .vocabulary-context-field input {
+    height: 46px;
+  }
+
+  .vocabulary-context-field {
+    gap: 6px;
+    margin-top: 5px;
+  }
+
+  .vocabulary-lookup-submit {
+    min-height: 46px;
+    margin-top: 5px;
+  }
+
+  .vocabulary-lookup-status {
+    min-height: 18px;
+    font-size: 12px;
+  }
+
+  .vocabulary-result-card {
+    padding: 16px 18px 12px;
+    border-radius: 19px;
+  }
+
+  .vocabulary-result-main {
+    padding-bottom: 11px;
+  }
+
+  .vocabulary-result-main button {
+    width: 40px;
+    height: 40px;
+  }
+
+  .vocabulary-result-card dl > div {
+    padding: 9px 0;
+    gap: 16px;
+  }
+
+  .vocabulary-result-card dd {
+    line-height: 1.42;
+  }
+
+  .vocabulary-result-card .vocabulary-example {
+    gap: 4px;
+  }
+
+  .vocabulary-result-card .vocabulary-example dd small {
+    margin-top: 3px;
+    line-height: 1.42;
+  }
+
+  .vocabulary-result-card > p {
+    margin-top: 10px;
+  }
+
+  .vocabulary-save-actions {
+    position: sticky;
+    bottom: -12px;
+    z-index: 1;
+    margin-top: 8px;
+    padding: 8px 0 2px;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(250, 249, 247, 0.98) 30%);
+  }
+
+  .vocabulary-save-actions button {
+    min-height: 40px;
+  }
+}
+
+@media (max-width: 900px) {
+  .vocabulary-lookup-modal {
+    max-height: calc(100dvh - 16px);
+  }
+}
