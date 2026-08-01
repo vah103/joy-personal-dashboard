@@ -2,6 +2,7 @@ import { readJson } from "./shared/http.js";
 import { JoyCoreError } from "./joy-core/service.js";
 import { PROJECT_MEMORY_SERVICE } from "./project-memory/service.js";
 import { getWorkSession } from "./project-memory/repository.js";
+import { getSpecializedGptContract } from "./specialized-gpt-contracts.js";
 
 const MAX_BODY_BYTES = 128_000;
 
@@ -52,6 +53,12 @@ async function assertSessionAccess(env, context, sessionId) {
   if (session) assertProjectAccess(context, session.projectId);
 }
 
+function withAssistantProfile(value, context, projectId) {
+  const assistantProfile = getSpecializedGptContract(context, projectId);
+  if (!assistantProfile) return value;
+  return { ...value, assistantProfile };
+}
+
 export function isProjectMemoryRoute(pathname, prefix) {
   return pathname.startsWith(`${prefix}/workspaces/`)
     || pathname.startsWith(`${prefix}/work-sessions/`);
@@ -73,13 +80,14 @@ export async function handleProjectMemoryRequest(
     if (request.method !== "GET") return methodNotAllowed(["GET"]);
     const projectId = decodePathPart(match[1]);
     assertProjectAccess(context, projectId);
+    const workspace = await service.bootstrapWorkspace(
+      env,
+      context,
+      projectId,
+      { limit: url.searchParams.get("limit") || undefined },
+    );
     return {
-      value: await service.bootstrapWorkspace(
-        env,
-        context,
-        projectId,
-        { limit: url.searchParams.get("limit") || undefined },
-      ),
+      value: withAssistantProfile(workspace, context, projectId),
       status: 200,
     };
   }
