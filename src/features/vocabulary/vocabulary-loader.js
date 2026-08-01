@@ -6,7 +6,7 @@
   ];
   const SCRIPT_URL = "/project-data/vocabulary/vocabulary.js?v=joy-vocabulary-v2";
   const COMPACT_SCRIPT_URL = "/project-data/vocabulary/vocabulary-compact.js?v=joy-vocabulary-compact-v2";
-  const MOBILE_SCRIPT_URL = "/project-data/vocabulary/vocabulary-mobile-inline.js?v=joy-vocabulary-mobile-inline-v2";
+  const MOBILE_SCRIPT_URL = "/project-data/vocabulary/vocabulary-mobile-inline.js?v=joy-vocabulary-mobile-inline-v3";
 
   const loadSpeaking = () => window.JoySpeakingLoader?.load();
 
@@ -23,7 +23,7 @@
 
   function loadMobileInline() {
     const existing = document.querySelector('script[data-joy-vocabulary-mobile-inline="true"]');
-    if (existing && existing.src.includes("joy-vocabulary-mobile-inline-v2")) {
+    if (existing && existing.src.includes("joy-vocabulary-mobile-inline-v3")) {
       if (existing.dataset.loaded === "true") loadSpeaking();
       else existing.addEventListener("load", loadSpeaking, { once: true });
       return;

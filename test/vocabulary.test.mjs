@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const frontendPath = resolve(root, "project-data/vocabulary/vocabulary.js");
 const compactFrontendPath = resolve(root, "project-data/vocabulary/vocabulary-compact.js");
+const mobileInlinePath = resolve(root, "project-data/vocabulary/vocabulary-mobile-inline.js");
 const compactStylesPath = resolve(root, "project-data/vocabulary/vocabulary-compact.css");
 const extraStylesPath = resolve(root, "project-data/vocabulary/vocabulary-openai.css");
 const workerPath = resolve(root, "worker/vocabulary.js");
@@ -20,6 +21,7 @@ const wranglerPath = resolve(root, "wrangler.jsonc");
 const [
   frontend,
   compactFrontend,
+  mobileInline,
   compactStyles,
   extraStyles,
   worker,
@@ -31,6 +33,7 @@ const [
 ] = await Promise.all([
   readFile(frontendPath, "utf8"),
   readFile(compactFrontendPath, "utf8"),
+  readFile(mobileInlinePath, "utf8"),
   readFile(compactStylesPath, "utf8"),
   readFile(extraStylesPath, "utf8"),
   readFile(workerPath, "utf8"),
@@ -65,6 +68,17 @@ test("Vocabulary outside card clearly opens full practice in the popup", () => {
   assert.match(compactStyles, /\.vocabulary-compact-meta/);
   assert.match(compactStyles, /cursor:\s*pointer/);
   assert.match(compactStyles, /-webkit-line-clamp:\s*2/);
+});
+
+test("Narrow layouts clone the compact launcher and preserve the real practice modal", () => {
+  assert.match(mobileInline, /data-vocab-mobile-launcher/);
+  assert.match(mobileInline, /cloneNode\(true\)/);
+  assert.match(mobileInline, /vocabulary-compact-card-mobile/);
+  assert.match(mobileInline, /practiceModal = document\.querySelector\("\[data-vocab-practice-modal\]"\)/);
+  assert.doesNotMatch(mobileInline, /removeAttribute\("role"\)/);
+  assert.doesNotMatch(mobileInline, /delete\s+mobilePractice\.dataset\.vocabPracticeModal/);
+  assert.doesNotMatch(mobileInline, /insertAdjacentElement\("afterend",\s*mobilePractice\)/);
+  assert.doesNotMatch(mobileInline, /data-vocab-practice-inline/);
 });
 
 test("Vocabulary uses one cached OpenAI request with a strict token cap", () => {
@@ -111,12 +125,20 @@ test("Dashboard loader cache-busts all Vocabulary assets", () => {
   assert.match(loader, /vocabulary-compact\.css\?v=joy-vocabulary-compact-v2/);
   assert.match(loader, /vocabulary\.js\?v=joy-vocabulary-v2/);
   assert.match(loader, /vocabulary-compact\.js\?v=joy-vocabulary-compact-v2/);
-  assert.match(loader, /vocabulary-mobile-inline\.js\?v=joy-vocabulary-mobile-inline-v2/);
+  assert.match(loader, /vocabulary-mobile-inline\.js\?v=joy-vocabulary-mobile-inline-v3/);
   assert.match(loader, /loadCompactCard/);
 });
 
 test("Vocabulary JavaScript files pass syntax checks", () => {
-  for (const path of [frontendPath, compactFrontendPath, workerPath, openAiPath, routerPath, loaderPath]) {
+  for (const path of [
+    frontendPath,
+    compactFrontendPath,
+    mobileInlinePath,
+    workerPath,
+    openAiPath,
+    routerPath,
+    loaderPath,
+  ]) {
     const result = spawnSync(process.execPath, ["--check", path], { encoding: "utf8" });
     assert.equal(result.status, 0, result.stderr || result.stdout);
   }
