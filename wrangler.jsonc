@@ -5,7 +5,9 @@
   "compatibility_date": "2026-07-22",
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
-    "DAILY_BRIEF_AI_ENABLED": "true"
+    "DAILY_BRIEF_AI_ENABLED": "true",
+    "OPENAI_VOCABULARY_MODEL": "gpt-5-mini",
+    "OPENAI_SPEAKING_MODEL": "gpt-4o-mini"
   },
   "assets": {
     "directory": "./dist",
