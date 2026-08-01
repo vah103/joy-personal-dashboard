@@ -36,10 +36,14 @@ test("only the outer Finance card switches to full VND values", () => {
   assert.doesNotMatch(financeCoreSource, /setMoneyValue\s*=\s*fullValueSetter/);
 });
 
-test("Finance year-end cash value is visibly smaller than income", () => {
+test("Finance year-end cash value overrides the later injected card rule", () => {
+  assert.match(
+    dashboardSource,
+    /finance-overview>\.finance-overview-stat:nth-child\(4\) strong\{[\s\S]*font-size:clamp\(20px,1\.8vw,23px\);/,
+  );
   assert.match(
     dashboardThemeSource,
-    /\[data-finance-field="year-end"\] \{[\s\S]*font-size: clamp\(13px, \.88vw, 15px\);[\s\S]*font-weight: 500;[\s\S]*letter-spacing: -\.008em;[\s\S]*line-height: 1\.1;/,
+    /\[data-finance-field="year-end"\] \{[\s\S]*font-size: clamp\(13px, \.88vw, 15px\) !important;[\s\S]*font-weight: 500 !important;[\s\S]*letter-spacing: -\.008em !important;[\s\S]*line-height: 1\.1 !important;/,
   );
 });
 

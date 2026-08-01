@@ -65,11 +65,16 @@
   font-size: clamp(16px, 1.45vw, 20px);
 }
 
+/*
+ * The canonical Finance bundle injects a later, more-specific nth-child rule
+ * for the Year-end figure. These declarations intentionally use !important
+ * so the compact value is applied after every dashboard render.
+ */
 #finance.finance-dashboard-polished.finance-full-money-values [data-finance-field="year-end"] {
-  font-size: clamp(13px, .88vw, 15px);
-  font-weight: 500;
-  letter-spacing: -.008em;
-  line-height: 1.1;
+  font-size: clamp(13px, .88vw, 15px) !important;
+  font-weight: 500 !important;
+  letter-spacing: -.008em !important;
+  line-height: 1.1 !important;
 }
 
 #finance.finance-dashboard-polished .finance-year-end-content {
