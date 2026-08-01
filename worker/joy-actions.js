@@ -9,6 +9,10 @@ import {
   isProjectMemoryRoute,
 } from "./project-memory-http.js";
 import {
+  handleJoyDevRequest,
+  isJoyDevRoute,
+} from "./joy-dev-http.js";
+import {
   JoyCoreError,
   appendJoyProgressLog,
   attachJoyEvidence,
@@ -65,11 +69,11 @@ function privacyResponse() {
   <h1>Joy Actions Privacy</h1>
   <p>Joy Actions is a private integration for the owner of the Joy Personal Dashboard.</p>
   <h2>Data used</h2>
-  <p>When the owner invokes an action, Joy may return or update project, task, milestone, progress-log, evidence-reference, work-session, project-memory, IELTS task-state, assessment, recurring-error, and course-session data stored in the owner's Cloudflare-backed Joy account.</p>
+  <p>When the owner invokes an action, Joy may return or update project, task, milestone, progress-log, evidence-reference, work-session, project-memory, IELTS learning, repository source, branch, commit, pull-request, and workflow-check data.</p>
   <h2>Sharing</h2>
-  <p>Action request and response data is sent to ChatGPT to complete the owner's request. Joy does not sell this data or expose it through unauthenticated project, memory, or IELTS endpoints.</p>
+  <p>Action request and response data is sent to ChatGPT to complete the owner's request. Repository operations are sent to GitHub through the owner's private server-side credential. Joy does not sell this data or expose it through unauthenticated project, memory, IELTS, or development endpoints.</p>
   <h2>Security and retention</h2>
-  <p>Requests require a private bearer key. Project and memory writes are recorded in Joy's audit table. Assistant credentials cannot delete projects or IELTS records, and IELTS completion must be based on owner-confirmed work.</p>
+  <p>Requests require a private bearer key. Project and memory writes are audited. Development Actions can read allowed repositories and write only protected work branches; they cannot write main, merge, deploy, modify secrets, migrations, workflows, dependencies, or Dev Bridge security files.</p>
   <h2>Contact</h2>
   <p>This integration is maintained privately through the Joy Personal Dashboard repository.</p>
 </body>
@@ -199,6 +203,7 @@ export async function handleJoyActionsRequest(request, env, dependencies = {}) {
       return apiJson({
         ok: true,
         configured: Boolean(env?.JOY_GPT_ACTION_KEY && env?.JOY_OWNER_EMAIL),
+        githubConfigured: Boolean(env?.JOY_GITHUB_TOKEN),
         version: 1,
       });
     }
@@ -225,6 +230,14 @@ export async function handleJoyActionsRequest(request, env, dependencies = {}) {
       const result = await handleProjectMemoryRequest(request, env, context, {
         prefix: API_PREFIX,
         service: dependencies.projectMemoryService,
+      });
+      return apiJson(result.value, result.status);
+    }
+
+    if (isJoyDevRoute(pathname, API_PREFIX)) {
+      const result = await handleJoyDevRequest(request, env, context, {
+        prefix: API_PREFIX,
+        service: dependencies.joyDevService,
       });
       return apiJson(result.value, result.status);
     }
