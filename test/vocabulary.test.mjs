@@ -53,6 +53,18 @@ test("Vocabulary keeps flashcards and adds optional context", () => {
   assert.match(extraStyles, /\.vocabulary-context-field/);
 });
 
+test("Vocabulary lookup uses a wide readable two-column workspace", () => {
+  assert.match(extraStyles, /width:\s*min\(1120px, calc\(100vw - 48px\)\)/);
+  assert.match(extraStyles, /grid-template-columns:\s*minmax\(320px, 0\.8fr\) minmax\(0, 1\.2fr\)/);
+  assert.match(extraStyles, /grid-template-areas:[\s\S]*"form status"[\s\S]*"form result"/);
+  assert.match(extraStyles, /font-family:\s*"Nunito"/);
+  assert.match(extraStyles, /font-size:\s*clamp\(29px, 3vw, 38px\)/);
+  assert.match(extraStyles, /font-size:\s*clamp\(34px, 4vw, 46px\)/);
+  assert.match(extraStyles, /Your vocabulary result will appear here/);
+  assert.match(extraStyles, /@media \(max-width: 900px\)/);
+  assert.match(extraStyles, /grid-template-areas:[\s\S]*"heading"[\s\S]*"form"[\s\S]*"status"[\s\S]*"result"/);
+});
+
 test("Vocabulary outside card clearly opens full practice in the popup", () => {
   assert.match(compactFrontend, /data-vocab-practice-root="desktop"/);
   assert.match(compactFrontend, /vocabulary-compact-card/);
@@ -121,7 +133,7 @@ test("Vocabulary save and review routes retain authenticated D1 storage", () => 
 });
 
 test("Dashboard loader cache-busts all Vocabulary assets", () => {
-  assert.match(loader, /vocabulary-openai\.css\?v=joy-vocabulary-openai-v1/);
+  assert.match(loader, /vocabulary-openai\.css\?v=joy-vocabulary-openai-v2/);
   assert.match(loader, /vocabulary-compact\.css\?v=joy-vocabulary-compact-v2/);
   assert.match(loader, /vocabulary\.js\?v=joy-vocabulary-v2/);
   assert.match(loader, /vocabulary-compact\.js\?v=joy-vocabulary-compact-v2/);

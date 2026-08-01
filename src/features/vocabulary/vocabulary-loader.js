@@ -1,7 +1,7 @@
 (() => {
   const STYLESHEET_URLS = [
     "/project-data/vocabulary/vocabulary.css?v=joy-vocabulary-v1",
-    "/project-data/vocabulary/vocabulary-openai.css?v=joy-vocabulary-openai-v1",
+    "/project-data/vocabulary/vocabulary-openai.css?v=joy-vocabulary-openai-v2",
     "/project-data/vocabulary/vocabulary-compact.css?v=joy-vocabulary-compact-v2",
   ];
   const SCRIPT_URL = "/project-data/vocabulary/vocabulary.js?v=joy-vocabulary-v2";
