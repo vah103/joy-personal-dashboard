@@ -1,0 +1,54 @@
+#finance.finance-dashboard-polished .finance-year-end-gold[role="button"] {
+  appearance: none;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    transform .16s ease,
+    border-color .16s ease,
+    box-shadow .16s ease,
+    background .16s ease;
+}
+
+#finance.finance-dashboard-polished .finance-year-end-gold[role="button"]:hover {
+  transform: translateY(-1px);
+  border-color: rgba(168, 132, 46, .28);
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, .9),
+    0 7px 16px rgba(119, 91, 28, .1);
+}
+
+#finance.finance-dashboard-polished .finance-year-end-gold[role="button"]:focus-visible {
+  outline: 2px solid rgba(91, 132, 144, .72);
+  outline-offset: 3px;
+}
+
+#finance.finance-dashboard-polished .finance-year-end-gold.is-live-value {
+  border-color: rgba(137, 105, 31, .24);
+  background: linear-gradient(145deg, rgba(255, 250, 225, .98), rgba(241, 229, 184, .82));
+}
+
+#finance.finance-dashboard-polished .finance-year-end-gold.is-loading {
+  cursor: wait;
+  opacity: .78;
+}
+
+#finance.finance-dashboard-polished .finance-year-end-gold.is-loading .finance-year-end-gold-icon {
+  animation: joy-finance-gold-pulse .9s ease-in-out infinite alternate;
+}
+
+#finance.finance-dashboard-polished .finance-year-end-gold.is-error {
+  border-color: rgba(159, 91, 64, .24);
+}
+
+@keyframes joy-finance-gold-pulse {
+  from { transform: scale(.94); opacity: .72; }
+  to { transform: scale(1.02); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #finance.finance-dashboard-polished .finance-year-end-gold[role="button"],
+  #finance.finance-dashboard-polished .finance-year-end-gold.is-loading .finance-year-end-gold-icon {
+    animation: none;
+    transition: none;
+  }
+}
