@@ -131,7 +131,7 @@ test("assessment writes are idempotent by clientRequestId", async () => {
 test("Joy Actions publishes all IELTS teaching operations without destructive endpoints", () => {
   const paths = JOY_ACTIONS_OPENAPI.paths;
   const startOperation = paths["/api/joy/v1/ielts/tasks/{taskId}/start"]?.post;
-  assert.equal(JOY_ACTIONS_OPENAPI.info.version, "1.2.0");
+  assert.equal(JOY_ACTIONS_OPENAPI.info.version, "1.2.1");
   assert.ok(paths["/api/joy/v1/ielts/today"]?.get);
   assert.ok(paths["/api/joy/v1/ielts/tasks/{taskId}"]?.get);
   assert.ok(startOperation);
@@ -149,6 +149,18 @@ test("Joy Actions publishes all IELTS teaching operations without destructive en
   assert.equal(fileRefs.type, "array");
   assert.equal(fileRefs.items.type, "string");
   assert.equal(Object.values(paths).some((methods) => Object.hasOwn(methods, "delete")), false);
+});
+
+test("every GPT Action operation description stays within the Builder limit", () => {
+  for (const [path, methods] of Object.entries(JOY_ACTIONS_OPENAPI.paths)) {
+    for (const [method, operation] of Object.entries(methods)) {
+      if (!operation || typeof operation !== "object" || !operation.operationId) continue;
+      assert.ok(
+        String(operation.description || "").length <= 300,
+        `${method.toUpperCase()} ${path} (${operation.operationId}) exceeds 300 characters`,
+      );
+    }
+  }
 });
 
 test("authenticated GPT Actions route delegates IELTS today reads to the bridge", async () => {
