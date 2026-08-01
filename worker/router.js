@@ -9,6 +9,10 @@ import {
   isDashboardDataRoute,
 } from "./dashboard-data.js";
 import {
+  handleFinanceGoldPriceRequest,
+  isFinanceGoldPriceRoute,
+} from "./finance-gold-price.js";
+import {
   handleFinanceLedgerRequest,
   isFinanceLedgerRoute,
 } from "./finance-ledger.js";
@@ -111,6 +115,9 @@ export default {
       }
       if (isDashboardDataRoute(pathname)) {
         return handleDashboardDataRequest(request, env);
+      }
+      if (isFinanceGoldPriceRoute(pathname)) {
+        return handleFinanceGoldPriceRequest(request, env);
       }
       if (isFinanceP1008ShoppingRoute(pathname)) {
         return handleFinanceP1008ShoppingRequest(request, env);
