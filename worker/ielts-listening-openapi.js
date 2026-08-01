@@ -29,7 +29,7 @@ export const IELTS_LISTENING_ACTION_PATHS = {
     post: {
       operationId: "prepareIeltsListeningSubmission",
       summary: "Transcribe an attached IELTS Listening audio file",
-      description: "Use when the owner attaches one Listening audio file and screenshots or documents showing the questions and entered answers. Inspect the screenshots directly in the conversation and copy the learner's answers exactly, preserving blanks, spelling and uncertainty. Put only the single audio attachment in openaiFileIdRefs; do not send the screenshots because their extracted answers are already supplied in studentAnswers. Joy downloads the audio from the temporary OpenAI URL, transcribes it, stores a private draft submission in IELTS Core, and returns the transcript for grading. This action does not complete the task or save an assessment.",
+      description: "Use when the owner attaches one Listening audio file and answer screenshots. Read the screenshots in chat, copy answers exactly, and send only the audio in openaiFileIdRefs. Joy transcribes the audio and returns a private draft. It does not complete the task or save an assessment.",
       requestBody: {
         required: true,
         content: {
@@ -70,7 +70,7 @@ export const IELTS_LISTENING_ACTION_PATHS = {
     post: {
       operationId: "saveIeltsListeningReview",
       summary: "Save a draft IELTS Listening grading review",
-      description: "After comparing the screenshots, learner answers and transcript, save the per-question grading and teaching explanation. Use official-key only when an official answer key is actually available. Otherwise use provisional-transcript, do not set a band score, and state uncertainty. This remains a draft: ask the owner to confirm before calling assessment, recurring-error or task-completion actions.",
+      description: "Save per-question grading after comparing screenshots, learner answers and transcript. Use official-key only with a real answer key; otherwise use provisional-transcript with no band score. Keep the review as a draft and ask the owner to confirm before saving assessments, errors or completion.",
       parameters: [submissionIdParameter],
       requestBody: {
         required: true,
