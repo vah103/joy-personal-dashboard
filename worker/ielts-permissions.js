@@ -7,6 +7,8 @@ export const IELTS_ACTIONS = Object.freeze({
   ERROR_CREATE: "ielts:error:create",
   COURSE_CREATE: "ielts:course:create",
   PLAN_UPDATE: "ielts:plan:update",
+  LISTENING_TRANSCRIBE: "ielts:listening:transcribe",
+  LISTENING_REVIEW: "ielts:listening:review",
 });
 
 const ROLE_PERMISSIONS = Object.freeze({
