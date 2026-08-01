@@ -3,6 +3,7 @@ import {
   getIeltsTeachingTask,
 } from "./ielts-assistant.js";
 import { mutateIeltsState } from "./ielts-core.js";
+import { IELTS_LISTENING_SERVICE } from "./ielts-listening.js";
 
 async function startTask(env, context, taskId, input = {}, dependencies = {}) {
   await getIeltsTeachingTask(env, context, taskId, input, dependencies);
@@ -29,5 +30,6 @@ async function startTask(env, context, taskId, input = {}, dependencies = {}) {
 
 export const STABLE_IELTS_ASSISTANT_SERVICE = Object.freeze({
   ...IELTS_ASSISTANT_SERVICE,
+  ...IELTS_LISTENING_SERVICE,
   startTask,
 });
