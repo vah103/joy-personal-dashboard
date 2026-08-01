@@ -3,6 +3,10 @@ import {
   isDailyBriefRoute,
   runDailyBriefSchedule as runPolicyDailyBriefSchedule,
 } from "./daily-brief-policy.js";
+import {
+  focusDailyBriefResponse,
+  refreshFocusedMarketSignals,
+} from "./daily-brief-focus.js";
 
 const DAILY_BRIEF_AI_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const DAILY_BRIEF_BUDGET_KEY = "last_budgeted_ai_refresh";
@@ -11,29 +15,59 @@ const BUDGET_AI_MODEL = "@cf/meta/llama-3.2-3b-instruct";
 export { isDailyBriefRoute };
 
 export async function handleDailyBriefRequest(request, env, ctx) {
-  // Dashboard reads never spend the shared Workers AI allowance.
-  return handlePolicyDailyBriefRequest(request, withoutAi(env), ctx);
+  // Dashboard reads remain AI-free. Market snapshots may refresh in the
+  // background, but opening Joy never spends Workers AI neurons.
+  if (ctx?.waitUntil) {
+    ctx.waitUntil(refreshFocusedMarketSignals(withoutAi(env)).catch((error) => {
+      console.error("Joy focused Daily Brief background refresh failed", error);
+    }));
+  }
+
+  const response = await handlePolicyDailyBriefRequest(request, withoutAi(env), ctx);
+  return focusDailyBriefResponse(response);
 }
 
 export async function runDailyBriefSchedule(env) {
   if (!env?.DB) return { skipped: true, reason: "storage-unavailable" };
 
-  // AI is disabled by default. RSS fetching, heuristic scoring, and cached
-  // Daily Brief stories continue to work without consuming any neurons.
-  if (!isDailyBriefAiEnabled(env)) {
-    return runPolicyDailyBriefSchedule(withoutAi(env));
-  }
-
   const now = Date.now();
+  const aiEnabled = isDailyBriefAiEnabled(env);
   const lastRun = await readBudgetTimestamp(env);
-  if (now - lastRun < DAILY_BRIEF_AI_INTERVAL_MS) {
-    return { skipped: true, reason: "ai-budget-window" };
+  const useAi = aiEnabled && now - lastRun >= DAILY_BRIEF_AI_INTERVAL_MS;
+
+  // Reserve the AI window before inference so a failed or quota-limited call
+  // cannot be retried by the every-minute cron. RSS and market refreshes still
+  // continue without AI during the remaining budget window.
+  if (useAi) await writeBudgetTimestamp(env, now);
+  const scheduledEnv = useAi ? withBudgetAi(env) : withoutAi(env);
+
+  let policyResult = null;
+  let policyError = "";
+  try {
+    policyResult = await runPolicyDailyBriefSchedule(scheduledEnv);
+  } catch (error) {
+    policyError = String(error?.message || error || "policy-refresh-failed");
+    console.error("Joy Daily Brief policy refresh failed", error);
   }
 
-  // Reserve the window before inference so a failed or quota-limited call is
-  // not retried by the every-minute cron and cannot create an error storm.
-  await writeBudgetTimestamp(env, now);
-  return runPolicyDailyBriefSchedule(withBudgetAi(env));
+  let marketResult = null;
+  let marketError = "";
+  try {
+    marketResult = await refreshFocusedMarketSignals(scheduledEnv, { useAi });
+  } catch (error) {
+    marketError = String(error?.message || error || "market-refresh-failed");
+    console.error("Joy focused Daily Brief market refresh failed", error);
+  }
+
+  return {
+    skipped: false,
+    aiUsed: useAi,
+    aiReason: aiEnabled ? (useAi ? "budget-window-open" : "budget-window-closed") : "disabled",
+    policyResult,
+    policyError: policyError || null,
+    marketResult,
+    marketError: marketError || null,
+  };
 }
 
 function isDailyBriefAiEnabled(env) {
