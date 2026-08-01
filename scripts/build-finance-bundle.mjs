@@ -11,6 +11,7 @@ const paths = {
   amount: resolve(financeSourceDir, "finance-amount-core.js"),
   core: resolve(financeSourceDir, "finance.js"),
   dashboard: resolve(financeSourceDir, "finance-dashboard.js"),
+  dashboardSummary: resolve(financeSourceDir, "finance-dashboard-summary.js"),
   monthLayout: resolve(financeSourceDir, "finance-month-layout.js"),
   coreCss: resolve(financeSourceDir, "finance.css"),
   monthLayoutCss: resolve(financeSourceDir, "finance-month-layout.css"),
@@ -56,6 +57,7 @@ const [
   amountSource,
   financeSource,
   dashboardSource,
+  dashboardSummarySource,
   monthLayoutSource,
   financeCss,
   monthLayoutCss,
@@ -67,6 +69,7 @@ const [
   readFile(paths.amount, "utf8"),
   readFile(paths.core, "utf8"),
   readFile(paths.dashboard, "utf8"),
+  readFile(paths.dashboardSummary, "utf8"),
   readFile(paths.monthLayout, "utf8"),
   readFile(paths.coreCss, "utf8"),
   readFile(paths.monthLayoutCss, "utf8"),
@@ -81,6 +84,9 @@ if (!amountSource.includes("JoyFinanceAmount")) {
 }
 if (!financeSource.includes("window.JoyFinanceAmount")) {
   throw new Error("Finance core does not consume JoyFinanceAmount");
+}
+if (!dashboardSummarySource.includes("syncProjectedFinanceSummary")) {
+  throw new Error("Finance projected dashboard summary source is missing");
 }
 if (!p1008Source.includes('const API_PATH = "/api/p1008"')) {
   throw new Error("P1008 core source is missing its account API");
@@ -103,6 +109,7 @@ const financeBundle = [
   amountSource.trim(),
   financeSource.trim(),
   dashboard.javascript,
+  dashboardSummarySource.trim(),
   monthLayout.javascript,
   "",
 ].join("\n\n");
