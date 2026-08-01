@@ -50,6 +50,20 @@ test("Finance outer dashboard mirrors the popup projected month totals", () => {
   assert.match(financeCoreSource, /closing = Number\(month\.projected\?\.remaining/);
 });
 
+test("Finance year-end card displays the current gold holding separately", () => {
+  assert.match(dashboardSummarySource, /const GOLD_HELD_CHI = 0\.5/);
+  assert.match(dashboardSummarySource, /function formatGoldHolding/);
+  assert.match(dashboardSummarySource, /finance-year-end-gold/);
+  assert.match(dashboardSummarySource, /label\.textContent = "Gold held"/);
+  assert.match(dashboardSummarySource, /value\.dataset\.financeMask = "•••"/);
+  assert.match(dashboardSummarySource, /syncYearEndGoldHolding\(\)/);
+  assert.match(dashboardThemeSource, /\.finance-year-end-gold/);
+  assert.match(dashboardThemeSource, /color: #75613e/);
+
+  const cashValues = dashboardSummarySource.match(/const values = \{([\s\S]*?)\n    \};/)?.[1] || "";
+  assert.doesNotMatch(cashValues, /GOLD_HELD_CHI|gold/i);
+});
+
 test("Finance chart months stay English after every render", () => {
   assert.match(dashboardSource, /\["Jan", "Feb", "Mar"/);
   assert.match(dashboardSource, /joy:finance-chart-rendered/);
