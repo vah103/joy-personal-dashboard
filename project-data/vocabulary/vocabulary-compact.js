@@ -39,10 +39,13 @@
           </div>
         </div>
         ${hasWords ? `
-          <button class="vocabulary-compact-preview" type="button" data-vocab-open-practice aria-label="Open vocabulary practice">
-            <small>${escapeHtml(route)}</small>
+          <button class="vocabulary-compact-preview" type="button" data-vocab-open-practice aria-label="Practice vocabulary and enter an answer">
+            <span class="vocabulary-compact-meta">
+              <small>${escapeHtml(route)}</small>
+              <em>Practice</em>
+            </span>
             <strong>${escapeHtml(prompt)}</strong>
-            <span aria-hidden="true">↗</span>
+            <span class="vocabulary-compact-arrow" aria-hidden="true">→</span>
           </button>
         ` : `
           <button class="vocabulary-compact-empty" type="button" data-vocab-open-lookup>

@@ -96,14 +96,33 @@
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-rows: auto 1fr;
   column-gap: 9px;
+  cursor: pointer;
 }
 
-.vocabulary-compact-preview small {
+.vocabulary-compact-meta {
   grid-column: 1;
-  color: #7b8588;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.vocabulary-compact-meta small,
+.vocabulary-compact-meta em {
   font-size: 7px;
   font-weight: 900;
   letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.vocabulary-compact-meta small {
+  color: #7b8588;
+}
+
+.vocabulary-compact-meta em {
+  color: #4f6c78;
+  font-style: normal;
+  letter-spacing: 0.03em;
 }
 
 .vocabulary-compact-preview strong {
@@ -120,12 +139,12 @@
   overflow-wrap: anywhere;
 }
 
-.vocabulary-compact-preview > span {
+.vocabulary-compact-arrow {
   grid-column: 2;
   grid-row: 1 / 3;
   align-self: center;
-  color: #72868e;
-  font-size: 13px;
+  color: #5d7781;
+  font-size: 15px;
   font-weight: 900;
 }
 

@@ -2,10 +2,10 @@
   const STYLESHEET_URLS = [
     "/project-data/vocabulary/vocabulary.css?v=joy-vocabulary-v1",
     "/project-data/vocabulary/vocabulary-openai.css?v=joy-vocabulary-openai-v1",
-    "/project-data/vocabulary/vocabulary-compact.css?v=joy-vocabulary-compact-v1",
+    "/project-data/vocabulary/vocabulary-compact.css?v=joy-vocabulary-compact-v2",
   ];
   const SCRIPT_URL = "/project-data/vocabulary/vocabulary.js?v=joy-vocabulary-v2";
-  const COMPACT_SCRIPT_URL = "/project-data/vocabulary/vocabulary-compact.js?v=joy-vocabulary-compact-v1";
+  const COMPACT_SCRIPT_URL = "/project-data/vocabulary/vocabulary-compact.js?v=joy-vocabulary-compact-v2";
   const MOBILE_SCRIPT_URL = "/project-data/vocabulary/vocabulary-mobile-inline.js?v=joy-vocabulary-mobile-inline-v2";
 
   const loadSpeaking = () => window.JoySpeakingLoader?.load();
@@ -40,7 +40,7 @@
 
   function loadCompactCard() {
     const existing = document.querySelector('script[data-joy-vocabulary-compact="true"]');
-    if (existing && existing.src.includes("joy-vocabulary-compact-v1")) {
+    if (existing && existing.src.includes("joy-vocabulary-compact-v2")) {
       if (existing.dataset.loaded === "true") loadMobileInline();
       else existing.addEventListener("load", loadMobileInline, { once: true });
       return;
