@@ -1,0 +1,87 @@
+# Joy Personal Dashboard agent instructions
+
+These instructions apply to the entire repository. Treat the repository as a
+Cloudflare-first personal dashboard whose source of truth is the committed
+source, not generated output.
+
+## Before changing anything
+
+1. Inspect the current branch and upstream.
+2. Inspect `git status`, the staged diff, the unstaged diff, and all untracked
+   files.
+3. Read the relevant implementation, tests, and authoritative documentation
+   before editing.
+4. Identify existing user changes and work around them. Never delete, reset,
+   restore, overwrite with checkout, or otherwise discard them.
+
+Do not commit, push, merge, rebase, force-push, rewrite history, or deploy
+unless the user explicitly requests that exact action.
+
+## Source and architecture boundaries
+
+- Edit frontend source under `src/`. Never edit generated files in `dist/`
+  directly.
+- Keep public URLs, asset paths, service-worker paths, and API contracts
+  stable unless the task explicitly requires a coordinated migration.
+- Put stable public runtime data and assets under `project-data/`; never put
+  private or personal data there or in publicly reachable fixtures.
+- Respect authentication, authorization, the Joy Core shared
+  repository/service boundary, and write auditing in Worker and API code.
+- Make migrations additive and safe for existing data. Do not modify a
+  migration that may already have been applied unless the user explicitly
+  approves a reviewed migration-repair plan.
+- Prefer small, clearly scoped changes. Avoid unrelated cleanup and protect
+  other features from regressions.
+
+Use these files as authoritative project guidance:
+
+- `README.md`
+- `docs/REPOSITORY_STRUCTURE.md`
+- `docs/CLOUDFLARE_SETUP.md`
+- `docs/JOY_CORE.md`
+- `docs/privacy-history-rewrite.md`
+- `package.json`
+- `scripts/run-tests.mjs`
+- `scripts/deploy-clean-main.mjs`
+
+## Security and privacy
+
+- Never read, display, log, or commit secrets, tokens, `.dev.vars`, private
+  keys, credentials, or personal information.
+- Do not inspect secret-bearing local files merely to determine whether they
+  exist. Use tracked examples and documented variable names instead.
+- Keep secrets in Cloudflare or another approved encrypted secret store.
+- Do not introduce private identifiers, personal seed data, private document
+  links, or production user data into `project-data/`, tests, fixtures,
+  snapshots, logs, or build artifacts.
+- Do not rewrite Git history as part of normal development. Follow
+  `docs/privacy-history-rewrite.md` only when the user explicitly authorizes a
+  coordinated privacy-maintenance operation.
+
+## Implementation and verification
+
+- For a bug fix, add or update a regression test when practical.
+- For UI work, check desktop and mobile behavior, accessibility, and the
+  repository's Nunito typography requirements.
+- After editing, run the tests appropriate to the affected subsystem.
+- Run `npm run verify` for cross-cutting changes.
+- Do not run `npm run deploy` automatically.
+- Treat compatibility paths created by `scripts/run-tests.mjs` as temporary
+  test-runner artifacts; do not replace them with real root files.
+- After every change, inspect `git diff` and `git status`. Confirm generated
+  files, secrets, personal data, and unrelated changes were not introduced.
+
+## Completion report
+
+Report:
+
+- files changed and why;
+- tests and checks run, with results;
+- relevant tests not run and why;
+- remaining risks, compatibility concerns, and follow-up work.
+
+## Joy-specific skill
+
+For implementation, debugging, review, migration, Worker/API, frontend,
+project-data, build, test, or deployment-readiness work in this repository,
+use `.agents/skills/joy-dashboard/SKILL.md`.
