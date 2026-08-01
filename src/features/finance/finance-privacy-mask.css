@@ -1,0 +1,78 @@
+/* Static privacy placeholders for the outer Finance card. */
+#finance #finance-data.finance-values-hidden [data-finance-value] {
+  --finance-mask-width: 88px;
+  --finance-mask-height: 16px;
+  display: inline-flex !important;
+  align-items: center;
+  width: var(--finance-mask-width);
+  min-width: var(--finance-mask-width);
+  height: var(--finance-mask-height);
+  min-height: var(--finance-mask-height);
+  overflow: hidden;
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  letter-spacing: 0 !important;
+  text-decoration-color: transparent !important;
+  text-shadow: none !important;
+  vertical-align: middle;
+  user-select: none;
+}
+
+#finance #finance-data.finance-values-hidden [data-finance-value]::after {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(46, 69, 77, .12),
+    rgba(46, 69, 77, .21)
+  );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .52);
+}
+
+#finance #finance-data.finance-values-hidden [data-finance-field="remaining"] {
+  --finance-mask-width: 148px;
+  --finance-mask-height: 27px;
+}
+
+#finance #finance-data.finance-values-hidden [data-finance-field="income"] {
+  --finance-mask-width: 86px;
+  --finance-mask-height: 16px;
+}
+
+#finance #finance-data.finance-values-hidden [data-finance-field="expenses"] {
+  --finance-mask-width: 74px;
+  --finance-mask-height: 16px;
+}
+
+#finance #finance-data.finance-values-hidden [data-finance-field="year-end"] {
+  --finance-mask-width: 108px;
+  --finance-mask-height: 19px;
+}
+
+#finance #finance-data.finance-values-hidden .finance-year-end-gold [data-finance-value] {
+  --finance-mask-width: 52px;
+  --finance-mask-height: 12px;
+}
+
+#finance #finance-data.finance-values-hidden .finance-year-end-gold [data-finance-value]::after {
+  background: linear-gradient(
+    90deg,
+    rgba(131, 101, 35, .13),
+    rgba(131, 101, 35, .23)
+  );
+}
+
+@media (max-width: 720px) {
+  #finance #finance-data.finance-values-hidden [data-finance-field="remaining"] {
+    --finance-mask-width: 132px;
+    --finance-mask-height: 24px;
+  }
+
+  #finance #finance-data.finance-values-hidden [data-finance-field="year-end"] {
+    --finance-mask-width: 98px;
+  }
+}
