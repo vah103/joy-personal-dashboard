@@ -7,6 +7,7 @@ import {
   readIeltsState,
 } from "./ielts-core.js";
 import { IELTS_LISTENING_SERVICE } from "./ielts-listening.js";
+import { JoyCoreError } from "./joy-core/service.js";
 
 const LISTENING_STATE_KEY = "__joyListeningSubmissions";
 const MAX_STORED_LISTENING_SUBMISSIONS = 8;
@@ -90,6 +91,19 @@ async function startTask(env, context, taskId, input = {}, dependencies = {}) {
 }
 
 async function prepareListeningSubmission(env, context, input = {}, dependencies = {}) {
+  const task = await getIeltsTeachingTask(
+    env,
+    context,
+    input.taskId,
+    { date: input.date },
+    dependencies,
+  );
+  if (task.task?.skill !== "listening") {
+    throw new JoyCoreError("IELTS_LISTENING_TASK_REQUIRED", 400, {
+      taskId: input.taskId || null,
+      skill: task.task?.skill || null,
+    });
+  }
   return IELTS_LISTENING_SERVICE.prepareListeningSubmission(
     env,
     context,
