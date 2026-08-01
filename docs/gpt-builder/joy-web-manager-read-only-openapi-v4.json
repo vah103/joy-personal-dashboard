@@ -1,0 +1,853 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Joy Web Manager Read-Only Actions",
+    "version": "1.0.4",
+    "description": "Read-only actions for inspecting current Joy project and repository state. No write, branch, commit, pull-request, migration, or deployment operations are exposed."
+  },
+  "servers": [
+    {
+      "url": "https://app.hey-joy.workers.dev"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/api/joy/v1/overview": {
+      "get": {
+        "operationId": "getJoyOverview",
+        "summary": "Get the current Joy overview",
+        "description": "Read current Joy projects, open tasks, inbox tasks, and recent progress logs.",
+        "responses": {
+          "200": {
+            "description": "Current Joy overview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OverviewResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/joy/v1/projects": {
+      "get": {
+        "operationId": "listJoyProjects",
+        "summary": "List Joy projects",
+        "description": "List the current Joy projects visible to this credential.",
+        "responses": {
+          "200": {
+            "description": "Joy projects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/joy/v1/projects/{projectId}": {
+      "get": {
+        "operationId": "getJoyProject",
+        "summary": "Get one Joy project",
+        "description": "Read a project and its related tasks, milestones, logs, and evidence before discussing it.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "description": "Stable lowercase Joy project ID, such as ielts or turtlebot4.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDetailResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/joy/v1/workspaces/{projectId}": {
+      "get": {
+        "operationId": "bootstrapJoyWorkspace",
+        "summary": "Load one Joy project workspace",
+        "description": "Load current project state, memory, sessions, decisions, blockers, evidence, repository references, and continuation guidance.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "description": "Stable Joy project ID.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Maximum number of recent records.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Workspace state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/joy/v1/dev/repository": {
+      "get": {
+        "operationId": "getJoyRepositoryContext",
+        "summary": "Read current repository context",
+        "description": "Call before repository or code analysis. Returns current main head, open pull requests, repository policy, protected paths, branch rules, limits, and prohibited operations.",
+        "parameters": [
+          {
+            "name": "repository",
+            "in": "query",
+            "required": false,
+            "description": "Repository in owner/name form. Defaults to the Joy repository.",
+            "schema": {
+              "type": "string",
+              "maxLength": 240
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Repository context",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryContextResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/joy/v1/dev/search": {
+      "get": {
+        "operationId": "searchJoyRepository",
+        "summary": "Search the Joy repository",
+        "description": "Search for file names, symbols, visible UI text, routes, tests, or error messages.",
+        "parameters": [
+          {
+            "name": "repository",
+            "in": "query",
+            "required": false,
+            "description": "Repository in owner/name form. Defaults to the Joy repository.",
+            "schema": {
+              "type": "string",
+              "maxLength": 240
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "description": "Search query.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Maximum number of results.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 30,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Repository search results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositorySearchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/joy/v1/dev/files": {
+      "get": {
+        "operationId": "readJoyRepositoryFile",
+        "summary": "Read one current repository file",
+        "description": "Read one UTF-8 repository file from main or a work branch after repository search.",
+        "parameters": [
+          {
+            "name": "repository",
+            "in": "query",
+            "required": false,
+            "description": "Repository in owner/name form. Defaults to the Joy repository.",
+            "schema": {
+              "type": "string",
+              "maxLength": 240
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "description": "Repository-relative file path.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000
+            }
+          },
+          {
+            "name": "ref",
+            "in": "query",
+            "required": false,
+            "description": "Optional branch, tag, or commit ref. Defaults to main.",
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Repository file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryFileResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "API key"
+      }
+    },
+    "schemas": {
+      "ProjectSummary": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "title": {"type": "string"},
+          "summary": {"type": "string"},
+          "status": {"type": "string"},
+          "progress": {"type": "integer"},
+          "currentStageId": {"type": ["string", "null"]},
+          "currentFocus": {"type": "string"},
+          "nextAction": {"type": "string"},
+          "blockers": {"type": "array", "items": {"type": "string"}},
+          "updatedAt": {"type": "integer"}
+        },
+        "additionalProperties": true
+      },
+      "TaskSummary": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "projectId": {"type": "string"},
+          "title": {"type": "string"},
+          "description": {"type": "string"},
+          "status": {"type": "string"},
+          "priority": {"type": "string"},
+          "dueAt": {"type": ["integer", "null"]},
+          "scheduledFor": {"type": ["integer", "null"]},
+          "completedAt": {"type": ["integer", "null"]},
+          "updatedAt": {"type": "integer"}
+        },
+        "additionalProperties": true
+      },
+      "MilestoneSummary": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "projectId": {"type": "string"},
+          "title": {"type": "string"},
+          "description": {"type": "string"},
+          "status": {"type": "string"},
+          "targetAt": {"type": ["integer", "null"]},
+          "completedAt": {"type": ["integer", "null"]}
+        },
+        "additionalProperties": true
+      },
+      "LogSummary": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "projectId": {"type": "string"},
+          "taskId": {"type": ["string", "null"]},
+          "kind": {"type": "string"},
+          "title": {"type": "string"},
+          "detail": {"type": "string"},
+          "occurredAt": {"type": "integer"}
+        },
+        "additionalProperties": true
+      },
+      "EvidenceSummary": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "projectId": {"type": "string"},
+          "kind": {"type": "string"},
+          "label": {"type": "string"},
+          "uri": {"type": "string"},
+          "createdAt": {"type": "integer"}
+        },
+        "additionalProperties": true
+      },
+      "SessionSummary": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "projectId": {"type": "string"},
+          "title": {"type": "string"},
+          "goal": {"type": "string"},
+          "status": {"type": "string"},
+          "summary": {"type": "string"},
+          "outcomes": {"type": "array", "items": {"type": "string"}},
+          "nextActions": {"type": "array", "items": {"type": "string"}},
+          "startedAt": {"type": "integer"},
+          "endedAt": {"type": ["integer", "null"]}
+        },
+        "additionalProperties": true
+      },
+      "EventSummary": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "sessionId": {"type": "string"},
+          "projectId": {"type": "string"},
+          "kind": {"type": "string"},
+          "title": {"type": "string"},
+          "detail": {"type": "string"},
+          "occurredAt": {"type": "integer"}
+        },
+        "additionalProperties": true
+      },
+      "DecisionSummary": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "projectId": {"type": "string"},
+          "title": {"type": "string"},
+          "decision": {"type": "string"},
+          "rationale": {"type": "string"},
+          "status": {"type": "string"},
+          "occurredAt": {"type": "integer"}
+        },
+        "additionalProperties": true
+      },
+      "BlockerSummary": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "projectId": {"type": "string"},
+          "title": {"type": "string"},
+          "detail": {"type": "string"},
+          "status": {"type": "string"},
+          "resolution": {"type": "string"},
+          "openedAt": {"type": "integer"},
+          "resolvedAt": {"type": ["integer", "null"]}
+        },
+        "additionalProperties": true
+      },
+      "RepoRefSummary": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "projectId": {"type": "string"},
+          "repoFullName": {"type": "string"},
+          "refType": {"type": "string"},
+          "ref": {"type": "string"},
+          "uri": {"type": ["string", "null"]},
+          "status": {"type": "string"}
+        },
+        "additionalProperties": true
+      },
+      "SnapshotSummary": {
+        "type": "object",
+        "properties": {
+          "projectId": {"type": "string"},
+          "summary": {"type": "string"},
+          "currentGoal": {"type": "string"},
+          "nextActions": {"type": "array", "items": {"type": "string"}},
+          "latestSessionId": {"type": ["string", "null"]},
+          "version": {"type": "integer"},
+          "updatedAt": {"type": "integer"}
+        },
+        "additionalProperties": true
+      },
+      "ContinuationSummary": {
+        "type": "object",
+        "properties": {
+          "status": {"type": "string"},
+          "currentGoal": {"type": "string"},
+          "nextActions": {"type": "array", "items": {"type": "string"}},
+          "blockers": {"type": "array", "items": {"type": "string"}},
+          "latestSummary": {"type": "string"}
+        },
+        "additionalProperties": true
+      },
+      "RepositoryPolicy": {
+        "type": "object",
+        "properties": {
+          "repository": {"type": "string"},
+          "defaultBranch": {"type": "string"},
+          "branchPrefix": {"type": "string"},
+          "protectedPaths": {"type": "array", "items": {"type": "string"}},
+          "prohibitedOperations": {"type": "array", "items": {"type": "string"}},
+          "maxFileBytes": {"type": "integer"},
+          "maxFilesPerChange": {"type": "integer"}
+        },
+        "additionalProperties": true
+      },
+      "PullRequestSummary": {
+        "type": "object",
+        "properties": {
+          "number": {"type": "integer"},
+          "title": {"type": "string"},
+          "state": {"type": "string"},
+          "draft": {"type": "boolean"},
+          "head": {"type": "string"},
+          "base": {"type": "string"},
+          "htmlUrl": {"type": "string"}
+        },
+        "additionalProperties": true
+      },
+      "SearchHit": {
+        "type": "object",
+        "properties": {
+          "path": {"type": "string"},
+          "name": {"type": "string"},
+          "snippet": {"type": "string"},
+          "htmlUrl": {"type": "string"},
+          "score": {"type": "number"}
+        },
+        "additionalProperties": true
+      },
+      "OverviewResponse": {
+        "type": "object",
+        "properties": {
+          "projects": {"type": "array", "items": {"$ref": "#/components/schemas/ProjectSummary"}},
+          "openTasks": {"type": "array", "items": {"$ref": "#/components/schemas/TaskSummary"}},
+          "inboxTasks": {"type": "array", "items": {"$ref": "#/components/schemas/TaskSummary"}},
+          "recentLogs": {"type": "array", "items": {"$ref": "#/components/schemas/LogSummary"}},
+          "generatedAt": {"type": "integer"}
+        },
+        "additionalProperties": true
+      },
+      "ProjectsResponse": {
+        "type": "object",
+        "properties": {
+          "projects": {"type": "array", "items": {"$ref": "#/components/schemas/ProjectSummary"}}
+        },
+        "additionalProperties": true
+      },
+      "ProjectDetailResponse": {
+        "type": "object",
+        "properties": {
+          "project": {"$ref": "#/components/schemas/ProjectSummary"},
+          "tasks": {"type": "array", "items": {"$ref": "#/components/schemas/TaskSummary"}},
+          "milestones": {"type": "array", "items": {"$ref": "#/components/schemas/MilestoneSummary"}},
+          "logs": {"type": "array", "items": {"$ref": "#/components/schemas/LogSummary"}},
+          "evidence": {"type": "array", "items": {"$ref": "#/components/schemas/EvidenceSummary"}}
+        },
+        "additionalProperties": true
+      },
+      "WorkspaceMemory": {
+        "type": "object",
+        "properties": {
+          "snapshot": {"anyOf": [{"$ref": "#/components/schemas/SnapshotSummary"}, {"type": "null"}]},
+          "activeSession": {"anyOf": [{"$ref": "#/components/schemas/SessionSummary"}, {"type": "null"}]},
+          "activeEvents": {"type": "array", "items": {"$ref": "#/components/schemas/EventSummary"}},
+          "recentSessions": {"type": "array", "items": {"$ref": "#/components/schemas/SessionSummary"}},
+          "recentEvents": {"type": "array", "items": {"$ref": "#/components/schemas/EventSummary"}},
+          "decisions": {"type": "array", "items": {"$ref": "#/components/schemas/DecisionSummary"}},
+          "openBlockers": {"type": "array", "items": {"$ref": "#/components/schemas/BlockerSummary"}},
+          "evidence": {"type": "array", "items": {"$ref": "#/components/schemas/EvidenceSummary"}},
+          "repoRefs": {"type": "array", "items": {"$ref": "#/components/schemas/RepoRefSummary"}}
+        },
+        "additionalProperties": true
+      },
+      "WorkspaceResponse": {
+        "type": "object",
+        "properties": {
+          "project": {"$ref": "#/components/schemas/ProjectSummary"},
+          "memory": {"$ref": "#/components/schemas/WorkspaceMemory"},
+          "continuation": {"$ref": "#/components/schemas/ContinuationSummary"}
+        },
+        "additionalProperties": true
+      },
+      "RepositoryContextResponse": {
+        "type": "object",
+        "properties": {
+          "repository": {"type": "string"},
+          "defaultBranch": {"type": "string"},
+          "mainHeadSha": {"type": "string"},
+          "openPullRequests": {"type": "array", "items": {"$ref": "#/components/schemas/PullRequestSummary"}},
+          "policy": {"$ref": "#/components/schemas/RepositoryPolicy"}
+        },
+        "additionalProperties": true
+      },
+      "RepositorySearchResponse": {
+        "type": "object",
+        "properties": {
+          "repository": {"type": "string"},
+          "query": {"type": "string"},
+          "results": {"type": "array", "items": {"$ref": "#/components/schemas/SearchHit"}}
+        },
+        "additionalProperties": true
+      },
+      "RepositoryFileResponse": {
+        "type": "object",
+        "properties": {
+          "repository": {"type": "string"},
+          "path": {"type": "string"},
+          "ref": {"type": "string"},
+          "blobSha": {"type": "string"},
+          "size": {"type": "integer"},
+          "content": {"type": "string"},
+          "htmlUrl": {"type": "string"}
+        },
+        "required": ["repository", "path", "ref", "blobSha", "content"],
+        "additionalProperties": true
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {"type": "string"},
+          "details": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {"message": {"type": "string"}},
+                "additionalProperties": true
+              },
+              {"type": "null"}
+            ]
+          }
+        },
+        "required": ["error"],
+        "additionalProperties": true
+      }
+    }
+  }
+}
