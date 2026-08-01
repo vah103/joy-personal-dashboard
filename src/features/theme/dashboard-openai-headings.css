@@ -55,3 +55,16 @@
   line-height: 1.08;
   text-rendering: optimizeLegibility;
 }
+
+/* Full VND values are limited to the outer Finance card. */
+#finance.finance-dashboard-polished.finance-full-money-values .finance-available > strong {
+  font-size: clamp(28px, 2.65vw, 34px);
+}
+
+#finance.finance-dashboard-polished.finance-full-money-values .finance-overview-stat strong {
+  font-size: clamp(16px, 1.45vw, 20px);
+}
+
+#finance.finance-dashboard-polished.finance-full-money-values .finance-overview > .finance-overview-stat:nth-child(4) strong {
+  font-size: clamp(16px, 1.35vw, 19px);
+}
