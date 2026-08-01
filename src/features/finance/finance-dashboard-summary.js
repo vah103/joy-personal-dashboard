@@ -2,13 +2,14 @@
   const panel = document.querySelector("#finance");
   if (!panel) return;
 
-  const GOLD_HELD_CHI = 0.5;
+  const GOLD_HELD_TAEL = 0.05;
 
   function formatGoldHolding(value) {
-    const amount = new Intl.NumberFormat("vi-VN", {
-      maximumFractionDigits: 1,
+    const amount = new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(Number(value || 0));
-    return `${amount} chỉ`;
+    return `${amount} tael`;
   }
 
   function setFullCardMoneyValue(element, amount) {
@@ -20,27 +21,42 @@
   function syncYearEndGoldHolding() {
     const yearEndValue = panel.querySelector('[data-finance-field="year-end"]');
     const yearEndContent = yearEndValue?.closest("span");
-    if (!yearEndContent) return;
+    const yearEndCard = yearEndValue?.closest(".finance-overview-stat");
+    if (!yearEndContent || !yearEndCard) return;
 
-    let goldRow = yearEndContent.querySelector(".finance-year-end-gold");
-    if (!goldRow) {
-      goldRow = document.createElement("div");
-      goldRow.className = "finance-year-end-gold";
+    yearEndCard.classList.add("finance-year-end-card");
+    yearEndContent.classList.add("finance-year-end-content");
 
-      const label = document.createElement("span");
-      label.textContent = "Gold held";
+    const description = yearEndContent.querySelector("em");
+    if (description) description.textContent = "Projected cash balance";
+
+    let goldAsset = yearEndContent.querySelector(".finance-year-end-gold");
+    if (!goldAsset) {
+      goldAsset = document.createElement("div");
+      goldAsset.className = "finance-year-end-gold";
+      goldAsset.setAttribute("aria-label", "Gold holding");
+
+      const icon = document.createElement("span");
+      icon.className = "finance-year-end-gold-icon";
+      icon.setAttribute("aria-hidden", "true");
+      icon.innerHTML = `
+        <svg viewBox="0 0 24 24" focusable="false">
+          <path d="M7.2 6.7h9.6l3.1 4.4-2.2 6.2H6.3l-2.2-6.2 3.1-4.4Z" />
+          <path d="M4.5 11.1h15M8.1 7l-1.8 4.1m9.6-4.1 1.8 4.1" />
+        </svg>
+      `;
 
       const value = document.createElement("b");
       value.dataset.financeMask = "•••";
       value.setAttribute("data-finance-value", "");
 
-      goldRow.append(label, value);
-      yearEndContent.append(goldRow);
+      goldAsset.append(icon, value);
+      yearEndContent.append(goldAsset);
     }
 
-    const value = goldRow.querySelector("[data-finance-value]");
+    const value = goldAsset.querySelector("[data-finance-value]");
     if (!value) return;
-    value.dataset.financeValue = formatGoldHolding(GOLD_HELD_CHI);
+    value.dataset.financeValue = formatGoldHolding(GOLD_HELD_TAEL);
     value.textContent = financeValuesHidden ? value.dataset.financeMask : value.dataset.financeValue;
   }
 
