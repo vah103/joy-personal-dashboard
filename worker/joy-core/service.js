@@ -10,6 +10,14 @@ import {
   assertJoyCorePermission,
 } from "./permissions.js";
 import {
+  LEGACY_PROJECT_REPLACEMENTS,
+  classifyLegacyTask,
+  isMigratedLegacyProject,
+  legacyProjectMigrationContext,
+  legacyTaskCoreId,
+  legacyTaskSourceRef,
+} from "./legacy-compatibility.js";
+import {
   getCoreEvidence,
   getCoreMilestone,
   getCoreProgressLog,
@@ -23,6 +31,7 @@ import {
   listLegacyInboxTasks,
   listLegacyProjects,
   listOpenCoreTasks,
+  listPromotedLegacyTaskSourceRefs,
   listRecentCoreProgressLogs,
   recordCoreAuditEvent,
   saveCoreEvidence,
@@ -76,7 +85,11 @@ function mergeProjects(primary, fallback) {
   const byId = new Map();
   for (const project of fallback || []) byId.set(project.id, project);
   for (const project of primary || []) byId.set(project.id, project);
-  return [...byId.values()].sort((a, b) => b.updatedAt - a.updatedAt);
+  const projects = [...byId.values()];
+  const projectIds = new Set(projects.map((project) => project.id));
+  return projects
+    .filter((project) => !isMigratedLegacyProject(project, projectIds))
+    .sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
 function stableRequestId(value) {
@@ -240,19 +253,135 @@ export async function getJoyOverview(env, context, options = {}) {
   permission(context, JOY_CORE_ACTIONS.LOG_READ);
   const db = requireDatabase(env);
   const now = nowValue(options.now);
-  const [coreProjects, compatible, openTasks, inboxTasks, recentLogs] = await Promise.all([
+  const [
+    coreProjects,
+    compatible,
+    openTasks,
+    inboxTasks,
+    promotedLegacyTaskRefs,
+    recentLogs,
+  ] = await Promise.all([
     listCoreProjects(db, context.userEmail),
     compatibilityProjects(env, context.userEmail, now),
     listOpenCoreTasks(db, context.userEmail, options.taskLimit || 50),
     listLegacyInboxTasks(db, context.userEmail, options.inboxLimit || 30),
+    listPromotedLegacyTaskSourceRefs(db, context.userEmail),
     listRecentCoreProgressLogs(db, context.userEmail, options.logLimit || 20),
   ]);
   return {
     projects: mergeProjects(coreProjects, compatible),
     openTasks,
-    inboxTasks,
+    inboxTasks: inboxTasks.filter(
+      (task) => !promotedLegacyTaskRefs.has(legacyTaskSourceRef(task.id)),
+    ),
     recentLogs,
     generatedAt: now,
+  };
+}
+
+function sameMigrationContext(current, next) {
+  return JSON.stringify(current || null) === JSON.stringify(next);
+}
+
+export async function promoteLegacyJoyData(env, context, options = {}) {
+  permission(context, JOY_CORE_ACTIONS.PROJECT_UPDATE);
+  permission(context, JOY_CORE_ACTIONS.TASK_CREATE);
+  const db = requireDatabase(env);
+  const now = nowValue(options.now);
+  const [legacyProjects, inboxTasks] = await Promise.all([
+    listLegacyProjects(db, context.userEmail),
+    listLegacyInboxTasks(db, context.userEmail, options.inboxLimit || 100),
+  ]);
+  const canonicalProjects = new Map();
+  const projectsUpdated = [];
+  const tasksCreated = [];
+  const tasksDeduplicated = [];
+  const tasksSkipped = [];
+
+  async function canonicalProject(projectId) {
+    if (canonicalProjects.has(projectId)) return canonicalProjects.get(projectId);
+    const found = await findProject(env, context.userEmail, projectId, now);
+    if (!found.project) {
+      canonicalProjects.set(projectId, null);
+      return null;
+    }
+    const project = found.persisted
+      ? found.project
+      : await ensurePersistedProject(env, context, projectId, now);
+    canonicalProjects.set(projectId, project);
+    return project;
+  }
+
+  for (const legacyProject of legacyProjects) {
+    const replacementId = LEGACY_PROJECT_REPLACEMENTS[legacyProject.id];
+    if (!replacementId) continue;
+    const project = await canonicalProject(replacementId);
+    if (!project) continue;
+    const legacyMigration = legacyProjectMigrationContext(legacyProject);
+    if (sameMigrationContext(project.metadata?.legacyMigration, legacyMigration)) continue;
+    const updated = normalizeProject({
+      ...project,
+      metadata: {
+        ...project.metadata,
+        legacyMigration,
+      },
+      version: project.version + 1,
+      updatedAt: now,
+    }, now);
+    const saved = await saveCoreProject(db, context.userEmail, updated);
+    canonicalProjects.set(replacementId, saved);
+    projectsUpdated.push(saved.id);
+    await audit(env, context, "project:legacy-context-import", "project", saved.id, {
+      legacyProjectId: legacyProject.id,
+      sourceRef: legacyProject.sourceRef,
+    }, now);
+  }
+
+  for (const legacyTask of inboxTasks) {
+    const projectId = classifyLegacyTask(legacyTask);
+    const taskId = legacyTaskCoreId(legacyTask.id);
+    if (!projectId || !taskId) {
+      tasksSkipped.push(legacyTask.id);
+      continue;
+    }
+    if (!await canonicalProject(projectId)) {
+      tasksSkipped.push(legacyTask.id);
+      continue;
+    }
+    const existing = await getCoreTask(db, context.userEmail, taskId);
+    if (existing) {
+      tasksDeduplicated.push(existing.id);
+      continue;
+    }
+    const task = normalizeTask({
+      id: taskId,
+      projectId,
+      title: legacyTask.title,
+      status: "todo",
+      priority: "normal",
+      sourceType: "import",
+      sourceRef: legacyTaskSourceRef(legacyTask.id),
+      metadata: {
+        compatibilitySource: "legacy:tasks",
+        legacyTaskId: String(legacyTask.id),
+      },
+      version: 1,
+      createdAt: legacyTask.createdAt || now,
+      updatedAt: legacyTask.updatedAt || legacyTask.createdAt || now,
+    }, now);
+    const saved = await saveCoreTask(db, context.userEmail, task);
+    tasksCreated.push(saved.id);
+    await audit(env, context, "task:legacy-promote", "task", saved.id, {
+      projectId,
+      sourceRef: saved.sourceRef,
+    }, now);
+  }
+
+  return {
+    projectsUpdated,
+    tasksCreated,
+    tasksDeduplicated,
+    tasksSkipped,
   };
 }
 

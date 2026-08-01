@@ -42,3 +42,20 @@ During Stage A:
 4. Destructive assistant permissions remain disabled.
 
 The next implementation stage should add a Joy Core repository/service plus a read-only adapter for current project data before enabling write APIs.
+
+## Explicit legacy promotion
+
+Signed-in owners can call `POST /api/joy-core/v1/compatibility/promote` to
+reconcile the supported legacy project identities and promote only the
+high-confidence legacy inbox tasks defined by the Joy Core compatibility
+adapter. The action:
+
+- preserves legacy project progress, focus, and next action as migration
+  metadata without treating reported progress as canonical evidence;
+- creates deterministic Joy Core task identities and audit events;
+- leaves general inbox tasks and all legacy storage records unchanged;
+- is idempotent, so existing promoted tasks and unchanged project context are
+  not written or audited again.
+
+Overview reads remain read-only. They suppress a legacy inbox item only when
+its promoted Joy Core task exists.
