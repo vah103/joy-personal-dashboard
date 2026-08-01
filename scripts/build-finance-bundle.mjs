@@ -16,6 +16,7 @@ const paths = {
   monthLayout: resolve(financeSourceDir, "finance-month-layout.js"),
   coreCss: resolve(financeSourceDir, "finance.css"),
   dashboardGoldLiveCss: resolve(financeSourceDir, "finance-gold-live-value.css"),
+  privacyMaskCss: resolve(financeSourceDir, "finance-privacy-mask.css"),
   monthLayoutCss: resolve(financeSourceDir, "finance-month-layout.css"),
   p1008: resolve(projectFinanceDir, "finance-p1008.js"),
   p1008Layout: resolve(financeSourceDir, "finance-p1008-layout.js"),
@@ -64,6 +65,7 @@ const [
   monthLayoutSource,
   financeCss,
   dashboardGoldLiveCss,
+  privacyMaskCss,
   monthLayoutCss,
   p1008Source,
   p1008LayoutSource,
@@ -78,6 +80,7 @@ const [
   readFile(paths.monthLayout, "utf8"),
   readFile(paths.coreCss, "utf8"),
   readFile(paths.dashboardGoldLiveCss, "utf8"),
+  readFile(paths.privacyMaskCss, "utf8"),
   readFile(paths.monthLayoutCss, "utf8"),
   readFile(paths.p1008, "utf8"),
   readFile(paths.p1008Layout, "utf8"),
@@ -96,6 +99,9 @@ if (!dashboardSummarySource.includes("syncProjectedFinanceSummary")) {
 }
 if (!dashboardGoldLiveSource.includes('const GOLD_PRICE_ENDPOINT = "/api/finance/gold-price"')) {
   throw new Error("Finance live gold value source is missing its price endpoint");
+}
+if (!privacyMaskCss.includes("finance-values-hidden")) {
+  throw new Error("Finance skeleton privacy mask source is missing");
 }
 if (!p1008Source.includes('const API_PATH = "/api/p1008"')) {
   throw new Error("P1008 core source is missing its account API");
@@ -128,6 +134,7 @@ const financeCssBundle = [
   monthLayoutCss.trim(),
   dashboard.css,
   dashboardGoldLiveCss.trim(),
+  privacyMaskCss.trim(),
   monthLayout.css,
   "",
 ].join("\n\n");
