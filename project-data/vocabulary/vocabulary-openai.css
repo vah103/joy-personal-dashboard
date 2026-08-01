@@ -1,0 +1,106 @@
+.vocabulary-lookup-form {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.vocabulary-lookup-form > label:first-child {
+  grid-column: 1 / -1;
+}
+
+.vocabulary-lookup-form > #vocabulary-lookup-input {
+  min-width: 0;
+  height: 43px;
+  padding: 0 11px;
+  border: 1px solid rgba(63, 70, 72, 0.19);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #2f3537;
+  outline: none;
+  font: 750 12px "Nunito", ui-rounded, system-ui, sans-serif;
+}
+
+.vocabulary-context-field {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 6px;
+  margin-top: 3px;
+}
+
+.vocabulary-context-field > span {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  color: #555d60;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.vocabulary-context-field small {
+  color: #899092;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.vocabulary-context-field input {
+  width: 100%;
+  height: 40px;
+  padding: 0 11px;
+  border: 1px solid rgba(63, 70, 72, 0.16);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.58);
+  color: #2f3537;
+  outline: none;
+  font: 700 11px "Nunito", ui-rounded, system-ui, sans-serif;
+}
+
+.vocabulary-lookup-form > #vocabulary-lookup-input:focus,
+.vocabulary-context-field input:focus {
+  border-color: rgba(66, 94, 107, 0.44);
+  box-shadow: 0 0 0 3px rgba(91, 119, 132, 0.12);
+}
+
+.vocabulary-lookup-submit {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 92px;
+  min-height: 43px;
+}
+
+.vocabulary-result-card .vocabulary-meaning {
+  display: block;
+}
+
+.vocabulary-result-card .vocabulary-meaning + .vocabulary-meaning {
+  margin-top: 4px;
+}
+
+.vocabulary-result-card .vocabulary-example dd span,
+.vocabulary-result-card .vocabulary-example dd small {
+  display: block;
+}
+
+.vocabulary-result-card .vocabulary-example dd small {
+  margin-top: 4px;
+  color: #727b7e;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+@media (max-width: 760px) {
+  .vocabulary-lookup-form {
+    grid-template-columns: 1fr;
+  }
+
+  .vocabulary-lookup-submit {
+    grid-column: 1;
+    grid-row: auto;
+    width: 100%;
+  }
+
+  .vocabulary-context-field > span {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
+}
