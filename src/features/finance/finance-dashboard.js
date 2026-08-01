@@ -22,11 +22,6 @@
 
       #finance.finance-dashboard-polished .panel-title-button{
         color:#2e454d;
-        font-family:"Instrument Sans",Arial,sans-serif!important;
-        font-size:35px;
-        font-weight:700!important;
-        letter-spacing:-.04em!important;
-        line-height:1;
       }
 
       #finance.finance-dashboard-polished .finance-heading-actions{
@@ -297,10 +292,6 @@
       @media(max-width:760px){
         #finance.finance-dashboard-polished .panel-heading{
           align-items:flex-start;
-        }
-
-        #finance.finance-dashboard-polished .panel-title-button{
-          font-size:35px;
         }
 
         #finance.finance-dashboard-polished .finance-period-button{
