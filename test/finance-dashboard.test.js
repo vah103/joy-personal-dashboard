@@ -36,6 +36,13 @@ test("only the outer Finance card switches to full VND values", () => {
   assert.doesNotMatch(financeCoreSource, /setMoneyValue\s*=\s*fullValueSetter/);
 });
 
+test("Finance year-end cash value is compact and slightly stronger", () => {
+  assert.match(
+    dashboardThemeSource,
+    /\[data-finance-field="year-end"\] \{[\s\S]*font-size: clamp\(15px, 1\.16vw, 17px\);[\s\S]*font-weight: 600;[\s\S]*letter-spacing: -\.012em;[\s\S]*line-height: 1\.1;/,
+  );
+});
+
 test("Finance outer dashboard mirrors the popup projected month totals", () => {
   assert.match(dashboardSummarySource, /const projected = financeSummary\?\.current\?\.projected/);
   assert.match(dashboardSummarySource, /remaining: projected\.remaining/);
