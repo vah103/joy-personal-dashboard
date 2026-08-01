@@ -118,6 +118,16 @@
   color: #405f6c;
 }
 
+.daily-brief-tag[data-category="gold"] {
+  background: rgba(245, 235, 203, .92);
+  color: #765f21;
+}
+
+.daily-brief-tag[data-category="bitcoin"] {
+  background: rgba(244, 226, 207, .92);
+  color: #7b512d;
+}
+
 .daily-brief-tag[data-category="money"] {
   background: rgba(225, 235, 228, .9);
   color: #456a54;
