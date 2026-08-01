@@ -88,6 +88,12 @@ function enumValue(value, allowed, fallback, field) {
   return normalized;
 }
 
+function requiredEnum(value, allowed, field) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (!allowed.includes(normalized)) throw new TypeError(`${field} is invalid`);
+  return normalized;
+}
+
 function plainObject(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   return JSON.parse(JSON.stringify(value));
@@ -214,7 +220,7 @@ export function normalizeProjectRepoRef(input = {}, now = Date.now()) {
     projectId: requiredId(input.projectId, "repoRef.projectId"),
     sessionId: optionalId(input.sessionId, "repoRef.sessionId"),
     repoFullName: requiredText(input.repoFullName, "repoRef.repoFullName", 240),
-    refType: enumValue(input.refType, REPO_REF_TYPES, null, "repoRef.refType"),
+    refType: requiredEnum(input.refType, REPO_REF_TYPES, "repoRef.refType"),
     ref: requiredText(input.ref, "repoRef.ref", 1_000),
     uri: nullableText(input.uri, 2_000),
     status: enumValue(input.status, REPO_REF_STATUSES, "active", "repoRef.status"),
