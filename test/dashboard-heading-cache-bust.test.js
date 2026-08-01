@@ -11,16 +11,16 @@ const headingStylesSource = await readFile(
 test("dashboard heading stylesheet is served with a fresh cache key", () => {
   assert.match(
     routerSource,
-    /dashboard-openai-headings\.css\?v=joy-openai-headings-v2/,
+    /dashboard-openai-headings\.css\?v=joy-openai-headings-v3/,
   );
   assert.match(routerSource, /withDashboardHeadingAssetVersion/);
   assert.match(routerSource, /no-store, max-age=0/);
   assert.match(routerSource, /pathname === "\/dashboard-openai-headings\.css"/);
 });
 
-test("main dashboard panel headings remain 18px", () => {
+test("main dashboard panel headings remain 17px", () => {
   assert.match(
     headingStylesSource,
-    /\.dashboard-shell \.panel-heading h2,[\s\S]*\.dashboard-shell \.panel-title-button h2 \{[\s\S]*font-size: 18px;/,
+    /\.dashboard-shell \.panel-heading h2,[\s\S]*\.dashboard-shell \.panel-title-button h2 \{[\s\S]*font-size: 17px;/,
   );
 });
