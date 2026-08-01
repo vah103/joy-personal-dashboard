@@ -9,15 +9,31 @@ import {
 import { IELTS_LISTENING_SERVICE } from "./ielts-listening.js";
 
 const LISTENING_STATE_KEY = "__joyListeningSubmissions";
+const MAX_STORED_LISTENING_SUBMISSIONS = 8;
+const MAX_STORED_TRANSCRIPT_CHARS = 40_000;
+
+function boundedListeningSubmissions(value) {
+  if (!Array.isArray(value)) return [];
+  return value.slice(-MAX_STORED_LISTENING_SUBMISSIONS).map((submission) => {
+    if (!submission || typeof submission !== "object") return submission;
+    const rawTranscript = String(submission.transcript || "");
+    return {
+      ...submission,
+      transcript: rawTranscript.slice(0, MAX_STORED_TRANSCRIPT_CHARS),
+      transcriptTruncated: submission.transcriptTruncated === true
+        || rawTranscript.length > MAX_STORED_TRANSCRIPT_CHARS,
+    };
+  });
+}
 
 function attachListeningState(data) {
   if (!data || typeof data !== "object") return data;
   if (!data.rhythmReviews || typeof data.rhythmReviews !== "object" || Array.isArray(data.rhythmReviews)) {
     data.rhythmReviews = {};
   }
-  if (!Array.isArray(data.rhythmReviews[LISTENING_STATE_KEY])) {
-    data.rhythmReviews[LISTENING_STATE_KEY] = [];
-  }
+  data.rhythmReviews[LISTENING_STATE_KEY] = boundedListeningSubmissions(
+    data.rhythmReviews[LISTENING_STATE_KEY],
+  );
   Object.defineProperty(data, "listeningSubmissions", {
     configurable: true,
     enumerable: false,
@@ -25,7 +41,7 @@ function attachListeningState(data) {
       return data.rhythmReviews[LISTENING_STATE_KEY];
     },
     set(value) {
-      data.rhythmReviews[LISTENING_STATE_KEY] = Array.isArray(value) ? value : [];
+      data.rhythmReviews[LISTENING_STATE_KEY] = boundedListeningSubmissions(value);
     },
   });
   return data;
