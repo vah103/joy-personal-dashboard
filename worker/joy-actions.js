@@ -5,6 +5,10 @@ import {
   isJoyIeltsActionRoute,
 } from "./joy-actions-ielts.js";
 import {
+  handleProjectMemoryRequest,
+  isProjectMemoryRoute,
+} from "./project-memory-http.js";
+import {
   JoyCoreError,
   appendJoyProgressLog,
   attachJoyEvidence,
@@ -61,11 +65,11 @@ function privacyResponse() {
   <h1>Joy Actions Privacy</h1>
   <p>Joy Actions is a private integration for the owner of the Joy Personal Dashboard.</p>
   <h2>Data used</h2>
-  <p>When the owner invokes an action, Joy may return or update project, task, milestone, progress-log, evidence-reference, IELTS task-state, assessment, recurring-error, and course-session data stored in the owner's Cloudflare-backed Joy account.</p>
+  <p>When the owner invokes an action, Joy may return or update project, task, milestone, progress-log, evidence-reference, work-session, project-memory, IELTS task-state, assessment, recurring-error, and course-session data stored in the owner's Cloudflare-backed Joy account.</p>
   <h2>Sharing</h2>
-  <p>Action request and response data is sent to ChatGPT to complete the owner's request. Joy does not sell this data or expose it through unauthenticated project or IELTS endpoints.</p>
+  <p>Action request and response data is sent to ChatGPT to complete the owner's request. Joy does not sell this data or expose it through unauthenticated project, memory, or IELTS endpoints.</p>
   <h2>Security and retention</h2>
-  <p>Requests require a private bearer key. Project writes are recorded in Joy's audit table. Assistant credentials cannot delete projects or IELTS records, and IELTS completion must be based on owner-confirmed work.</p>
+  <p>Requests require a private bearer key. Project and memory writes are recorded in Joy's audit table. Assistant credentials cannot delete projects or IELTS records, and IELTS completion must be based on owner-confirmed work.</p>
   <h2>Contact</h2>
   <p>This integration is maintained privately through the Joy Personal Dashboard repository.</p>
 </body>
@@ -213,6 +217,14 @@ export async function handleJoyActionsRequest(request, env, dependencies = {}) {
     if (isJoyIeltsActionRoute(pathname)) {
       const result = await handleJoyIeltsActionRequest(request, env, context, {
         service: dependencies.ieltsService,
+      });
+      return apiJson(result.value, result.status);
+    }
+
+    if (isProjectMemoryRoute(pathname, API_PREFIX)) {
+      const result = await handleProjectMemoryRequest(request, env, context, {
+        prefix: API_PREFIX,
+        service: dependencies.projectMemoryService,
       });
       return apiJson(result.value, result.status);
     }
