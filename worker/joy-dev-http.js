@@ -13,6 +13,10 @@ import {
 const DEFAULT_PREFIX = "/api/joy/v1";
 const DEV_PREFIX = `${DEFAULT_PREFIX}/dev`;
 const MAX_BODY_BYTES = 900_000;
+const SPECIALIZED_SECURITY_PATHS = Object.freeze([
+  "worker/project-memory-http.js",
+  "worker/project-memory/",
+]);
 
 const defaultService = {
   getRepositoryContext: getJoyRepositoryContext,
@@ -89,6 +93,14 @@ function assertWritePathAccess(context, projectId, path) {
   const profile = String(context?.repositoryWriteProfile || "").toLowerCase();
   if (!profile) return;
   const normalized = String(path || "").replace(/^\/+/, "").toLowerCase();
+  if (SPECIALIZED_SECURITY_PATHS.some((protectedPath) => (
+    normalized === protectedPath || normalized.startsWith(protectedPath)
+  ))) {
+    throw new JoyCoreError("JOY_DEV_PROTECTED_PATH", 403, {
+      path,
+      reason: "Specialized GPTs cannot change project-isolation or work-session security files.",
+    });
+  }
   if (normalized.startsWith("project-data/")
     && !normalized.startsWith(`project-data/${projectId}/`)) {
     throw new JoyCoreError("JOY_DEV_PROJECT_PATH_FORBIDDEN", 403, {
@@ -124,6 +136,7 @@ function scopedRepositoryContext(context, value) {
       ...(value?.policy || {}),
       allowedProjectIds: [...allowed],
       repositoryWriteProfile: context?.repositoryWriteProfile || null,
+      protectedSpecializedPaths: [...SPECIALIZED_SECURITY_PATHS],
     },
   };
 }
