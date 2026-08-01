@@ -48,7 +48,7 @@
 
 #finance.finance-dashboard-polished .finance-overview-stat strong {
   font-family: "Nunito", "Instrument Sans", "Segoe UI", Arial, sans-serif;
-  font-weight: 500;
+  font-weight: 600;
   font-synthesis: none;
   font-variant-numeric: proportional-nums lining-nums;
   letter-spacing: -.016em;
@@ -72,7 +72,7 @@
  */
 #finance.finance-dashboard-polished.finance-full-money-values [data-finance-field="year-end"] {
   font-size: clamp(18px, 1.55vw, 24px) !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
   letter-spacing: -.014em !important;
   line-height: 1.08 !important;
 }
