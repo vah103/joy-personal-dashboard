@@ -66,9 +66,9 @@ const COMMON_PROJECT_PATHS = new Set([
   "/api/joy/v1/projects/{projectId}/evidence",
 ]);
 
-function selectPaths({ includeIelts = false } = {}) {
+function selectPaths({ includeIelts = false, includeCommonProjectPaths = true } = {}) {
   return Object.fromEntries(Object.entries(JOY_ACTIONS_OPENAPI.paths).filter(([path]) => {
-    if (COMMON_PROJECT_PATHS.has(path)) return true;
+    if (includeCommonProjectPaths && COMMON_PROJECT_PATHS.has(path)) return true;
     if (path.startsWith("/api/joy/v1/workspaces/")) return true;
     if (path.startsWith("/api/joy/v1/work-sessions/")) return true;
     if (path.startsWith("/api/joy/v1/dev/")) return true;
@@ -76,8 +76,27 @@ function selectPaths({ includeIelts = false } = {}) {
   }));
 }
 
-function specializedSchema({ title, description, includeIelts }) {
-  return Object.freeze({
+function builderSafeSchema(value) {
+  if (Array.isArray(value)) return value.map(builderSafeSchema);
+  if (!value || typeof value !== "object") return value;
+
+  const normalized = Object.fromEntries(
+    Object.entries(value).map(([key, child]) => [key, builderSafeSchema(child)]),
+  );
+
+  if (normalized.type === "object" && !Object.hasOwn(normalized, "properties")) {
+    normalized.properties = {};
+  }
+  return normalized;
+}
+
+function specializedSchema({
+  title,
+  description,
+  includeIelts,
+  includeCommonProjectPaths,
+}) {
+  return Object.freeze(builderSafeSchema({
     ...JOY_ACTIONS_OPENAPI,
     info: {
       ...JOY_ACTIONS_OPENAPI.info,
@@ -85,18 +104,20 @@ function specializedSchema({ title, description, includeIelts }) {
       version: "1.5.0",
       description,
     },
-    paths: selectPaths({ includeIelts }),
-  });
+    paths: selectPaths({ includeIelts, includeCommonProjectPaths }),
+  }));
 }
 
 export const JOY_IELTS_ACTIONS_OPENAPI = specializedSchema({
   title: "Joy IELTS Coach and Developer Actions",
   description: "Private Actions for the owner's IELTS teacher-developer GPT. The server locks this credential to the IELTS project while permitting safe branch-based repository work.",
   includeIelts: true,
+  includeCommonProjectPaths: false,
 });
 
 export const JOY_TURTLEBOT4_ACTIONS_OPENAPI = specializedSchema({
   title: "Joy TurtleBot4 Engineer and Developer Actions",
   description: "Private Actions for the owner's TurtleBot4 engineer-developer GPT. The server locks this credential to the TurtleBot4 project while permitting safe branch-based repository work.",
   includeIelts: false,
+  includeCommonProjectPaths: true,
 });
