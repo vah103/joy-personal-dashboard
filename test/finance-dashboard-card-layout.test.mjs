@@ -44,7 +44,7 @@ test("outer Finance card owns layout in the canonical source and uses Nunito for
   );
   assert.match(
     theme,
-    /#finance\.finance-dashboard-polished \.finance-overview-stat strong \{[\s\S]*font-family: "Nunito"[\s\S]*font-weight: 600;[\s\S]*letter-spacing: -\.016em;[\s\S]*line-height: 1\.08;/,
+    /#finance\.finance-dashboard-polished \.finance-overview-stat strong \{[\s\S]*font-family: "Nunito"[\s\S]*font-weight: 700;[\s\S]*letter-spacing: -\.016em;[\s\S]*line-height: 1\.08;/,
   );
   assert.match(
     theme,
