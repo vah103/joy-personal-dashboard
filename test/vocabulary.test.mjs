@@ -50,17 +50,20 @@ test("Vocabulary keeps flashcards and adds optional context", () => {
   assert.match(extraStyles, /\.vocabulary-context-field/);
 });
 
-test("Vocabulary outside card is a compact launcher while practice stays in the popup", () => {
+test("Vocabulary outside card clearly opens full practice in the popup", () => {
   assert.match(compactFrontend, /data-vocab-practice-root="desktop"/);
   assert.match(compactFrontend, /vocabulary-compact-card/);
   assert.match(compactFrontend, /data-vocab-open-practice/);
+  assert.match(compactFrontend, />Practice</);
+  assert.match(compactFrontend, /Practice vocabulary and enter an answer/);
   assert.match(compactFrontend, /data-vocab-open-lookup/);
   assert.match(compactFrontend, /data-speaking-open/);
   assert.doesNotMatch(compactFrontend, /data-vocab-practice-form|Your answer|Show answer|Check/);
   assert.match(frontend, /data-vocab-practice-root="mobile"/);
   assert.match(frontend, /data-vocab-practice-form/);
   assert.match(frontend, /data-vocab-show-answer/);
-  assert.match(compactStyles, /min-height:\s*118px/);
+  assert.match(compactStyles, /\.vocabulary-compact-meta/);
+  assert.match(compactStyles, /cursor:\s*pointer/);
   assert.match(compactStyles, /-webkit-line-clamp:\s*2/);
 });
 
@@ -105,9 +108,9 @@ test("Vocabulary save and review routes retain authenticated D1 storage", () => 
 
 test("Dashboard loader cache-busts all Vocabulary assets", () => {
   assert.match(loader, /vocabulary-openai\.css\?v=joy-vocabulary-openai-v1/);
-  assert.match(loader, /vocabulary-compact\.css\?v=joy-vocabulary-compact-v1/);
+  assert.match(loader, /vocabulary-compact\.css\?v=joy-vocabulary-compact-v2/);
   assert.match(loader, /vocabulary\.js\?v=joy-vocabulary-v2/);
-  assert.match(loader, /vocabulary-compact\.js\?v=joy-vocabulary-compact-v1/);
+  assert.match(loader, /vocabulary-compact\.js\?v=joy-vocabulary-compact-v2/);
   assert.match(loader, /vocabulary-mobile-inline\.js\?v=joy-vocabulary-mobile-inline-v2/);
   assert.match(loader, /loadCompactCard/);
 });
