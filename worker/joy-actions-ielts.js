@@ -43,6 +43,49 @@ export async function handleJoyIeltsActionRequest(
   const url = new URL(request.url);
   const { pathname } = url;
 
+  if (pathname === `${IELTS_ACTION_PREFIX}/listening/submissions`) {
+    if (request.method !== "POST") return methodNotAllowed(["POST"]);
+    assertIeltsPermission(context, IELTS_ACTIONS.LISTENING_TRANSCRIBE);
+    const value = await service.prepareListeningSubmission(
+      env,
+      context,
+      await body(request),
+    );
+    return {
+      value,
+      status: value.deduplicated ? 200 : 201,
+    };
+  }
+
+  let match = pathname.match(/^\/api\/joy\/v1\/ielts\/listening\/submissions\/([^/]+)$/);
+  if (match) {
+    if (request.method !== "GET") return methodNotAllowed(["GET"]);
+    assertIeltsPermission(context, IELTS_ACTIONS.READ);
+    return {
+      value: await service.getListeningSubmission(
+        env,
+        context,
+        decodePathPart(match[1]),
+      ),
+      status: 200,
+    };
+  }
+
+  match = pathname.match(/^\/api\/joy\/v1\/ielts\/listening\/submissions\/([^/]+)\/review$/);
+  if (match) {
+    if (request.method !== "POST") return methodNotAllowed(["POST"]);
+    assertIeltsPermission(context, IELTS_ACTIONS.LISTENING_REVIEW);
+    return {
+      value: await service.saveListeningReview(
+        env,
+        context,
+        decodePathPart(match[1]),
+        await body(request),
+      ),
+      status: 200,
+    };
+  }
+
   if (pathname === `${IELTS_ACTION_PREFIX}/today`) {
     if (request.method !== "GET") return methodNotAllowed(["GET"]);
     assertIeltsPermission(context, IELTS_ACTIONS.READ);
@@ -54,7 +97,7 @@ export async function handleJoyIeltsActionRequest(
     };
   }
 
-  let match = pathname.match(/^\/api\/joy\/v1\/ielts\/tasks\/([^/]+)$/);
+  match = pathname.match(/^\/api\/joy\/v1\/ielts\/tasks\/([^/]+)$/);
   if (match) {
     if (request.method !== "GET") return methodNotAllowed(["GET"]);
     assertIeltsPermission(context, IELTS_ACTIONS.READ);
