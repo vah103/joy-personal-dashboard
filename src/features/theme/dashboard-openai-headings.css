@@ -66,9 +66,9 @@
 }
 
 #finance.finance-dashboard-polished.finance-full-money-values [data-finance-field="year-end"] {
-  font-size: clamp(15px, 1.16vw, 17px);
+  font-size: clamp(14px, 1vw, 16px);
   font-weight: 600;
-  letter-spacing: -.012em;
+  letter-spacing: -.01em;
   line-height: 1.1;
 }
 
