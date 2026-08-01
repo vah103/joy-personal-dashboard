@@ -120,8 +120,8 @@ test("Joy IELTS OpenAPI describes the runtime profile and remains within Builder
   assert.ok(operationCount(JOY_IELTS_ACTIONS_OPENAPI) <= 30);
 
   const turtleSchemas = JOY_TURTLEBOT4_ACTIONS_OPENAPI.components.schemas;
-  assert.equal(turtleSchemas.JoySpecializedAssistantProfile, undefined);
-  assert.equal(turtleSchemas.WorkspaceBootstrapResult.required.includes("assistantProfile"), false);
+  assert.equal(turtleSchemas.JoySpecializedAssistantProfile.properties.profileId.enum[0], "turtlebot4");
+  assert.ok(turtleSchemas.WorkspaceBootstrapResult.required.includes("assistantProfile"));
 });
 
 test("the Builder profile documents the required teaching, memory, Listening, and development workflows", async () => {
