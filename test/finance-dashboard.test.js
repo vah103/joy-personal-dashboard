@@ -50,21 +50,27 @@ test("Finance outer dashboard mirrors the popup projected month totals", () => {
   assert.match(financeCoreSource, /closing = Number\(month\.projected\?\.remaining/);
 });
 
-test("Finance year-end card presents gold as an icon asset in taels", () => {
+test("Finance year-end card uses the supplied coin artwork in taels", () => {
   assert.match(dashboardSummarySource, /const GOLD_HELD_TAEL = 0\.05/);
+  assert.match(dashboardSummarySource, /const GOLD_COIN_IMAGE = "data:image\/webp;base64,/);
   assert.match(dashboardSummarySource, /minimumFractionDigits: 2/);
   assert.match(dashboardSummarySource, /return `\$\{amount\} tael`/);
   assert.match(dashboardSummarySource, /finance-year-end-card/);
   assert.match(dashboardSummarySource, /finance-year-end-content/);
   assert.match(dashboardSummarySource, /finance-year-end-gold-icon/);
-  assert.match(dashboardSummarySource, /<svg viewBox="0 0 24 24"/);
+  assert.match(dashboardSummarySource, /document\.createElement\("img"\)/);
+  assert.match(dashboardSummarySource, /image\.src = GOLD_COIN_IMAGE/);
+  assert.match(dashboardSummarySource, /image\.decoding = "async"/);
+  assert.doesNotMatch(dashboardSummarySource, /<svg viewBox=/);
   assert.match(dashboardSummarySource, /Projected cash balance/);
   assert.doesNotMatch(dashboardSummarySource, /label\.textContent = "Gold held"/);
   assert.doesNotMatch(dashboardSummarySource, /chỉ/);
   assert.match(dashboardSummarySource, /value\.dataset\.financeMask = "•••"/);
   assert.match(dashboardSummarySource, /syncYearEndGoldHolding\(\)/);
-  assert.match(dashboardThemeSource, /\.finance-year-end-gold-icon/);
-  assert.match(dashboardThemeSource, /border-radius: 999px/);
+  assert.match(dashboardThemeSource, /\.finance-year-end-gold-icon img/);
+  assert.match(dashboardThemeSource, /object-fit: cover/);
+  assert.match(dashboardThemeSource, /transform: scale\(1\.06\)/);
+  assert.doesNotMatch(dashboardThemeSource, /\.finance-year-end-gold-icon svg/);
   assert.doesNotMatch(dashboardThemeSource, /border-top:/);
 
   const cashValues = dashboardSummarySource.match(/const values = \{([\s\S]*?)\n    \};/)?.[1] || "";
