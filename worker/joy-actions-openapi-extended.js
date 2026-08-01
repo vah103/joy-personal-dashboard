@@ -26,7 +26,7 @@ export const JOY_ACTIONS_OPENAPI = Object.freeze({
   ...BASE_OPENAPI,
   info: {
     ...BASE_OPENAPI.info,
-    version: "1.2.0",
+    version: "1.2.1",
     description: `${BASE_OPENAPI.info.description} It also exposes the owner's IELTS Journey teaching context, safe learning-record updates, and a private Listening file-transcription workflow for audio and answer screenshots attached in GPT Joy.`,
   },
   paths: {
