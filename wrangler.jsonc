@@ -5,7 +5,7 @@
   "compatibility_date": "2026-07-22",
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
-    "DAILY_BRIEF_AI_ENABLED": "false"
+    "DAILY_BRIEF_AI_ENABLED": "true"
   },
   "assets": {
     "directory": "./dist",
