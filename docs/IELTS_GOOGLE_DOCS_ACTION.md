@@ -48,10 +48,10 @@ No D1 migration is required.
 
 ## GPT Builder
 
-Re-import the Joy IELTS Action schema because this release adds one operation:
+Re-import the Joy IELTS Action schema because this release adds one operation. The extra query value bypasses the previous Builder cache while keeping the current compatible schema version:
 
 ```text
-https://app.hey-joy.workers.dev/api/joy/v1/openapi/ielts.json?v=1.6.0&profile=joy-ielts-v1
+https://app.hey-joy.workers.dev/api/joy/v1/openapi/ielts.json?v=1.5.0&profile=joy-ielts-v1&feature=ielts-docs-v1
 ```
 
 Keep Authentication as **API Key → Bearer** using `JOY_IELTS_GPT_ACTION_KEY`.
