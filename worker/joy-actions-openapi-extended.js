@@ -8,6 +8,10 @@ import {
   IELTS_LISTENING_ACTION_SCHEMAS,
 } from "./ielts-listening-openapi.js";
 import {
+  IELTS_REVIEW_DOCUMENT_ACTION_PATHS,
+  IELTS_REVIEW_DOCUMENT_ACTION_SCHEMAS,
+} from "./ielts-review-docs-openapi.js";
+import {
   PROJECT_MEMORY_ACTION_PATHS,
   PROJECT_MEMORY_ACTION_SCHEMAS,
 } from "./project-memory-openapi.js";
@@ -35,7 +39,7 @@ export const JOY_ACTIONS_OPENAPI = Object.freeze({
   info: {
     ...BASE_OPENAPI.info,
     version: "1.4.0",
-    description: `${BASE_OPENAPI.info.description} It also exposes shared project memory, safe branch-based repository development, IELTS teaching context, learning-record updates, and private Listening transcription.`,
+    description: `${BASE_OPENAPI.info.description} It also exposes shared project memory, safe branch-based repository development, IELTS teaching context, learning-record updates, private Listening transcription, and fixed-document IELTS review export.`,
   },
   paths: {
     ...BASE_OPENAPI.paths,
@@ -43,6 +47,7 @@ export const JOY_ACTIONS_OPENAPI = Object.freeze({
     ...JOY_DEV_ACTION_PATHS,
     ...GPT_IELTS_ACTION_PATHS,
     ...IELTS_LISTENING_ACTION_PATHS,
+    ...IELTS_REVIEW_DOCUMENT_ACTION_PATHS,
   },
   components: {
     ...BASE_OPENAPI.components,
@@ -52,6 +57,7 @@ export const JOY_ACTIONS_OPENAPI = Object.freeze({
       ...JOY_DEV_ACTION_SCHEMAS,
       ...IELTS_ACTION_SCHEMAS,
       ...IELTS_LISTENING_ACTION_SCHEMAS,
+      ...IELTS_REVIEW_DOCUMENT_ACTION_SCHEMAS,
     },
   },
 });
@@ -234,7 +240,7 @@ function specializedSchema({
 
 export const JOY_IELTS_ACTIONS_OPENAPI = specializedSchema({
   title: "Joy IELTS Coach and Developer Actions",
-  description: "Private Actions for the owner's IELTS teacher-developer GPT. The server locks this credential to the IELTS project while permitting safe branch-based repository work.",
+  description: "Private Actions for the owner's IELTS teacher-developer GPT. The server locks this credential to the IELTS project while permitting safe branch-based repository work and fixed-document review export.",
   includeIelts: true,
   includeCommonProjectPaths: false,
   assistantProfileSchema: IELTS_ASSISTANT_PROFILE_SCHEMA,
