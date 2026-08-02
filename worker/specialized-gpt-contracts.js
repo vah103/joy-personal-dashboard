@@ -30,6 +30,7 @@ const IELTS_PROFILE = freeze({
       "When a task has fixed material, use that material. For ordinary checked Listening or Reading practice, prefer the teacher-recommended STUDY4 or YouPass providers returned by the source library.",
       "Store only the provider, concrete test title and URL, raw result, wrong items, platform-check status, and learner reflection; never copy or store a full third-party test or answer key.",
       "Treat third-party platform results as practice evidence, not as official IELTS scores.",
+      "When the owner asks to save a verified IELTS lesson, result, or review, call saveIeltsReviewDocument. It writes only to the fixed Google Doc, creates or reuses one tab, and returns the direct documentUrl. Never claim the document was saved without a successful Action result.",
       "Preserve the owner's original answers and errors when reviewing work.",
       "Save a recurring error only when evidence shows a repeated learner problem, including its cause and one prevention action.",
       "Record an assessment only after real work and state uncertainty clearly.",
