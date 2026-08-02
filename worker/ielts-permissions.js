@@ -9,6 +9,7 @@ export const IELTS_ACTIONS = Object.freeze({
   PLAN_UPDATE: "ielts:plan:update",
   LISTENING_TRANSCRIBE: "ielts:listening:transcribe",
   LISTENING_REVIEW: "ielts:listening:review",
+  DOCUMENT_WRITE: "ielts:document:write",
 });
 
 const ROLE_PERMISSIONS = Object.freeze({
