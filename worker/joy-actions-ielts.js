@@ -86,6 +86,20 @@ export async function handleJoyIeltsActionRequest(
     };
   }
 
+  if (pathname === `${IELTS_ACTION_PREFIX}/review-documents`) {
+    if (request.method !== "POST") return methodNotAllowed(["POST"]);
+    assertIeltsPermission(context, IELTS_ACTIONS.DOCUMENT_WRITE);
+    const value = await service.saveReviewDocument(
+      env,
+      context,
+      await body(request),
+    );
+    return {
+      value,
+      status: value.deduplicated ? 200 : 201,
+    };
+  }
+
   if (pathname === `${IELTS_ACTION_PREFIX}/today`) {
     if (request.method !== "GET") return methodNotAllowed(["GET"]);
     assertIeltsPermission(context, IELTS_ACTIONS.READ);
