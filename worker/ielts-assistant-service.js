@@ -7,6 +7,7 @@ import {
   readIeltsState,
 } from "./ielts-core.js";
 import { IELTS_LISTENING_SERVICE } from "./ielts-listening.js";
+import { IELTS_REVIEW_DOCUMENT_SERVICE } from "./ielts-review-docs.js";
 import { JoyCoreError } from "./joy-core/service.js";
 import {
   decorateIeltsTeachingContext,
@@ -170,4 +171,5 @@ export const STABLE_IELTS_ASSISTANT_SERVICE = Object.freeze({
   prepareListeningSubmission,
   getListeningSubmission,
   saveListeningReview,
+  saveReviewDocument: IELTS_REVIEW_DOCUMENT_SERVICE.save,
 });
