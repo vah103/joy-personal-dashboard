@@ -51,36 +51,27 @@ export async function handleIeltsCourseSyncRequest(request, env) {
   if (!session) return json({ error: "AUTH_REQUIRED" }, 401);
 
   if (request.method === "GET") {
-    const [connected, record] = await Promise.all([
+    const [connected, knowledge] = await Promise.all([
       hasGoogleDocsToken(session.user_email, env),
       readIeltsCourseKnowledge(session.user_email, env),
     ]);
+    return json({ connected, documentUrl: IELTS_COURSE_DOCUMENT_URL, knowledge });
+  }
+
+  if (request.method !== "POST") return json({ error: "METHOD_NOT_ALLOWED" }, 405);
+  if (!isSameOrigin(request)) return json({ error: "INVALID_ORIGIN" }, 403);
+
+  try {
     return json({
-      connected,
+      ok: true,
+      connected: true,
       documentUrl: IELTS_COURSE_DOCUMENT_URL,
-      knowledge: record,
+      ...await syncIeltsCourseForUser(session.user_email, env),
     });
+  } catch (error) {
+    console.error("IELTS course Google Docs sync failed", error);
+    return json({ error: error?.code || "IELTS_COURSE_SYNC_FAILED" }, Number(error?.status || 500));
   }
-
-  if (request.method === "POST") {
-    if (!isSameOrigin(request)) return json({ error: "INVALID_ORIGIN" }, 403);
-    try {
-      const result = await syncIeltsCourseForUser(session.user_email, env);
-      return json({
-        ok: true,
-        connected: true,
-        documentUrl: IELTS_COURSE_DOCUMENT_URL,
-        ...result,
-      });
-    } catch (error) {
-      console.error("IELTS course Google Docs sync failed", error);
-      return json({
-        error: error?.code || "IELTS_COURSE_SYNC_FAILED",
-      }, Number(error?.status || 500));
-    }
-  }
-
-  return json({ error: "METHOD_NOT_ALLOWED" }, 405);
 }
 
 export async function readIeltsCourseKnowledge(email, env) {
@@ -88,9 +79,8 @@ export async function readIeltsCourseKnowledge(email, env) {
     SELECT data_json, synced_at, last_checked_at
     FROM ielts_course_knowledge
     WHERE user_email = ?
-  `).bind(String(email || "").trim().toLowerCase()).first();
-  if (!row?.data_json) return null;
-  const knowledge = safeJson(row.data_json, null);
+  `).bind(normalizeEmail(email)).first();
+  const knowledge = safeJson(row?.data_json, null);
   if (!knowledge) return null;
   return {
     ...knowledge,
@@ -103,7 +93,7 @@ export async function readIeltsCourseKnowledge(email, env) {
 }
 
 export async function syncIeltsCourseForUser(email, env, dependencies = {}) {
-  const userEmail = String(email || "").trim().toLowerCase();
+  const userEmail = normalizeEmail(email);
   const now = Number(dependencies.now?.() || Date.now());
   const accessToken = await (dependencies.getAccessToken || getGoogleDocsAccessToken)(userEmail, env);
   const document = await (dependencies.fetchDocument || fetchGoogleDocument)(accessToken);
@@ -114,7 +104,7 @@ export async function syncIeltsCourseForUser(email, env, dependencies = {}) {
     WHERE user_email = ?
   `).bind(userEmail).first();
 
-  if (current?.content_hash && current.content_hash === extracted.source.contentHash) {
+  if (current?.content_hash === extracted.source.contentHash) {
     await env.DB.prepare(`
       UPDATE ielts_course_knowledge
       SET revision_id = ?, last_checked_at = ?, updated_at = ?
@@ -135,7 +125,6 @@ export async function syncIeltsCourseForUser(email, env, dependencies = {}) {
     };
   }
 
-  const serialized = JSON.stringify(extracted);
   await env.DB.prepare(`
     INSERT INTO ielts_course_knowledge (
       user_email, document_id, revision_id, content_hash, data_json,
@@ -154,7 +143,7 @@ export async function syncIeltsCourseForUser(email, env, dependencies = {}) {
     IELTS_COURSE_DOCUMENT_ID,
     extracted.source.revisionId,
     extracted.source.contentHash,
-    serialized,
+    JSON.stringify(extracted),
     now,
     now,
     now,
@@ -171,7 +160,6 @@ export async function syncIeltsCourseForUser(email, env, dependencies = {}) {
 
 export async function runIeltsCourseSyncSchedule(env, dependencies = {}) {
   const now = Number(dependencies.now?.() || Date.now());
-  const dueBefore = now - AUTO_CHECK_INTERVAL;
   const rows = await env.DB.prepare(`
     SELECT tokens.user_email
     FROM google_docs_tokens tokens
@@ -180,7 +168,7 @@ export async function runIeltsCourseSyncSchedule(env, dependencies = {}) {
     WHERE COALESCE(knowledge.last_checked_at, 0) <= ?
     ORDER BY COALESCE(knowledge.last_checked_at, 0) ASC
     LIMIT 10
-  `).bind(dueBefore).all();
+  `).bind(now - AUTO_CHECK_INTERVAL).all();
 
   await Promise.allSettled((rows.results || []).map((row) => (
     syncIeltsCourseForUser(row.user_email, env, dependencies)
@@ -188,50 +176,50 @@ export async function runIeltsCourseSyncSchedule(env, dependencies = {}) {
 }
 
 async function fetchGoogleDocument(accessToken) {
-  const url = `https://docs.googleapis.com/v1/documents/${encodeURIComponent(IELTS_COURSE_DOCUMENT_ID)}?includeTabsContent=true`;
-  const response = await fetch(url, {
+  const endpoint = `https://docs.googleapis.com/v1/documents/${encodeURIComponent(IELTS_COURSE_DOCUMENT_ID)}?includeTabsContent=true`;
+  const response = await fetch(endpoint, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const error = new Error("GOOGLE_DOCS_READ_FAILED");
-    error.code = response.status === 401 || response.status === 403
-      ? "DOCS_AUTHORIZATION_REQUIRED"
-      : response.status === 404
-        ? "IELTS_COURSE_DOCUMENT_NOT_FOUND"
-        : "GOOGLE_DOCS_READ_FAILED";
-    error.status = response.status === 401 || response.status === 403
-      ? 403
-      : response.status === 404
-        ? 404
-        : 502;
-    throw error;
-  }
-  return payload;
+  if (response.ok) return payload;
+
+  const error = new Error("GOOGLE_DOCS_READ_FAILED");
+  error.code = response.status === 401 || response.status === 403
+    ? "DOCS_AUTHORIZATION_REQUIRED"
+    : response.status === 404
+      ? "IELTS_COURSE_DOCUMENT_NOT_FOUND"
+      : "GOOGLE_DOCS_READ_FAILED";
+  error.status = response.status === 401 || response.status === 403
+    ? 403
+    : response.status === 404
+      ? 404
+      : 502;
+  throw error;
 }
 
 export async function extractCourseKnowledge(document, syncedAt = Date.now()) {
   const tabs = flattenDocumentTabs(document?.tabs || []);
-  const sections = tabs.flatMap((tab) => sectionsFromTab(tab));
-  const boundedSections = [];
-  let totalText = 0;
+  const sections = tabs.flatMap(sectionsFromTab);
+  const bounded = [];
+  let textCharacters = 0;
+
   for (const section of sections) {
-    if (boundedSections.length >= MAX_TOPICS || totalText >= MAX_TOTAL_TEXT) break;
-    const remaining = MAX_TOTAL_TEXT - totalText;
-    const text = cleanText(section.text).slice(0, Math.min(MAX_TOPIC_TEXT, remaining));
+    if (bounded.length >= MAX_TOPICS || textCharacters >= MAX_TOTAL_TEXT) break;
+    const text = cleanText(section.text).slice(
+      0,
+      Math.min(MAX_TOPIC_TEXT, MAX_TOTAL_TEXT - textCharacters),
+    );
     if (text.length < 24) continue;
-    boundedSections.push({ ...section, text });
-    totalText += text.length;
+    bounded.push({ ...section, text });
+    textCharacters += text.length;
   }
 
-  const topics = boundedSections.map((section, index) => topicFromSection(section, index));
-  const contentForHash = JSON.stringify(tabs.map((tab) => ({
+  const hashInput = JSON.stringify(tabs.map((tab) => ({
     id: tab.tabId,
     title: tab.title,
     text: readStructuralText(tab.body?.content || []),
   })));
-  const contentHash = await sha256Hex(contentForHash);
-  const revisionId = String(document?.revisionId || contentHash).slice(0, 300);
+  const contentHash = await courseContentHash(hashInput);
 
   return {
     schemaVersion: 1,
@@ -240,17 +228,17 @@ export async function extractCourseKnowledge(document, syncedAt = Date.now()) {
       documentId: IELTS_COURSE_DOCUMENT_ID,
       documentUrl: IELTS_COURSE_DOCUMENT_URL,
       title: cleanText(document?.title || "Writing Course Notes").slice(0, 240),
-      revisionId,
+      revisionId: String(document?.revisionId || contentHash).slice(0, 300),
       contentHash,
       syncedAt: Number(syncedAt),
       lastCheckedAt: Number(syncedAt),
     },
     stats: {
       tabCount: tabs.length,
-      topicCount: topics.length,
-      textCharacters: totalText,
+      topicCount: bounded.length,
+      textCharacters,
     },
-    topics,
+    topics: bounded.map(topicFromSection),
   };
 }
 
@@ -271,22 +259,21 @@ export function flattenDocumentTabs(tabs, parents = []) {
 }
 
 function sectionsFromTab(tab) {
-  const paragraphs = structuralParagraphs(tab.body?.content || []);
   const sections = [];
   let current = {
     tabId: tab.tabId,
     tabTitle: tab.title,
     tabPath: tab.path,
     heading: tab.title,
-    headingStyle: "TAB",
     text: "",
   };
 
   const commit = () => {
-    if (cleanText(current.text)) sections.push({ ...current, text: cleanText(current.text) });
+    const text = cleanText(current.text);
+    if (text) sections.push({ ...current, text });
   };
 
-  for (const paragraph of paragraphs) {
+  for (const paragraph of structuralParagraphs(tab.body?.content || [])) {
     const text = cleanText(paragraph.text);
     if (!text) continue;
     if (/^(TITLE|SUBTITLE|HEADING_[1-6])$/.test(paragraph.style)) {
@@ -296,12 +283,11 @@ function sectionsFromTab(tab) {
         tabTitle: tab.title,
         tabPath: tab.path,
         heading: text,
-        headingStyle: paragraph.style,
         text: "",
       };
-      continue;
+    } else {
+      current.text += `${current.text ? "\n" : ""}${paragraph.bullet ? "• " : ""}${text}`;
     }
-    current.text += `${current.text ? "\n" : ""}${paragraph.bullet ? "• " : ""}${text}`;
   }
   commit();
   return sections;
@@ -313,7 +299,9 @@ function structuralParagraphs(elements, output = []) {
       output.push({
         style: String(element.paragraph.paragraphStyle?.namedStyleType || "NORMAL_TEXT"),
         bullet: Boolean(element.paragraph.bullet),
-        text: paragraphText(element.paragraph),
+        text: (element.paragraph.elements || []).map((item) => (
+          item?.textRun?.content || item?.autoText?.content || ""
+        )).join(""),
       });
     } else if (element?.table) {
       for (const row of element.table.tableRows || []) {
@@ -333,41 +321,38 @@ function readStructuralText(elements) {
     .join("\n");
 }
 
-function paragraphText(paragraph) {
-  return (paragraph.elements || []).map((element) => (
-    element?.textRun?.content
-    || element?.autoText?.content
-    || ""
-  )).join("");
-}
-
 function topicFromSection(section, index) {
   const sourceText = `${section.tabTitle}\n${section.heading}\n${section.text}`;
   const taskType = TASK_TYPE_PATTERNS.find(([, pattern]) => pattern.test(sourceText))?.[0]
     || (/task\s*2/i.test(section.tabTitle) ? "Task 2" : /task\s*1/i.test(section.tabTitle) ? "Task 1" : "Writing");
-  const grammar = GRAMMAR_PATTERNS
-    .filter(([, pattern]) => pattern.test(sourceText))
-    .map(([label]) => label);
-  const heading = cleanText(section.heading || section.tabTitle);
+  const title = cleanText(section.heading || section.tabTitle);
   return {
-    id: `course-topic-${String(index + 1).padStart(3, "0")}-${slug(heading).slice(0, 48)}`,
+    id: `course-topic-${String(index + 1).padStart(3, "0")}-${slug(title).slice(0, 48)}`,
     skill: "writing",
     taskType,
-    title: heading,
+    title,
     summary: section.text,
-    grammar,
+    grammar: GRAMMAR_PATTERNS
+      .filter(([, pattern]) => pattern.test(sourceText))
+      .map(([label]) => label),
     source: {
       tabId: section.tabId,
       tabTitle: section.tabTitle,
       tabPath: section.tabPath,
-      heading,
+      heading: title,
     },
   };
 }
 
-async function sha256Hex(value) {
+const courseContentHash = async (value) => {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(value)));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+};
+
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
 }
 
 function slug(value) {
