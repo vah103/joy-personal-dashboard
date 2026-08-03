@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { handleDailyBriefRequest } from "../worker/daily-brief.js";
 
 const root = new URL("../", import.meta.url);
 
@@ -57,4 +58,101 @@ test("Daily Brief is wired into the Worker and dashboard", async () => {
   assert.doesNotMatch(build, /daily-brief-polish\.js/);
   assert.match(baseStyles, /\.joy-brief\.daily-brief-enabled/);
   assert.match(baseStyles, /\.daily-brief-drawer-backdrop/);
+});
+
+function createDailyBriefDb() {
+  const state = { lastRefresh: 0, stories: [] };
+
+  return {
+    state,
+    prepare(sql) {
+      const statement = {
+        args: [],
+        bind(...args) {
+          this.args = args;
+          return this;
+        },
+        async first() {
+          if (sql.includes("FROM daily_brief_meta")) {
+            return state.lastRefresh ? { value: String(state.lastRefresh) } : null;
+          }
+          return null;
+        },
+        async all() {
+          if (sql.includes("FROM daily_brief_stories")) {
+            const now = Number(this.args[0]);
+            return { results: state.stories.filter((story) => story.expires_at > now) };
+          }
+          return { results: [] };
+        },
+        async run() {
+          if (sql.includes("DELETE FROM daily_brief_stories")) {
+            const cutoff = Number(this.args[0]);
+            state.stories = state.stories.filter((story) => story.expires_at > cutoff);
+          }
+          if (sql.includes("INSERT INTO daily_brief_meta")) {
+            state.lastRefresh = Number(this.args[0]);
+          }
+          return { success: true };
+        },
+      };
+      return statement;
+    },
+    async batch(statements) {
+      for (const statement of statements) {
+        const [id, title, summary, whyItMatters, keyPointsJson, category, scope, sourceName, articleUrl, sourceCount, score, publishedAt, createdAt, expiresAt] = statement.args;
+        state.stories.push({
+          id,
+          title,
+          summary,
+          why_it_matters: whyItMatters,
+          key_points_json: keyPointsJson,
+          category,
+          scope,
+          source_name: sourceName,
+          article_url: articleUrl,
+          source_count: sourceCount,
+          score,
+          published_at: publishedAt,
+          created_at: createdAt,
+          expires_at: expiresAt,
+        });
+      }
+      return statements.map(() => ({ success: true }));
+    },
+  };
+}
+
+test("initial synchronous refresh returns fresh metadata", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalNow = Date.now;
+  const db = createDailyBriefDb();
+  let nowCalls = 0;
+
+  Date.now = () => (++nowCalls === 1 ? 1_000 : 2_000);
+  globalThis.fetch = async () => new Response(`<?xml version="1.0"?>
+    <rss><channel><item>
+      <title>Government central bank interest rate inflation policy update</title>
+      <description>Major government and central bank policy changes affect inflation, markets, trade and the economy.</description>
+      <link>https://example.com/important-policy-update</link>
+      <pubDate>Thu, 01 Jan 1970 00:00:01 GMT</pubDate>
+    </item></channel></rss>`, { status: 200 });
+
+  try {
+    const response = await handleDailyBriefRequest(
+      new Request("https://joy.test/api/daily-brief"),
+      { DB: db },
+      { waitUntil() {} },
+    );
+    const payload = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(db.state.lastRefresh, 2_000);
+    assert.equal(payload.updatedAt, 2_000);
+    assert.equal(payload.stale, false);
+    assert.ok(payload.stories.length > 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+    Date.now = originalNow;
+  }
 });
