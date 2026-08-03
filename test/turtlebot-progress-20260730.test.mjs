@@ -10,7 +10,7 @@ const mergerPath = resolve(root, "project-data/turtlebot4/project-current-state.
 const loaderPath = resolve(root, "src/features/project-hub/turtlebot-plan-loader.js");
 const oldProgressPath = resolve(root, "project-data/turtlebot4/progress-20260730.js");
 
-test("canonical TurtleBot state closes Stage 3 and advances to Stage 4", async () => {
+test("canonical TurtleBot state records verified partial Stage 4 progress", async () => {
   const [stateSource, merger, loader] = await Promise.all([
     readFile(currentStatePath, "utf8"),
     readFile(mergerPath, "utf8"),
@@ -20,23 +20,26 @@ test("canonical TurtleBot state closes Stage 3 and advances to Stage 4", async (
 
   assert.doesNotThrow(() => new Function(merger));
   assert.doesNotThrow(() => new Function(loader));
-  assert.equal(state.updatedAt, "2026-07-30");
+  assert.equal(state.updatedAt, "2026-08-03");
   assert.equal(state.project.currentStageId, "stage-4");
-  assert.equal(state.project.stage3Result.trials, 12);
-  assert.equal(state.project.stage3Result.successRate, 100);
-  assert.equal(state.project.stage3Result.recoveries, 0);
-  assert.equal(state.project.stage3Result.meanTravelTimeSeconds, 8.43);
-  assert.equal(state.project.stage3Result.meanPathLengthMeters, 1.72);
-  assert.equal(state.history.progressAfter, 32);
+  assert.equal(state.roadmap.completedStageId, "stage-3");
+  assert.equal(state.roadmap.activeStageId, "stage-4");
+  assert.equal(state.roadmap.resultStageId, "stage-4");
+  assert.equal(state.history.progressAfter, 37);
   assert.deepEqual(state.roadmap.completedChecklistIds, [
     "s3-goal-set",
     "s3-logging",
     "s3-runs",
     "s3-metrics",
+    "s4-world",
+    "s4-sensors",
   ]);
+  assert.match(state.project.currentBlockers.join(" "), /Repeatable exploration/);
+  assert.match(state.project.currentBlockers.join(" "), /Simulation-to-real/);
 
   assert.match(merger, /applyRoadmapPatch/);
-  assert.match(merger, /applyPlanPatch/);
+  assert.match(merger, /for \(const stage of source\.roadmap\.stages\)/);
+  assert.match(merger, /resultStageId/);
   assert.match(merger, /Object\.defineProperty\(hubState, "source"/);
   assert.doesNotMatch(merger, /setTimeout|pageshow|localStorage/);
   assert.match(loader, /project-current-state\.js\?v=turtlebot-current-state-v1/);

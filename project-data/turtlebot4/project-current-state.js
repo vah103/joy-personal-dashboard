@@ -1,5 +1,5 @@
 (() => {
-  const STATE_URL = "/project-data/turtlebot4/current-state.json?v=turtlebot-current-state-v1";
+  const STATE_URL = "/project-data/turtlebot4/current-state.json?v=turtlebot-current-state-v2";
 
   function clone(value) {
     if (typeof structuredClone === "function") return structuredClone(value);
@@ -23,25 +23,36 @@
   function applyRoadmapPatch(source, currentState) {
     if (!source?.roadmap?.stages) return source;
     const completedIds = new Set(currentState.roadmap?.completedChecklistIds || []);
+
+    for (const stage of source.roadmap.stages) {
+      stage.checklist = (stage.checklist || []).map((item) => (
+        completedIds.has(item.id) ? { ...item, done: true } : item
+      ));
+    }
+
     const completedStage = source.roadmap.stages.find(
       (stage) => stage.id === currentState.roadmap?.completedStageId,
     );
-    if (completedStage) {
-      completedStage.status = "completed";
-      completedStage.checklist = (completedStage.checklist || []).map((item) => (
-        completedIds.has(item.id) ? { ...item, done: true } : item
-      ));
-      completedStage.results = appendUnique(
-        completedStage.results,
+    if (completedStage) completedStage.status = "completed";
+
+    const activeStage = source.roadmap.stages.find(
+      (stage) => stage.id === currentState.roadmap?.activeStageId,
+    );
+    if (activeStage && activeStage.status !== "completed") activeStage.status = "in-progress";
+
+    const resultStage = source.roadmap.stages.find(
+      (stage) => stage.id === (
+        currentState.roadmap?.resultStageId || currentState.roadmap?.completedStageId
+      ),
+    );
+    if (resultStage) {
+      resultStage.results = appendUnique(
+        resultStage.results,
         currentState.roadmap?.result,
         "date",
       );
     }
 
-    const activeStage = source.roadmap.stages.find(
-      (stage) => stage.id === currentState.roadmap?.activeStageId,
-    );
-    if (activeStage && activeStage.status === "not-started") activeStage.status = "in-progress";
     source.roadmap.updatedAt = currentState.updatedAt;
     return source;
   }

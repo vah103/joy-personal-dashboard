@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-30",
+  "updatedAt": "2026-08-03",
   "project": {
     "currentStageId": "stage-4",
     "currentStatus": "in-progress",
-    "currentFocus": "Set up TurtleBot4 simulation and the first controlled world",
-    "nextAction": "Install the simulation stack, launch one world, then verify simulated LiDAR, RGB-D, odometry and TF",
-    "lastReviewed": "2026-07-30",
+    "currentFocus": "Complete repeatable simulation scenarios and document simulation-to-real differences",
+    "nextAction": "Define repeatable exploration and risk scenarios in Gazebo, then document sensor, timing, namespace and dynamics differences from the real TurtleBot4",
+    "lastReviewed": "2026-08-03",
     "currentBlockers": [
-      "TurtleBot4 simulation and the first controlled world are not set up yet.",
-      "Simulated LiDAR, RGB-D, odometry and TF still need verification before frontier development."
+      "Repeatable exploration and risk scenarios have not yet been defined or run.",
+      "Simulation-to-real differences have not yet been documented."
     ],
     "stage3Result": {
       "trials": 12,
@@ -30,13 +30,16 @@
       "s3-goal-set",
       "s3-logging",
       "s3-runs",
-      "s3-metrics"
+      "s3-metrics",
+      "s4-world",
+      "s4-sensors"
     ],
+    "resultStageId": "stage-4",
     "result": {
-      "date": "2026-07-30",
-      "summary": "The real TurtleBot4 completed 12 of 12 fixed Nav2 trials with 100% success and zero recoveries. Mean travel time was 8.43 seconds and mean path length was 1.72 metres.",
+      "date": "2026-08-03",
+      "summary": "Gazebo Sim 8 loaded the depot world and spawned the TurtleBot4 model. Simulation time, TF, LiDAR, odometry, RGB image, depth image and camera calibration streams were verified through ROS 2 topic output and RViz.",
       "evidence": [
-        "report/2026-07-30.md"
+        "Joy work session session-tb4-read-joy-repo-20260803"
       ]
     }
   },
@@ -53,9 +56,9 @@
     ]
   },
   "history": {
-    "date": "2026-07-30",
-    "progressAfter": 32,
-    "title": "Stage 3 navigation benchmark completed",
-    "detail": "The real TurtleBot4 completed 12/12 fixed Nav2 trials with 100% success and zero recoveries."
+    "date": "2026-08-03",
+    "progressAfter": 37,
+    "title": "Stage 4 simulation world and sensor interfaces verified",
+    "detail": "The depot simulation world, robot model, simulation clock, TF, LiDAR, odometry, RGB and depth streams were verified. Repeatable scenarios and simulation-to-real documentation remain open."
   }
 }
