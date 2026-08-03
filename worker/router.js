@@ -25,6 +25,15 @@ import {
   isFinanceP1008ShoppingRoute,
 } from "./finance-p1008-shopping.js";
 import {
+  handleGoogleDocsAuthRequest,
+  isGoogleDocsAuthRoute,
+} from "./google-docs-auth.js";
+import {
+  handleIeltsCourseSyncRequest,
+  isIeltsCourseSyncRoute,
+  runIeltsCourseSyncSchedule,
+} from "./ielts-course-sync.js";
+import {
   handleIeltsCoreRequest,
   isIeltsCoreRoute,
   runIeltsSchedule,
@@ -185,6 +194,9 @@ export default {
       if (isVocabularyRoute(pathname)) {
         return handleVocabularyRequest(request, env);
       }
+      if (isGoogleDocsAuthRoute(pathname)) {
+        return handleGoogleDocsAuthRequest(request, env);
+      }
       if (isGoogleAuthRoute(pathname)) {
         return handleGoogleAuthRequest(request, env);
       }
@@ -193,6 +205,9 @@ export default {
       }
       if (isProjectHubRoute(pathname)) {
         return handleProjectHubRequest(request, env);
+      }
+      if (isIeltsCourseSyncRoute(pathname)) {
+        return handleIeltsCourseSyncRequest(request, env);
       }
       if (isIeltsCoreRoute(pathname)) {
         return handleIeltsCoreRequest(request, env);
@@ -247,5 +262,6 @@ export default {
     scheduleIndependentJob(ctx, "reminder", () => runReliableReminderSchedule(env));
     scheduleIndependentJob(ctx, "Daily Brief", () => runDailyBriefSchedule(env));
     scheduleIndependentJob(ctx, "IELTS", () => runIeltsSchedule(env));
+    scheduleIndependentJob(ctx, "IELTS course", () => runIeltsCourseSyncSchedule(env));
   },
 };
