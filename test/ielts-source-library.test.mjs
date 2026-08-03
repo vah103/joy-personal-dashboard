@@ -33,7 +33,7 @@ function stateHarness(initial = blankIeltsState()) {
 }
 
 test("the IELTS source catalog keeps STUDY4 and YouPass teacher-recommended but non-official", () => {
-  assert.equal(IELTS_SOURCE_LIBRARY.schemaVersion, 1);
+  assert.equal(IELTS_SOURCE_LIBRARY.schemaVersion, 2);
   const providers = Object.fromEntries(
     IELTS_SOURCE_LIBRARY.providers.map((provider) => [provider.id, provider]),
   );
@@ -47,26 +47,53 @@ test("the IELTS source catalog keeps STUDY4 and YouPass teacher-recommended but 
     assert.match(providers[id].homepageUrl, /^https:\/\//);
   }
 
+  assert.ok(IELTS_SOURCE_LIBRARY.tests.length > 0);
+  assert.ok(IELTS_SOURCE_LIBRARY.selectionPolicy.storeOnly.includes("testId"));
   assert.ok(IELTS_SOURCE_LIBRARY.selectionPolicy.storeOnly.includes("rawResult"));
   assert.ok(IELTS_SOURCE_LIBRARY.selectionPolicy.storeOnly.includes("wrongItems"));
   assert.ok(IELTS_SOURCE_LIBRARY.selectionPolicy.neverStore.includes("fullThirdPartyAnswerKey"));
 });
 
-test("a task with fixed material never gets replaced by a general practice provider", () => {
+test("Listening and Reading replace old fixed links with the random checked-source policy", () => {
   const guidance = getIeltsSourceGuidance({
     id: "baseline-reading",
     rhythmId: "baseline",
+    kind: "test",
     skill: "reading",
-    material: "Official IELTS Academic Reading sample",
+    title: "Full Academic Reading baseline",
+    material: "Old fixed Reading sample",
     materialUrl: "https://ielts.org/example",
   });
 
-  assert.equal(guidance.mode, "fixed-task-material");
-  assert.equal(guidance.fixedMaterial.url, "https://ielts.org/example");
-  assert.deepEqual(guidance.approvedProviders, []);
+  assert.equal(guidance.mode, "random-checked-practice");
+  assert.equal(guidance.fixedMaterial, null);
+  assert.deepEqual(
+    guidance.approvedProviders.map((provider) => provider.id),
+    ["study4", "youpass"],
+  );
+  assert.ok(guidance.approvedTests.length > 0);
+  assert.ok(guidance.approvedTests.every((item) => item.scope === "full"));
+  assert.ok(guidance.approvedTests.every((item) => item.questionCount === 40));
 });
 
-test("ordinary Listening and Reading practice offers both checked providers", () => {
+test("Writing and Speaking fixed material remains fixed", () => {
+  for (const skill of ["writing", "speaking"]) {
+    const guidance = getIeltsSourceGuidance({
+      id: `baseline-${skill}`,
+      rhythmId: "baseline",
+      kind: "test",
+      skill,
+      material: `${skill} sample`,
+      materialUrl: `https://ielts.org/${skill}`,
+    });
+
+    assert.equal(guidance.mode, "fixed-task-material");
+    assert.equal(guidance.fixedMaterial.url, `https://ielts.org/${skill}`);
+    assert.deepEqual(guidance.approvedProviders, []);
+  }
+});
+
+test("ordinary Listening and Reading practice offers both providers and concrete tests", () => {
   for (const skill of ["listening", "reading"]) {
     const guidance = getIeltsSourceGuidance({
       id: `daily-${skill}`,
@@ -74,17 +101,19 @@ test("ordinary Listening and Reading practice offers both checked providers", ()
       kind: "guided",
       skill,
     });
-    assert.equal(guidance.mode, "approved-checked-practice");
+    assert.equal(guidance.mode, "random-checked-practice");
     assert.deepEqual(
       guidance.approvedProviders.map((provider) => provider.id),
       ["study4", "youpass"],
     );
+    assert.ok(guidance.approvedTests.some((item) => item.providerId === "study4"));
+    assert.ok(guidance.approvedTests.some((item) => item.providerId === "youpass"));
     assert.match(guidance.evidenceTemplate.join("\n"), /Wrong items/);
     assert.match(guidance.evidenceTemplate.join("\n"), /Platform checked/);
   }
 });
 
-test("Writing and Speaking are not presented as answer-key checked practice", () => {
+test("Writing and Speaking without fixed material are not presented as answer-key checked practice", () => {
   for (const skill of ["writing", "speaking"]) {
     const guidance = getIeltsSourceGuidance({ id: `daily-${skill}`, skill });
     assert.equal(guidance.mode, "task-or-owner-material");
@@ -93,7 +122,7 @@ test("Writing and Speaking are not presented as answer-key checked practice", ()
   }
 });
 
-test("IELTS Actions teaching context exposes the source library and task guidance", async () => {
+test("IELTS Actions teaching context exposes the random source library and task guidance", async () => {
   const result = await STABLE_IELTS_ASSISTANT_SERVICE.getTeachingContext(
     {},
     CONTEXT,
@@ -101,14 +130,24 @@ test("IELTS Actions teaching context exposes the source library and task guidanc
     stateHarness(),
   );
 
-  assert.equal(result.sourceLibrary.schemaVersion, 1);
+  assert.equal(result.sourceLibrary.schemaVersion, 2);
   assert.deepEqual(
     result.sourceLibrary.providers.map((provider) => provider.id),
     ["study4", "youpass"],
   );
+  assert.ok(result.sourceLibrary.tests.length > 0);
   assert.equal(result.current.tasks.length, 4);
-  assert.equal(result.current.tasks[0].sourceGuidance.mode, "fixed-task-material");
-  assert.equal(result.nextTask.sourceGuidance.mode, "fixed-task-material");
+
+  const listening = result.current.tasks.find((task) => task.skill === "listening");
+  const reading = result.current.tasks.find((task) => task.skill === "reading");
+  const writing = result.current.tasks.find((task) => task.skill === "writing");
+  const speaking = result.current.tasks.find((task) => task.skill === "speaking");
+
+  assert.equal(listening.sourceGuidance.mode, "random-checked-practice");
+  assert.equal(reading.sourceGuidance.mode, "random-checked-practice");
+  assert.equal(writing.sourceGuidance.mode, "fixed-task-material");
+  assert.equal(speaking.sourceGuidance.mode, "fixed-task-material");
+  assert.equal(result.nextTask.sourceGuidance.mode, "random-checked-practice");
 });
 
 test("the runtime Joy IELTS contract requires approved-source evidence discipline", () => {
