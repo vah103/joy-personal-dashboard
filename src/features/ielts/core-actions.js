@@ -179,18 +179,92 @@ ${JSON.stringify({
 }
 
 async function copyText(value) {
+  let clipboardError = null;
   if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(value);
-    return;
+    try {
+      await navigator.clipboard.writeText(value);
+      return;
+    } catch (error) {
+      clipboardError = error;
+    }
   }
+
   const textarea = document.createElement("textarea");
   textarea.value = value;
+  textarea.setAttribute("readonly", "");
   textarea.style.position = "fixed";
+  textarea.style.inset = "0 auto auto -9999px";
   textarea.style.opacity = "0";
   document.body.append(textarea);
-  textarea.select();
-  document.execCommand("copy");
-  textarea.remove();
+
+  let copied = false;
+  try {
+    textarea.focus();
+    textarea.select();
+    textarea.setSelectionRange(0, textarea.value.length);
+    copied = document.execCommand("copy");
+  } finally {
+    textarea.remove();
+  }
+
+  if (!copied) {
+    throw clipboardError || new Error("Clipboard access was blocked.");
+  }
+}
+
+function promptFallbackDrawer({ title, description, prompt }) {
+  openDrawer(`
+    <header class="ielts-drawer-header">
+      <span><small>Joy → ChatGPT</small><h3>${escapeHtml(title)}</h3></span>
+      <button type="button" aria-label="Close prompt" data-ielts-action="close-drawer">×</button>
+    </header>
+    <p class="ielts-drawer-intro">${escapeHtml(description)}</p>
+    <div class="ielts-import-form">
+      <textarea data-ielts-prompt readonly spellcheck="false">${escapeHtml(prompt)}</textarea>
+      <footer>
+        <button type="button" data-ielts-action="close-drawer">Close</button>
+        <button type="button" data-ielts-action="copy-chatgpt-prompt">Copy prompt</button>
+        <button class="ielts-primary" type="button" data-ielts-action="open-chatgpt">Open ChatGPT</button>
+      </footer>
+    </div>`);
+
+  requestAnimationFrame(() => {
+    const field = document.querySelector("[data-ielts-prompt]");
+    field?.focus();
+    field?.select();
+  });
+}
+
+async function openChatGptPrompt(prompt, { task = null, label = "Prompt" } = {}) {
+  try {
+    await copyText(prompt);
+  } catch {
+    promptFallbackDrawer({
+      title: `${label} needs manual copy`,
+      description: "Your browser blocked clipboard access. The full prompt is selected below; press Ctrl+C, then open ChatGPT.",
+      prompt,
+    });
+    toast("Clipboard blocked. The prompt is selected for manual copy.");
+    return false;
+  }
+
+  if (task) {
+    updateTask(task.id, { status: "progress", startedAt: Date.now() });
+  }
+
+  const chat = window.open("https://chatgpt.com/", "_blank", "noopener");
+  if (!chat) {
+    promptFallbackDrawer({
+      title: `${label} is ready`,
+      description: "The prompt is already copied, but your browser blocked the new tab. Open ChatGPT below and paste it with Ctrl+V.",
+      prompt,
+    });
+    toast(`${label} copied. Open ChatGPT from Joy.`);
+    return true;
+  }
+
+  toast(`${label} copied. Paste it into the new ChatGPT tab.`);
+  return true;
 }
 
 function importDrawer(expectedType = "rhythm_tasks", rhythmId = currentContext().id) {
@@ -270,7 +344,7 @@ function assessmentDrawer() {
   openDrawer(`
     <header class="ielts-drawer-header">
       <span><small>Progress checkpoint</small><h3>Add assessment</h3></span>
-      <button type="button" data-ielts-action="close-drawer">×</button>
+      <button type="button" aria-label="Close task" data-ielts-action="close-drawer">×</button>
     </header>
     <form class="ielts-assessment-form" data-ielts-form="assessment">
       <label>Date<input type="date" name="date" value="${dateKey()}" required></label>
@@ -451,15 +525,23 @@ document.addEventListener("click", async (event) => {
   } else if (type === "start-chatgpt") {
     const task = findTask(action.dataset.taskId);
     if (!task) return;
-    const chat = window.open("https://chatgpt.com/", "_blank", "noopener");
-    await copyText(teachingPrompt(task));
-    updateTask(task.id, { status: "progress", startedAt: Date.now() });
-    if (!chat) toast("Teaching prompt copied. Open ChatGPT and paste it.");
-    else toast("Teaching prompt copied. Paste it into the new ChatGPT tab.");
+    await openChatGptPrompt(teachingPrompt(task), { task, label: "Teaching prompt" });
   } else if (type === "share") {
+    await openChatGptPrompt(shareContext(), { label: "Joy context" });
+  } else if (type === "copy-chatgpt-prompt") {
+    const field = document.querySelector("[data-ielts-prompt]");
+    if (!field) return;
+    try {
+      await copyText(field.value);
+      toast("Prompt copied. Paste it into ChatGPT with Ctrl+V.");
+    } catch {
+      field.focus();
+      field.select();
+      toast("Clipboard is still blocked. Press Ctrl+C to copy the selected prompt.");
+    }
+  } else if (type === "open-chatgpt") {
     const chat = window.open("https://chatgpt.com/", "_blank", "noopener");
-    await copyText(shareContext());
-    toast(chat ? "Joy context copied. Paste it into the new ChatGPT tab." : "Joy context copied.");
+    if (!chat) toast("Your browser blocked the new tab. Open ChatGPT manually.");
   } else if (type === "import") {
     importDrawer("rhythm_tasks", action.dataset.importRhythm || currentContext().id);
   } else if (type === "import-course") {
