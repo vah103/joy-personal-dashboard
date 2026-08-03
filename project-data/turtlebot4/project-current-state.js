@@ -1,5 +1,7 @@
 (() => {
   const STATE_URL = "/project-data/turtlebot4/current-state.json?v=turtlebot-current-state-v2";
+  let canonicalProgress = null;
+  let progressOwnerInstalled = false;
 
   function clone(value) {
     if (typeof structuredClone === "function") return structuredClone(value);
@@ -16,6 +18,56 @@
     return (Array.isArray(entries) ? entries : [entries])
       .filter(Boolean)
       .reduce((list, entry) => appendUnique(list, entry, key), items);
+  }
+
+  function resolveCanonicalProgress(currentState) {
+    const explicit = Number(currentState?.project?.overallProgress);
+    if (Number.isFinite(explicit)) return Math.min(100, Math.max(0, Math.round(explicit)));
+
+    const history = Array.isArray(currentState?.history) ? currentState.history : [];
+    for (let index = history.length - 1; index >= 0; index -= 1) {
+      const progress = Number(history[index]?.progressAfter);
+      if (Number.isFinite(progress)) return Math.min(100, Math.max(0, Math.round(progress)));
+    }
+    return null;
+  }
+
+  function findTurtleBotCard() {
+    return [...document.querySelectorAll("#project-list .project-card")]
+      .find((card) => card.querySelector(".project-top strong")
+        ?.textContent.trim().toLowerCase().includes("turtlebot"));
+  }
+
+  function applyCanonicalProgressToUi() {
+    if (!Number.isFinite(canonicalProgress)) return;
+
+    const card = findTurtleBotCard();
+    if (card) {
+      const percentage = card.querySelector(".project-top span");
+      const track = card.querySelector(".progress-track span");
+      if (percentage) percentage.textContent = `${canonicalProgress}%`;
+      if (track) track.style.width = `${canonicalProgress}%`;
+    }
+
+    const overviewProgress = document.querySelector(".ps-metrics article:first-child strong");
+    if (overviewProgress) overviewProgress.textContent = `${canonicalProgress}%`;
+  }
+
+  function installCanonicalProgressOwner(currentState) {
+    canonicalProgress = resolveCanonicalProgress(currentState);
+    if (!Number.isFinite(canonicalProgress)) return;
+
+    hubState.canonicalProgress = canonicalProgress;
+    if (hubState.projectState?.project) {
+      hubState.projectState.project.overallProgress = canonicalProgress;
+    }
+
+    if (!progressOwnerInstalled) {
+      document.addEventListener("joy-project-hub:card-updated", applyCanonicalProgressToUi);
+      document.addEventListener("joy-project-hub:rendered", applyCanonicalProgressToUi);
+      progressOwnerInstalled = true;
+    }
+    applyCanonicalProgressToUi();
   }
 
   function applyProjectPatch(target, currentState) {
@@ -97,8 +149,10 @@
       hubState.projectState = applyPlanPatch(hubState.projectState, currentState);
     }
     hubState.activeStageId = currentState.project.currentStageId;
+    installCanonicalProgressOwner(currentState);
     updateTurtleBotCard();
     if (!hubElements?.modal?.hidden) renderHub();
+    applyCanonicalProgressToUi();
   }
 
   fetch(STATE_URL, { credentials: "same-origin" })
