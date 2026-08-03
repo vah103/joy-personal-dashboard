@@ -103,6 +103,23 @@ function staticTasks(program = IELTS_PROGRAM) {
   return [...prelaunch, ...baseline, ...rhythms];
 }
 
+function baselineTasks(program = IELTS_PROGRAM) {
+  return staticTasks(program).filter((task) => task.rhythmId === "baseline");
+}
+
+function baselineIncomplete(data, program = IELTS_PROGRAM) {
+  const tasks = baselineTasks(program);
+  return tasks.length > 0 && tasks.some((task) => !DONE.has(taskState(data, task.id).status));
+}
+
+function effectiveRhythm(data, rhythm, program = IELTS_PROGRAM) {
+  if (rhythm.id !== "aug-w1-r1" || !baselineIncomplete(data, program)) return rhythm;
+  return {
+    ...rhythm,
+    objective: "Complete every unfinished baseline test before beginning the error-repair tasks.",
+  };
+}
+
 function allRhythms(program = IELTS_PROGRAM) {
   return (program.august?.weeks || []).flatMap((week) => (
     (week.rhythms || []).map((rhythm) => ({ ...rhythm, week }))
@@ -110,6 +127,12 @@ function allRhythms(program = IELTS_PROGRAM) {
 }
 
 function rhythmTasks(data, rhythmId, program = IELTS_PROGRAM) {
+  if (rhythmId === "aug-w1-r1" && baselineIncomplete(data, program)) {
+    return baselineTasks(program).map((task) => ({
+      ...task,
+      groupLabel: "Foundation & Error Awareness · Rhythm 1 · Baseline first",
+    }));
+  }
   const defaults = staticTasks(program).filter((task) => task.rhythmId === rhythmId);
   const custom = (data.customTasks || []).filter((task) => task.rhythmId === rhythmId);
   if (!custom.length) return defaults;
@@ -123,7 +146,8 @@ function allTasks(data, program = IELTS_PROGRAM) {
     ...allRhythms(program).map((rhythm) => rhythm.id),
     ...(program.phases || []).map((phase) => phase.id),
   ];
-  return groups.flatMap((rhythmId) => rhythmTasks(data, rhythmId, program));
+  return [...new Map(groups.flatMap((rhythmId) => rhythmTasks(data, rhythmId, program))
+    .map((task) => [task.id, task])).values()];
 }
 
 function taskState(data, taskId) {
@@ -201,12 +225,14 @@ export function currentIeltsContext(data, today = vietnamDateKey(), program = IE
   }
 
   const day = Number(today.slice(-2));
-  const rhythms = allRhythms(program);
+  const rhythms = allRhythms(program).map((rhythm) => effectiveRhythm(data, rhythm, program));
   const rhythm = rhythms.find((item) => {
     const [start, end] = String(item.dateRange).match(/\d+/g)?.map(Number) || [];
     return day >= start && day <= end;
   });
   if (rhythm && today.startsWith("2026-08")) {
+    const tasks = rhythmTasks(data, rhythm.id, program);
+    const baselineFirst = rhythm.id === "aug-w1-r1" && baselineIncomplete(data, program);
     return {
       type: "rhythm",
       id: rhythm.id,
@@ -214,20 +240,28 @@ export function currentIeltsContext(data, today = vietnamDateKey(), program = IE
       dateRange: rhythm.dateRange,
       objective: rhythm.objective,
       week: rhythm.week,
-      tasks: rhythmTasks(data, rhythm.id, program),
-      targetMinutes: 360,
+      tasks,
+      targetMinutes: baselineFirst
+        ? tasks.reduce((sum, task) => sum + Number(task.minutes || 0), 0)
+        : 360,
     };
   }
 
   const nextRhythm = rhythms.find((item) => dateNumber(item.dateRange) >= day);
+  const tasks = nextRhythm ? rhythmTasks(data, nextRhythm.id, program) : [];
+  const baselineFirst = nextRhythm?.id === "aug-w1-r1" && baselineIncomplete(data, program);
   return {
     type: "journey",
     id: nextRhythm?.id || "journey",
     label: nextRhythm ? `${nextRhythm.label} · ${nextRhythm.dateRange}` : "Next phase",
     objective: nextRhythm?.objective || "Use the latest assessment to prepare the next phase.",
     week: nextRhythm?.week,
-    tasks: nextRhythm ? rhythmTasks(data, nextRhythm.id, program) : [],
-    targetMinutes: nextRhythm ? 360 : 0,
+    tasks,
+    targetMinutes: nextRhythm
+      ? baselineFirst
+        ? tasks.reduce((sum, task) => sum + Number(task.minutes || 0), 0)
+        : 360
+      : 0,
   };
 }
 
