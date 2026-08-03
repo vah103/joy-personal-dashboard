@@ -194,7 +194,7 @@ export default {
       if (isVocabularyRoute(pathname)) {
         return handleVocabularyRequest(request, env);
       }
-      if (isGoogleDocsAuthRoute(pathname)) {
+      if (isGoogleDocsAuthRoute(pathname, request)) {
         return handleGoogleDocsAuthRequest(request, env);
       }
       if (isGoogleAuthRoute(pathname)) {
