@@ -32,14 +32,21 @@
     return null;
   }
 
+  function hasDom() {
+    return typeof document !== "undefined"
+      && typeof document.querySelectorAll === "function"
+      && typeof document.querySelector === "function";
+  }
+
   function findTurtleBotCard() {
+    if (!hasDom()) return null;
     return [...document.querySelectorAll("#project-list .project-card")]
       .find((card) => card.querySelector(".project-top strong")
         ?.textContent.trim().toLowerCase().includes("turtlebot"));
   }
 
   function applyCanonicalProgressToUi() {
-    if (!Number.isFinite(canonicalProgress)) return;
+    if (!Number.isFinite(canonicalProgress) || !hasDom()) return;
 
     const card = findTurtleBotCard();
     if (card) {
@@ -62,7 +69,11 @@
       hubState.projectState.project.overallProgress = canonicalProgress;
     }
 
-    if (!progressOwnerInstalled) {
+    if (
+      !progressOwnerInstalled
+      && hasDom()
+      && typeof document.addEventListener === "function"
+    ) {
       document.addEventListener("joy-project-hub:card-updated", applyCanonicalProgressToUi);
       document.addEventListener("joy-project-hub:rendered", applyCanonicalProgressToUi);
       progressOwnerInstalled = true;
