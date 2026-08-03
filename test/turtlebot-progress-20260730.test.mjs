@@ -7,13 +7,15 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const currentStatePath = resolve(root, "project-data/turtlebot4/current-state.json");
 const mergerPath = resolve(root, "project-data/turtlebot4/project-current-state.js");
+const validationPath = resolve(root, "docs/turtlebot4-stage4-simulation-validation.md");
 const loaderPath = resolve(root, "src/features/project-hub/turtlebot-plan-loader.js");
 const oldProgressPath = resolve(root, "project-data/turtlebot4/progress-20260730.js");
 
-test("canonical TurtleBot state records verified partial Stage 4 progress", async () => {
-  const [stateSource, merger, loader] = await Promise.all([
+test("canonical TurtleBot state records verified and documented Stage 4 progress", async () => {
+  const [stateSource, merger, validation, loader] = await Promise.all([
     readFile(currentStatePath, "utf8"),
     readFile(mergerPath, "utf8"),
+    readFile(validationPath, "utf8"),
     readFile(loaderPath, "utf8"),
   ]);
   const state = JSON.parse(stateSource);
@@ -25,7 +27,7 @@ test("canonical TurtleBot state records verified partial Stage 4 progress", asyn
   assert.equal(state.roadmap.completedStageId, "stage-3");
   assert.equal(state.roadmap.activeStageId, "stage-4");
   assert.equal(state.roadmap.resultStageId, "stage-4");
-  assert.equal(state.history.progressAfter, 37);
+  assert.equal(state.history.progressAfter, 39);
   assert.deepEqual(state.roadmap.completedChecklistIds, [
     "s3-goal-set",
     "s3-logging",
@@ -33,9 +35,18 @@ test("canonical TurtleBot state records verified partial Stage 4 progress", asyn
     "s3-metrics",
     "s4-world",
     "s4-sensors",
+    "s4-parity",
   ]);
-  assert.match(state.project.currentBlockers.join(" "), /Repeatable exploration/);
-  assert.match(state.project.currentBlockers.join(" "), /Simulation-to-real/);
+  assert.doesNotMatch(state.roadmap.completedChecklistIds.join(" "), /s4-scenarios/);
+  assert.match(state.project.currentBlockers.join(" "), /have not yet been run/);
+  assert.match(state.roadmap.result.evidence.join(" "), /turtlebot4-stage4-simulation-validation/);
+
+  assert.match(validation, /S4-A — Baseline bring-up/);
+  assert.match(validation, /S4-B — Controlled motion/);
+  assert.match(validation, /S4-C — World parity run/);
+  assert.match(validation, /S4-D — Restart recovery/);
+  assert.match(validation, /Simulation-to-real parity matrix/);
+  assert.match(validation, /Passing Stage 4 proves the simulation baseline only/);
 
   assert.match(merger, /applyRoadmapPatch/);
   assert.match(merger, /for \(const stage of source\.roadmap\.stages\)/);

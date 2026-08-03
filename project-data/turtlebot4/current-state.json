@@ -4,12 +4,11 @@
   "project": {
     "currentStageId": "stage-4",
     "currentStatus": "in-progress",
-    "currentFocus": "Complete repeatable simulation scenarios and document simulation-to-real differences",
-    "nextAction": "Define repeatable exploration and risk scenarios in Gazebo, then document sensor, timing, namespace and dynamics differences from the real TurtleBot4",
+    "currentFocus": "Run the documented controlled-motion, warehouse-world and restart-recovery simulation scenarios",
+    "nextAction": "Run S4-B controlled motion in the depot world and preserve odometry, scan and TF evidence",
     "lastReviewed": "2026-08-03",
     "currentBlockers": [
-      "Repeatable exploration and risk scenarios have not yet been defined or run.",
-      "Simulation-to-real differences have not yet been documented."
+      "Controlled-motion, warehouse-world and restart-recovery scenarios are defined but have not yet been run with preserved evidence."
     ],
     "stage3Result": {
       "trials": 12,
@@ -32,14 +31,16 @@
       "s3-runs",
       "s3-metrics",
       "s4-world",
-      "s4-sensors"
+      "s4-sensors",
+      "s4-parity"
     ],
     "resultStageId": "stage-4",
     "result": {
       "date": "2026-08-03",
-      "summary": "Gazebo Sim 8 loaded the depot world and spawned the TurtleBot4 model. Simulation time, TF, LiDAR, odometry, RGB image, depth image and camera calibration streams were verified through ROS 2 topic output and RViz.",
+      "summary": "Gazebo Sim 8 loaded the depot world and spawned the TurtleBot4 model. Simulation time, TF, LiDAR, odometry, RGB image, depth image and camera calibration streams were verified. A repeatable four-scenario validation procedure and simulation-to-real parity matrix were added; motion, warehouse and restart scenarios still require execution evidence.",
       "evidence": [
-        "Joy work session session-tb4-read-joy-repo-20260803"
+        "Joy work session session-tb4-read-joy-repo-20260803",
+        "docs/turtlebot4-stage4-simulation-validation.md"
       ]
     }
   },
@@ -57,8 +58,8 @@
   },
   "history": {
     "date": "2026-08-03",
-    "progressAfter": 37,
-    "title": "Stage 4 simulation world and sensor interfaces verified",
-    "detail": "The depot simulation world, robot model, simulation clock, TF, LiDAR, odometry, RGB and depth streams were verified. Repeatable scenarios and simulation-to-real documentation remain open."
+    "progressAfter": 39,
+    "title": "Stage 4 validation scenarios and simulation-to-real parity documented",
+    "detail": "The depot simulation baseline and sensor interfaces are verified. Repeatable motion, warehouse and restart scenarios are now defined, and simulation-to-real differences are documented. Those three scenarios remain open until execution evidence is returned."
   }
 }
