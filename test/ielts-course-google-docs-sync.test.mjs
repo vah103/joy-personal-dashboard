@@ -73,8 +73,17 @@ function sampleDocument(extraText = "") {
 
 test("IELTS Course exposes isolated Google Docs authorization and sync routes", async () => {
   assert.equal(isGoogleDocsAuthRoute("/auth/docs/start"), true);
-  assert.equal(isGoogleDocsAuthRoute("/auth/docs/callback"), true);
   assert.equal(isGoogleDocsAuthRoute("/api/integrations/docs/status"), true);
+  assert.equal(isGoogleDocsAuthRoute("/auth/callback"), false);
+
+  const docsCallback = new Request("https://joy.test/auth/callback?state=docs-state", {
+    headers: { Cookie: "__Host-joy_docs_oauth_state=docs-state" },
+  });
+  const normalCallback = new Request("https://joy.test/auth/callback?state=normal-state", {
+    headers: { Cookie: "__Host-joy_docs_oauth_state=docs-state" },
+  });
+  assert.equal(isGoogleDocsAuthRoute("/auth/callback", docsCallback), true);
+  assert.equal(isGoogleDocsAuthRoute("/auth/callback", normalCallback), false);
   assert.equal(isIeltsCourseSyncRoute("/api/ielts-course-sync"), true);
   assert.equal(isIeltsCourseSyncRoute("/api/ielts-core"), false);
 
@@ -84,6 +93,7 @@ test("IELTS Course exposes isolated Google Docs authorization and sync routes", 
     read("../migrations/20260804_ielts_course_google_docs.sql"),
   ]);
   assert.match(authSource, /documents\.readonly/);
+  assert.match(authSource, /CALLBACK_PATH = "\/auth\/callback"/);
   assert.match(syncSource, /includeTabsContent=true/);
   assert.match(syncSource, new RegExp(IELTS_COURSE_DOCUMENT_ID));
   assert.match(migration, /CREATE TABLE IF NOT EXISTS google_docs_tokens/);
@@ -145,7 +155,7 @@ test("Course UI keeps Google Docs canonical and combines manual sync with a dail
   assert.match(promptBridge, /assigned STUDY4 or YouPass test/);
   assert.match(promptBridge, /Relevant synchronized Writing-course knowledge/);
   assert.ok(build.indexOf('"course-sync.js"') < build.indexOf('"course-prompt-bridge.js"'));
-  assert.match(router, /isGoogleDocsAuthRoute\(pathname\)/);
+  assert.match(router, /isGoogleDocsAuthRoute\(pathname, request\)/);
   assert.match(router, /isIeltsCourseSyncRoute\(pathname\)/);
   assert.match(router, /runIeltsCourseSyncSchedule\(env\)/);
 });
