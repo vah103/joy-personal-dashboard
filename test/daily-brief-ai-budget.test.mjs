@@ -20,7 +20,7 @@ const [budget, focus, router, wrangler] = await Promise.all([
 test("Daily Brief dashboard reads do not consume Workers AI", () => {
   assert.match(budget, /handlePolicyDailyBriefRequest\(request, withoutAi\(env\), ctx\)/);
   assert.match(budget, /if \(property === "AI"\) return undefined/);
-  assert.match(budget, /focusDailyBriefResponse\(response\)/);
+  assert.match(budget, /buildVisibleDailyBriefResponse\(response\)/);
   assert.match(router, /from "\.\/daily-brief-budget\.js"/);
 });
 
