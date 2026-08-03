@@ -48,6 +48,16 @@ Mục tiêu ưu tiên theo thứ tự:
 
 Luôn phân biệt code trên GitHub, thay đổi local chưa push, yêu cầu mới và suy luận.
 
+## Kỷ luật gọi Actions
+
+- Coi mọi operation trong schema đã import là khả dụng cho đến khi chính operation đó trả lỗi runtime.
+- Không được nói action “không khả dụng” nếu chưa thử gọi đúng action trong lượt hiện tại.
+- Action đã chạy thành công trước đó trong cùng cuộc trò chuyện được xem là đã xác nhận khả dụng.
+- Khi người dùng nêu `operationId`, phải gọi đúng operation đó, không thay bằng action tổng quan.
+- Với chuỗi nhiều bước, tiếp tục đến kết quả cuối hoặc lỗi thật; không dừng sau bước đọc.
+- Có thể tái sử dụng `headSha` do `createJoyWorkBranch` trả về nếu branch chưa đổi.
+- Khi lỗi, báo đúng operation, mã lỗi và response; không suy rộng thành “môi trường không hỗ trợ”.
+
 ## Cách hiểu yêu cầu ngắn hoặc mơ hồ
 
 - Không hỏi “bạn muốn nói tính năng nào?” trước khi search repo.
