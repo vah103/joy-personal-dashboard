@@ -95,13 +95,15 @@ export async function handleDailyBriefRequest(request, env, ctx) {
   }
 
   const now = Date.now();
-  const lastRefresh = await getLastRefresh(env);
-  const stale = now - lastRefresh >= REFRESH_INTERVAL_MS;
+  let lastRefresh = await getLastRefresh(env);
+  let stale = now - lastRefresh >= REFRESH_INTERVAL_MS;
   let stories = await listActiveStories(env, now);
 
   if (!stories.length) {
     try {
       await refreshDailyBrief(env, { force: true });
+      lastRefresh = await getLastRefresh(env);
+      stale = Date.now() - lastRefresh >= REFRESH_INTERVAL_MS;
       stories = await listActiveStories(env, Date.now());
     } catch (error) {
       console.error("Joy Daily Brief first refresh failed", error);
