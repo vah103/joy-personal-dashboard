@@ -1,10 +1,18 @@
 (() => {
-  const STATE_URL = "/project-data/turtlebot4/current-state.json?v=turtlebot-current-state-v2";
+  const STATE_URL = "/project-data/turtlebot4/current-state.json?v=turtlebot-current-state-v3-popup-sync";
   let canonicalProgress = null;
+  let canonicalState = null;
   let progressOwnerInstalled = false;
 
   function clone(value) {
-    if (typeof structuredClone === "function") return structuredClone(value);
+    if (value == null) return value;
+    if (typeof structuredClone === "function") {
+      try {
+        return structuredClone(value);
+      } catch {
+        // Proxies used to protect canonical checklist values are not structured-cloneable.
+      }
+    }
     return JSON.parse(JSON.stringify(value));
   }
 
@@ -32,6 +40,22 @@
     return null;
   }
 
+  function canonicalStageNumber(currentState) {
+    const match = String(currentState?.project?.currentStageId || "").match(/stage-(\d+)/);
+    return match ? Number(match[1]) : null;
+  }
+
+  function canonicalChecklistPredicate(currentState) {
+    const completedIds = new Set(currentState?.roadmap?.completedChecklistIds || []);
+    const completedStages = new Set(currentState?.roadmap?.completedStageIds || []);
+    return (id) => {
+      const value = String(id || "");
+      if (completedIds.has(value)) return true;
+      const match = value.match(/^s(\d+)-/);
+      return Boolean(match && completedStages.has(`stage-${match[1]}`));
+    };
+  }
+
   function hasDom() {
     return typeof document !== "undefined"
       && typeof document.querySelectorAll === "function"
@@ -45,40 +69,65 @@
         ?.textContent.trim().toLowerCase().includes("turtlebot"));
   }
 
-  function applyCanonicalProgressToUi() {
-    if (!Number.isFinite(canonicalProgress) || !hasDom()) return;
+  function applyCanonicalStateToUi() {
+    if (!canonicalState || !hasDom()) return;
 
+    const project = canonicalState.project || {};
+    const progress = canonicalProgress;
     const card = findTurtleBotCard();
     if (card) {
       const percentage = card.querySelector(".project-top span");
       const track = card.querySelector(".progress-track span");
-      if (percentage) percentage.textContent = `${canonicalProgress}%`;
-      if (track) track.style.width = `${canonicalProgress}%`;
+      const focus = card.querySelector("dl div:first-child dd");
+      const next = card.querySelector("dl div:last-child dd");
+      const pill = card.querySelector(".project-stage-pill");
+      if (Number.isFinite(progress) && percentage) percentage.textContent = `${progress}%`;
+      if (Number.isFinite(progress) && track) track.style.width = `${progress}%`;
+      if (focus && project.currentFocus) focus.textContent = project.currentFocus;
+      if (next && project.nextAction) next.textContent = project.nextAction;
+      if (pill) {
+        const stageNumber = canonicalStageNumber(canonicalState);
+        if (stageNumber) {
+          const stageText = `Stage ${stageNumber} of 9`;
+          pill.textContent = /Stage \d+ of \d+/i.test(pill.textContent)
+            ? pill.textContent.replace(/Stage \d+ of \d+/i, stageText)
+            : stageText;
+        }
+      }
     }
 
-    const overviewProgress = document.querySelector(".ps-metrics article:first-child strong");
-    if (overviewProgress) overviewProgress.textContent = `${canonicalProgress}%`;
+    if (Number.isFinite(progress)) {
+      const overviewProgress = document.querySelector(".ps-metrics article:first-child strong");
+      const roadmapProgress = document.querySelector(".hub-progress-summary strong");
+      const roadmapTrack = document.querySelector(".hub-progress-summary div i");
+      if (overviewProgress) overviewProgress.textContent = `${progress}%`;
+      if (roadmapProgress) roadmapProgress.textContent = `${progress}%`;
+      if (roadmapTrack) roadmapTrack.style.width = `${progress}%`;
+    }
   }
 
-  function installCanonicalProgressOwner(currentState) {
+  function installUiOwner(currentState) {
+    canonicalState = clone(currentState);
     canonicalProgress = resolveCanonicalProgress(currentState);
-    if (!Number.isFinite(canonicalProgress)) return;
-
+    hubState.currentState = canonicalState;
     hubState.canonicalProgress = canonicalProgress;
-    if (hubState.projectState?.project) {
-      hubState.projectState.project.overallProgress = canonicalProgress;
-    }
 
     if (
       !progressOwnerInstalled
       && hasDom()
       && typeof document.addEventListener === "function"
     ) {
-      document.addEventListener("joy-project-hub:card-updated", applyCanonicalProgressToUi);
-      document.addEventListener("joy-project-hub:rendered", applyCanonicalProgressToUi);
+      document.addEventListener("joy-project-hub:card-updated", applyCanonicalStateToUi);
+      document.addEventListener("joy-project-hub:rendered", applyCanonicalStateToUi);
       progressOwnerInstalled = true;
     }
-    applyCanonicalProgressToUi();
+    applyCanonicalStateToUi();
+  }
+
+  function applyScopePatch(target, currentState) {
+    if (!target || !currentState?.scope) return target;
+    target.scope = { ...(target.scope || {}), ...clone(currentState.scope) };
+    return target;
   }
 
   function applyProjectPatch(target, currentState) {
@@ -86,53 +135,113 @@
     target.updatedAt = currentState.updatedAt;
     Object.assign(target.project, clone(currentState.project));
     target.history = appendAllUnique(target.history, currentState.history);
+    applyScopePatch(target, currentState);
     return target;
   }
 
   function applyRoadmapPatch(source, currentState) {
     if (!source?.roadmap?.stages) return source;
-    const completedIds = new Set(currentState.roadmap?.completedChecklistIds || []);
     const completedStageIds = currentState.roadmap?.completedStageIds
       || [currentState.roadmap?.completedStageId].filter(Boolean);
+    const completedStages = new Set(completedStageIds);
+    const activeStageId = currentState.roadmap?.activeStageId || currentState.project?.currentStageId;
     const results = currentState.roadmap?.results
       || (currentState.roadmap?.result && currentState.roadmap?.completedStageId
         ? [{ ...currentState.roadmap.result, stageId: currentState.roadmap.completedStageId }]
         : []);
 
-    for (const completedStageId of completedStageIds) {
-      const completedStage = source.roadmap.stages.find((stage) => stage.id === completedStageId);
-      if (!completedStage) continue;
-      completedStage.status = "completed";
-      completedStage.checklist = (completedStage.checklist || []).map((item) => (
-        completedIds.has(item.id) ? { ...item, done: true } : item
-      ));
-      const result = results.find((entry) => entry.stageId === completedStageId);
-      if (result) {
-        const { stageId, ...stageResult } = result;
-        completedStage.results = appendUnique(completedStage.results, stageResult, "date");
+    for (const stage of source.roadmap.stages) {
+      if (completedStages.has(stage.id)) {
+        stage.status = "completed";
+        stage.checklist = (stage.checklist || []).map((item) => ({ ...item, done: true }));
+        const result = results.find((entry) => entry.stageId === stage.id);
+        if (result) {
+          const { stageId, ...stageResult } = result;
+          stage.results = appendUnique(stage.results, stageResult, "date");
+        }
+      } else if (stage.id === activeStageId) {
+        stage.status = "in-progress";
       }
     }
 
-    const activeStage = source.roadmap.stages.find(
-      (stage) => stage.id === currentState.roadmap?.activeStageId,
-    );
-    if (activeStage && activeStage.status === "not-started") activeStage.status = "in-progress";
     source.roadmap.updatedAt = currentState.updatedAt;
+    source.roadmap.activeStageId = activeStageId;
+    source.roadmap.completedStageIds = [...completedStageIds];
+    source.roadmap.completedChecklistIds = [
+      ...(currentState.roadmap?.completedChecklistIds || []),
+    ];
     return source;
+  }
+
+  function canonicalTaskDone(task, currentState) {
+    const isCanonicalChecklist = canonicalChecklistPredicate(currentState);
+    return (task?.roadmapItemIds || []).some(isCanonicalChecklist);
   }
 
   function applyPlanPatch(plan, currentState) {
     if (!plan?.project) return plan;
-    const next = applyProjectPatch(clone(plan), currentState);
+    applyProjectPatch(plan, currentState);
     const completedTaskIds = new Set(currentState.plan?.completedTaskIds || []);
-    for (const week of next.weeks || []) {
+    const completedStages = new Set(currentState.roadmap?.completedStageIds || []);
+
+    for (const week of plan.weeks || []) {
+      const completedWeek = (week.stageIds || []).some((stageId) => completedStages.has(stageId));
       for (const day of week.days || []) {
         day.tasks = (day.tasks || []).map((task) => (
-          completedTaskIds.has(task.id) ? { ...task, done: true } : task
+          completedWeek || completedTaskIds.has(task.id) || canonicalTaskDone(task, currentState)
+            ? { ...task, done: true }
+            : task
         ));
       }
     }
-    return next;
+    return plan;
+  }
+
+  function installOverridesOwner(currentState) {
+    const isCanonicalChecklist = canonicalChecklistPredicate(currentState);
+    const explicitIds = currentState.roadmap?.completedChecklistIds || [];
+    const protectedLists = new WeakSet();
+
+    function protectChecklist(value) {
+      const target = value && typeof value === "object" ? value : {};
+      if (protectedLists.has(target)) return target;
+      explicitIds.forEach((id) => { target[id] = true; });
+      const proxy = new Proxy(target, {
+        get(checklist, property, receiver) {
+          if (typeof property === "string" && isCanonicalChecklist(property)) return true;
+          return Reflect.get(checklist, property, receiver);
+        },
+        set(checklist, property, valueToSet) {
+          checklist[property] = typeof property === "string" && isCanonicalChecklist(property)
+            ? true
+            : valueToSet;
+          return true;
+        },
+        deleteProperty(checklist, property) {
+          if (typeof property === "string" && isCanonicalChecklist(property)) {
+            checklist[property] = true;
+            return true;
+          }
+          return Reflect.deleteProperty(checklist, property);
+        },
+      });
+      protectedLists.add(proxy);
+      return proxy;
+    }
+
+    function patchOverrides(value) {
+      const next = value && typeof value === "object" ? value : {};
+      next.checklist = protectChecklist(next.checklist);
+      return next;
+    }
+
+    let overrides = patchOverrides(hubState.overrides);
+    Object.defineProperty(hubState, "overrides", {
+      configurable: true,
+      enumerable: true,
+      get: () => overrides,
+      set: (value) => { overrides = patchOverrides(value); },
+    });
   }
 
   function installSourceOwner(currentState) {
@@ -154,16 +263,26 @@
     });
   }
 
+  function installPlanOwner(currentState) {
+    let plan = applyPlanPatch(hubState.projectState, currentState);
+    Object.defineProperty(hubState, "projectState", {
+      configurable: true,
+      enumerable: true,
+      get: () => plan,
+      set: (value) => { plan = applyPlanPatch(value, currentState); },
+    });
+  }
+
   function activate(currentState) {
+    installOverridesOwner(currentState);
     installSourceOwner(currentState);
-    if (hubState.projectState?.project) {
-      hubState.projectState = applyPlanPatch(hubState.projectState, currentState);
-    }
-    hubState.activeStageId = currentState.project.currentStageId;
-    installCanonicalProgressOwner(currentState);
+    installPlanOwner(currentState);
+    hubState.activeStageId = currentState.roadmap?.activeStageId
+      || currentState.project.currentStageId;
+    installUiOwner(currentState);
     updateTurtleBotCard();
     if (!hubElements?.modal?.hidden) renderHub();
-    applyCanonicalProgressToUi();
+    applyCanonicalStateToUi();
   }
 
   fetch(STATE_URL, { credentials: "same-origin" })
