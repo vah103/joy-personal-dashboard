@@ -37,8 +37,27 @@
       "gazeboFreezeRecovered": true
     }
   },
+  "scope": {
+    "includedStageIds": [
+      "stage-1",
+      "stage-2",
+      "stage-3",
+      "stage-4",
+      "stage-5",
+      "stage-6",
+      "stage-7",
+      "stage-8",
+      "stage-9"
+    ],
+    "excludedStageIds": [],
+    "excludedReason": "All nine stages are included. Stages 1–4 are complete and Stage 5 frontier exploration is active.",
+    "objectClassLimit": 3,
+    "environmentLimit": 1
+  },
   "roadmap": {
     "completedStageIds": [
+      "stage-1",
+      "stage-2",
       "stage-3",
       "stage-4"
     ],
