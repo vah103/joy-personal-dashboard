@@ -1,23 +1,29 @@
 {
-  "schemaVersion": 1,
-  "purpose": "Approved source catalog for selecting IELTS practice without inventing tests or answer keys.",
+  "schemaVersion": 2,
+  "purpose": "Approved concrete source catalog for assigning IELTS Listening and Reading practice without inventing tests or answer keys.",
   "selectionPolicy": {
-    "fixedTaskMaterialFirst": true,
-    "teacherRecommendedCheckedPracticeSkills": [
+    "randomCheckedPracticeSkills": [
       "listening",
       "reading"
     ],
     "rules": [
-      "Use the exact materialUrl attached to an IELTS Journey task whenever one is present.",
-      "For ordinary Listening or Reading practice without a fixed material, prefer a teacher-recommended provider from this catalog.",
-      "The owner opens and completes a concrete test on the provider platform; Joy does not scrape or reproduce the full test.",
-      "Treat the provider result and answer check as practice evidence, not as an official IELTS score.",
-      "Use official IELTS materials for baseline tests and any claim labelled official."
+      "Listening and Reading tasks use only concrete tests from STUDY4 or YouPass in this catalog.",
+      "Assign one random eligible test the first time a task is opened or started, then keep that assignment for the task.",
+      "Do not repeat a test that is attached to a completed task until every eligible test for that skill and scope has been used.",
+      "Baseline and other full-test tasks require a verified 40-question full test; focused practice may use a full test or one checked section.",
+      "The owner completes the work on the provider platform; Joy does not scrape or reproduce the full test.",
+      "Treat provider results and answer explanations as diagnostic practice evidence, not as an official IELTS score.",
+      "A pending task may be assigned another test; an in-progress or completed task keeps its assignment."
     ],
     "storeOnly": [
       "providerId",
+      "providerName",
+      "testId",
       "testTitle",
       "testUrl",
+      "scope",
+      "questionCount",
+      "assignedAt",
       "rawResult",
       "wrongItems",
       "platformChecked",
@@ -35,7 +41,7 @@
       "id": "study4",
       "name": "STUDY4",
       "sourceType": "teacher-recommended-third-party-practice",
-      "homepageUrl": "https://study4.com/tests/",
+      "homepageUrl": "https://study4.com/tests/ielts/",
       "allowedHosts": [
         "study4.com",
         "www.study4.com"
@@ -50,22 +56,20 @@
       ],
       "teacherRecommended": true,
       "official": false,
-      "usage": "Choose one concrete Listening or Reading test, complete it on STUDY4, then send Joy the platform result and the wrong-question evidence."
+      "usage": "Complete the assigned full test or section on STUDY4, then record the platform result and wrong-question evidence in Joy."
     },
     {
       "id": "youpass",
       "name": "YouPass",
       "sourceType": "teacher-recommended-third-party-practice",
-      "homepageUrl": "https://youpass.vn/",
+      "homepageUrl": "https://youpass.vn/luyen-thi/ielts/listening",
       "allowedHosts": [
         "youpass.vn",
         "www.youpass.vn"
       ],
       "availableSkills": [
         "listening",
-        "reading",
-        "writing",
-        "speaking"
+        "reading"
       ],
       "checkedSkills": [
         "listening",
@@ -73,7 +77,259 @@
       ],
       "teacherRecommended": true,
       "official": false,
-      "usage": "Choose one concrete Listening or Reading test, complete it on YouPass, then send Joy the platform result, answer explanation evidence, and wrong questions."
+      "usage": "Complete the assigned checked section on YouPass, then record the result, explanation evidence and wrong questions in Joy."
+    }
+  ],
+  "tests": [
+    {
+      "id": "study4-bc-listening-1",
+      "providerId": "study4",
+      "skill": "listening",
+      "scope": "full",
+      "questionCount": 40,
+      "title": "BC IELTS Listening Test 1",
+      "url": "https://study4.com/tests/1234/bc-ielts-listening-test-1/",
+      "verifiedAt": "2026-08-03"
+    },
+    {
+      "id": "study4-bc-listening-4",
+      "providerId": "study4",
+      "skill": "listening",
+      "scope": "full",
+      "questionCount": 40,
+      "title": "BC IELTS Listening Test 4",
+      "url": "https://study4.com/tests/1240/bc-ielts-listening-test-4/",
+      "verifiedAt": "2026-08-03"
+    },
+    {
+      "id": "study4-bc-listening-6",
+      "providerId": "study4",
+      "skill": "listening",
+      "scope": "full",
+      "questionCount": 40,
+      "title": "BC IELTS Listening Test 6",
+      "url": "https://study4.com/tests/1242/bc-ielts-listening-test-6/",
+      "verifiedAt": "2026-08-03"
+    },
+    {
+      "id": "study4-bc-listening-7",
+      "providerId": "study4",
+      "skill": "listening",
+      "scope": "full",
+      "questionCount": 40,
+      "title": "BC IELTS Listening Test 7",
+      "url": "https://study4.com/tests/1243/bc-ielts-listening-test-7/",
+      "verifiedAt": "2026-08-03"
+    },
+    {
+      "id": "study4-bc-listening-9",
+      "providerId": "study4",
+      "skill": "listening",
+      "scope": "full",
+      "questionCount": 40,
+      "title": "BC IELTS Listening Test 9",
+      "url": "https://study4.com/tests/4559/bc-ielts-listening-test-9/",
+      "verifiedAt": "2026-08-03"
+    },
+    {
+      "id": "study4-recent-listening-4",
+      "providerId": "study4",
+      "skill": "listening",
+      "scope": "full",
+      "questionCount": 40,
+      "title": "Recent IELTS Listening Actual Test 4",
+      "url": "https://study4.com/tests/191/recent-ielts-listening-actual-test-4/",
+      "verifiedAt": "2026-08-03"
+    },
+    {
+      "id": "study4-simulation-listening-9",
+      "providerId": "study4",
+      "skill": "listening",
+      "scope": "full",
+      "questionCount": 40,
+      "title": "IELTS Simulation Listening Test 9",
+      "url": "https://study4.com/tests/2026/ielts-simulation-listening-test-9/",
+      "verifiedAt": "2026-08-03"
+    },
+    {
+      "id": "youpass-listening-newspaper-photo",
+      "providerId": "youpass",
+      "skill": "listening",
+      "scope": "section",
+      "questionCount": 10,
+      "title": "Newspaper Photo Reprint Request Form",
+      "url": "https://youpass.vn/practice/listening/10461",
+      "verifiedAt": "2026-08-03"
+    },
+    {
+      "id": "youpass-listening-revision-note",
+      "providerId": "youpass",
+      "skill": "listening",
+      "scope": "section",
+      "questionCount": 10,
+      "title": "Revision Note",
+      "url": "https://youpass.vn/practice/listening/8134",
+      "verifiedAt": "2026-08-03"
+    },
+    {
+      "id": "youpass-listening-assignment-feedback",
+      "providerId": "youpass",
+      "skill": "listening",
+      "scope": "section",
+      "questionCount": 10,
+      "title": "Assignment Feedback",
+      "url": "https://youpass.vn/practice/listening/10204",
+      "verifiedAt": "2026-08-03"
+    },
+    {
+      "id": "youpass-listening-community-centre",
+      "providerId": "youpass",
+      "skill": "listening",
+      "scope": "section",
+      "questionCount": 10,
+      "title": "Plan of Community Centre",
+      "url": "https://youpass.vn/practice/listening/10198",
+      "verifiedAt": "2026-08-03"
+    },
+    {
+      "id": "youpass-listening-hinchingbrooke",
+      "providerId": "youpass",
+      "skill": "listening",
+      "scope": "section",
+      "questionCount": 10,
+      "title": "Hinchingbrooke Country Park",
+      "url": "https://youpass.vn/practice/listening/7398",
+      "verifiedAt": "2026-08-03"
+    },
+    {
+      "id": "youpass-listening-renovation-project",
+      "providerId": "youpass",
+      "skill": "listening",
+      "scope": "section",
+      "questionCount": 10,
+      "title": "A Renovation Project",
+      "url": "https://youpass.vn/practice/listening/10449",
+      "verifiedAt": "2026-08-03"
+    },
+    {
+      "id": "study4-simulation-reading-4",
+      "providerId": "study4",
+      "skill": "reading",
+      "scope": "full",
+      "questionCount": 40,
+      "title": "IELTS Simulation Reading Test 4",
+      "url": "https://study4.com/tests/2015/ielts-simulation-reading-test-4/",
+      "verifiedAt": "2026-08-03"
+    },
+    {
+      "id": "study4-bc-reading-4",
+      "providerId": "study4",
+      "skill": "reading",
+      "scope": "full",
+      "questionCount": 40,
+      "title": "BC IELTS Reading Test 4",
+      "url": "https://study4.com/tests/1228/bc-ielts-reading-test-4/",
+      "verifiedAt": "2026-08-03"
+    },
+    {
+      "id": "study4-recent-reading-4",
+      "providerId": "study4",
+      "skill": "reading",
+      "scope": "full",
+      "questionCount": 40,
+      "title": "Recent IELTS Reading Actual Test 4",
+      "url": "https://study4.com/tests/53/recent-ielts-reading-actual-test-4/",
+      "verifiedAt": "2026-08-03"
+    },
+    {
+      "id": "study4-recent-reading-42",
+      "providerId": "study4",
+      "skill": "reading",
+      "scope": "full",
+      "questionCount": 40,
+      "title": "Recent IELTS Reading Actual Test 42",
+      "url": "https://study4.com/tests/96/recent-ielts-reading-actual-test-42/",
+      "verifiedAt": "2026-08-03"
+    },
+    {
+      "id": "study4-recent-reading-75",
+      "providerId": "study4",
+      "skill": "reading",
+      "scope": "full",
+      "questionCount": 40,
+      "title": "Recent IELTS Reading Actual Test 75",
+      "url": "https://study4.com/tests/134/recent-ielts-reading-actual-test-75/",
+      "verifiedAt": "2026-08-03"
+    },
+    {
+      "id": "study4-recent-reading-85",
+      "providerId": "study4",
+      "skill": "reading",
+      "scope": "full",
+      "questionCount": 40,
+      "title": "Recent IELTS Reading Actual Test 85",
+      "url": "https://study4.com/tests/146/recent-ielts-reading-actual-test-85/",
+      "verifiedAt": "2026-08-03"
+    },
+    {
+      "id": "youpass-reading-huarango",
+      "providerId": "youpass",
+      "skill": "reading",
+      "scope": "section",
+      "questionCount": 13,
+      "title": "The Return of the Huarango",
+      "url": "https://youpass.vn/practice/reading/7299",
+      "verifiedAt": "2026-08-03"
+    },
+    {
+      "id": "youpass-reading-twins",
+      "providerId": "youpass",
+      "skill": "reading",
+      "scope": "section",
+      "questionCount": 13,
+      "title": "Research Using Twins",
+      "url": "https://youpass.vn/practice/reading/7347",
+      "verifiedAt": "2026-08-03"
+    },
+    {
+      "id": "youpass-reading-water",
+      "providerId": "youpass",
+      "skill": "reading",
+      "scope": "section",
+      "questionCount": 14,
+      "title": "Making Every Drop Count",
+      "url": "https://youpass.vn/practice/reading/7783",
+      "verifiedAt": "2026-08-03"
+    },
+    {
+      "id": "youpass-reading-agriculture",
+      "providerId": "youpass",
+      "skill": "reading",
+      "scope": "section",
+      "questionCount": 9,
+      "title": "Agriculture and a Meat-Free World",
+      "url": "https://youpass.vn/practice/reading/10058",
+      "verifiedAt": "2026-08-03"
+    },
+    {
+      "id": "youpass-reading-bees",
+      "providerId": "youpass",
+      "skill": "reading",
+      "scope": "section",
+      "questionCount": 13,
+      "title": "The Ecological Importance of Bees",
+      "url": "https://youpass.vn/practice/reading/4702",
+      "verifiedAt": "2026-08-03"
+    },
+    {
+      "id": "youpass-reading-advertising",
+      "providerId": "youpass",
+      "skill": "reading",
+      "scope": "section",
+      "questionCount": 13,
+      "title": "Advertising and Information Overload",
+      "url": "https://youpass.vn/practice/reading/10750",
+      "verifiedAt": "2026-08-03"
     }
   ]
 }

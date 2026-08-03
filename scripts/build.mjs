@@ -128,6 +128,7 @@ const ieltsCoreSourceFiles = [
   "core-model.js",
   "core-ui.js",
   "core-actions.js",
+  "source-assignment.js",
 ];
 
 await rm(dist, { recursive: true, force: true });
