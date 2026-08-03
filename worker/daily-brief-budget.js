@@ -4,7 +4,7 @@ import {
   runDailyBriefSchedule as runPolicyDailyBriefSchedule,
 } from "./daily-brief-policy.js";
 import {
-  focusDailyBriefResponse,
+  focusDailyBriefPayload,
   refreshFocusedMarketSignals,
 } from "./daily-brief-focus.js";
 
@@ -24,7 +24,38 @@ export async function handleDailyBriefRequest(request, env, ctx) {
   }
 
   const response = await handlePolicyDailyBriefRequest(request, withoutAi(env), ctx);
-  return focusDailyBriefResponse(response);
+  return buildVisibleDailyBriefResponse(response);
+}
+
+export async function buildVisibleDailyBriefResponse(response) {
+  const contentType = response?.headers?.get?.("Content-Type") || "";
+  if (!response?.ok || !contentType.includes("application/json")) return response;
+
+  const originalPayload = await response.json();
+  const focusedPayload = focusDailyBriefPayload(originalPayload);
+  const originalStories = Array.isArray(originalPayload?.stories) ? originalPayload.stories : [];
+
+  // Keep focused stories as the preferred experience. The classifier is
+  // intentionally strict, though, and can match nothing for long periods.
+  // Fall back to already policy-approved stories so the dashboard does not
+  // show an empty Daily Brief while valid content exists.
+  const payload = focusedPayload.stories.length || !originalStories.length
+    ? focusedPayload
+    : {
+        ...originalPayload,
+        stories: originalStories.slice(0, 12),
+        focus: focusedPayload.focus,
+        focusFallback: true,
+      };
+
+  const headers = new Headers(response.headers);
+  headers.set("Content-Type", "application/json; charset=utf-8");
+  headers.delete("Content-Length");
+  return new Response(JSON.stringify(payload), {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
 }
 
 export async function runDailyBriefSchedule(env) {
