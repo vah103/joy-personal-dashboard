@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "updatedAt": "2026-08-03",
   "project": {
+    "overallProgress": 42,
     "currentStageId": "stage-5",
     "currentStatus": "in-progress",
     "currentFocus": "Start frontier detection and safe goal generation in the verified simulation environment",
