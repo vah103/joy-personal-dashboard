@@ -5,16 +5,20 @@ const DOCS_SCOPE = "https://www.googleapis.com/auth/documents.readonly";
 const STATE_COOKIE = "__Host-joy_docs_oauth_state";
 const PKCE_COOKIE = "__Host-joy_docs_pkce";
 const COOKIE_MAX_AGE = 10 * 60;
+const CALLBACK_PATH = "/auth/callback";
 
-const ROUTES = new Set([
+const DIRECT_ROUTES = new Set([
   "/auth/docs/start",
-  "/auth/docs/callback",
   "/api/integrations/docs/status",
   "/api/integrations/docs/disconnect",
 ]);
 
-export function isGoogleDocsAuthRoute(pathname) {
-  return ROUTES.has(pathname);
+export function isGoogleDocsAuthRoute(pathname, request = null) {
+  if (DIRECT_ROUTES.has(pathname)) return true;
+  if (pathname !== CALLBACK_PATH || !request) return false;
+  const expectedState = readCookies(request)[STATE_COOKIE] || "";
+  const returnedState = new URL(request.url).searchParams.get("state") || "";
+  return Boolean(expectedState && returnedState && expectedState === returnedState);
 }
 
 export async function handleGoogleDocsAuthRequest(request, env) {
@@ -24,7 +28,7 @@ export async function handleGoogleDocsAuthRequest(request, env) {
   if (pathname === "/auth/docs/start" && request.method === "GET") {
     return startAuthorization(request, env);
   }
-  if (pathname === "/auth/docs/callback" && request.method === "GET") {
+  if (pathname === CALLBACK_PATH && request.method === "GET") {
     return finishAuthorization(request, env);
   }
   if (pathname === "/api/integrations/docs/status" && request.method === "GET") {
@@ -50,23 +54,18 @@ export async function hasGoogleDocsToken(email, env) {
     SELECT 1 AS connected
     FROM google_docs_tokens
     WHERE user_email = ?
-  `).bind(String(email || "").trim().toLowerCase()).first();
+  `).bind(normalizeEmail(email)).first();
   return Boolean(row?.connected);
 }
 
 export async function getGoogleDocsAccessToken(email, env) {
-  const userEmail = String(email || "").trim().toLowerCase();
+  const userEmail = normalizeEmail(email);
   const row = await env.DB.prepare(`
     SELECT refresh_token_encrypted, access_token_encrypted, access_token_expires_at
     FROM google_docs_tokens
     WHERE user_email = ?
   `).bind(userEmail).first();
-  if (!row?.refresh_token_encrypted) {
-    const error = new Error("DOCS_AUTHORIZATION_REQUIRED");
-    error.code = "DOCS_AUTHORIZATION_REQUIRED";
-    error.status = 403;
-    throw error;
-  }
+  if (!row?.refresh_token_encrypted) throw docsError("DOCS_AUTHORIZATION_REQUIRED", 403);
 
   if (row.access_token_encrypted && Number(row.access_token_expires_at) > Date.now() + 120_000) {
     return decryptSecret(row.access_token_encrypted, env.TOKEN_ENCRYPTION_SECRET);
@@ -86,22 +85,19 @@ export async function getGoogleDocsAccessToken(email, env) {
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok || !payload.access_token) {
-    const error = new Error("DOCS_TOKEN_REFRESH_FAILED");
-    error.code = payload.error === "invalid_grant"
-      ? "DOCS_AUTHORIZATION_REQUIRED"
-      : "DOCS_TOKEN_REFRESH_FAILED";
-    error.status = payload.error === "invalid_grant" ? 403 : 502;
-    throw error;
+    throw docsError(
+      payload.error === "invalid_grant" ? "DOCS_AUTHORIZATION_REQUIRED" : "DOCS_TOKEN_REFRESH_FAILED",
+      payload.error === "invalid_grant" ? 403 : 502,
+    );
   }
 
-  const encryptedAccessToken = await encryptSecret(payload.access_token, env.TOKEN_ENCRYPTION_SECRET);
   const now = Date.now();
   await env.DB.prepare(`
     UPDATE google_docs_tokens
     SET access_token_encrypted = ?, access_token_expires_at = ?, updated_at = ?
     WHERE user_email = ?
   `).bind(
-    encryptedAccessToken,
+    await encryptSecret(payload.access_token, env.TOKEN_ENCRYPTION_SECRET),
     now + Number(payload.expires_in || 3600) * 1000,
     now,
     userEmail,
@@ -115,10 +111,9 @@ async function startAuthorization(request, env) {
   if (!session) return redirect("/login");
 
   const url = new URL(request.url);
-  const redirectUri = `${url.origin}/auth/docs/callback`;
+  const redirectUri = `${url.origin}${CALLBACK_PATH}`;
   const state = randomToken(24);
   const verifier = randomToken(48);
-  const challenge = await sha256Base64Url(verifier);
   const parameters = new URLSearchParams({
     client_id: env.GOOGLE_CLIENT_ID,
     redirect_uri: redirectUri,
@@ -128,7 +123,7 @@ async function startAuthorization(request, env) {
     prompt: "consent",
     include_granted_scopes: "true",
     state,
-    code_challenge: challenge,
+    code_challenge: await sha256Base64Url(verifier),
     code_challenge_method: "S256",
   });
 
@@ -153,7 +148,6 @@ async function finishAuthorization(request, env) {
     return htmlError("Google Docs authorization could not be verified.", 400);
   }
 
-  const redirectUri = `${url.origin}/auth/docs/callback`;
   const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -161,7 +155,7 @@ async function finishAuthorization(request, env) {
       code,
       client_id: env.GOOGLE_CLIENT_ID,
       client_secret: env.GOOGLE_CLIENT_SECRET,
-      redirect_uri: redirectUri,
+      redirect_uri: `${url.origin}${CALLBACK_PATH}`,
       grant_type: "authorization_code",
       code_verifier: verifier,
     }),
@@ -172,7 +166,7 @@ async function finishAuthorization(request, env) {
   }
 
   const identity = await verifyGoogleIdentity(tokens.id_token, env);
-  if (!identity || identity.email.toLowerCase() !== session.user_email.toLowerCase()) {
+  if (!identity || normalizeEmail(identity.email) !== normalizeEmail(session.user_email)) {
     return htmlError("Connect the same Google account that is signed in to Joy.", 403);
   }
 
@@ -189,7 +183,6 @@ async function finishAuthorization(request, env) {
   }
 
   const now = Date.now();
-  const accessTokenEncrypted = await encryptSecret(tokens.access_token, env.TOKEN_ENCRYPTION_SECRET);
   await env.DB.prepare(`
     INSERT INTO google_docs_tokens (
       user_email, refresh_token_encrypted, access_token_encrypted,
@@ -203,7 +196,7 @@ async function finishAuthorization(request, env) {
   `).bind(
     session.user_email,
     refreshTokenEncrypted,
-    accessTokenEncrypted,
+    await encryptSecret(tokens.access_token, env.TOKEN_ENCRYPTION_SECRET),
     now + Number(tokens.expires_in || 3600) * 1000,
     now,
   ).run();
@@ -222,7 +215,7 @@ async function verifyGoogleIdentity(idToken, env) {
   if (
     identity.aud !== env.GOOGLE_CLIENT_ID
     || !verified
-    || identity.email?.toLowerCase() !== String(env.ALLOWED_EMAIL).trim().toLowerCase()
+    || normalizeEmail(identity.email) !== normalizeEmail(env.ALLOWED_EMAIL)
   ) return null;
   return identity;
 }
@@ -236,18 +229,20 @@ function requiredConfig(env) {
 async function encryptSecret(value, secret) {
   const key = await encryptionKey(secret);
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const plaintext = new TextEncoder().encode(String(value));
-  const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, plaintext);
+  const encrypted = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    new TextEncoder().encode(String(value)),
+  );
   return `${base64Url(iv)}.${base64Url(new Uint8Array(encrypted))}`;
 }
 
 async function decryptSecret(value, secret) {
   const [ivPart, encryptedPart] = String(value).split(".");
   if (!ivPart || !encryptedPart) throw new Error("Stored token is invalid");
-  const key = await encryptionKey(secret);
   const decrypted = await crypto.subtle.decrypt(
     { name: "AES-GCM", iv: fromBase64Url(ivPart) },
-    key,
+    await encryptionKey(secret),
     fromBase64Url(encryptedPart),
   );
   return new TextDecoder().decode(decrypted);
@@ -286,6 +281,17 @@ function constantTimeEqual(a, b) {
     difference |= a.charCodeAt(index) ^ b.charCodeAt(index);
   }
   return difference === 0;
+}
+
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function docsError(code, status) {
+  const error = new Error(code);
+  error.code = code;
+  error.status = status;
+  return error;
 }
 
 function cookie(name, value, maxAge) {
