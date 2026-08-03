@@ -128,6 +128,7 @@ const ieltsCoreSourceFiles = [
   "core-model.js",
   "core-ui.js",
   "core-actions.js",
+  "source-assignment.js",
 ];
 
 await rm(dist, { recursive: true, force: true });
@@ -234,7 +235,7 @@ const copies = [
   [resolve(features, "notifications", "weather-status-ui.js"), "weather-status-ui.js"],
   [resolve(features, "greeting", "greeting-layout.js"), "greeting-layout.js"],
   [resolve(features, "greeting", "greeting-layout.css"), "greeting-layout.css"],
-  [resolve(features, "greeting", "daily-brief.css"), "daily-brief.css"],
+  [resolve(features, "greeting", "daily-brief.css"), "greeting/daily-brief.css"],
   [resolve(features, "speaking", "speaking-loader.js"), "speaking-loader.js"],
   [resolve(features, "vocabulary", "vocabulary-loader.js"), "vocabulary-loader.js"],
   [resolve(features, "project-hub", "project-hub-performance.js"), "project-hub-performance.js"],
