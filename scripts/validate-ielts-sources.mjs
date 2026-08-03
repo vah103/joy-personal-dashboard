@@ -11,6 +11,8 @@ const bundledSources = [
   "core-ui.js",
   "core-actions.js",
   "source-assignment.js",
+  "course-sync.js",
+  "course-prompt-bridge.js",
 ];
 
 const standaloneSources = ["card.js"];
@@ -102,4 +104,4 @@ try {
   throw error;
 }
 
-console.log("IELTS Journey frontend sources and random checked-practice catalog validated");
+console.log("IELTS Journey frontend, live Course sync and random checked-practice catalog validated");

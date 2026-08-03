@@ -1,0 +1,182 @@
+.ielts-course-doc-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(260px, .55fr);
+  gap: 14px;
+}
+
+.ielts-course-doc-copy,
+.ielts-course-sync-status,
+.ielts-course-knowledge-panel {
+  border: 1px solid var(--ielts-line);
+  border-radius: 18px;
+  background: #fff;
+}
+
+.ielts-course-doc-copy {
+  padding: 24px;
+  background: linear-gradient(125deg, #edf4f5, #fbfcfc 72%);
+}
+
+.ielts-course-doc-copy > small,
+.ielts-course-sync-status > small,
+.ielts-course-knowledge-panel header small {
+  color: var(--ielts-muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.ielts-course-doc-copy h3 {
+  margin: 5px 0 7px;
+  color: var(--ielts-ink);
+  font-size: 23px;
+  letter-spacing: -.025em;
+}
+
+.ielts-course-doc-copy > p,
+.ielts-course-knowledge-panel > p,
+.ielts-course-empty p {
+  margin: 0;
+  color: #66787f;
+  font-size: 12px;
+  line-height: 1.58;
+}
+
+.ielts-course-doc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 18px;
+}
+
+.ielts-course-doc-actions a,
+.ielts-course-doc-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 9px 13px;
+  border: 1px solid #c8d5d9;
+  border-radius: 10px;
+  background: #fff;
+  color: #486873;
+  cursor: pointer;
+  font: 800 11px "Nunito", sans-serif;
+  text-decoration: none;
+}
+
+.ielts-course-doc-actions button:disabled {
+  cursor: wait;
+  opacity: .7;
+}
+
+.ielts-course-sync-status {
+  position: relative;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  min-height: 190px;
+  padding: 22px;
+}
+
+.ielts-course-sync-status > span {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ielts-green);
+  box-shadow: 0 0 0 5px var(--ielts-green-soft);
+}
+
+.ielts-course-sync-status.error > span {
+  background: #a66b62;
+  box-shadow: 0 0 0 5px #f7eae7;
+}
+
+.ielts-course-sync-status strong {
+  max-width: 240px;
+  color: #334c55;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.ielts-course-sync-status p,
+.ielts-course-sync-status em {
+  margin: 0;
+  color: #74858b;
+  font-size: 10px;
+  font-style: normal;
+  line-height: 1.45;
+}
+
+.ielts-course-sync-status em {
+  margin-top: 5px;
+  color: var(--ielts-blue-dark);
+  font-weight: 700;
+}
+
+.ielts-course-knowledge-panel {
+  margin-top: 14px;
+  padding: 19px 20px;
+}
+
+.ielts-course-knowledge-panel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 9px;
+}
+
+.ielts-course-knowledge-panel h3 {
+  margin: 2px 0 0;
+  font-size: 17px;
+}
+
+.ielts-course-knowledge-panel header b {
+  color: var(--ielts-blue-dark);
+  font-size: 11px;
+}
+
+.ielts-course-topic-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 14px;
+}
+
+.ielts-course-topic-tags span {
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: var(--ielts-blue-soft);
+  color: var(--ielts-blue-dark);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.ielts-course-empty {
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px dashed #cbd7da;
+  border-radius: 13px;
+  background: #fafcfc;
+}
+
+.ielts-course-empty strong {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 12px;
+}
+
+@media (max-width: 760px) {
+  .ielts-course-doc-card {
+    grid-template-columns: 1fr;
+  }
+
+  .ielts-course-sync-status {
+    min-height: 140px;
+  }
+}

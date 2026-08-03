@@ -2,6 +2,7 @@ import {
   IELTS_ASSISTANT_SERVICE,
   getIeltsTeachingTask,
 } from "./ielts-assistant.js";
+import { readIeltsCourseKnowledge } from "./ielts-course-sync.js";
 import {
   mutateIeltsState,
   readIeltsState,
@@ -107,6 +108,16 @@ function attachTeachingSources(result, data) {
   };
 }
 
+async function courseKnowledgeFor(env, context, dependencies = {}) {
+  const readCourseKnowledge = dependencies.readCourseKnowledge || readIeltsCourseKnowledge;
+  try {
+    return await readCourseKnowledge(context.userEmail, env);
+  } catch (error) {
+    console.error("Joy IELTS course knowledge read failed", error);
+    return null;
+  }
+}
+
 async function getTeachingContext(env, context, input = {}, dependencies = {}) {
   const result = await IELTS_ASSISTANT_SERVICE.getTeachingContext(
     env,
@@ -115,8 +126,14 @@ async function getTeachingContext(env, context, input = {}, dependencies = {}) {
     dependencies,
   );
   const readState = dependencies.readState || readIeltsState;
-  const record = await readState(context.userEmail, env);
-  return decorateIeltsTeachingContext(attachTeachingSources(result, record.data));
+  const [record, courseKnowledge] = await Promise.all([
+    readState(context.userEmail, env),
+    courseKnowledgeFor(env, context, dependencies),
+  ]);
+  return {
+    ...decorateIeltsTeachingContext(attachTeachingSources(result, record.data)),
+    courseKnowledge,
+  };
 }
 
 async function getTeachingTask(env, context, taskId, input = {}, dependencies = {}) {
@@ -128,8 +145,14 @@ async function getTeachingTask(env, context, taskId, input = {}, dependencies = 
     dependencies,
   );
   const readState = dependencies.readState || readIeltsState;
-  const record = await readState(context.userEmail, env);
-  return decorateIeltsTeachingTask(attachTeachingSources(result, record.data));
+  const [record, courseKnowledge] = await Promise.all([
+    readState(context.userEmail, env),
+    courseKnowledgeFor(env, context, dependencies),
+  ]);
+  return {
+    ...decorateIeltsTeachingTask(attachTeachingSources(result, record.data)),
+    courseKnowledge,
+  };
 }
 
 async function startTask(env, context, taskId, input = {}, dependencies = {}) {
