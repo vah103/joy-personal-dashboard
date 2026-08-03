@@ -25,7 +25,7 @@ test("TurtleBot current progress has one stable canonical owner", async () => {
   const currentState = JSON.parse(await read("project-data/turtlebot4/current-state.json"));
   const merger = await read("project-data/turtlebot4/project-current-state.js");
 
-  assert.equal(currentState.project.currentStageId, "stage-4");
+  assert.equal(currentState.project.currentStageId, "stage-5");
   assert.match(loader, /project-current-state\.js/);
   assert.doesNotMatch(loader, /progress-\d{8}\.js/);
   assert.doesNotMatch(merger, /setTimeout|pageshow|localStorage/);

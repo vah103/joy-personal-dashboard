@@ -52,7 +52,7 @@ test("canonical dashboard HTML owns final production asset versions", () => {
     "speaking-loader.js?v=joy-speaking-loader-v1",
     "vocabulary-loader.js?v=joy-vocabulary-loader-v1",
     "project-hub-performance.js?v=turtlebot-hub-lifecycle-v1",
-    "turtlebot-plan-loader.js?v=turtlebot-plan-loader-v1",
+    "turtlebot-plan-loader.js?v=turtlebot-plan-loader-v2",
   ]) {
     assert.match(dashboard, new RegExp(reference.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }

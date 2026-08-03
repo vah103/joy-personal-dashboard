@@ -1,16 +1,13 @@
 {
-  "schemaVersion": 1,
-  "updatedAt": "2026-07-30",
+  "schemaVersion": 2,
+  "updatedAt": "2026-08-03",
   "project": {
-    "currentStageId": "stage-4",
+    "currentStageId": "stage-5",
     "currentStatus": "in-progress",
-    "currentFocus": "Set up TurtleBot4 simulation and the first controlled world",
-    "nextAction": "Install the simulation stack, launch one world, then verify simulated LiDAR, RGB-D, odometry and TF",
-    "lastReviewed": "2026-07-30",
-    "currentBlockers": [
-      "TurtleBot4 simulation and the first controlled world are not set up yet.",
-      "Simulated LiDAR, RGB-D, odometry and TF still need verification before frontier development."
-    ],
+    "currentFocus": "Start frontier detection and safe goal generation in the verified simulation environment",
+    "nextAction": "Define the OccupancyGrid frontier rule, implement frontier-cell detection and clustering, then publish RViz markers",
+    "lastReviewed": "2026-08-03",
+    "currentBlockers": [],
     "stage3Result": {
       "trials": 12,
       "successes": 12,
@@ -21,24 +18,58 @@
       "totalPathLengthMeters": 20.62,
       "meanPathLengthMeters": 1.72,
       "rosbagMessages": 43542
+    },
+    "stage4Result": {
+      "verifiedWorlds": [
+        "Depot",
+        "Warehouse"
+      ],
+      "controlledMotionVerified": true,
+      "simulatedInterfaces": [
+        "LiDAR",
+        "RGB-D camera info",
+        "odometry",
+        "TF"
+      ],
+      "rvizStatus": "OK",
+      "restartRepeatabilityVerified": true,
+      "gazeboFreezeRecovered": true
     }
   },
   "roadmap": {
-    "completedStageId": "stage-3",
-    "activeStageId": "stage-4",
+    "completedStageIds": [
+      "stage-3",
+      "stage-4"
+    ],
+    "activeStageId": "stage-5",
     "completedChecklistIds": [
       "s3-goal-set",
       "s3-logging",
       "s3-runs",
-      "s3-metrics"
+      "s3-metrics",
+      "s4-world",
+      "s4-sensors",
+      "s4-scenarios",
+      "s4-parity"
     ],
-    "result": {
-      "date": "2026-07-30",
-      "summary": "The real TurtleBot4 completed 12 of 12 fixed Nav2 trials with 100% success and zero recoveries. Mean travel time was 8.43 seconds and mean path length was 1.72 metres.",
-      "evidence": [
-        "report/2026-07-30.md"
-      ]
-    }
+    "results": [
+      {
+        "stageId": "stage-3",
+        "date": "2026-07-30",
+        "summary": "The real TurtleBot4 completed 12 of 12 fixed Nav2 trials with 100% success and zero recoveries. Mean travel time was 8.43 seconds and mean path length was 1.72 metres.",
+        "evidence": [
+          "report/2026-07-30.md"
+        ]
+      },
+      {
+        "stageId": "stage-4",
+        "date": "2026-08-03",
+        "summary": "TurtleBot4 simulation was verified in the Depot and Warehouse worlds. Robot spawning, controlled motion, simulated interfaces, RViz and TF checks succeeded, and restart recovery was documented.",
+        "evidence": [
+          "Google Docs daily report 03/08/2026"
+        ]
+      }
+    ]
   },
   "plan": {
     "completedTaskIds": [
@@ -49,13 +80,28 @@
       "w3-d4-t2",
       "w3-d5-t2",
       "w3-d7-t1",
-      "w3-d7-t2"
+      "w3-d7-t2",
+      "w4-d1-t1",
+      "w4-d2-t1",
+      "w4-d3-t1",
+      "w4-d4-t1",
+      "w4-d5-t1",
+      "w4-d7-t1",
+      "w4-d7-t2"
     ]
   },
-  "history": {
-    "date": "2026-07-30",
-    "progressAfter": 32,
-    "title": "Stage 3 navigation benchmark completed",
-    "detail": "The real TurtleBot4 completed 12/12 fixed Nav2 trials with 100% success and zero recoveries."
-  }
+  "history": [
+    {
+      "date": "2026-07-30",
+      "progressAfter": 32,
+      "title": "Stage 3 navigation benchmark completed",
+      "detail": "The real TurtleBot4 completed 12/12 fixed Nav2 trials with 100% success and zero recoveries."
+    },
+    {
+      "date": "2026-08-03",
+      "progressAfter": 42,
+      "title": "Stage 4 simulation and scenarios completed",
+      "detail": "Depot and Warehouse simulation bringup, controlled motion, simulated interface checks, RViz/TF verification and restart recovery were completed and documented."
+    }
+  ]
 }

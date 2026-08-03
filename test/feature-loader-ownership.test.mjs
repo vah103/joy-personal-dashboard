@@ -41,5 +41,5 @@ test("TurtleBot plan chain is isolated from language feature loading", () => {
   assert.match(turtlebot, /project-plan-v3-reference-ui\.js/);
   assert.match(turtlebot, /project-hub-tabs-cleanup\.js/);
   assert.doesNotMatch(turtlebot, /vocabulary|speaking/i);
-  assert.match(dashboard, /turtlebot-plan-loader\.js\?v=turtlebot-plan-loader-v1/);
+  assert.match(dashboard, /turtlebot-plan-loader\.js\?v=turtlebot-plan-loader-v2/);
 });

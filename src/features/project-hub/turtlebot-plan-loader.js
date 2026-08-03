@@ -31,7 +31,7 @@
     }
 
     const state = document.createElement("script");
-    state.src = "/project-data/turtlebot4/project-current-state.js?v=turtlebot-current-state-v1";
+    state.src = "/project-data/turtlebot4/project-current-state.js?v=turtlebot-current-state-v2";
     state.dataset.turtlebotCurrentState = "true";
     state.defer = true;
     state.addEventListener("load", loadReferencePlan, { once: true });

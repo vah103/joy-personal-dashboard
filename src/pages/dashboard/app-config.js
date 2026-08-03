@@ -21,10 +21,10 @@ window.JoyDashboardConfig = Object.freeze({
     Object.freeze({
       id: 1,
       name: "TurtleBot 4",
-      progress: 38,
+      progress: 42,
       accent: "slate",
-      focus: "Localization & Nav2",
-      next: "Run a map localization test",
+      focus: "Stage 5 · Frontier Detection",
+      next: "Implement frontier detection and RViz markers",
     }),
     Object.freeze({
       id: 2,

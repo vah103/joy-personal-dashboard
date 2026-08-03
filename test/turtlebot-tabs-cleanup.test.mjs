@@ -61,7 +61,7 @@ test("TurtleBot tabs show only commands synchronized from the Google Docs Comman
   assert.doesNotMatch(commandsSource, /start-lidar|lifecycle-reset|run-stage3-benchmark/);
 
   assert.match(loader, /project-hub-tabs-cleanup\.js\?v=turtlebot-doc-commands-v1/);
-  assert.match(dashboard, /turtlebot-plan-loader\.js\?v=turtlebot-plan-loader-v1/);
+  assert.match(dashboard, /turtlebot-plan-loader\.js\?v=turtlebot-plan-loader-v2/);
   assert.doesNotMatch(packageSource, /cache-bust-turtlebot-plan/);
   assert.match(fontCss, /grid-template-columns: max-content minmax\(0, 1fr\) max-content/);
   assert.match(fontCss, /grid-template-rows: auto minmax\(0, 1fr\)/);

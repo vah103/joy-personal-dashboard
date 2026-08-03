@@ -1,5 +1,5 @@
 (() => {
-  const STATE_URL = "/project-data/turtlebot4/current-state.json?v=turtlebot-current-state-v1";
+  const STATE_URL = "/project-data/turtlebot4/current-state.json?v=turtlebot-current-state-v2";
 
   function clone(value) {
     if (typeof structuredClone === "function") return structuredClone(value);
@@ -12,30 +12,42 @@
     return list;
   }
 
+  function appendAllUnique(items, entries, key = "title") {
+    return (Array.isArray(entries) ? entries : [entries])
+      .filter(Boolean)
+      .reduce((list, entry) => appendUnique(list, entry, key), items);
+  }
+
   function applyProjectPatch(target, currentState) {
     if (!target?.project) return target;
     target.updatedAt = currentState.updatedAt;
     Object.assign(target.project, clone(currentState.project));
-    target.history = appendUnique(target.history, currentState.history);
+    target.history = appendAllUnique(target.history, currentState.history);
     return target;
   }
 
   function applyRoadmapPatch(source, currentState) {
     if (!source?.roadmap?.stages) return source;
     const completedIds = new Set(currentState.roadmap?.completedChecklistIds || []);
-    const completedStage = source.roadmap.stages.find(
-      (stage) => stage.id === currentState.roadmap?.completedStageId,
-    );
-    if (completedStage) {
+    const completedStageIds = currentState.roadmap?.completedStageIds
+      || [currentState.roadmap?.completedStageId].filter(Boolean);
+    const results = currentState.roadmap?.results
+      || (currentState.roadmap?.result && currentState.roadmap?.completedStageId
+        ? [{ ...currentState.roadmap.result, stageId: currentState.roadmap.completedStageId }]
+        : []);
+
+    for (const completedStageId of completedStageIds) {
+      const completedStage = source.roadmap.stages.find((stage) => stage.id === completedStageId);
+      if (!completedStage) continue;
       completedStage.status = "completed";
       completedStage.checklist = (completedStage.checklist || []).map((item) => (
         completedIds.has(item.id) ? { ...item, done: true } : item
       ));
-      completedStage.results = appendUnique(
-        completedStage.results,
-        currentState.roadmap?.result,
-        "date",
-      );
+      const result = results.find((entry) => entry.stageId === completedStageId);
+      if (result) {
+        const { stageId, ...stageResult } = result;
+        completedStage.results = appendUnique(completedStage.results, stageResult, "date");
+      }
     }
 
     const activeStage = source.roadmap.stages.find(
