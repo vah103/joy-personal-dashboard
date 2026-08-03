@@ -200,7 +200,30 @@ function staticTasks() {
   return [...prelaunch, ...baseline, ...rhythms];
 }
 
+function baselineTasks() {
+  return staticTasks().filter((task) => task.rhythmId === "baseline");
+}
+
+function baselineIncomplete() {
+  const tasks = baselineTasks();
+  return tasks.length > 0 && tasks.some((task) => !isDone(task));
+}
+
+function effectiveRhythm(rhythm) {
+  if (rhythm.id !== "aug-w1-r1" || !baselineIncomplete()) return rhythm;
+  return {
+    ...rhythm,
+    objective: "Complete every unfinished baseline test before beginning the error-repair tasks.",
+  };
+}
+
 function rhythmTasks(rhythmId) {
+  if (rhythmId === "aug-w1-r1" && baselineIncomplete()) {
+    return baselineTasks().map((task) => ({
+      ...task,
+      groupLabel: "Foundation & Error Awareness · Rhythm 1 · Baseline first",
+    }));
+  }
   const defaults = staticTasks().filter((task) => task.rhythmId === rhythmId);
   const custom = app.data.customTasks.filter((task) => task.rhythmId === rhythmId);
   if (!custom.length) return defaults;
@@ -214,7 +237,7 @@ function allTasks() {
     ...app.program.august.weeks.flatMap((week) => week.rhythms.map((rhythm) => rhythm.id)),
     ...app.program.phases.map((phase) => phase.id),
   ];
-  return groups.flatMap(rhythmTasks);
+  return [...new Map(groups.flatMap(rhythmTasks).map((task) => [task.id, task])).values()];
 }
 
 function findTask(id) {
@@ -241,7 +264,10 @@ function taskProgress(tasks) {
 }
 
 function allWeeks() {
-  return app.program?.august?.weeks || [];
+  return (app.program?.august?.weeks || []).map((week) => ({
+    ...week,
+    rhythms: week.rhythms.map((rhythm) => effectiveRhythm(rhythm)),
+  }));
 }
 
 function allRhythms() {
@@ -308,6 +334,8 @@ function currentContext(today = dateKey()) {
     return day >= start && day <= end;
   });
   if (rhythm && today.startsWith("2026-08")) {
+    const tasks = rhythmTasks(rhythm.id);
+    const baselineFirst = rhythm.id === "aug-w1-r1" && baselineIncomplete();
     return {
       type: "rhythm",
       id: rhythm.id,
@@ -315,19 +343,27 @@ function currentContext(today = dateKey()) {
       dateRange: rhythm.dateRange,
       objective: rhythm.objective,
       week: rhythm.week,
-      tasks: rhythmTasks(rhythm.id),
-      targetMinutes: 360,
+      tasks,
+      targetMinutes: baselineFirst
+        ? tasks.reduce((sum, task) => sum + Number(task.minutes || 0), 0)
+        : 360,
     };
   }
   const nextRhythm = allRhythms().find((item) => dateNumber(item.dateRange) >= day);
+  const tasks = nextRhythm ? rhythmTasks(nextRhythm.id) : [];
+  const baselineFirst = nextRhythm?.id === "aug-w1-r1" && baselineIncomplete();
   return {
     type: "journey",
     id: nextRhythm?.id || "journey",
     label: nextRhythm ? `${nextRhythm.label} · ${nextRhythm.dateRange}` : "Next phase",
     objective: nextRhythm?.objective || "Use the latest assessment to prepare the next phase.",
     week: nextRhythm?.week,
-    tasks: nextRhythm ? rhythmTasks(nextRhythm.id) : [],
-    targetMinutes: nextRhythm ? 360 : 0,
+    tasks,
+    targetMinutes: nextRhythm
+      ? baselineFirst
+        ? tasks.reduce((sum, task) => sum + Number(task.minutes || 0), 0)
+        : 360
+      : 0,
   };
 }
 
