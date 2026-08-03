@@ -162,7 +162,7 @@ function renderJourney() {
     </section>
     <section class="ielts-section-heading">
       <span><small>August · Foundation</small><h3>Four adaptive weeks</h3></span>
-      <b>18 h/week</b>
+      <b>${baselineIncomplete() ? "Baseline first" : "18 h/week"}</b>
     </section>
     <div class="ielts-week-list">
       ${allWeeks().map((week) => {
@@ -175,12 +175,18 @@ function renderJourney() {
             </header>
             <p>${escapeHtml(week.outcome)}</p>
             <div>
-              ${week.rhythms.map((rhythm) => `
+              ${week.rhythms.map((rhythm) => {
+                const tasks = rhythmTasks(rhythm.id);
+                const target = rhythm.id === "aug-w1-r1" && baselineIncomplete()
+                  ? tasks.reduce((sum, task) => sum + Number(task.minutes || 0), 0)
+                  : 360;
+                return `
                 <button class="${current.id === rhythm.id ? "active" : ""}" data-ielts-action="view-rhythm" data-rhythm-id="${escapeHtml(rhythm.id)}">
                   <small>${escapeHtml(rhythm.label)} · ${escapeHtml(rhythm.days)}</small>
                   <strong>${escapeHtml(rhythm.objective)}</strong>
-                  <span>${taskProgress(rhythmTasks(rhythm.id))}% · ${formatMinutes(completedMinutes(rhythmTasks(rhythm.id)))}/6h</span>
-                </button>`).join("")}
+                  <span>${taskProgress(tasks)}% · ${formatMinutes(completedMinutes(tasks))}/${formatMinutes(target)}</span>
+                </button>`;
+              }).join("")}
             </div>
           </article>`;
       }).join("")}
