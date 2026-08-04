@@ -86,7 +86,7 @@
         "date": "2026-08-03",
         "summary": "TurtleBot4 simulation was verified in the Depot and Warehouse worlds. Robot spawning, controlled motion, simulated interfaces, RViz and TF checks succeeded, and restart recovery was documented.",
         "evidence": [
-          "Google Docs daily report 03/08/2026"
+          "report/2026-08-03.md"
         ]
       }
     ]
