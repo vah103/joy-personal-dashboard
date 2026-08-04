@@ -22,18 +22,42 @@ const readingPractice = {
   title: "Repair Reading",
 };
 
+const task1ProcessPractice = {
+  id: "aug-w1-r2-apply",
+  kind: "guided",
+  skill: "writing",
+  title: "Write a Task 1 Process response",
+};
+
+const task2DiscussionPractice = {
+  id: "aug-w1-r3-writing",
+  kind: "guided",
+  skill: "writing",
+  title: "Build one complete Task 2 discussion body paragraph",
+};
+
+const fullWritingPractice = {
+  id: "aug-w4-r3-writing",
+  kind: "test",
+  skill: "writing",
+  title: "Final full Writing check",
+  steps: ["Write Task 1 in 20 minutes and Task 2 in 40 minutes."],
+};
+
 function state(taskStates = {}) {
   return { taskStates };
 }
 
-test("source catalog contains checked Listening and Reading material from both providers", () => {
+test("source catalogs contain Listening, Reading and Writing coverage from both providers", () => {
   const library = getIeltsSourceLibrary();
   const coverage = new Set(library.tests.map((item) => `${item.providerId}:${item.skill}`));
 
   assert.ok(coverage.has("study4:listening"));
   assert.ok(coverage.has("study4:reading"));
+  assert.ok(coverage.has("study4:writing"));
   assert.ok(coverage.has("youpass:listening"));
   assert.ok(coverage.has("youpass:reading"));
+  assert.ok(coverage.has("youpass:writing"));
 });
 
 test("baseline assignment selects only a verified 40-question full test", () => {
@@ -59,12 +83,68 @@ test("focused practice can be assigned a checked YouPass section", () => {
   assert.match(assignment.testUrl, /^https:\/\/youpass\.vn\//);
 });
 
-test("completed tests are not repeated while unused eligible tests remain", () => {
-  const first = selectIeltsSourceAssignment(readingPractice, state(), {
+test("Writing Task 1 receives a matched process prompt from the selected provider", () => {
+  const study4 = selectIeltsSourceAssignment(task1ProcessPractice, state(), {
+    random: () => 0,
+    now: 501,
+  });
+  assert.equal(study4.providerId, "study4");
+  assert.equal(study4.scope, "prompt");
+  assert.equal(study4.taskPart, "task1");
+  assert.equal(study4.writingType, "process");
+  assert.equal(study4.promptCount, 1);
+  assert.equal(study4.assignedAt, 501);
+
+  const youpass = selectIeltsSourceAssignment(task1ProcessPractice, state(), {
+    random: () => 0.999,
+    now: 502,
+  });
+  assert.equal(youpass.providerId, "youpass");
+  assert.equal(youpass.taskPart, "task1");
+  assert.equal(youpass.writingType, "process");
+  assert.match(youpass.testUrl, /^https:\/\/youpass\.vn\/practice\/writing-task-1\//);
+});
+
+test("Writing Task 2 receives only a matching discussion prompt", () => {
+  const assignment = selectIeltsSourceAssignment(task2DiscussionPractice, state(), {
+    random: () => 0.999,
+    now: 503,
+  });
+  assert.equal(assignment.providerId, "youpass");
+  assert.equal(assignment.taskPart, "task2");
+  assert.equal(assignment.writingType, "discussion");
+  assert.equal(assignment.promptCount, 1);
+});
+
+test("full Writing practice receives a paired STUDY4 source", () => {
+  const assignment = selectIeltsSourceAssignment(fullWritingPractice, state(), {
+    random: () => 0.5,
+    now: 504,
+  });
+  assert.equal(assignment.providerId, "study4");
+  assert.equal(assignment.scope, "full");
+  assert.equal(assignment.taskPart, "both");
+  assert.equal(assignment.promptCount, 2);
+});
+
+test("official Writing baseline remains fixed and is not randomly reassigned", () => {
+  const task = {
+    id: "baseline-writing",
+    kind: "test",
+    skill: "writing",
+    title: "Full Writing baseline",
+    materialUrl: "https://ielts.org/writing",
+  };
+  assert.equal(selectIeltsSourceAssignment(task, state(), { random: () => 0, now: 1 }), null);
+  assert.equal(getIeltsSourceGuidance(task).mode, "fixed-task-material");
+});
+
+test("completed sources are not repeated while unused eligible sources remain", () => {
+  const first = selectIeltsSourceAssignment(task1ProcessPractice, state(), {
     random: () => 0,
     now: 1,
   });
-  const next = selectIeltsSourceAssignment(readingPractice, state({
+  const next = selectIeltsSourceAssignment(task1ProcessPractice, state({
     finished: {
       status: "completed",
       sourceAssignment: first,
@@ -79,19 +159,23 @@ test("completed tests are not repeated while unused eligible tests remain", () =
 
 test("an existing task assignment stays stable", () => {
   const existing = {
-    providerId: "study4",
-    providerName: "STUDY4",
-    testId: "study4-bc-listening-4",
-    testTitle: "BC IELTS Listening Test 4",
-    testUrl: "https://study4.com/tests/1240/bc-ielts-listening-test-4/",
-    scope: "full",
-    questionCount: 40,
+    providerId: "youpass",
+    providerName: "YouPass",
+    testId: "youpass-writing-task1-coal-process",
+    testTitle: "Producing Electricity from Coal",
+    testUrl: "https://youpass.vn/practice/writing-task-1/9996",
+    scope: "prompt",
+    questionCount: 0,
+    promptCount: 1,
+    taskPart: "task1",
+    writingType: "process",
+    sectionLabel: "Task 1 · Process",
     assignedAt: 9,
   };
-  const assignment = selectIeltsSourceAssignment(listeningBaseline, state({
-    "baseline-listening": { sourceAssignment: existing },
+  const assignment = selectIeltsSourceAssignment(task1ProcessPractice, state({
+    [task1ProcessPractice.id]: { sourceAssignment: existing },
   }), {
-    random: () => 0.999,
+    random: () => 0,
     now: 10,
   });
 
@@ -114,4 +198,20 @@ test("Listening and Reading guidance ignores old fixed material and uses random 
   });
   assert.equal(assignedGuidance.mode, "assigned-checked-practice");
   assert.equal(assignedGuidance.fixedMaterial.url, assigned.testUrl);
+});
+
+test("assigned Writing guidance preserves the prompt and evidence requirements", () => {
+  const assigned = selectIeltsSourceAssignment(task1ProcessPractice, state(), {
+    random: () => 0.999,
+    now: 12,
+  });
+  const guidance = getIeltsSourceGuidance({
+    ...task1ProcessPractice,
+    state: { sourceAssignment: assigned },
+  });
+  assert.equal(guidance.mode, "assigned-writing-prompt");
+  assert.equal(guidance.fixedMaterial.url, assigned.testUrl);
+  assert.match(guidance.rules.join("\n"), /original response/i);
+  assert.match(guidance.rules.join("\n"), /model answer/i);
+  assert.match(guidance.evidenceTemplate.join("\n"), /TA\/TR, CC, LR, GRA/);
 });

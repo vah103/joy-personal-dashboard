@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 const root = resolve(import.meta.dirname, "..");
 const ieltsDir = resolve(root, "src", "features", "ielts");
 const sourceLibraryPath = resolve(root, "project-data", "ielts", "sources.json");
+const writingSourceLibraryPath = resolve(root, "project-data", "ielts", "writing-sources.json");
 
 const bundledSources = [
   "core-model.js",
@@ -27,6 +28,21 @@ const bundle = [
   "})();",
 ].join("\n");
 
+function validateProvider(provider, providerIds, providerHosts) {
+  assert.match(provider.id, /^[a-z0-9][a-z0-9._-]*$/, `Invalid provider id: ${provider.id}`);
+  assert.equal(providerIds.has(provider.id), false, `Duplicate provider id: ${provider.id}`);
+  providerIds.add(provider.id);
+  assert.equal(provider.teacherRecommended, true, `${provider.id} must be teacher recommended`);
+  assert.equal(provider.official, false, `${provider.id} must not be labelled official`);
+  const homepage = new URL(provider.homepageUrl);
+  assert.equal(homepage.protocol, "https:", `${provider.id} homepage must use HTTPS`);
+  assert.ok(
+    Array.isArray(provider.allowedHosts) && provider.allowedHosts.includes(homepage.hostname),
+    `${provider.id} homepage host must be allowlisted`,
+  );
+  providerHosts.set(provider.id, new Set(provider.allowedHosts));
+}
+
 function validateSourceLibrary(library) {
   assert.equal(library.schemaVersion, 2, "IELTS source library schemaVersion must be 2");
   assert.ok(Array.isArray(library.providers), "IELTS source library providers must be an array");
@@ -37,22 +53,10 @@ function validateSourceLibrary(library) {
   const providerIds = new Set();
   const providerHosts = new Map();
   for (const provider of library.providers) {
-    assert.match(provider.id, /^[a-z0-9][a-z0-9._-]*$/, `Invalid provider id: ${provider.id}`);
-    assert.equal(providerIds.has(provider.id), false, `Duplicate provider id: ${provider.id}`);
-    providerIds.add(provider.id);
-    assert.equal(provider.teacherRecommended, true, `${provider.id} must be teacher recommended`);
-    assert.equal(provider.official, false, `${provider.id} must not be labelled official`);
+    validateProvider(provider, providerIds, providerHosts);
     assert.ok(Array.isArray(provider.checkedSkills), `${provider.id} checkedSkills must be an array`);
     assert.ok(provider.checkedSkills.includes("listening"), `${provider.id} must support checked Listening practice`);
     assert.ok(provider.checkedSkills.includes("reading"), `${provider.id} must support checked Reading practice`);
-
-    const homepage = new URL(provider.homepageUrl);
-    assert.equal(homepage.protocol, "https:", `${provider.id} homepage must use HTTPS`);
-    assert.ok(
-      Array.isArray(provider.allowedHosts) && provider.allowedHosts.includes(homepage.hostname),
-      `${provider.id} homepage host must be allowlisted`,
-    );
-    providerHosts.set(provider.id, new Set(provider.allowedHosts));
   }
 
   const testIds = new Set();
@@ -92,6 +96,61 @@ function validateSourceLibrary(library) {
   assert.ok(library.selectionPolicy?.neverStore?.includes("fullThirdPartyAnswerKey"));
 }
 
+function validateWritingSourceLibrary(library) {
+  assert.equal(library.schemaVersion, 1, "Writing source library schemaVersion must be 1");
+  assert.deepEqual(library.selectionPolicy?.randomPracticeSkills, ["writing"]);
+  assert.ok(Array.isArray(library.providers) && library.providers.length === 2);
+  assert.ok(Array.isArray(library.tests) && library.tests.length >= 20);
+
+  const providerIds = new Set();
+  const providerHosts = new Map();
+  for (const provider of library.providers) {
+    validateProvider(provider, providerIds, providerHosts);
+    assert.ok(provider.availableSkills?.includes("writing"), `${provider.id} must support Writing practice`);
+  }
+
+  const testIds = new Set();
+  const coverage = new Set();
+  const fullProviders = new Set();
+  for (const test of library.tests) {
+    assert.match(test.id, /^[a-z0-9][a-z0-9._-]*$/, `Invalid Writing prompt id: ${test.id}`);
+    assert.equal(testIds.has(test.id), false, `Duplicate Writing prompt id: ${test.id}`);
+    testIds.add(test.id);
+    assert.equal(test.skill, "writing", `${test.id} must be a Writing source`);
+    assert.ok(providerIds.has(test.providerId), `Unknown Writing provider for ${test.id}`);
+    assert.ok(["full", "prompt"].includes(test.scope), `Invalid Writing scope for ${test.id}`);
+    assert.ok(["task1", "task2", "both"].includes(test.taskPart), `Invalid taskPart for ${test.id}`);
+    assert.ok(Number(test.promptCount) >= 1 && Number(test.promptCount) <= 2, `Invalid promptCount for ${test.id}`);
+    assert.equal(Boolean(test.title), true, `${test.id} needs a title`);
+    assert.equal(Boolean(test.sectionLabel), true, `${test.id} needs a section label`);
+    if (test.scope === "full") {
+      assert.equal(test.taskPart, "both", `${test.id} full Writing sources must contain both tasks`);
+      assert.equal(Number(test.promptCount), 2, `${test.id} full Writing sources must contain two prompts`);
+      fullProviders.add(test.providerId);
+    } else {
+      assert.notEqual(test.taskPart, "both", `${test.id} single prompts must target Task 1 or Task 2`);
+      assert.equal(Number(test.promptCount), 1, `${test.id} single prompts must contain one prompt`);
+      assert.ok(Boolean(test.writingType), `${test.id} needs a Writing family`);
+    }
+    const url = new URL(test.url);
+    assert.equal(url.protocol, "https:", `${test.id} must use HTTPS`);
+    assert.ok(providerHosts.get(test.providerId)?.has(url.hostname), `${test.id} host is not allowlisted`);
+    coverage.add(`${test.providerId}:${test.taskPart}`);
+  }
+
+  assert.ok(providerIds.has("study4"));
+  assert.ok(providerIds.has("youpass"));
+  assert.ok(fullProviders.has("study4"), "The Writing catalog needs full paired tests");
+  assert.ok(coverage.has("study4:task1"));
+  assert.ok(coverage.has("study4:task2"));
+  assert.ok(coverage.has("youpass:task1"));
+  assert.ok(coverage.has("youpass:task2"));
+  assert.ok(library.selectionPolicy?.storeOnly?.includes("originalResponse"));
+  assert.ok(library.selectionPolicy?.storeOnly?.includes("criterionFeedback"));
+  assert.ok(library.selectionPolicy?.storeOnly?.includes("rewrite"));
+  assert.ok(library.selectionPolicy?.neverStore?.includes("copiedModelAnswer"));
+}
+
 try {
   new Function(bundle);
   for (const file of standaloneSources) {
@@ -99,9 +158,10 @@ try {
     new Function(source);
   }
   validateSourceLibrary(JSON.parse(await readFile(sourceLibraryPath, "utf8")));
+  validateWritingSourceLibrary(JSON.parse(await readFile(writingSourceLibraryPath, "utf8")));
 } catch (error) {
   console.error("IELTS frontend or source-library validation failed before build.");
   throw error;
 }
 
-console.log("IELTS Journey frontend, live Course sync and random checked-practice catalog validated");
+console.log("IELTS Journey frontend, live Course sync and random Listening, Reading and Writing catalogs validated");
