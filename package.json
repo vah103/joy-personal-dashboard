@@ -7,7 +7,7 @@
     "node": ">=24"
   },
   "scripts": {
-    "build": "node scripts/validate-ielts-sources.mjs && node scripts/build.mjs && node scripts/sanitize-public-project-data.mjs && node scripts/build-finance-bundle.mjs",
+    "build": "node scripts/validate-ielts-sources.mjs && node scripts/build.mjs && node scripts/sync-turtlebot-fallbacks.mjs dist && node scripts/sanitize-public-project-data.mjs && node scripts/build-finance-bundle.mjs",
     "test": "node scripts/run-tests.mjs",
     "audit:prod": "npm audit --omit=dev --audit-level=high",
     "audit:all": "npm audit --audit-level=high",
