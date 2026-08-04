@@ -24,10 +24,20 @@ const removedFinanceOverlays = [
 ];
 
 test("frontend build has one canonical HTML owner", () => {
-  assert.equal(
-    packageJson.scripts.build,
-    "node scripts/validate-ielts-sources.mjs && node scripts/build.mjs && node scripts/sanitize-public-project-data.mjs && node scripts/build-finance-bundle.mjs",
-  );
+  const buildSteps = packageJson.scripts.build.split(" && ");
+  const canonicalBuild = "node scripts/build.mjs";
+  const turtleBotFallbackSync = "node scripts/sync-turtlebot-fallbacks.mjs dist";
+  const sanitizePublicData = "node scripts/sanitize-public-project-data.mjs";
+  const financeBuild = "node scripts/build-finance-bundle.mjs";
+
+  assert.equal(buildSteps[0], "node scripts/validate-ielts-sources.mjs");
+  assert.equal(buildSteps.filter((step) => step === canonicalBuild).length, 1);
+  assert.equal(buildSteps.filter((step) => step === turtleBotFallbackSync).length, 1);
+  assert.ok(buildSteps.indexOf(canonicalBuild) < buildSteps.indexOf(turtleBotFallbackSync));
+  assert.ok(buildSteps.indexOf(turtleBotFallbackSync) < buildSteps.indexOf(sanitizePublicData));
+  assert.ok(buildSteps.indexOf(sanitizePublicData) < buildSteps.indexOf(financeBuild));
+  assert.equal(buildSteps.at(-1), financeBuild);
+
   assert.match(build, /readFile\(resolve\(dashboardPage, "index\.html"\), "utf8"\)/);
   assert.match(build, /dashboardBackendAnchor/);
   assert.doesNotMatch(build, /const projectHubHead =|const dashboardFeatureScripts =/);
