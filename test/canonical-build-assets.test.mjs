@@ -27,14 +27,17 @@ test("frontend build has one canonical HTML owner", () => {
   const buildSteps = packageJson.scripts.build.split(" && ");
   const canonicalBuild = "node scripts/build.mjs";
   const turtleBotFallbackSync = "node scripts/sync-turtlebot-fallbacks.mjs dist";
+  const turtleBotAssetVersioning = "node scripts/version-turtlebot-assets.mjs dist";
   const sanitizePublicData = "node scripts/sanitize-public-project-data.mjs";
   const financeBuild = "node scripts/build-finance-bundle.mjs";
 
   assert.equal(buildSteps[0], "node scripts/validate-ielts-sources.mjs");
   assert.equal(buildSteps.filter((step) => step === canonicalBuild).length, 1);
   assert.equal(buildSteps.filter((step) => step === turtleBotFallbackSync).length, 1);
+  assert.equal(buildSteps.filter((step) => step === turtleBotAssetVersioning).length, 1);
   assert.ok(buildSteps.indexOf(canonicalBuild) < buildSteps.indexOf(turtleBotFallbackSync));
-  assert.ok(buildSteps.indexOf(turtleBotFallbackSync) < buildSteps.indexOf(sanitizePublicData));
+  assert.ok(buildSteps.indexOf(turtleBotFallbackSync) < buildSteps.indexOf(turtleBotAssetVersioning));
+  assert.ok(buildSteps.indexOf(turtleBotAssetVersioning) < buildSteps.indexOf(sanitizePublicData));
   assert.ok(buildSteps.indexOf(sanitizePublicData) < buildSteps.indexOf(financeBuild));
   assert.equal(buildSteps.at(-1), financeBuild);
 
