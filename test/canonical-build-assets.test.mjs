@@ -8,6 +8,7 @@ const read = (path) => fs.readFileSync(new URL(path, root), "utf8");
 const packageJson = JSON.parse(read("package.json"));
 const dashboard = read("src/pages/dashboard/index.html");
 const build = read("scripts/build.mjs");
+const turtleBotVersioner = read("scripts/version-turtlebot-assets.mjs");
 const financeBundle = read("scripts/build-finance-bundle.mjs");
 const removedPatches = [
   "scripts/cache-bust-finance-p1008.mjs",
@@ -27,20 +28,26 @@ test("frontend build has one canonical HTML owner", () => {
   const buildSteps = packageJson.scripts.build.split(" && ");
   const canonicalBuild = "node scripts/build.mjs";
   const turtleBotFallbackSync = "node scripts/sync-turtlebot-fallbacks.mjs dist";
+  const turtleBotAssetVersioning = "node scripts/version-turtlebot-assets.mjs dist";
   const sanitizePublicData = "node scripts/sanitize-public-project-data.mjs";
   const financeBuild = "node scripts/build-finance-bundle.mjs";
 
   assert.equal(buildSteps[0], "node scripts/validate-ielts-sources.mjs");
   assert.equal(buildSteps.filter((step) => step === canonicalBuild).length, 1);
   assert.equal(buildSteps.filter((step) => step === turtleBotFallbackSync).length, 1);
+  assert.equal(buildSteps.filter((step) => step === turtleBotAssetVersioning).length, 1);
   assert.ok(buildSteps.indexOf(canonicalBuild) < buildSteps.indexOf(turtleBotFallbackSync));
-  assert.ok(buildSteps.indexOf(turtleBotFallbackSync) < buildSteps.indexOf(sanitizePublicData));
+  assert.ok(buildSteps.indexOf(turtleBotFallbackSync) < buildSteps.indexOf(turtleBotAssetVersioning));
+  assert.ok(buildSteps.indexOf(turtleBotAssetVersioning) < buildSteps.indexOf(sanitizePublicData));
   assert.ok(buildSteps.indexOf(sanitizePublicData) < buildSteps.indexOf(financeBuild));
   assert.equal(buildSteps.at(-1), financeBuild);
 
   assert.match(build, /readFile\(resolve\(dashboardPage, "index\.html"\), "utf8"\)/);
   assert.match(build, /dashboardBackendAnchor/);
   assert.doesNotMatch(build, /const projectHubHead =|const dashboardFeatureScripts =/);
+  assert.match(turtleBotVersioner, /versionTurtleBotAssets/);
+  assert.match(turtleBotVersioner, /joy-build-version/);
+  assert.match(turtleBotVersioner, /cache:\s*"no-store"/);
   for (const path of removedPatches) {
     assert.equal(fs.existsSync(new URL(path, root)), false, `${path} must remain removed`);
   }
