@@ -28,6 +28,16 @@ const WEATHER_ENDPOINT = `https://api.open-meteo.com/v1/forecast?${weatherParame
 const seedProjects = Array.isArray(DASHBOARD_CONFIG.seedProjects)
   ? DASHBOARD_CONFIG.seedProjects.map((project) => ({ ...project }))
   : [];
+const TURTLEBOT_PROJECT_KEY = "turtlebot4";
+
+function projectIdentity(value) {
+  return String(value || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+function canonicalManagedProject(name) {
+  if (projectIdentity(name) !== TURTLEBOT_PROJECT_KEY) return null;
+  return seedProjects.find((project) => projectIdentity(project.name) === TURTLEBOT_PROJECT_KEY) || null;
+}
 
 const seedTasks = [];
 
@@ -102,9 +112,11 @@ function clone(value) {
 
 function normalizeProject(project) {
   if (!project || typeof project !== "object") return null;
-  const name = String(project.name || "").trim();
-  const focus = String(project.focus || "").trim();
-  const next = String(project.next || project.nextAction || "").trim();
+  const submittedName = String(project.name || "").trim();
+  const managedProject = canonicalManagedProject(submittedName);
+  const name = String(managedProject?.name || submittedName).trim();
+  const focus = String(managedProject?.focus || project.focus || "").trim();
+  const next = String(managedProject?.next || project.next || project.nextAction || "").trim();
   if (!name || !focus || !next) return null;
 
   const now = new Date().toISOString();
@@ -113,8 +125,10 @@ function normalizeProject(project) {
     name,
     focus,
     next,
-    progress: Math.min(100, Math.max(0, Math.round(Number(project.progress) || 0))),
-    accent: project.accent === "blue" ? "blue" : "slate",
+    progress: Math.min(100, Math.max(0, Math.round(Number(
+      managedProject?.progress ?? project.progress,
+    ) || 0))),
+    accent: (managedProject?.accent || project.accent) === "blue" ? "blue" : "slate",
     archived: Boolean(project.archived),
     createdAt: String(project.createdAt || now),
     updatedAt: String(project.updatedAt || project.createdAt || now),

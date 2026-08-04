@@ -69,6 +69,18 @@ function replaceOnce(source, search, replacement, label) {
   return source.replace(search, replacement);
 }
 
+function replacePatternOnce(source, pattern, replacement, label) {
+  let matches = 0;
+  const next = source.replace(pattern, (...args) => {
+    matches += 1;
+    return typeof replacement === "function" ? replacement(...args) : replacement;
+  });
+  if (matches !== 1) {
+    throw new Error(`Expected exactly one TurtleBot fallback anchor for ${label}; found ${matches}`);
+  }
+  return next;
+}
+
 function fallbackLiteral(currentState) {
   return JSON.stringify({
     updatedAt: currentState.updatedAt,
@@ -81,6 +93,30 @@ function fallbackLiteral(currentState) {
     },
     history: currentState.history || [],
   });
+}
+
+export function patchDashboardProjectSeed(source, currentState) {
+  const project = currentState.project || {};
+  const progress = Math.max(0, Math.min(100, Math.round(Number(project.overallProgress) || 0)));
+  const focus = String(project.currentFocus || "").trim();
+  const next = String(project.nextAction || "").trim();
+  if (!focus || !next) throw new Error("Canonical TurtleBot card focus and next action are required");
+
+  const canonicalBlock = `Object.freeze({
+      id: 1,
+      name: "TurtleBot 4",
+      progress: ${progress},
+      accent: "slate",
+      focus: ${JSON.stringify(focus)},
+      next: ${JSON.stringify(next)},
+    })`;
+
+  return replacePatternOnce(
+    source,
+    /Object\.freeze\(\{\s*id:\s*1,\s*name:\s*"TurtleBot 4",\s*progress:\s*\d+,\s*accent:\s*"slate",\s*focus:\s*"[^"]*",\s*next:\s*"[^"]*",\s*\}\)/,
+    canonicalBlock,
+    "dashboard TurtleBot seed project",
+  );
 }
 
 export function patchPlanFallback(source, currentState) {
@@ -161,23 +197,27 @@ export async function synchronizeTurtleBotFallbacks(publicRoot) {
   const sourcePath = resolve(turtleBotDir, "source.json");
   const planPath = resolve(turtleBotDir, "project-plan-v3-ui.js");
   const detailedRoadmapPath = resolve(publicRoot, "turtlebot-roadmap.js");
+  const dashboardAppPath = resolve(publicRoot, "app.js");
 
-  const [stateSource, sourceSnapshot, planSource, roadmapSource] = await Promise.all([
+  const [stateSource, sourceSnapshot, planSource, roadmapSource, dashboardAppSource] = await Promise.all([
     readFile(currentStatePath, "utf8"),
     readFile(sourcePath, "utf8"),
     readFile(planPath, "utf8"),
     readFile(detailedRoadmapPath, "utf8"),
+    readFile(dashboardAppPath, "utf8"),
   ]);
 
   const currentState = JSON.parse(stateSource);
   const patchedSource = patchSourceSnapshot(JSON.parse(sourceSnapshot), currentState);
   const patchedPlan = patchPlanFallback(planSource, currentState);
   const patchedRoadmap = patchDetailedRoadmapFallback(roadmapSource, currentState);
+  const patchedDashboardApp = patchDashboardProjectSeed(dashboardAppSource, currentState);
 
   await Promise.all([
     writeFile(sourcePath, `${JSON.stringify(patchedSource)}\n`),
     writeFile(planPath, patchedPlan),
     writeFile(detailedRoadmapPath, patchedRoadmap),
+    writeFile(dashboardAppPath, patchedDashboardApp),
   ]);
 }
 
