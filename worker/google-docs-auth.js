@@ -21,6 +21,16 @@ export function isGoogleDocsAuthRoute(pathname, request = null) {
   return Boolean(expectedState && returnedState && expectedState === returnedState);
 }
 
+export function isAcceptedGoogleDocsIdentity(identity, clientId) {
+  if (!identity || typeof identity !== "object") return false;
+  const verified = identity.email_verified === true || identity.email_verified === "true";
+  return Boolean(
+    identity.aud === clientId
+    && verified
+    && normalizeEmail(identity.email),
+  );
+}
+
 export async function handleGoogleDocsAuthRequest(request, env) {
   const url = new URL(request.url);
   const { pathname } = url;
@@ -166,15 +176,16 @@ async function finishAuthorization(request, env) {
   }
 
   const identity = await verifyGoogleIdentity(tokens.id_token, env);
-  if (!identity || normalizeEmail(identity.email) !== normalizeEmail(session.user_email)) {
-    return htmlError("Connect the same Google account that is signed in to Joy.", 403);
+  if (!identity) {
+    return htmlError("Google could not verify the Docs account.", 403);
   }
 
+  const userEmail = normalizeEmail(session.user_email);
   const existing = await env.DB.prepare(`
     SELECT refresh_token_encrypted
     FROM google_docs_tokens
     WHERE user_email = ?
-  `).bind(session.user_email).first();
+  `).bind(userEmail).first();
   const refreshTokenEncrypted = tokens.refresh_token
     ? await encryptSecret(tokens.refresh_token, env.TOKEN_ENCRYPTION_SECRET)
     : existing?.refresh_token_encrypted;
@@ -194,7 +205,7 @@ async function finishAuthorization(request, env) {
       access_token_expires_at = excluded.access_token_expires_at,
       updated_at = excluded.updated_at
   `).bind(
-    session.user_email,
+    userEmail,
     refreshTokenEncrypted,
     await encryptSecret(tokens.access_token, env.TOKEN_ENCRYPTION_SECRET),
     now + Number(tokens.expires_in || 3600) * 1000,
@@ -211,17 +222,11 @@ async function verifyGoogleIdentity(idToken, env) {
   const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
   if (!response.ok) return null;
   const identity = await response.json();
-  const verified = identity.email_verified === true || identity.email_verified === "true";
-  if (
-    identity.aud !== env.GOOGLE_CLIENT_ID
-    || !verified
-    || normalizeEmail(identity.email) !== normalizeEmail(env.ALLOWED_EMAIL)
-  ) return null;
-  return identity;
+  return isAcceptedGoogleDocsIdentity(identity, env.GOOGLE_CLIENT_ID) ? identity : null;
 }
 
 function requiredConfig(env) {
-  const keys = ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "ALLOWED_EMAIL", "TOKEN_ENCRYPTION_SECRET"];
+  const keys = ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "TOKEN_ENCRYPTION_SECRET"];
   const missing = keys.filter((key) => !env[key]);
   if (missing.length) throw new Error(`Missing Worker secrets: ${missing.join(", ")}`);
 }
