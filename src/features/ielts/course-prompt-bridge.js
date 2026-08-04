@@ -1,4 +1,12 @@
-function teachingPrompt(task) {
+function isBaselineWritingTask(task) {
+  return task?.id === "baseline-writing";
+}
+
+function isBaselineSpeakingTask(task) {
+  return task?.id === "baseline-speaking";
+}
+
+function genericTeachingPrompt(task) {
   const assignment = typeof sourceAssignmentFor === "function" ? sourceAssignmentFor(task) : null;
   const effectiveTask = typeof sourceAdjustedTask === "function"
     ? sourceAdjustedTask(task, assignment)
@@ -13,10 +21,10 @@ function teachingPrompt(task) {
   const receptivePractice = effectiveTask.skill === "listening" || effectiveTask.skill === "reading";
   const assignedWriting = effectiveTask.skill === "writing" && Boolean(assignment);
   const sourceRules = receptivePractice
-    ? "- Use only the assigned STUDY4 or YouPass test below; do not replace it with another source.\n- Never reveal or reproduce a third-party answer key before I finish the assigned work.\n- Treat the platform result as diagnostic practice evidence, not an official IELTS score."
+    ? "- Use only the assigned STUDY4 or YouPass test below; do not replace it with another source.\n- Do not coach me during the timed test. Wait until I have submitted the full test before reviewing answers.\n- Never reveal or reproduce a third-party answer key before I finish the assigned work.\n- Treat the platform result as diagnostic practice evidence, not an official IELTS score."
     : assignedWriting
-      ? "- Use only the assigned STUDY4 or YouPass Writing prompt below; do not replace it with another prompt.\n- Before my original response is complete, do not reveal, reproduce or rely on provider guidance or a model answer.\n- For Writing, follow the relevant synchronized knowledge from my external course and do not replace the teacher's framework with a conflicting one.\n- Keep my original response unchanged, then evaluate it against all four Writing criteria with uncertainty stated clearly and guide only the targeted rewrite required by the task."
-      : "- For Writing, follow the relevant synchronized knowledge from my external course. Do not replace the teacher's framework with a conflicting one.\n- Use advanced grammar only where it is natural for the current task type.";
+      ? "- Use only the assigned STUDY4 or YouPass Writing prompt below; do not replace it with another prompt.\n- Before my original response is complete, do not reveal, reproduce or rely on provider guidance or a model answer.\n- Follow the relevant synchronized knowledge from my external course without replacing the teacher's framework with a conflicting one.\n- Keep my original response unchanged, then evaluate it against all four Writing criteria with uncertainty stated clearly and guide only the targeted rewrite required by the task."
+      : "- Follow the task material and instructions exactly.\n- Use synchronized external-course knowledge only when it is relevant to Writing and does not contaminate a test or baseline.";
 
   return `You are my IELTS teacher. Guide me through the Joy task below step by step.
 
@@ -61,14 +69,46 @@ ${JSON.stringify(recentSessions, null, 2)}
 Begin by explaining today’s objective in one short paragraph, then give me only Step 1.`;
 }
 
-/*
- * Speaking chat-first extension
- *
- * This remains in the IELTS core bundle so task assignment, drawer rendering and
- * the ChatGPT handoff share the same state and source-locking rules.
- */
+function baselineWritingTeachingPrompt(task) {
+  const relevantErrors = app.data.errorLogs
+    .filter((error) => error.active && (error.skill === "writing" || error.skill === "review"))
+    .slice(0, 5);
+  return `You are administering my unaided IELTS Writing baseline.
+
+Baseline integrity rules:
+- Use only the official Writing material attached to the Joy task.
+- First ask whether I have already completed BOTH Task 1 and Task 2 under one strict 60-minute sitting.
+- If I have not completed them, do not discuss the prompts, plan ideas, explain structures, suggest vocabulary, use my Course notes or help me write. Tell me only to open the official material, write Task 1 in 20 minutes and Task 2 in 40 minutes, then return with both unchanged responses.
+- If I have completed them, ask me to paste Task 1 and Task 2 exactly as written.
+- Preserve both original responses before any correction.
+- Evaluate Task 1 against Task Achievement, Coherence and Cohesion, Lexical Resource, and Grammatical Range and Accuracy.
+- Evaluate Task 2 against Task Response, Coherence and Cohesion, Lexical Resource, and Grammatical Range and Accuracy.
+- State that any band estimate is provisional and evidence-based, not an official score.
+- Identify no more than five recurring errors and one prevention action for each.
+- Do not guide a rewrite until the original baseline assessment is complete.
+- At the end, produce a short structured result that can be recorded in Joy.
+
+Current task:
+${JSON.stringify({
+    id: task.id,
+    title: task.title,
+    availableMinutes: task.minutes,
+    objective: task.objective,
+    steps: task.steps,
+    material: task.material,
+    materialUrl: task.materialUrl,
+    output: task.output,
+    doneWhen: task.doneWhen,
+  }, null, 2)}
+
+Existing recurring Writing errors, for comparison only after scoring:
+${JSON.stringify(relevantErrors, null, 2)}
+
+Begin by asking only whether both timed responses are already complete.`;
+}
+
 const IELTS_SPEAKING_SOURCE_LIBRARY_URL =
-  "/project-data/ielts/speaking-sources.json?v=ielts-speaking-source-catalog-v1";
+  "/project-data/ielts/speaking-sources.json?v=ielts-speaking-source-catalog-v2";
 
 function speakingTaskText(task) {
   return `${task?.id || ""} ${task?.title || ""} ${task?.objective || ""} ${(task?.steps || []).join(" ")}`;
@@ -92,9 +132,8 @@ function speakingTaskPart(task) {
 }
 
 function isSpeakingSourceTask(task) {
-  if (task?.skill !== "speaking") return false;
+  if (task?.skill !== "speaking" || isBaselineSpeakingTask(task)) return false;
   if (task?.kind === "course" || task?.kind === "review") return false;
-  if (String(task?.id || "").startsWith("baseline-")) return false;
   return Boolean(speakingTaskPart(task))
     || /\b(speaking|answer|response|mock|long turn|cue card)\b/i.test(speakingTaskText(task));
 }
@@ -111,12 +150,12 @@ function speakingSourceNoun(task) {
   return task?.skill === "writing" ? "prompt" : task?.skill === "speaking" ? "set" : "test";
 }
 
-const loadIeltsSourceLibraryBeforeSpeaking = loadIeltsSourceLibrary;
+const loadIeltsSourceLibraryWithoutSpeaking = loadIeltsSourceLibrary;
 let ieltsSourceLibraryWithSpeakingPromise = null;
 loadIeltsSourceLibrary = async function loadIeltsSourceLibraryWithSpeaking() {
   if (!ieltsSourceLibraryWithSpeakingPromise) {
     ieltsSourceLibraryWithSpeakingPromise = Promise.all([
-      loadIeltsSourceLibraryBeforeSpeaking(),
+      loadIeltsSourceLibraryWithoutSpeaking(),
       requestJson(IELTS_SPEAKING_SOURCE_LIBRARY_URL),
     ]).then(([library, speaking]) => {
       const providers = new Map(
@@ -148,24 +187,37 @@ loadIeltsSourceLibrary = async function loadIeltsSourceLibraryWithSpeaking() {
   return ieltsSourceLibraryWithSpeakingPromise;
 };
 
-const isAssignedSourceTaskBeforeSpeaking = isAssignedSourceTask;
+const isAssignedSourceTaskWithoutSpeaking = isAssignedSourceTask;
 isAssignedSourceTask = function isAssignedSourceTaskWithSpeaking(task) {
-  return isAssignedSourceTaskBeforeSpeaking(task) || isSpeakingSourceTask(task);
+  return isAssignedSourceTaskWithoutSpeaking(task) || isSpeakingSourceTask(task);
 };
 
-const sourceRequiresFullTestBeforeSpeaking = sourceRequiresFullTest;
+const sourceRequiresFullTestWithoutSpeaking = sourceRequiresFullTest;
 sourceRequiresFullTest = function sourceRequiresFullTestWithSpeaking(task) {
   if (task?.skill === "speaking") return speakingTaskPart(task) === "full";
-  return sourceRequiresFullTestBeforeSpeaking(task);
+  return sourceRequiresFullTestWithoutSpeaking(task);
 };
 
-const eligibleSourceTestsBeforeSpeaking = eligibleSourceTests;
+function safeSpeakingSources(library) {
+  return (library.tests || []).filter((test) => (
+    test.skill === "speaking"
+    && test.questionFlow !== "article-topic-set"
+  ));
+}
+
+const eligibleSourceTestsWithoutSpeaking = eligibleSourceTests;
 eligibleSourceTests = function eligibleSourceTestsWithSpeaking(task, library) {
-  if (task?.skill !== "speaking") return eligibleSourceTestsBeforeSpeaking(task, library);
+  if (task?.skill !== "speaking") return eligibleSourceTestsWithoutSpeaking(task, library);
 
   const requestedPart = speakingTaskPart(task) || "full";
-  let candidates = (library.tests || []).filter((test) => test.skill === "speaking");
-  const exact = candidates.filter((test) => test.taskPart === requestedPart);
+  const candidates = safeSpeakingSources(library);
+  let exact = candidates.filter((test) => test.taskPart === requestedPart);
+
+  if (requestedPart === "part1" || requestedPart === "part3") {
+    const multiQuestion = exact.filter((test) => test.questionFlow !== "single-question");
+    if (multiQuestion.length) exact = multiQuestion;
+    else exact = [];
+  }
   if (exact.length) return exact;
 
   if (requestedPart === "part2" || requestedPart === "part3") {
@@ -194,9 +246,9 @@ eligibleSourceTests = function eligibleSourceTestsWithSpeaking(task, library) {
   return candidates.filter((test) => test.taskPart === "full");
 };
 
-const makeSourceAssignmentBeforeSpeaking = makeSourceAssignment;
+const makeSourceAssignmentWithoutSpeaking = makeSourceAssignment;
 makeSourceAssignment = function makeSourceAssignmentWithSpeaking(test, library) {
-  const assignment = makeSourceAssignmentBeforeSpeaking(test, library);
+  const assignment = makeSourceAssignmentWithoutSpeaking(test, library);
   if (test.skill !== "speaking") return assignment;
   return {
     ...assignment,
@@ -208,7 +260,30 @@ makeSourceAssignment = function makeSourceAssignmentWithSpeaking(test, library) 
   };
 };
 
-function sourceAdjustedSpeakingTask(task, assignment) {
+function sourceAdjustedBaselineSpeakingTask(task) {
+  return {
+    ...task,
+    title: "Speaking text-response baseline",
+    objective: "Measure immediate idea development, coherence, vocabulary and grammar across Parts 1, 2 and 3 using typed answers. Pronunciation is not assessed and fluency evidence is limited.",
+    steps: [
+      "Open the attached official IELTS Speaking sample and start with ChatGPT only when you are ready.",
+      "Use chat-first mode. ChatGPT asks one official question at a time and never shows future questions, hints or sample answers.",
+      "Answer immediately without drafting, translating or using grammar correction before sending.",
+      "Complete 4–5 Part 1 questions, one Part 2 cue card after one minute of keyword notes, and 3–4 linked Part 3 questions.",
+      "Preserve every original answer before correction, then review content development, coherence, vocabulary, grammar and spoken-style wording.",
+      "Record fluency as limited evidence and pronunciation as not assessed; do not create a confident overall Speaking band from typed answers alone.",
+    ],
+    output: "Official-source typed answers across all three parts, response-time notes and a limited text-response assessment.",
+    doneWhen: [
+      "All three official Speaking parts are completed in chat-first mode.",
+      "Original answers are preserved before correction.",
+      "Feedback covers content development, coherence, vocabulary and grammar.",
+      "Pronunciation is marked not assessed and fluency is marked limited evidence.",
+    ],
+  };
+}
+
+function sourceAdjustedSpeakingPracticeTask(task, assignment) {
   const part = speakingTaskPart(task) || assignment.taskPart || "full";
   const partLabel = speakingPartLabel(part);
   const section = assignment.sectionLabel
@@ -220,16 +295,16 @@ function sourceAdjustedSpeakingTask(task, assignment) {
   if (part === "part1") {
     steps = [
       openSource,
-      "Start with ChatGPT in chat-first mode. ChatGPT must ask only one Part 1 question and wait for your answer.",
+      "Start with ChatGPT in chat-first mode. ChatGPT asks only one Part 1 question and waits for your answer.",
       "Answer immediately in one message, normally 2–4 sentences. Do not draft, translate or use grammar correction before sending.",
-      "Continue one question at a time. ChatGPT must wait until 4–5 original answers are complete before giving grouped feedback.",
+      "Complete 4–5 original answers before grouped feedback.",
       "Review directness, idea extension, natural spoken wording, vocabulary and grammar. Fluency evidence is limited and pronunciation is not assessed from text.",
-      "Re-answer no more than three weak questions once, using the feedback without memorising a model answer.",
+      "Re-answer no more than three weak questions once.",
     ];
   } else if (part === "part2") {
     steps = [
       openSource,
-      "ChatGPT must show only the assigned cue card, then give you one minute to note keywords. It must not provide ideas, vocabulary or a model answer first.",
+      "ChatGPT shows only the assigned cue card, then gives you one minute to note keywords. It must not provide ideas, vocabulary or a model answer first.",
       "Type one immediate long-turn answer in a single message, aiming for roughly 150–220 words. Do not revise it before sending.",
       "Keep the original answer unchanged and review coverage, organisation, spoken-style vocabulary and grammar.",
       "Fluency evidence is limited and pronunciation is not assessed from text.",
@@ -238,7 +313,7 @@ function sourceAdjustedSpeakingTask(task, assignment) {
   } else if (part === "part3") {
     steps = [
       openSource,
-      "ChatGPT must ask one assigned Part 3 question at a time and wait for your answer.",
+      "ChatGPT asks one assigned Part 3 question at a time and waits for your answer.",
       "Answer immediately in one message, normally 4–7 sentences with a clear position, explanation and example where useful.",
       "Complete 3–4 original answers before grouped feedback. Do not receive model answers between questions.",
       "Review reasoning, coherence, spoken-style vocabulary and grammar. Fluency evidence is limited and pronunciation is not assessed from text.",
@@ -248,9 +323,9 @@ function sourceAdjustedSpeakingTask(task, assignment) {
     steps = [
       openSource,
       "Use chat-first mode: ChatGPT asks one question at a time, waits for your immediate typed answer and never requests voice or audio in this version.",
-      "Complete the assigned Part 1 questions first. Give grouped feedback only after 4–5 original answers.",
+      "Complete 4–5 Part 1 questions before grouped feedback.",
       "For Part 2, view only the cue card, take one minute of keyword notes and send one unchanged 150–220 word answer.",
-      "For Part 3, answer one question at a time in 4–7 sentences; give grouped feedback after 3–4 original answers.",
+      "For Part 3, answer 3–4 linked questions one at a time before grouped feedback.",
       "Assess content development, coherence, vocabulary and grammar. Mark fluency evidence as limited, pronunciation as not assessed, and do not give a confident overall Speaking band from text alone.",
       "Select no more than three weak answers for one improved attempt each.",
     ];
@@ -275,36 +350,81 @@ function sourceAdjustedSpeakingTask(task, assignment) {
   };
 }
 
-const sourceAdjustedTaskBeforeSpeaking = sourceAdjustedTask;
+const sourceAdjustedTaskWithoutSpeaking = sourceAdjustedTask;
 sourceAdjustedTask = function sourceAdjustedTaskWithSpeaking(
   task,
   assignment = sourceAssignmentFor(task),
 ) {
+  if (isBaselineSpeakingTask(task)) return sourceAdjustedBaselineSpeakingTask(task);
   if (task?.skill === "speaking" && isSpeakingSourceTask(task) && assignment) {
-    return sourceAdjustedSpeakingTask(task, assignment);
+    return sourceAdjustedSpeakingPracticeTask(task, assignment);
   }
-  return sourceAdjustedTaskBeforeSpeaking(task, assignment);
+  return sourceAdjustedTaskWithoutSpeaking(task, assignment);
 };
 
-const taskMaterialLinksBeforeSpeaking = taskMaterialLinks;
+const rawBaselineTasks = baselineTasks;
+baselineTasks = function baselineTasksWithChatFirstSpeaking() {
+  return rawBaselineTasks().map((task) => (
+    isBaselineSpeakingTask(task) ? sourceAdjustedBaselineSpeakingTask(task) : task
+  ));
+};
+
+effectiveRhythm = function effectiveRhythmWithoutHiddenBaselineReplacement(rhythm) {
+  return rhythm;
+};
+
+rhythmTasks = function rhythmTasksWithoutHiddenBaselineReplacement(rhythmId) {
+  if (rhythmId === "baseline") return baselineTasks();
+  const defaults = staticTasks().filter((task) => task.rhythmId === rhythmId);
+  const custom = app.data.customTasks.filter((task) => task.rhythmId === rhythmId);
+  if (!custom.length) return defaults;
+  return [...defaults.filter((task) => task.kind === "course"), ...custom];
+};
+
+const scheduledCurrentContext = currentContext;
+currentContext = function currentContextWithPersistentBaselineGate(today = dateKey()) {
+  if (!app.program) return scheduledCurrentContext(today);
+  const tasks = baselineTasks();
+  const remaining = tasks.filter((task) => !isDone(task));
+  if (today >= "2026-08-01" && (today <= "2026-08-02" || remaining.length > 0)) {
+    const catchUp = today > "2026-08-02";
+    return {
+      type: "baseline",
+      id: "baseline",
+      label: catchUp ? "Baseline catch-up · complete before Journey" : "Baseline · 1–2 Aug",
+      objective: catchUp
+        ? "Complete every unfinished baseline task before beginning the August learning rhythms."
+        : app.program.baseline.objective,
+      tasks,
+      targetMinutes: remaining.reduce((sum, task) => sum + Number(task.minutes || 0), 0),
+    };
+  }
+  return scheduledCurrentContext(today);
+};
+
+const taskMaterialLinksWithoutSpeaking = taskMaterialLinks;
 taskMaterialLinks = function taskMaterialLinksWithSpeaking(task) {
-  if (task?.skill !== "speaking") return taskMaterialLinksBeforeSpeaking(task);
+  if (task?.skill !== "speaking") return taskMaterialLinksWithoutSpeaking(task);
   const assignment = task.sourceAssignment || sourceAssignmentFor(task);
   const direct = externalMaterialLink(
     task.materialUrl,
-    assignment ? `Open assigned Speaking set on ${assignment.providerName}` : "Open material",
+    assignment ? `Open assigned Speaking set on ${assignment.providerName}` : "Open official Speaking material",
   );
-  return direct ? `<div class="ielts-material-links">${direct}</div>` : "";
+  const fallback = task.materialFallbackUrl && task.materialFallbackUrl !== task.materialUrl
+    ? externalMaterialLink(task.materialFallbackUrl, "Open official source page")
+    : "";
+  if (!direct && !fallback) return "";
+  return `<div class="ielts-material-links">${direct}${fallback}</div>`;
 };
 
-const sourceAssignmentPanelBeforeSpeaking = sourceAssignmentPanel;
+const sourceAssignmentPanelWithoutSpeaking = sourceAssignmentPanel;
 sourceAssignmentPanel = function sourceAssignmentPanelWithSpeaking(
   task,
   assignment,
   sourceError = "",
 ) {
   if (task?.skill !== "speaking") {
-    return sourceAssignmentPanelBeforeSpeaking(task, assignment, sourceError);
+    return sourceAssignmentPanelWithoutSpeaking(task, assignment, sourceError);
   }
   if (!isSpeakingSourceTask(task)) return "";
   if (sourceError) {
@@ -318,7 +438,8 @@ sourceAssignmentPanel = function sourceAssignmentPanelWithSpeaking(
   if (!assignment) return "";
   const state = taskState(task);
   const canChange = !state.status || state.status === "pending";
-  const detail = `${speakingPartLabel(assignment.taskPart)}${assignment.topicTags?.length ? ` · ${assignment.topicTags.slice(0, 3).join(", ")}` : ""}`;
+  const requestedPart = speakingTaskPart(task) || assignment.taskPart;
+  const detail = `${speakingPartLabel(requestedPart)}${assignment.topicTags?.length ? ` · ${assignment.topicTags.slice(0, 3).join(", ")}` : ""}`;
   return `
     <div class="ielts-course-note">
       <strong>Speaking set locked to this task</strong>
@@ -329,27 +450,30 @@ sourceAssignmentPanel = function sourceAssignmentPanelWithSpeaking(
     </div>`;
 };
 
-const taskDrawerBeforeSpeaking = taskDrawer;
+const taskDrawerWithoutSpeaking = taskDrawer;
 taskDrawer = async function taskDrawerWithSpeaking(task) {
-  const result = await taskDrawerBeforeSpeaking(task);
-  if (task?.skill !== "speaking" || !isSpeakingSourceTask(task)) return result;
+  const result = await taskDrawerWithoutSpeaking(task);
+  if (task?.skill !== "speaking") return result;
 
   const drawer = document.querySelector("#ielts-drawer");
   const chatHint = drawer?.querySelector(".ielts-chatgpt-button small");
-  if (chatHint) chatHint.textContent = "Copy the task and assigned Speaking set into ChatGPT";
+  if (chatHint) {
+    chatHint.textContent = isBaselineSpeakingTask(task)
+      ? "Use the official Speaking sample in chat-first text mode"
+      : "Copy the task and assigned Speaking set into ChatGPT";
+  }
 
   const evidence = drawer?.querySelector('textarea[name="evidence"]');
   if (evidence) {
-    evidence.placeholder =
-      "Provider, set title and URL; original typed answers; response-time notes; text feedback; repeated answers…";
+    evidence.placeholder = isBaselineSpeakingTask(task)
+      ? "Official source; original typed answers; response-time notes; limited text assessment…"
+      : "Provider, set title and URL; original typed answers; response-time notes; text feedback; repeated answers…";
   }
   return result;
 };
 
-const teachingPromptBeforeSpeaking = teachingPrompt;
-teachingPrompt = function teachingPromptWithSpeaking(task) {
-  if (task?.skill !== "speaking") return teachingPromptBeforeSpeaking(task);
-
+function speakingTeachingPrompt(task) {
+  const baseline = isBaselineSpeakingTask(task);
   const assignment = typeof sourceAssignmentFor === "function" ? sourceAssignmentFor(task) : null;
   const effectiveTask = typeof sourceAdjustedTask === "function"
     ? sourceAdjustedTask(task, assignment)
@@ -357,14 +481,17 @@ teachingPrompt = function teachingPromptWithSpeaking(task) {
   const relevantErrors = app.data.errorLogs
     .filter((error) => error.active && (error.skill === "speaking" || error.skill === "review"))
     .slice(0, 5);
+  const sourceRule = baseline
+    ? "- Use only the official IELTS Speaking material attached to this baseline. Do not replace it with STUDY4, YouPass or a generated question set."
+    : "- Use only the assigned STUDY4 or YouPass Speaking source below. Do not silently replace it with another set.";
 
-  return `You are my IELTS Speaking teacher and examiner for a chat-first practice session.
+  return `You are my IELTS Speaking teacher and examiner for a chat-first text-response session.
 
 Interaction mode:
 - I will TYPE each answer immediately instead of speaking.
 - Do not ask me to use voice, upload audio or record myself in this version.
-- Use only the assigned STUDY4 or YouPass Speaking source below. Do not silently replace it with another set.
-- Open the assigned URL when possible. If the provider hides the questions behind an interactive page, ask me to paste or screenshot ONLY the current question. Do not ask me to copy the whole question bank.
+${sourceRule}
+- Open the attached URL when possible. If the page or PDF cannot be read, ask me to paste or screenshot ONLY the current question. Do not ask me to copy the whole question bank.
 - Ask exactly one question at a time and wait for my answer.
 - Do not show hints, vocabulary, sample answers or corrections before I submit the original answer.
 - Treat my first submitted message as the preserved original answer, even when it contains mistakes.
@@ -409,5 +536,11 @@ ${JSON.stringify({
 Active recurring Speaking errors:
 ${JSON.stringify(relevantErrors, null, 2)}
 
-Begin with one short sentence explaining the chat-first rule. Then give me only the first assigned question or ask me to paste only that current question if you cannot read it from the provider page.`;
-};
+Begin with one short sentence explaining the chat-first rule. Then give me only the first question from the required source, or ask me to paste only that current question if you cannot read it.`;
+}
+
+function teachingPrompt(task) {
+  if (isBaselineWritingTask(task)) return baselineWritingTeachingPrompt(task);
+  if (task?.skill === "speaking") return speakingTeachingPrompt(task);
+  return genericTeachingPrompt(task);
+}
