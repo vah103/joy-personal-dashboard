@@ -45,15 +45,21 @@ test("production TurtleBot fallbacks are generated from canonical Stage 5 state"
       "src/features/project-details/turtlebot-roadmap.js",
       "turtlebot-roadmap.js",
     ),
+    copyFixture(
+      publicRoot,
+      "src/pages/dashboard/app-config.js",
+      "app.js",
+    ),
   ]);
 
   await synchronizeTurtleBotFallbacks(publicRoot);
 
-  const [stateSource, snapshotSource, planSource, roadmapSource, packageSource] = await Promise.all([
+  const [stateSource, snapshotSource, planSource, roadmapSource, appSource, packageSource] = await Promise.all([
     readFile(resolve(publicRoot, "project-data/turtlebot4/current-state.json"), "utf8"),
     readFile(resolve(publicRoot, "project-data/turtlebot4/source.json"), "utf8"),
     readFile(resolve(publicRoot, "project-data/turtlebot4/project-plan-v3-ui.js"), "utf8"),
     readFile(resolve(publicRoot, "turtlebot-roadmap.js"), "utf8"),
+    readFile(resolve(publicRoot, "app.js"), "utf8"),
     readFile(resolve(root, "package.json"), "utf8"),
   ]);
 
@@ -91,6 +97,11 @@ test("production TurtleBot fallbacks are generated from canonical Stage 5 state"
   assert.match(roadmapSource, /TURTLEBOT_FALLBACK_ACTIVE_STAGE = "stage-5"/);
   assert.match(roadmapSource, /TURTLEBOT_FALLBACK_PROGRESS = 42/);
   assert.match(roadmapSource, /TURTLEBOT_FALLBACK_COMPLETED_STAGES\.has/);
+
+  assert.match(appSource, /name: "TurtleBot 4"/);
+  assert.match(appSource, /progress: 42/);
+  assert.match(appSource, new RegExp(JSON.stringify(currentState.project.currentFocus)));
+  assert.match(appSource, new RegExp(JSON.stringify(currentState.project.nextAction)));
 
   const packageJson = JSON.parse(packageSource);
   assert.match(
