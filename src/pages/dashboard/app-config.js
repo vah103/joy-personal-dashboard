@@ -36,3 +36,56 @@ window.JoyDashboardConfig = Object.freeze({
     }),
   ]),
 });
+
+// Automatic Gmail sync should stay invisible when the mailbox state is unchanged.
+(() => {
+  const originalFetchCloudEmails = fetchCloudEmails;
+  const originalRenderBrief = renderBrief;
+  const originalRenderEmail = renderEmail;
+  let suppressGmailRefreshRender = false;
+
+  function gmailRenderSignature() {
+    return JSON.stringify({
+      status: gmail.status,
+      error: gmail.error || "",
+      hiddenCount: Number(gmail.hiddenCount || 0),
+      messages: (gmail.messages || []).map((message) => ({
+        id: String(message.id || ""),
+        threadId: String(message.threadId || ""),
+        sender: String(message.sender || ""),
+        subject: String(message.subject || ""),
+        snippet: String(message.snippet || ""),
+        date: String(message.date || ""),
+        unread: Boolean(message.unread),
+        pinned: Boolean(message.pinned),
+      })),
+    });
+  }
+
+  renderBrief = function renderBriefWithoutUnchangedGmailRefresh(...args) {
+    if (suppressGmailRefreshRender) return;
+    return originalRenderBrief(...args);
+  };
+
+  renderEmail = function renderEmailWithoutUnchangedGmailRefresh(...args) {
+    if (suppressGmailRefreshRender) return;
+    return originalRenderEmail(...args);
+  };
+
+  fetchCloudEmails = async function fetchCloudEmailsWithoutUnchangedRender(options = {}) {
+    if (!options?.silent) return originalFetchCloudEmails(options);
+
+    const before = gmailRenderSignature();
+    suppressGmailRefreshRender = true;
+    try {
+      await originalFetchCloudEmails(options);
+    } finally {
+      suppressGmailRefreshRender = false;
+    }
+
+    if (gmailRenderSignature() !== before) {
+      originalRenderBrief();
+      originalRenderEmail();
+    }
+  };
+})();
