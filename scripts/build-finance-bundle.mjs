@@ -10,6 +10,7 @@ const distProjectFinanceDir = resolve(dist, "project-data", "finance");
 const paths = {
   amount: resolve(financeSourceDir, "finance-amount-core.js"),
   core: resolve(financeSourceDir, "finance.js"),
+  beautyCare: resolve(financeSourceDir, "finance-beauty-care.js"),
   dashboard: resolve(financeSourceDir, "finance-dashboard.js"),
   dashboardSummary: resolve(financeSourceDir, "finance-dashboard-summary.js"),
   dashboardGoldLive: resolve(financeSourceDir, "finance-gold-live-value.js"),
@@ -59,6 +60,7 @@ function extractInlineStyle(source, {
 const [
   amountSource,
   financeSource,
+  beautyCareSource,
   dashboardSource,
   dashboardSummarySource,
   dashboardGoldLiveSource,
@@ -74,6 +76,7 @@ const [
 ] = await Promise.all([
   readFile(paths.amount, "utf8"),
   readFile(paths.core, "utf8"),
+  readFile(paths.beautyCare, "utf8"),
   readFile(paths.dashboard, "utf8"),
   readFile(paths.dashboardSummary, "utf8"),
   readFile(paths.dashboardGoldLive, "utf8"),
@@ -93,6 +96,9 @@ if (!amountSource.includes("JoyFinanceAmount")) {
 }
 if (!financeSource.includes("window.JoyFinanceAmount")) {
   throw new Error("Finance core does not consume JoyFinanceAmount");
+}
+if (!beautyCareSource.includes('label: "Beauty care"')) {
+  throw new Error("Finance beauty care category source is missing");
 }
 if (!dashboardSummarySource.includes("syncProjectedFinanceSummary")) {
   throw new Error("Finance projected dashboard summary source is missing");
@@ -123,6 +129,7 @@ const monthLayout = extractInlineStyle(monthLayoutSource, {
 const financeBundle = [
   amountSource.trim(),
   financeSource.trim(),
+  beautyCareSource.trim(),
   dashboard.javascript,
   dashboardSummarySource.trim(),
   dashboardGoldLiveSource.trim(),
@@ -157,4 +164,4 @@ await Promise.all([
   writeFile(resolve(distProjectFinanceDir, "finance-p1008.css"), p1008CssBundle),
 ]);
 
-console.log("Finance canonical bundles built directly at core v10 and P1008 v5");
+console.log("Finance canonical bundles built directly at core v11 and P1008 v5");
