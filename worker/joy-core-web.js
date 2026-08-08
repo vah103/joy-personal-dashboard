@@ -13,6 +13,7 @@ import {
   getJoyOverview,
   getJoyProject,
   listJoyProjects,
+  promoteLegacyJoyData,
   updateJoyMilestone,
   updateJoyProject,
   updateJoyTask,
@@ -24,6 +25,7 @@ const MAX_BODY_BYTES = 64_000;
 const defaultService = {
   getOverview: getJoyOverview,
   listProjects: listJoyProjects,
+  promoteLegacyData: promoteLegacyJoyData,
   getProject: getJoyProject,
   updateProject: updateJoyProject,
   createTask: createJoyTask,
@@ -142,6 +144,11 @@ export async function handleJoyCoreWebRequest(request, env, dependencies = {}) {
     if (pathname === `${API_PREFIX}/projects`) {
       if (request.method !== "GET") return methodNotAllowed(["GET"]);
       return apiJson({ projects: await service.listProjects(env, context) });
+    }
+
+    if (pathname === `${API_PREFIX}/compatibility/promote`) {
+      if (request.method !== "POST") return methodNotAllowed(["POST"]);
+      return apiJson(await service.promoteLegacyData(env, context));
     }
 
     let match = pathname.match(/^\/api\/joy-core\/v1\/projects\/([^/]+)$/);
