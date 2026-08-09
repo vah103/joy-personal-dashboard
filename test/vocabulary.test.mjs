@@ -154,6 +154,13 @@ test("Saved words still receive an AI explanation and retain their flashcard ide
   assert.match(router, /isVocabularyRoute\(pathname\)/);
 });
 
+test("Already-saved results hide duplicate save controls after GPT refreshes the answer", () => {
+  assert.match(chatFrontend, /latestAlreadySaved/);
+  assert.match(chatFrontend, /Already saved — GPT refreshed the explanation/);
+  assert.match(chatFrontend, /saveActions\.hidden = true/);
+  assert.match(chatFrontend, /Saved flashcard/);
+});
+
 test("Vocabulary save and review routes retain authenticated D1 storage", () => {
   assert.match(worker, /FROM vocabulary_words/);
   assert.match(worker, /INSERT INTO vocabulary_words/);
@@ -163,7 +170,7 @@ test("Vocabulary save and review routes retain authenticated D1 storage", () => 
 
 test("Dashboard loader installs chat rendering before the Vocabulary core", () => {
   assert.match(loader, /vocabulary-chat-response\.css\?v=joy-vocabulary-chat-v2/);
-  assert.match(loader, /vocabulary-chat-response\.js\?v=joy-vocabulary-chat-v2/);
+  assert.match(loader, /vocabulary-chat-response\.js\?v=joy-vocabulary-chat-v3/);
   assert.match(loader, /loadChatResponse/);
   assert.match(loader, /loadVocabularyCore/);
   assert.match(loader, /vocabulary-openai\.css\?v=joy-vocabulary-openai-v2/);
