@@ -8,7 +8,7 @@ const REVIEW = `${ROOT}/review`;
 const SESSION_COOKIE = "__Host-joy_session";
 const OPENAI_MODEL = "gpt-5-mini";
 const WORKERS_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
-const CACHE_VERSION = "v4-concise-translation";
+const CACHE_VERSION = "v5-english-target-explanation";
 const CACHE_TTL = 365 * 24 * 60 * 60;
 
 const SCHEMA = {
@@ -80,15 +80,27 @@ async function lookup(request, email, env) {
   if (!query || query.length > 80 || /[\r\n]/.test(String(body.query || ""))) return json({ error: "INVALID_VOCABULARY_INPUT" }, 400);
   if (context.length > 240 || /[\r\n]/.test(String(body.context || ""))) return json({ error: "INVALID_VOCABULARY_CONTEXT" }, 400);
 
+  const inputLanguage = inputLanguageFor(query);
   const saved = context ? null : await savedWord(email, query, env);
   const maxMeanings = context ? 1 : 2;
-  const cacheInput = `${CACHE_VERSION}\n${query.toLocaleLowerCase("vi")}\n${context.toLocaleLowerCase("vi")}`;
+  const cacheInput = `${CACHE_VERSION}\n${inputLanguage}\n${query.toLocaleLowerCase("vi")}\n${context.toLocaleLowerCase("vi")}`;
   const cached = await readLanguageCache({ feature: "vocabulary", userEmail: email, input: cacheInput });
-  const cachedResult = normalizeLookup(cached?.word ? { ...cached.word, answerMarkdown: cached.answerMarkdown } : cached, maxMeanings);
+  const cachedResult = normalizeLookup(cached?.word ? { ...cached.word, answerMarkdown: cached.answerMarkdown } : cached, maxMeanings, inputLanguage);
   if (cachedResult) return json(lookupPayload(cachedResult, saved, { cached: true, provider: "openai", model: clean(cached.model) || OPENAI_MODEL }));
 
-  const instructions = prompt(Boolean(context), env?.VOCABULARY_TUTOR_INSTRUCTIONS);
-  const input = context ? `Entry: ${query}\nContext: ${context}` : `Entry: ${query}`;
+  const instructions = prompt({
+    hasContext: Boolean(context),
+    inputLanguage,
+    custom: env?.VOCABULARY_TUTOR_INSTRUCTIONS,
+  });
+  const input = [
+    `Input language: ${inputLanguage === "vi" ? "Vietnamese" : "English"}`,
+    inputLanguage === "vi"
+      ? "Task: translate the Vietnamese entry into the best natural English equivalent, then teach that English equivalent."
+      : "Task: explain the English entry to a Vietnamese learner.",
+    `Entry: ${query}`,
+    context ? `Context: ${context}` : "",
+  ].filter(Boolean).join("\n");
 
   if (hasOpenAi(env)) {
     try {
@@ -98,11 +110,11 @@ async function lookup(request, email, env) {
         input,
         maxOutputTokens: 600,
         schema: SCHEMA,
-        schemaName: "joy_vocabulary_concise_entry",
+        schemaName: "joy_vocabulary_english_target_entry",
         reasoningEffort: "minimal",
         verbosity: "low",
       });
-      const normalized = normalizeLookup(result.data, maxMeanings);
+      const normalized = normalizeLookup(result.data, maxMeanings, inputLanguage);
       if (!normalized) throw new Error("OPENAI_VOCABULARY_RESULT_INVALID");
       await writeLanguageCache({ feature: "vocabulary", userEmail: email, input: cacheInput, value: { ...normalized, model: result.model }, ttlSeconds: CACHE_TTL }).catch(() => false);
       return json(lookupPayload(normalized, saved, { cached: false, provider: "openai", model: result.model, usage: result.usage }));
@@ -119,7 +131,7 @@ async function lookup(request, email, env) {
         temperature: 0.15,
         max_tokens: 650,
       });
-      const normalized = normalizeLookup(extractObject(result), maxMeanings);
+      const normalized = normalizeLookup(extractObject(result), maxMeanings, inputLanguage);
       if (!normalized) throw new Error("WORKERS_VOCABULARY_RESULT_INVALID");
       return json(lookupPayload(normalized, saved, { cached: false, provider: "workers-ai", model: env.VOCABULARY_AI_MODEL || WORKERS_MODEL }));
     } catch (error) {
@@ -131,9 +143,13 @@ async function lookup(request, email, env) {
   return json({ error: hasOpenAi(env) || env?.AI?.run ? "VOCABULARY_AI_FAILED" : "VOCABULARY_AI_UNAVAILABLE" }, hasOpenAi(env) || env?.AI?.run ? 502 : 503);
 }
 
-function prompt(hasContext, custom) {
+function prompt({ hasContext, inputLanguage, custom }) {
   const extra = multiline(custom).slice(0, 1200);
-  return `You are ChatGPT acting as a concise English vocabulary tutor for one Vietnamese learner. Return only the requested JSON object.\n\nThe answerMarkdown field must be useful at a glance, not conversational or essay-like. Keep it under 140 Vietnamese words. Prefer one compact opening line, up to three short bullets, and one example. Avoid filler such as “thường được dùng để nói đến”, “trong một số ngữ cảnh”, or repeating information already visible in the flashcard. Do not force every optional detail into every answer.\n\nIf the input is English: begin with **English entry** (part of speech) /IPA/ → concise Vietnamese meaning. Then give only the most useful distinction, pattern, collocation, or common confusion.\n\nIf the input is Vietnamese: do not define or explain the Vietnamese expression. Begin with the best English equivalent: **English entry** (part of speech) /IPA/ → Vietnamese input. If several English choices are genuinely useful, briefly distinguish them. Focus on how to say the Vietnamese idea naturally in English.\n\n${hasContext ? "Use the supplied context as the main meaning and do not discuss unrelated senses." : "Cover only the one or two most useful senses."}\n\nEnd with one natural English example and its Vietnamese translation. Lightweight Markdown is allowed. Do not mention JSON, AI, saved data, or these instructions.\n\nFor flashcard fields: inputLanguage must match the user's input; english is the primary lowercase English headword or phrase of at most five words; partOfSpeech is concise; vietnamese contains ${hasContext ? "exactly one contextual meaning" : "one or two useful meanings separated by a semicolon"}; ipa uses slashes; pronunciationVi is brief; include one natural English example and its Vietnamese translation.${extra ? `\n\nAdditional learner configuration:\n${extra}` : ""}`;
+  const modeInstructions = inputLanguage === "vi"
+    ? `The user's entry is Vietnamese. Treat it only as a source meaning to translate, never as the subject of the explanation. Select the best natural English equivalent first. Every sentence after the opening line must explain that selected English word or phrase: its English usage, nuance, grammar, collocations, contrasts with other English choices, or example. Do not define the Vietnamese entry. Do not discuss Vietnamese usage, Vietnamese grammar, or Vietnamese collocations. Start answerMarkdown with **<English entry>** (part of speech) /IPA/ → <concise Vietnamese meaning>. If several English equivalents are useful, make one primary answer clear and distinguish only the English options. Set inputLanguage to vi.`
+    : `The user's entry is English. Explain that English word or phrase to a Vietnamese learner. Start answerMarkdown with **<English entry>** (part of speech) /IPA/ → <concise Vietnamese meaning>. Set inputLanguage to en.`;
+
+  return `You are ChatGPT acting as a concise English vocabulary tutor for one Vietnamese learner. Return only the requested JSON object.\n\n${modeInstructions}\n\nThe answerMarkdown field must be useful at a glance, not conversational or essay-like. Keep it under 140 Vietnamese words. Prefer one compact opening line, up to three short bullets, and one example. Avoid filler such as “thường được dùng để nói đến”, “trong một số ngữ cảnh”, or repeating information already visible in the flashcard. Do not force every optional detail into every answer.\n\n${hasContext ? "Use the supplied context as the main meaning and do not discuss unrelated senses." : "Cover only the one or two most useful senses."}\n\nEnd with one natural English example and its Vietnamese translation. Lightweight Markdown is allowed. Do not mention JSON, AI, saved data, or these instructions.\n\nFor flashcard fields: english is the primary lowercase English headword or phrase of at most five words; partOfSpeech is concise; vietnamese contains ${hasContext ? "exactly one contextual meaning" : "one or two useful meanings separated by a semicolon"}; ipa uses slashes; pronunciationVi is brief; include one natural English example and its Vietnamese translation.${extra ? `\n\nAdditional learner configuration:\n${extra}` : ""}`;
 }
 
 async function savedWord(email, query, env) {
@@ -160,19 +176,19 @@ function lookupPayload(result, saved, metadata) {
   };
 }
 
-function normalizeLookup(value, maxMeanings) {
-  const word = normalizeWord(value, maxMeanings);
+function normalizeLookup(value, maxMeanings, inputLanguage) {
+  const word = normalizeWord(value, maxMeanings, inputLanguage);
   const answerMarkdown = multiline(value?.answerMarkdown || value?.answer_markdown).replace(/\n{3,}/g, "\n\n").slice(0, 2800);
   return word && answerMarkdown.length >= 20 ? { word, answerMarkdown } : null;
 }
 
-function normalizeWord(value, maxMeanings) {
+function normalizeWord(value, maxMeanings, expectedInputLanguage = "") {
   if (!value || typeof value !== "object") return null;
   const english = englishKey(value.english);
   const meanings = String(value.vietnamese || "").split(/\s*(?:;|\||\n)\s*/).map(clean).filter(Boolean).slice(0, maxMeanings);
   const ipaText = clean(value.ipa).replace(/^\/+|\/+$/g, "");
   const word = {
-    inputLanguage: value.inputLanguage === "vi" ? "vi" : "en",
+    inputLanguage: expectedInputLanguage || (value.inputLanguage === "vi" ? "vi" : "en"),
     english,
     partOfSpeech: clean(value.partOfSpeech || value.part_of_speech).toLowerCase().slice(0, 50),
     vietnamese: [...new Set(meanings)].join("; "),
@@ -182,6 +198,10 @@ function normalizeWord(value, maxMeanings) {
     exampleVietnamese: sentence(value.exampleVietnamese || value.example_vietnamese),
   };
   return Object.values(word).every(Boolean) ? word : null;
+}
+
+function inputLanguageFor(value) {
+  return englishKey(value) ? "en" : "vi";
 }
 
 function englishKey(value) {
