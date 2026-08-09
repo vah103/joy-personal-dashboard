@@ -23,9 +23,14 @@
 
 .vocabulary-compact-title {
   min-width: 0;
+  padding: 0;
   display: flex;
   align-items: center;
   gap: 7px;
+  border: 0;
+  background: transparent;
+  font-family: "Nunito", ui-rounded, system-ui, sans-serif;
+  cursor: pointer;
 }
 
 .vocabulary-compact-title strong {
@@ -49,6 +54,9 @@
 }
 
 .vocabulary-compact-actions {
+  min-width: 0;
+  margin-left: auto;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -64,11 +72,13 @@
 .vocabulary-compact-actions button {
   min-height: 28px;
   padding: 0 9px;
+  flex: 0 0 auto;
   border-radius: 9px;
   background: rgba(255, 255, 255, 0.52);
   color: #48636e;
   font-size: 8px;
   font-weight: 900;
+  white-space: nowrap;
 }
 
 .vocabulary-compact-actions button:last-child {
@@ -171,12 +181,14 @@
   font-weight: 850;
 }
 
+.vocabulary-compact-title:hover span,
 .vocabulary-compact-actions button:hover,
 .vocabulary-compact-preview:hover,
 .vocabulary-compact-empty:hover {
   background: rgba(255, 255, 255, 0.72);
 }
 
+.vocabulary-compact-title:focus-visible,
 .vocabulary-compact-actions button:focus-visible,
 .vocabulary-compact-preview:focus-visible,
 .vocabulary-compact-empty:focus-visible {
