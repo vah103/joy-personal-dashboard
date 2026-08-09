@@ -6,12 +6,12 @@
     "/project-data/vocabulary/vocabulary-library.css?v=joy-vocabulary-library-v1",
     "/project-data/vocabulary/vocabulary-result-size.css?v=joy-vocabulary-result-size-v1",
     "/project-data/vocabulary/vocabulary-modal-fit.css?v=joy-vocabulary-modal-fit-v1",
-    "/project-data/vocabulary/vocabulary-compact.css?v=joy-vocabulary-compact-v3",
+    "/project-data/vocabulary/vocabulary-compact.css?v=joy-vocabulary-compact-v4",
   ];
   const BROWSER_SPEECH_SCRIPT_URL = "/project-data/shared/browser-speech.js?v=joy-browser-speech-v1";
   const CHAT_RESPONSE_SCRIPT_URL = "/project-data/vocabulary/vocabulary-chat-response.js?v=joy-vocabulary-chat-v4";
   const SCRIPT_URL = "/project-data/vocabulary/vocabulary.js?v=joy-vocabulary-v2";
-  const COMPACT_SCRIPT_URL = "/project-data/vocabulary/vocabulary-compact.js?v=joy-vocabulary-compact-v3";
+  const COMPACT_SCRIPT_URL = "/project-data/vocabulary/vocabulary-compact.js?v=joy-vocabulary-compact-v4";
   const LIBRARY_SCRIPT_URL = "/project-data/vocabulary/vocabulary-library.js?v=joy-vocabulary-library-v1";
   const MOBILE_SCRIPT_URL = "/project-data/vocabulary/vocabulary-mobile-inline.js?v=joy-vocabulary-mobile-inline-v3";
 
@@ -65,7 +65,7 @@
 
   function loadCompactCard() {
     const existing = document.querySelector('script[data-joy-vocabulary-compact="true"]');
-    if (existing && existing.src.includes("joy-vocabulary-compact-v3")) {
+    if (existing && existing.src.includes("joy-vocabulary-compact-v4")) {
       if (existing.dataset.loaded === "true") loadLibrary();
       else existing.addEventListener("load", loadLibrary, { once: true });
       return;
