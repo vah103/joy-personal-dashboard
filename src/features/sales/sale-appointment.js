@@ -17,6 +17,41 @@ function normalizeSearch(value) {
     .replace(/đ/g, "d");
 }
 
+const LABELED_APPOINTMENT_FIELDS = new Map([
+  ["ten", "customerName"],
+  ["ten khach", "customerName"],
+  ["khach", "customerName"],
+  ["khach hang", "customerName"],
+  ["sdt", "phone"],
+  ["so dien thoai", "phone"],
+  ["dien thoai", "phone"],
+  ["phone", "phone"],
+  ["dia chi", "viewingAddress"],
+  ["dia chi xem phong", "viewingAddress"],
+  ["dc", "viewingAddress"],
+  ["thoi gian", "viewingTime"],
+  ["thoi gian xem", "viewingTime"],
+  ["lich xem", "viewingTime"],
+  ["gio xem", "viewingTime"],
+]);
+
+function parseLabeledAppointmentForm(text) {
+  const fields = {};
+  let recognizedFieldCount = 0;
+
+  for (const line of String(text || "").split("\n")) {
+    const match = line.match(/^[^\p{L}\p{N}]*(?<label>[\p{L}\s]+?)\s*[:：\-]\s*(?<value>.+?)\s*$/u);
+    if (!match?.groups) continue;
+    const label = normalizeSearch(match.groups.label).replace(/\s+/g, " ").trim();
+    const field = LABELED_APPOINTMENT_FIELDS.get(label);
+    if (!field) continue;
+    recognizedFieldCount += 1;
+    if (!fields[field]) fields[field] = normalizeText(match.groups.value);
+  }
+
+  return { fields, recognizedFieldCount };
+}
+
 function vietnamParts(timestamp = Date.now()) {
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: VIETNAM_TIME_ZONE,
@@ -213,15 +248,21 @@ function cleanCustomerName(text, removals) {
 
 export function parseSaleAppointmentInput(rawInput, now = Date.now()) {
   const text = normalizeText(rawInput);
-  const phone = extractPhone(text);
-  const viewingTime = parseViewingTime(text, now);
-  const address = extractAddress(text);
-  const detectedName = cleanCustomerName(text, [
-    phone.matchedText,
-    ...(viewingTime?.matchedParts || [viewingTime?.matchedText || ""]),
-    address.matchedText,
-    address.address,
-  ]);
+  const labeled = parseLabeledAppointmentForm(text);
+  const structuredForm = labeled.recognizedFieldCount > 0;
+  const phone = extractPhone(labeled.fields.phone || text);
+  const viewingTime = parseViewingTime(labeled.fields.viewingTime || text, now);
+  const address = labeled.fields.viewingAddress
+    ? { address: cleanAddress(labeled.fields.viewingAddress), matchedText: labeled.fields.viewingAddress }
+    : extractAddress(text);
+  const detectedName = labeled.fields.customerName
+    ? normalizeText(labeled.fields.customerName).slice(0, 80)
+    : structuredForm ? "" : cleanCustomerName(text, [
+      phone.matchedText,
+      ...(viewingTime?.matchedParts || [viewingTime?.matchedText || ""]),
+      address.matchedText,
+      address.address,
+    ]);
   const customerName = detectedName
     || (phone.phone ? `Khách ${phone.phone}` : address.address ? `Khách xem phòng ${address.address}` : "");
 
