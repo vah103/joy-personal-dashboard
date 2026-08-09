@@ -5,6 +5,7 @@
   const LOOKUP_PATH = "/api/vocabulary/lookup";
   const nativeFetch = window.fetch.bind(window);
   let latestAnswer = "";
+  let latestAlreadySaved = false;
   let renderScheduled = false;
 
   window.fetch = async function joyVocabularyFetch(input, init = {}) {
@@ -14,6 +15,7 @@
 
     if (isLookup) {
       latestAnswer = "";
+      latestAlreadySaved = false;
       removeChatResponse();
     }
 
@@ -22,9 +24,11 @@
 
     response.clone().json().then((payload) => {
       latestAnswer = normalizeAnswer(payload?.answerMarkdown || payload?.answer_markdown);
+      latestAlreadySaved = payload?.alreadySaved === true;
       scheduleRender();
     }).catch(() => {
       latestAnswer = "";
+      latestAlreadySaved = false;
     });
 
     return response;
@@ -53,32 +57,43 @@
     const flashcard = container?.querySelector(".vocabulary-result-card");
     if (!container || !flashcard) return;
 
+    const renderKey = `${latestAlreadySaved ? "saved" : "new"}:${latestAnswer}`;
     let response = container.querySelector("[data-vocab-chat-response]");
-    if (response?.dataset.answer === latestAnswer) return;
+    if (response?.dataset.renderKey === renderKey) return;
 
     if (!response) {
       response = document.createElement("section");
       response.className = "vocabulary-chat-response";
       response.dataset.vocabChatResponse = "true";
-      response.setAttribute("aria-label", "ChatGPT vocabulary explanation");
+      response.setAttribute("aria-label", "ChatGPT vocabulary answer");
       container.insertBefore(response, flashcard);
     }
 
-    response.dataset.answer = latestAnswer;
+    response.dataset.renderKey = renderKey;
     response.innerHTML = `
       <div class="vocabulary-chat-response-heading">
         <span aria-hidden="true">✦</span>
-        <div><small>ChatGPT answer</small><strong>Explanation</strong></div>
+        <div><small>ChatGPT answer</small><strong>Quick answer</strong></div>
       </div>
       <div class="vocabulary-chat-response-body">${renderMarkdown(latestAnswer)}</div>
     `;
 
-    if (!container.querySelector("[data-vocab-flashcard-label]")) {
-      const label = document.createElement("p");
+    let label = container.querySelector("[data-vocab-flashcard-label]");
+    if (!label) {
+      label = document.createElement("p");
       label.className = "vocabulary-flashcard-label";
       label.dataset.vocabFlashcardLabel = "true";
-      label.textContent = "Save as flashcard";
       container.insertBefore(label, flashcard);
+    }
+    label.textContent = latestAlreadySaved ? "Saved flashcard" : "Save as flashcard";
+
+    if (latestAlreadySaved) {
+      const savePrompt = flashcard.querySelector(":scope > p");
+      const saveActions = flashcard.querySelector(".vocabulary-save-actions");
+      if (savePrompt) savePrompt.textContent = "Already saved in your flashcards.";
+      if (saveActions) saveActions.hidden = true;
+      const status = document.querySelector("[data-vocab-lookup-status]");
+      if (status) status.textContent = "Already saved — GPT refreshed the explanation.";
     }
   }
 
@@ -96,7 +111,7 @@
       .join("\n")
       .replace(/\n{3,}/g, "\n\n")
       .trim()
-      .slice(0, 5000);
+      .slice(0, 2800);
   }
 
   function renderMarkdown(value) {
