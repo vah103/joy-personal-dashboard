@@ -70,8 +70,8 @@ test("Vocabulary lookup uses a wide readable two-column workspace", () => {
 
 test("Vocabulary displays a natural ChatGPT answer before the saveable flashcard", () => {
   assert.match(worker, /answerMarkdown/);
-  assert.match(worker, /natural ChatGPT response/);
-  assert.match(worker, /two to six short paragraphs/);
+  assert.match(worker, /concise English vocabulary tutor/);
+  assert.match(worker, /under 140 Vietnamese words/);
   assert.match(worker, /VOCABULARY_TUTOR_INSTRUCTIONS/);
   assert.match(chatFrontend, /\/api\/vocabulary\/lookup/);
   assert.match(chatFrontend, /response\.clone\(\)\.json\(\)/);
@@ -84,11 +84,12 @@ test("Vocabulary displays a natural ChatGPT answer before the saveable flashcard
   assert.match(chatStyles, /font-family:\s*"Nunito"/);
 });
 
-test("Vocabulary chat renderer does not observe its own render forever", () => {
-  assert.match(chatFrontend, /response\?\.dataset\.answer === latestAnswer/);
-  assert.match(chatFrontend, /response\.dataset\.answer = latestAnswer/);
-  assert.match(chatFrontend, /if \(!latestAnswer \|\| renderScheduled\) return/);
-  assert.match(chatFrontend, /if \(latestAnswer\) scheduleRender\(\)/);
+test("Vietnamese lookup asks for an English equivalent instead of redefining Vietnamese", () => {
+  assert.match(worker, /If the input is Vietnamese/);
+  assert.match(worker, /do not define or explain the Vietnamese expression/);
+  assert.match(worker, /Begin with the best English equivalent/);
+  assert.match(worker, /Focus on how to say the Vietnamese idea naturally in English/);
+  assert.match(worker, /inputLanguage must match the user's input/);
 });
 
 test("Vocabulary outside card clearly opens full practice in the popup", () => {
@@ -117,13 +118,13 @@ test("Narrow layouts clone the compact launcher and preserve the real practice m
   assert.doesNotMatch(mobileInline, /data-vocab-practice-inline/);
 });
 
-test("Vocabulary uses one cached OpenAI request with a richer but bounded response", () => {
+test("Vocabulary uses one cached OpenAI request with a concise bounded response", () => {
   assert.match(worker, /OPENAI_MODEL = "gpt-5-mini"/);
   assert.match(worker, /OPENAI_VOCABULARY_MODEL/);
-  assert.match(worker, /CACHE_VERSION = "v3-chat-response"/);
-  assert.match(worker, /maxOutputTokens:\s*900/);
+  assert.match(worker, /CACHE_VERSION = "v4-concise-translation"/);
+  assert.match(worker, /maxOutputTokens:\s*600/);
   assert.match(worker, /reasoningEffort:\s*"minimal"/);
-  assert.match(worker, /verbosity:\s*"medium"/);
+  assert.match(worker, /verbosity:\s*"low"/);
   assert.match(worker, /readLanguageCache/);
   assert.match(worker, /writeLanguageCache/);
   assert.match(openAi, /store:\s*false/);
@@ -136,17 +137,19 @@ test("Vocabulary keeps the saveable entry concise while the visible answer can a
   assert.match(worker, /const maxMeanings = context \? 1 : 2/);
   assert.match(worker, /one or two useful meanings separated by a semicolon/);
   assert.match(worker, /exactly one contextual meaning/);
-  assert.match(worker, /Keep flashcard fields concise even when answerMarkdown is richer/);
+  assert.match(worker, /one compact opening line/);
   assert.match(worker, /exampleVietnamese/);
   assert.match(frontend, /split\(\/\\s\*;\\s\*\//);
   assert.match(frontend, /\.slice\(0, 2\)/);
 });
 
-test("Vocabulary uses saved data first and Workers AI only as fallback", () => {
-  assert.match(worker, /savedWord/);
-  assert.match(worker, /savedAnswer/);
-  assert.match(worker, /provider:\s*"saved"/);
-  assert.match(worker, /using Workers AI fallback/);
+test("Saved words still receive an AI explanation and retain their flashcard identity", () => {
+  assert.match(worker, /const saved = context \? null : await savedWord/);
+  assert.match(worker, /lookupPayload\(cachedResult, saved/);
+  assert.match(worker, /lookupPayload\(normalized, saved/);
+  assert.match(worker, /alreadySaved:\s*Boolean\(saved\)/);
+  assert.match(worker, /id:\s*saved\.id/);
+  assert.match(worker, /if \(saved\) return json\(\{ word: saved, answerMarkdown: savedAnswer/);
   assert.match(worker, /@cf\/meta\/llama-3\.1-8b-instruct-fast/);
   assert.match(router, /isVocabularyRoute\(pathname\)/);
 });
@@ -159,9 +162,8 @@ test("Vocabulary save and review routes retain authenticated D1 storage", () => 
 });
 
 test("Dashboard loader installs chat rendering before the Vocabulary core", () => {
-  assert.match(loader, /vocabulary-chat-response\.css\?v=joy-vocabulary-chat-v1/);
+  assert.match(loader, /vocabulary-chat-response\.css\?v=joy-vocabulary-chat-v2/);
   assert.match(loader, /vocabulary-chat-response\.js\?v=joy-vocabulary-chat-v2/);
-  assert.match(loader, /joy-vocabulary-chat-v2/);
   assert.match(loader, /loadChatResponse/);
   assert.match(loader, /loadVocabularyCore/);
   assert.match(loader, /vocabulary-openai\.css\?v=joy-vocabulary-openai-v2/);
