@@ -84,12 +84,15 @@ test("Vocabulary displays a natural ChatGPT answer before the saveable flashcard
   assert.match(chatStyles, /font-family:\s*"Nunito"/);
 });
 
-test("Vietnamese lookup asks for an English equivalent instead of redefining Vietnamese", () => {
-  assert.match(worker, /If the input is Vietnamese/);
-  assert.match(worker, /do not define or explain the Vietnamese expression/);
-  assert.match(worker, /Begin with the best English equivalent/);
-  assert.match(worker, /Focus on how to say the Vietnamese idea naturally in English/);
-  assert.match(worker, /inputLanguage must match the user's input/);
+test("Vietnamese lookup explains the selected English equivalent", () => {
+  assert.match(worker, /const inputLanguage = inputLanguageFor\(query\)/);
+  assert.match(worker, /translate the Vietnamese entry into the best natural English equivalent, then teach that English equivalent/);
+  assert.match(worker, /Treat it only as a source meaning to translate, never as the subject of the explanation/);
+  assert.match(worker, /Every sentence after the opening line must explain that selected English word or phrase/);
+  assert.match(worker, /Do not define the Vietnamese entry/);
+  assert.match(worker, /Do not discuss Vietnamese usage, Vietnamese grammar, or Vietnamese collocations/);
+  assert.match(worker, /Set inputLanguage to vi/);
+  assert.match(worker, /expectedInputLanguage \|\|/);
 });
 
 test("Vocabulary outside card clearly opens full practice in the popup", () => {
@@ -121,7 +124,7 @@ test("Narrow layouts clone the compact launcher and preserve the real practice m
 test("Vocabulary uses one cached OpenAI request with a concise bounded response", () => {
   assert.match(worker, /OPENAI_MODEL = "gpt-5-mini"/);
   assert.match(worker, /OPENAI_VOCABULARY_MODEL/);
-  assert.match(worker, /CACHE_VERSION = "v4-concise-translation"/);
+  assert.match(worker, /CACHE_VERSION = "v5-english-target-explanation"/);
   assert.match(worker, /maxOutputTokens:\s*600/);
   assert.match(worker, /reasoningEffort:\s*"minimal"/);
   assert.match(worker, /verbosity:\s*"low"/);
