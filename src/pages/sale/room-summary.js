@@ -15,8 +15,10 @@ const SERVICE_DEFINITIONS = [
   { key: "electricity", label: "Điện", patterns: ["điện", "dien"] },
   { key: "water", label: "Nước", patterns: ["nước", "nuoc"] },
   { key: "internet", label: "Mạng", patterns: ["internet", "wifi", "wi-fi", "mạng", "mang"] },
-  { key: "common", label: "Dịch vụ chung", patterns: ["dịch vụ chung", "dich vu chung", "phí dịch vụ", "phi dich vu", "dvc", "vệ sinh", "ve sinh", "rác", "rac"] },
+  { key: "common", label: "Dịch vụ chung", patterns: ["dịch vụ chung", "dich vu chung", "phí dịch vụ", "phi dich vu", "dvc"] },
   { key: "parking", label: "Gửi xe", patterns: ["gửi xe", "gui xe", "free\\s+\\d+\\s+xe", "miễn phí\\s+\\d+\\s+xe", "mien phi\\s+\\d+\\s+xe", "xe(?=\\s*[:\\-]?\\s*\\d)"] },
+  { key: "fridge", label: "Tủ lạnh", patterns: ["tủ\\s+lạnh", "tu\\s+lanh"] },
+  { key: "laundry", label: "Giặt sấy", patterns: ["giặt\\s+sấy", "giat\\s+say"] },
 ];
 
 const ROOM_TYPE_KEYWORDS = [
@@ -184,6 +186,7 @@ function parseLabeledListing(value) {
 function cleanAddress(value) {
   return normalizeWhitespace(value)
     .replace(/^(?:địa chỉ|dia chi|đc|dc|address|tòa nhà|toa nha)\s*[:\-]?\s*/iu, "")
+    .replace(/^["'“”]+|["'“”]+$/g, "")
     .replace(/^số(?=\s)/iu, "Số")
     .replace(/\s*-\s*/g, " - ")
     .replace(/\s{2,}/g, " ")
@@ -268,9 +271,17 @@ function normalizeFurniture(value) {
 
 function normalizeServiceValue(key, value) {
   let clean = normalizeWhitespace(value)
-    .replace(/^[,.;:\-\s]+|[,.;:\-\s]+$/g, "")
+    .replace(/^[,.;:+\-\s]+|[,.;:+\-\s]+$/g, "")
+    .replace(/\s*\/\s*/g, "/")
+    .replace(/\(\s*/g, "(")
+    .replace(/\s*\)/g, ")")
+    .replace(/\s*,\s*/g, ", ")
     .replace(/\s+/g, " ")
     .trim();
+
+  clean = clean
+    .replace(/\/phong\b/giu, "/phòng")
+    .replace(/\/thang\b/giu, "/tháng");
 
   if (key === "electricity") {
     clean = clean.replace(/\b(\d{4,})\b/gu, (match, amount) => {
@@ -280,17 +291,26 @@ function normalizeServiceValue(key, value) {
   }
 
   if (key === "water") clean = clean.replace(/\/m3\b/giu, "/m³");
-  if (key === "common") clean = clean.replace(/\/ng\b/giu, "/người");
+  if (["common", "laundry"].includes(key)) clean = clean.replace(/\/ng\b/giu, "/người");
   if (key === "parking") {
     clean = clean
       .replace(/\s*\(\s*/g, ", ")
       .replace(/\s*\)\s*/g, "")
-      .replace(/\bxe\s*t2\b/giu, "xe thứ 2")
+      .replace(/\bxe\s*t\s*(\d+)\b/giu, "xe thứ $1")
       .replace(/\bfree\b/giu, "Free")
       .replace(/\s*,\s*/g, ", ");
   }
 
   return clean;
+}
+
+function isInsideParentheses(value, index) {
+  let depth = 0;
+  for (let cursor = 0; cursor < index; cursor += 1) {
+    if (value[cursor] === "(") depth += 1;
+    if (value[cursor] === ")" && depth > 0) depth -= 1;
+  }
+  return depth > 0;
 }
 
 function extractServices(serviceText) {
@@ -301,13 +321,15 @@ function extractServices(serviceText) {
   const markerMatches = [];
   for (const definition of SERVICE_DEFINITIONS) {
     for (const source of definition.patterns) {
-      const matcher = new RegExp(`(?<![\\p{L}\\p{N}])(${source})(?![\\p{L}\\p{N}])\\s*[:\\-]?\\s*`, "giu");
+      const matcher = new RegExp(`(?<![\\p{L}\\p{N}])(${source})(?![\\p{L}\\p{N}])\\s*[:+\\-]?\\s*`, "giu");
       for (const match of text.matchAll(matcher)) {
+        const matchIndex = Number(match.index);
+        if (isInsideParentheses(text, matchIndex)) continue;
         markerMatches.push({
           key: definition.key,
           label: definition.label,
-          index: Number(match.index),
-          end: Number(match.index) + match[0].length,
+          index: matchIndex,
+          end: matchIndex + match[0].length,
           marker: match[1],
         });
       }
@@ -329,7 +351,7 @@ function extractServices(serviceText) {
       value = `${marker.marker} ${value}`;
     }
     value = normalizeServiceValue(marker.key, value);
-    if (!value || value.length > 120) return;
+    if (!value || value.length > 180) return;
     services.push({ key: marker.key, label: marker.label, value });
     seen.add(marker.key);
   });
