@@ -12,22 +12,25 @@
   padding: 10px;
   display: grid;
   gap: 9px;
-  container-type: inline-size;
 }
 
 .vocabulary-compact-topline {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 6px 8px;
+  gap: 8px;
 }
 
 .vocabulary-compact-title {
   min-width: 0;
+  padding: 0;
   display: flex;
   align-items: center;
   gap: 7px;
+  border: 0;
+  background: transparent;
+  font-family: "Nunito", ui-rounded, system-ui, sans-serif;
+  cursor: pointer;
 }
 
 .vocabulary-compact-title strong {
@@ -178,43 +181,19 @@
   font-weight: 850;
 }
 
+.vocabulary-compact-title:hover span,
 .vocabulary-compact-actions button:hover,
 .vocabulary-compact-preview:hover,
 .vocabulary-compact-empty:hover {
   background: rgba(255, 255, 255, 0.72);
 }
 
+.vocabulary-compact-title:focus-visible,
 .vocabulary-compact-actions button:focus-visible,
 .vocabulary-compact-preview:focus-visible,
 .vocabulary-compact-empty:focus-visible {
   outline: 0;
   box-shadow: 0 0 0 3px rgba(91, 119, 132, 0.15);
-}
-
-@container (max-width: 220px) {
-  .vocabulary-compact-topline {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 6px;
-  }
-
-  .vocabulary-compact-actions {
-    width: 100%;
-    margin-left: 0;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 28px;
-    gap: 5px;
-  }
-
-  .vocabulary-compact-actions button {
-    width: 100%;
-    min-width: 0;
-    padding: 0 6px;
-  }
-
-  .vocabulary-compact-actions button:last-child {
-    width: 28px;
-  }
 }
 
 @media (max-width: 760px) {
