@@ -70,6 +70,40 @@ test("finds an absolute time even when the phone number comes first", () => {
   assert.equal(parsed.viewingAddress, "45 Trần Bình");
 });
 
+test("parses labeled multiline Sale forms without treating the source as the customer", () => {
+  const parsed = parseSaleAppointmentInput(`
+    🏆TL21House🏆
+    🍀Địa chỉ : 66 hồ tùng mậu
+    🍀Giá : 4tr5
+    🍀Sđt : 0366823628
+    🍀Thời gian xem : chiều mai
+    🍀CTV : Vanh
+    🍀MÃ PHÒNG : 590
+  `, NOW);
+
+  assert.equal(parsed.customerName, "Khách 0366823628");
+  assert.equal(parsed.phone, "0366823628");
+  assert.equal(parsed.viewingAddress, "66 hồ tùng mậu");
+  assert.equal(parsed.viewingAt, "2026-07-28T08:00:00.000Z");
+  assert.deepEqual(parsed.missing, []);
+  assert.equal(parsed.valid, true);
+});
+
+test("prefers an explicit customer label in multiline Sale forms", () => {
+  const parsed = parseSaleAppointmentInput(`
+    Tên khách: chị Lan
+    Địa chỉ xem phòng: 180 Phú Mỹ
+    Số điện thoại: 0987654321
+    Thời gian xem: mai 8h tối
+  `, NOW);
+
+  assert.equal(parsed.customerName, "chị Lan");
+  assert.equal(parsed.phone, "0987654321");
+  assert.equal(parsed.viewingAddress, "180 Phú Mỹ");
+  assert.equal(parsed.viewingAt, "2026-07-28T13:00:00.000Z");
+  assert.equal(parsed.valid, true);
+});
+
 test("validates normal appointments with pending reminder states", () => {
   const validation = validateSaleViewingInput({
     customerName: " Chị Lan ",
