@@ -34,6 +34,7 @@
             <span aria-label="${escapeHtml(count)} saved words">${escapeHtml(count)}</span>
           </div>
           <div class="vocabulary-compact-actions">
+            <button type="button" data-vocab-open-library>Library</button>
             <button type="button" data-speaking-open>Say it</button>
             <button type="button" data-vocab-open-lookup aria-label="Add a word">+</button>
           </div>
