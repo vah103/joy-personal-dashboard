@@ -291,7 +291,11 @@ function normalizeServiceValue(key, value) {
   }
 
   if (key === "water") clean = clean.replace(/\/m3\b/giu, "/m³");
-  if (["common", "laundry"].includes(key)) clean = clean.replace(/\/ng\b/giu, "/người");
+  if (["common", "laundry"].includes(key)) {
+    clean = clean
+      .replace(/\/ng(?![\p{L}\p{N}])/giu, "/người")
+      .replace(/\/nguoi\b/giu, "/người");
+  }
   if (key === "parking") {
     clean = clean
       .replace(/\s*\(\s*/g, ", ")
