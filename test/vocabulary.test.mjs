@@ -8,11 +8,13 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const frontendPath = resolve(root, "project-data/vocabulary/vocabulary.js");
 const chatFrontendPath = resolve(root, "project-data/vocabulary/vocabulary-chat-response.js");
+const libraryFrontendPath = resolve(root, "project-data/vocabulary/vocabulary-library.js");
 const compactFrontendPath = resolve(root, "project-data/vocabulary/vocabulary-compact.js");
 const mobileInlinePath = resolve(root, "project-data/vocabulary/vocabulary-mobile-inline.js");
 const compactStylesPath = resolve(root, "project-data/vocabulary/vocabulary-compact.css");
 const extraStylesPath = resolve(root, "project-data/vocabulary/vocabulary-openai.css");
 const chatStylesPath = resolve(root, "project-data/vocabulary/vocabulary-chat-response.css");
+const libraryStylesPath = resolve(root, "project-data/vocabulary/vocabulary-library.css");
 const workerPath = resolve(root, "worker/vocabulary.js");
 const openAiPath = resolve(root, "worker/shared/openai-responses.js");
 const routerPath = resolve(root, "worker/router.js");
@@ -23,11 +25,13 @@ const wranglerPath = resolve(root, "wrangler.jsonc");
 const [
   frontend,
   chatFrontend,
+  libraryFrontend,
   compactFrontend,
   mobileInline,
   compactStyles,
   extraStyles,
   chatStyles,
+  libraryStyles,
   worker,
   openAi,
   router,
@@ -37,11 +41,13 @@ const [
 ] = await Promise.all([
   readFile(frontendPath, "utf8"),
   readFile(chatFrontendPath, "utf8"),
+  readFile(libraryFrontendPath, "utf8"),
   readFile(compactFrontendPath, "utf8"),
   readFile(mobileInlinePath, "utf8"),
   readFile(compactStylesPath, "utf8"),
   readFile(extraStylesPath, "utf8"),
   readFile(chatStylesPath, "utf8"),
+  readFile(libraryStylesPath, "utf8"),
   readFile(workerPath, "utf8"),
   readFile(openAiPath, "utf8"),
   readFile(routerPath, "utf8"),
@@ -103,6 +109,21 @@ test("Meanings are flexible and Vietnamese pronunciation is phonetic", () => {
   assert.match(chatFrontend, /renderFlexibleFlashcard/);
   assert.match(chatFrontend, /Vietnamese pronunciation/);
   assert.match(chatFrontend, /\.slice\(0, 6\)/);
+});
+
+test("Saved words appear in one searchable library used by the flashcard deck", () => {
+  assert.match(libraryFrontend, /const API_ROOT = "\/api\/vocabulary"/);
+  assert.match(libraryFrontend, /Every saved entry belongs to the flashcard deck/);
+  assert.match(libraryFrontend, /Flashcards use this same saved list/);
+  assert.match(libraryFrontend, /data-vocab-library-search/);
+  assert.match(libraryFrontend, /data-vocab-library-practice/);
+  assert.match(libraryFrontend, /reviewCount/);
+  assert.match(libraryFrontend, /correctCount/);
+  assert.match(libraryFrontend, /vocabulary-library-table/);
+  assert.match(compactFrontend, /data-vocab-open-library/);
+  assert.match(libraryStyles, /\.vocabulary-library-modal/);
+  assert.match(libraryStyles, /\.vocabulary-library-table/);
+  assert.match(libraryStyles, /@media \(max-width: 760px\)/);
 });
 
 test("Vocabulary outside card clearly opens full practice in the popup", () => {
@@ -171,20 +192,23 @@ test("Vocabulary save and review routes retain authenticated D1 storage", () => 
   assert.match(migration, /UNIQUE \(user_email, english_key\)/);
 });
 
-test("Dashboard loader installs chat rendering before the Vocabulary core", () => {
+test("Dashboard loader installs ChatGPT response, library, compact card and mobile launcher", () => {
   assert.match(loader, /vocabulary-chat-response\.css\?v=joy-vocabulary-chat-v2/);
   assert.match(loader, /vocabulary-chat-response\.js\?v=joy-vocabulary-chat-v4/);
+  assert.match(loader, /vocabulary-library\.css\?v=joy-vocabulary-library-v1/);
+  assert.match(loader, /vocabulary-library\.js\?v=joy-vocabulary-library-v1/);
   assert.match(loader, /loadChatResponse/);
   assert.match(loader, /loadVocabularyCore/);
+  assert.match(loader, /loadLibrary/);
   assert.match(loader, /vocabulary-openai\.css\?v=joy-vocabulary-openai-v2/);
   assert.match(loader, /vocabulary-compact\.css\?v=joy-vocabulary-compact-v2/);
   assert.match(loader, /vocabulary\.js\?v=joy-vocabulary-v2/);
-  assert.match(loader, /vocabulary-compact\.js\?v=joy-vocabulary-compact-v2/);
+  assert.match(loader, /vocabulary-compact\.js\?v=joy-vocabulary-compact-v3/);
   assert.match(loader, /vocabulary-mobile-inline\.js\?v=joy-vocabulary-mobile-inline-v3/);
 });
 
 test("Vocabulary JavaScript files pass syntax checks", () => {
-  for (const path of [frontendPath, chatFrontendPath, compactFrontendPath, mobileInlinePath, workerPath, openAiPath, routerPath, loaderPath]) {
+  for (const path of [frontendPath, chatFrontendPath, libraryFrontendPath, compactFrontendPath, mobileInlinePath, workerPath, openAiPath, routerPath, loaderPath]) {
     const result = spawnSync(process.execPath, ["--check", path], { encoding: "utf8" });
     assert.equal(result.status, 0, result.stderr || result.stdout);
   }
