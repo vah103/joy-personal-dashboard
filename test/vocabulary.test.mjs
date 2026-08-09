@@ -84,15 +84,25 @@ test("Vocabulary displays a natural ChatGPT answer before the saveable flashcard
   assert.match(chatStyles, /font-family:\s*"Nunito"/);
 });
 
-test("Vietnamese lookup explains the selected English equivalent", () => {
-  assert.match(worker, /const inputLanguage = inputLanguageFor\(query\)/);
-  assert.match(worker, /translate the Vietnamese entry into the best natural English equivalent, then teach that English equivalent/);
-  assert.match(worker, /Treat it only as a source meaning to translate, never as the subject of the explanation/);
+test("Vietnamese lookup teaches the selected English equivalent", () => {
+  assert.match(worker, /Treat it only as a source meaning to translate/);
   assert.match(worker, /Every sentence after the opening line must explain that selected English word or phrase/);
   assert.match(worker, /Do not define the Vietnamese entry/);
-  assert.match(worker, /Do not discuss Vietnamese usage, Vietnamese grammar, or Vietnamese collocations/);
-  assert.match(worker, /Set inputLanguage to vi/);
-  assert.match(worker, /expectedInputLanguage \|\|/);
+  assert.match(worker, /translate the Vietnamese entry into the best natural English equivalent/);
+  assert.match(worker, /inputLanguageFor/);
+});
+
+test("Meanings are flexible and Vietnamese pronunciation is phonetic", () => {
+  assert.match(worker, /MAX_MEANINGS = 6/);
+  assert.match(worker, /const maxMeanings = context \? 1 : MAX_MEANINGS/);
+  assert.match(worker, /Choose the number of meanings naturally/);
+  assert.match(worker, /a flexible number of useful common meanings separated by semicolons/);
+  assert.match(worker, /Approximate Vietnamese phonetic spelling/);
+  assert.match(worker, /pronunciationVi must never be a translation/);
+  assert.match(worker, /sameLooseText/);
+  assert.match(chatFrontend, /renderFlexibleFlashcard/);
+  assert.match(chatFrontend, /Vietnamese pronunciation/);
+  assert.match(chatFrontend, /\.slice\(0, 6\)/);
 });
 
 test("Vocabulary outside card clearly opens full practice in the popup", () => {
@@ -124,7 +134,7 @@ test("Narrow layouts clone the compact launcher and preserve the real practice m
 test("Vocabulary uses one cached OpenAI request with a concise bounded response", () => {
   assert.match(worker, /OPENAI_MODEL = "gpt-5-mini"/);
   assert.match(worker, /OPENAI_VOCABULARY_MODEL/);
-  assert.match(worker, /CACHE_VERSION = "v5-english-target-explanation"/);
+  assert.match(worker, /CACHE_VERSION = "v6-flexible-meanings-phonetic"/);
   assert.match(worker, /maxOutputTokens:\s*600/);
   assert.match(worker, /reasoningEffort:\s*"minimal"/);
   assert.match(worker, /verbosity:\s*"low"/);
@@ -134,16 +144,6 @@ test("Vocabulary uses one cached OpenAI request with a concise bounded response"
   assert.match(openAi, /max_output_tokens/);
   assert.match(openAi, /text\.format/);
   assert.match(wrangler, /"OPENAI_VOCABULARY_MODEL"\s*:\s*"gpt-5-mini"/);
-});
-
-test("Vocabulary keeps the saveable entry concise while the visible answer can adapt", () => {
-  assert.match(worker, /const maxMeanings = context \? 1 : 2/);
-  assert.match(worker, /one or two useful meanings separated by a semicolon/);
-  assert.match(worker, /exactly one contextual meaning/);
-  assert.match(worker, /one compact opening line/);
-  assert.match(worker, /exampleVietnamese/);
-  assert.match(frontend, /split\(\/\\s\*;\\s\*\//);
-  assert.match(frontend, /\.slice\(0, 2\)/);
 });
 
 test("Saved words still receive an AI explanation and retain their flashcard identity", () => {
@@ -173,7 +173,7 @@ test("Vocabulary save and review routes retain authenticated D1 storage", () => 
 
 test("Dashboard loader installs chat rendering before the Vocabulary core", () => {
   assert.match(loader, /vocabulary-chat-response\.css\?v=joy-vocabulary-chat-v2/);
-  assert.match(loader, /vocabulary-chat-response\.js\?v=joy-vocabulary-chat-v3/);
+  assert.match(loader, /vocabulary-chat-response\.js\?v=joy-vocabulary-chat-v4/);
   assert.match(loader, /loadChatResponse/);
   assert.match(loader, /loadVocabularyCore/);
   assert.match(loader, /vocabulary-openai\.css\?v=joy-vocabulary-openai-v2/);
