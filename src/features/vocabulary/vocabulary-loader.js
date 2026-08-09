@@ -6,7 +6,7 @@
     "/project-data/vocabulary/vocabulary-library.css?v=joy-vocabulary-library-v1",
     "/project-data/vocabulary/vocabulary-result-size.css?v=joy-vocabulary-result-size-v1",
     "/project-data/vocabulary/vocabulary-modal-fit.css?v=joy-vocabulary-modal-fit-v1",
-    "/project-data/vocabulary/vocabulary-compact.css?v=joy-vocabulary-compact-v2",
+    "/project-data/vocabulary/vocabulary-compact.css?v=joy-vocabulary-compact-v3",
   ];
   const BROWSER_SPEECH_SCRIPT_URL = "/project-data/shared/browser-speech.js?v=joy-browser-speech-v1";
   const CHAT_RESPONSE_SCRIPT_URL = "/project-data/vocabulary/vocabulary-chat-response.js?v=joy-vocabulary-chat-v4";
