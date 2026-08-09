@@ -29,12 +29,11 @@
     root.innerHTML = `
       <section class="vocabulary-compact-card" aria-label="Vocabulary">
         <div class="vocabulary-compact-topline">
-          <div class="vocabulary-compact-title">
+          <button class="vocabulary-compact-title" type="button" data-vocab-open-library aria-label="Open ${escapeHtml(count)} saved vocabulary words">
             <strong>Words</strong>
-            <span aria-label="${escapeHtml(count)} saved words">${escapeHtml(count)}</span>
-          </div>
+            <span aria-hidden="true">${escapeHtml(count)}</span>
+          </button>
           <div class="vocabulary-compact-actions">
-            <button type="button" data-vocab-open-library>Library</button>
             <button type="button" data-speaking-open>Say it</button>
             <button type="button" data-vocab-open-lookup aria-label="Add a word">+</button>
           </div>
