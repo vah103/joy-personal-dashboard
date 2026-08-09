@@ -13,13 +13,15 @@ test("creates a clean customer room summary without private sale details", () =>
 
   assert.equal(summary.address, "180 Phú Mỹ");
   assert.deepEqual(summary.rooms, [{ title: "Phòng 302", price: "4tr2", note: "Có thể vào ở ngay" }]);
+  assert.equal(summary.availability, "302, có thể vào ở ngay");
+  assert.equal(summary.price, "4tr2");
   assert.equal(summary.roomType, "Studio");
-  assert.equal(summary.stairs, "Thang máy");
+  assert.equal(summary.stairs, "Có");
   assert.match(summary.furniture, /full nội thất/i);
   assert.deepEqual(summary.services.map(({ label, value }) => [label, value]), [
     ["Điện", "4k"],
     ["Nước", "100k/người"],
-    ["Internet", "100k/phòng"],
+    ["Mạng", "100k/phòng"],
     ["Gửi xe", "100k/xe"],
   ]);
   assert.deepEqual(summary.notes, ["Cọc 1 tháng"]);
@@ -39,16 +41,66 @@ test("supports several available rooms and keeps the result temporary", async ()
     ["Phòng 301", "3tr8"],
     ["Phòng 402", "4tr2"],
   ]);
-  assert.deepEqual(summary.notes, ["Cọc 1 tháng", "hợp đồng 6 tháng"]);
+  assert.equal(summary.availability, "301, 402");
+  assert.equal(summary.price, "301: 3tr8; 402: 4tr2");
+  assert.deepEqual(summary.notes, ["Cọc 1 tháng", "Hợp đồng 6 tháng"]);
 
   const source = await readFile(new URL("../src/pages/sale/room-summary.js", import.meta.url), "utf8");
   assert.doesNotMatch(source, /localStorage|sessionStorage|\/api\//);
 });
 
+test("parses the labeled TL21House form into a customer-friendly layout", () => {
+  const summary = summarizeRoomListing(`
+    🌷30% - 12m  Mã: 🏆 007B
+
+    🏢Địa chỉ : SỐ 9 ngõ 63/53 Trần Quốc Vượng- Cầu Giấy
+
+    ⌛️Trống : P201(1/9)
+
+    ☘Giá : 5tr1
+    ☘Dạng phòng : studio
+    ☘Thang : MÁY
+
+    🏆Nội thất : Full như hình- Máy lọc nước riêng-bếp từ
+
+    🏆Dịch vụ : Điện 4000/số. Nước 35k/m3. Mạng 100k/tháng,dvc 200k/ng,free 1 xe (xe T2 100k)
+
+    ⭐Lưu ý:
+
+    - Đóng 1 cọc 1
+    - KHÔNG NHẬN XE ĐIỆN
+    - KHÔNG CHUNG CHỦ GIỜ GIẤC TỰ DO
+    - QUA HẸN XEM ALO TRƯỚC 30P
+    - Nguồn hàng cập nhật liên tục tại
+      🏆TL21House🏆
+  `);
+
+  assert.equal(summary.address, "Số 9 ngõ 63/53 Trần Quốc Vượng - Cầu Giấy");
+  assert.equal(summary.availability, "P201, trống 1/9");
+  assert.equal(summary.price, "5tr1/tháng");
+  assert.equal(summary.roomType, "Studio");
+  assert.equal(summary.stairs, "Có");
+  assert.equal(summary.furniture, "Full đồ như hình, máy lọc nước riêng, bếp từ");
+  assert.deepEqual(summary.services.map(({ label, value }) => [label, value]), [
+    ["Điện", "4k/số"],
+    ["Nước", "35k/m³"],
+    ["Mạng", "100k/tháng"],
+    ["Dịch vụ chung", "200k/người"],
+    ["Gửi xe", "Free 1 xe, xe thứ 2 100k"],
+  ]);
+  assert.deepEqual(summary.notes, [
+    "Đóng 1 cọc 1",
+    "Không nhận xe điện",
+    "Không chung chủ, giờ giấc tự do",
+  ]);
+  assert.doesNotMatch(JSON.stringify(summary), /30%|007B|TL21House|alo trước 30p|Nguồn hàng/i);
+});
+
 test("Sale page exposes one screenshot-focused room summary interface", async () => {
-  const [html, css, build] = await Promise.all([
+  const [html, css, source, build] = await Promise.all([
     readFile(new URL("../src/pages/sale/index.html", import.meta.url), "utf8"),
     readFile(new URL("../src/pages/sale/room-summary.css", import.meta.url), "utf8"),
+    readFile(new URL("../src/pages/sale/room-summary.js", import.meta.url), "utf8"),
     readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8"),
   ]);
 
@@ -56,6 +108,9 @@ test("Sale page exposes one screenshot-focused room summary interface", async ()
   assert.match(html, /id="room-summary-capture-button"/);
   assert.match(html, /Temporary · never saved/);
   assert.match(css, /\.sale-room-capture/);
+  assert.match(css, /\.room-share-detail-row/);
+  assert.match(source, /appendDetailRow\(details, "Phòng trống"/);
+  assert.match(source, /renderListSection\(container, "Dịch vụ"/);
   assert.match(build, /room-summary\.js/);
   assert.match(build, /room-summary\.css/);
 });
