@@ -15,8 +15,8 @@ const SERVICE_DEFINITIONS = [
   { key: "electricity", label: "Điện", patterns: ["điện", "dien"] },
   { key: "water", label: "Nước", patterns: ["nước", "nuoc"] },
   { key: "internet", label: "Mạng", patterns: ["internet", "wifi", "wi-fi", "mạng", "mang"] },
-  { key: "common", label: "Dịch vụ chung", patterns: ["dịch vụ chung", "dich vu chung", "phí dịch vụ", "phi dich vu", "dvc"] },
-  { key: "parking", label: "Gửi xe", patterns: ["gửi xe", "gui xe", "free\\s+\\d+\\s+xe", "miễn phí\\s+\\d+\\s+xe", "mien phi\\s+\\d+\\s+xe", "xe(?=\\s*[:\\-]?\\s*\\d)"] },
+  { key: "common", label: "Dịch vụ chung", patterns: ["dịch vụ chung", "dich vu chung", "phí dịch vụ", "phi dich vu", "dvc", "vsinh", "vệ\\s*sinh", "ve\\s*sinh"] },
+  { key: "parking", label: "Gửi xe", patterns: ["gửi\\s+xe", "gui\\s+xe", "để\\s+xe", "de\\s+xe", "free\\s+\\d+\\s+xe", "miễn phí\\s+\\d+\\s+xe", "mien phi\\s+\\d+\\s+xe", "xe(?=\\s*[:\\-]?\\s*\\d)"] },
   { key: "fridge", label: "Tủ lạnh", patterns: ["tủ\\s+lạnh", "tu\\s+lanh"] },
   { key: "laundry", label: "Giặt sấy", patterns: ["giặt\\s+sấy", "giat\\s+say"] },
 ];
@@ -41,25 +41,14 @@ const AVAILABILITY_KEYWORDS = [
 ];
 
 const LABELED_FIELDS = new Map([
-  ["dia chi", "address"],
-  ["dc", "address"],
-  ["address", "address"],
-  ["toa nha", "address"],
-  ["trong", "availability"],
-  ["phong trong", "availability"],
-  ["con phong", "availability"],
-  ["phong", "availability"],
-  ["gia", "price"],
-  ["gia phong", "price"],
-  ["dang phong", "roomType"],
-  ["loai phong", "roomType"],
-  ["thang", "stairs"],
-  ["thang may", "stairs"],
+  ["dia chi", "address"], ["dc", "address"], ["address", "address"], ["toa nha", "address"],
+  ["trong", "availability"], ["phong trong", "availability"], ["con phong", "availability"], ["phong", "availability"],
+  ["gia", "price"], ["gia phong", "price"],
+  ["dang phong", "roomType"], ["loai phong", "roomType"],
+  ["thang", "stairs"], ["thang may", "stairs"],
   ["noi that", "furniture"],
-  ["dich vu", "services"],
-  ["phi dich vu", "services"],
-  ["luu y", "notes"],
-  ["ghi chu", "notes"],
+  ["dich vu", "services"], ["phi dich vu", "services"],
+  ["luu y", "notes"], ["ghi chu", "notes"],
 ]);
 
 function normalizeWhitespace(value) {
@@ -81,7 +70,7 @@ function normalizeSearch(value) {
 
 function containsAny(value, keywords) {
   const normalized = normalizeSearch(value);
-  return keywords.some((keyword) => normalized.includes(normalizeSearch(keyword)));
+  return keywords.some((keyword) => normalized.includes(normalizeSearch(keyword.replaceAll("\\s+", " ").replaceAll("\\s*", ""))));
 }
 
 function capitalizeFirst(value) {
@@ -117,10 +106,8 @@ function stripInternalDetails(value) {
   const keptLines = normalizeWhitespace(value)
     .split("\n")
     .filter((line) => !isInternalLine(line));
-
   let clean = keptLines.join("\n");
   for (const pattern of INTERNAL_PHRASES) clean = clean.replace(pattern, " ");
-
   return normalizeWhitespace(clean
     .replace(PHONE_PATTERN, " ")
     .replace(URL_PATTERN, " ")
@@ -132,7 +119,7 @@ function stripInternalDetails(value) {
 function splitChunks(value) {
   return stripInternalDetails(value)
     .split(/\n+|\s*[;|•·]+\s*|(?<=[.!?])\s+|\s+-\s+(?=[A-Za-zÀ-ỹ0-9])/u)
-    .flatMap((line) => line.split(/\s*,\s*(?=(?:phòng|phong|p\.?\s*\d+|tầng|tang|điện|dien|nước|nuoc|wifi|internet|mạng|mang|dvc|gửi xe|gui xe|cọc|coc|hợp đồng|hop dong|không chung chủ|khong chung chu|pet|ban công|ban cong|cửa sổ|cua so|thang|nội thất|noi that)(?![\p{L}\p{N}]))/iu))
+    .flatMap((line) => line.split(/\s*,\s*(?=(?:phòng|phong|p\.?\s*\d+|tầng|tang|điện|dien|nước|nuoc|wifi|internet|mạng|mang|dvc|gửi xe|gui xe|để xe|de xe|cọc|coc|hợp đồng|hop dong|không chung chủ|khong chung chu|pet|ban công|ban cong|cửa sổ|cua so|thang|nội thất|noi that)(?![\p{L}\p{N}]))/iu))
     .map((item) => item.trim().replace(/^[,.\-:\s]+|[,.\-:\s]+$/g, ""))
     .filter(Boolean);
 }
@@ -146,20 +133,23 @@ function parseLabeledListing(value) {
   for (const rawLine of normalizeWhitespace(value).split("\n")) {
     const line = stripDecorations(rawLine);
     if (!line || isInternalLine(line)) continue;
-
     const labeled = line.match(/^([^:：]{1,36})\s*[:：]\s*(.*)$/u);
     if (labeled) {
       const label = normalizeSearch(labeled[1]).replace(/\s+/g, " ").trim();
       const field = LABELED_FIELDS.get(label);
       if (!field) {
-        currentSection = "";
+        if (["services", "furniture", "notes"].includes(currentSection)) {
+          const continuation = stripDecorations(line);
+          if (currentSection === "notes") notes.push(continuation);
+          else fields[currentSection] = fields[currentSection] ? `${fields[currentSection]}\n${continuation}` : continuation;
+        } else {
+          currentSection = "";
+        }
         continue;
       }
-
       recognizedFieldCount += 1;
       const fieldValue = stripDecorations(labeled[2]);
       currentSection = field;
-
       if (field === "notes") {
         if (fieldValue) notes.push(fieldValue);
       } else if (fieldValue) {
@@ -168,15 +158,12 @@ function parseLabeledListing(value) {
       continue;
     }
 
-    if (currentSection === "notes") {
-      notes.push(line);
-    } else if (currentSection === "furniture"
-      && (containsAny(line, SERVICE_DEFINITIONS.flatMap((item) => item.patterns)) || containsAny(line, NOTE_KEYWORDS))) {
+    if (currentSection === "notes") notes.push(line);
+    else if (currentSection === "furniture"
+      && /\b(?:điện|dien|nước|nuoc|wifi|internet|mạng|mang|dịch vụ|dich vu|gửi xe|gui xe|để xe|de xe|cọc|coc|hợp đồng|hop dong)\b/iu.test(line)) {
       currentSection = "";
     } else if (["services", "furniture"].includes(currentSection)) {
-      fields[currentSection] = fields[currentSection]
-        ? `${fields[currentSection]}\n${line}`
-        : line;
+      fields[currentSection] = fields[currentSection] ? `${fields[currentSection]}\n${line}` : line;
     }
   }
 
@@ -197,14 +184,12 @@ function cleanAddress(value) {
 function extractAddress(cleanText, chunks) {
   const labeled = cleanText.match(/(?:^|\n)\s*(?:địa chỉ|dia chi|đc|dc|address|tòa nhà|toa nha)\s*[:\-]\s*([^\n,;|]+)/iu);
   if (labeled) return cleanAddress(labeled[1]);
-
   const firstLine = cleanText.split("\n").map((line) => line.trim()).find(Boolean) || "";
   const inferred = firstLine.match(/^((?:số\s*)?\d+[A-Za-z0-9/.\-]*\s+.*?)(?=\s+(?:còn|con|phòng|phong|p\.?\s*\d+|tầng|tang|giá|gia|studio|ccmn|full|thang|điện|dien|nước|nuoc|wifi|cọc|coc)\b|$)/iu);
   if (inferred) return cleanAddress(inferred[1]);
-
   const candidate = chunks.find((chunk) => /\b\d+[A-Za-z0-9/.\-]*\s+[A-Za-zÀ-ỹ]/u.test(chunk)
     && !PRICE_PATTERN.test(chunk)
-    && !containsAny(chunk, SERVICE_DEFINITIONS.flatMap((item) => item.patterns)));
+    && !/\b(?:điện|dien|nước|nuoc|wifi|internet|mạng|mang)\b/iu.test(chunk));
   return candidate ? cleanAddress(candidate) : "";
 }
 
@@ -223,7 +208,6 @@ function normalizePrice(value, { monthly = false } = {}) {
     .replace(/\s*\/\s*/g, "/")
     .replace(/\s+/g, " ")
     .trim();
-
   if (monthly && clean && !/\/(?:tháng|thang)\b/iu.test(clean)) clean = `${clean}/tháng`;
   return clean;
 }
@@ -233,7 +217,6 @@ function normalizeAvailability(value) {
     .replace(/^(?:trống|trong)\s*[:\-]?\s*/iu, "")
     .replace(/\s+/g, " ")
     .trim();
-
   const datedRoom = clean.match(/^([A-Za-z]*\d+[A-Za-z0-9/.\-]*)\s*\(\s*([^)]+)\s*\)$/u);
   if (datedRoom) return `${datedRoom[1]}, trống ${datedRoom[2]}`;
   return clean;
@@ -261,12 +244,27 @@ function normalizeFurniture(value) {
     .replace(/^full\s+như\s+hình/iu, "Full đồ như hình")
     .replace(/^full\s+do\s+nhu\s+hinh/iu, "Full đồ như hình")
     .trim();
-
-  return clean
-    .split(/\s*,\s*/u)
-    .filter(Boolean)
+  return clean.split(/\s*,\s*/u).filter(Boolean)
     .map((part, index) => index === 0 ? capitalizeFirst(part) : lowerFirst(part))
     .join(", ");
+}
+
+function expandCompositeServiceLabels(value) {
+  return String(value || "").replace(
+    /\b(?:vsinh|vệ\s*sinh|ve\s*sinh)\s*((?:\+\s*[^:+,;\n]+)+)\s*:\s*([^,;\n]+)/giu,
+    (_, extraItems, amount) => {
+      const details = ["vệ sinh", ...extraItems.split("+").map((item) => item.trim()).filter(Boolean)];
+      return `Dịch vụ chung ${amount.trim()} (${details.join(", ")})`;
+    },
+  );
+}
+
+function normalizeCommaSpacing(value) {
+  const placeholder = "__JOY_DECIMAL_COMMA__";
+  return String(value || "")
+    .replace(/(\d),(\d)/g, `$1${placeholder}$2`)
+    .replace(/\s*,\s*/g, ", ")
+    .replaceAll(placeholder, ",");
 }
 
 function normalizeServiceValue(key, value) {
@@ -275,21 +273,20 @@ function normalizeServiceValue(key, value) {
     .replace(/\s*\/\s*/g, "/")
     .replace(/\(\s*/g, "(")
     .replace(/\s*\)/g, ")")
-    .replace(/\s*,\s*/g, ", ")
     .replace(/\s+/g, " ")
     .trim();
-
-  clean = clean
+  clean = normalizeCommaSpacing(clean)
     .replace(/\/phong\b/giu, "/phòng")
     .replace(/\/thang\b/giu, "/tháng");
 
   if (key === "electricity") {
-    clean = clean.replace(/\b(\d{4,})\b/gu, (match, amount) => {
-      const number = Number(amount);
-      return number % 1000 === 0 ? `${number / 1000}k` : match;
-    });
+    clean = clean
+      .replace(/\b(\d{4,})\b/gu, (match, amount) => {
+        const number = Number(amount);
+        return number % 1000 === 0 ? `${number / 1000}k` : match;
+      })
+      .replace(/\b(\d{1,2}[,.]\d{1,2})(?=\/(?:số|so)(?:\s|$))/giu, "$1k");
   }
-
   if (key === "water") clean = clean.replace(/\/m3\b/giu, "/m³");
   if (["common", "laundry"].includes(key)) {
     clean = clean
@@ -297,14 +294,16 @@ function normalizeServiceValue(key, value) {
       .replace(/\/nguoi\b/giu, "/người");
   }
   if (key === "parking") {
+    const startsWithFree = /^free\b/iu.test(clean);
     clean = clean
       .replace(/\s*\(\s*/g, ", ")
       .replace(/\s*\)\s*/g, "")
       .replace(/\bxe\s*t\s*(\d+)\b/giu, "xe thứ $1")
-      .replace(/\bfree\b/giu, "Free")
+      .replace(/\bfree\b/giu, startsWithFree ? "Free" : "miễn phí")
+      .replace(/\.+(?=\s*,|$)/g, "")
       .replace(/\s*,\s*/g, ", ");
+    clean = capitalizeFirst(clean);
   }
-
   return clean;
 }
 
@@ -318,7 +317,7 @@ function isInsideParentheses(value, index) {
 }
 
 function extractServices(serviceText) {
-  const text = normalizeWhitespace(serviceText)
+  const text = normalizeWhitespace(expandCompositeServiceLabels(serviceText))
     .replace(/^(?:dịch vụ|dich vu|phí dịch vụ|phi dich vu)\s*[:\-]?\s*/iu, "");
   if (!text) return [];
 
@@ -327,73 +326,54 @@ function extractServices(serviceText) {
     for (const source of definition.patterns) {
       const matcher = new RegExp(`(?<![\\p{L}\\p{N}])(${source})(?![\\p{L}\\p{N}])\\s*[:+\\-]?\\s*`, "giu");
       for (const match of text.matchAll(matcher)) {
-        const matchIndex = Number(match.index);
-        if (isInsideParentheses(text, matchIndex)) continue;
-        markerMatches.push({
-          key: definition.key,
-          label: definition.label,
-          index: matchIndex,
-          end: matchIndex + match[0].length,
-          marker: match[1],
-        });
+        const index = Number(match.index);
+        if (isInsideParentheses(text, index)) continue;
+        markerMatches.push({ key: definition.key, label: definition.label, index, end: index + match[0].length, marker: match[1] });
       }
     }
   }
-
   markerMatches.sort((a, b) => a.index - b.index || b.end - a.end);
-  const uniqueMarkers = markerMatches.filter((marker, index) => (
-    index === 0 || marker.index !== markerMatches[index - 1].index
-  ));
-  const services = [];
-  const seen = new Set();
-
-  uniqueMarkers.forEach((marker, index) => {
-    if (seen.has(marker.key)) return;
-    const nextIndex = index + 1 < uniqueMarkers.length ? uniqueMarkers[index + 1].index : text.length;
-    let value = text.slice(marker.end, nextIndex).split(/[;\n]/, 1)[0];
-    if (marker.key === "parking" && /^free|^miễn phí|^mien phi/iu.test(marker.marker)) {
-      value = `${marker.marker} ${value}`;
-    }
-    value = normalizeServiceValue(marker.key, value);
-    if (!value || value.length > 180) return;
-    services.push({ key: marker.key, label: marker.label, value });
-    seen.add(marker.key);
+  const uniqueMarkers = markerMatches.filter((marker, index) => index === 0 || marker.index !== markerMatches[index - 1].index);
+  const firstKeys = new Set();
+  const effectiveMarkers = uniqueMarkers.filter((marker) => {
+    if (firstKeys.has(marker.key)) return false;
+    firstKeys.add(marker.key);
+    return true;
   });
+  const services = [];
 
+  effectiveMarkers.forEach((marker, index) => {
+    const nextIndex = index + 1 < effectiveMarkers.length ? effectiveMarkers[index + 1].index : text.length;
+    let value = text.slice(marker.end, nextIndex).split(/[;\n]/, 1)[0];
+    if (marker.key === "parking" && /^(?:free|miễn phí|mien phi)/iu.test(marker.marker)) value = `${marker.marker} ${value}`;
+    value = normalizeServiceValue(marker.key, value);
+    if (!value || value.length > 220) return;
+    services.push({ key: marker.key, label: marker.label, value });
+  });
   return services;
 }
 
-function extractRooms(chunks, address) {
+function humanizeKeyword(value) {
+  const normalized = normalizeSearch(value);
+  const labels = new Map([
+    ["vao luon", "Có thể vào ở ngay"], ["o ngay", "Có thể vào ở ngay"], ["vao o ngay", "Có thể vào ở ngay"],
+    ["san phong", "Phòng đang sẵn"], ["dau thang", "Có thể vào ở đầu tháng"], ["cuoi thang", "Có thể vào ở cuối tháng"],
+  ]);
+  return labels.get(normalized) || value.trim();
+}
+
+function extractRooms(cleanText) {
   const rooms = [];
   const seen = new Set();
-  const roomMatcher = new RegExp(`\\b(phòng\\s+tầng|phong\\s+tang|tầng|tang|phòng|phong|p\\.?)\\s*([A-Za-z]*\\d[A-Za-z0-9./\\-]*)[^\\n,;|]*?(?:giá\\s*[:\\-]?\\s*)?(${PRICE_SOURCE})`, "giu");
-
-  for (const original of chunks) {
-    let chunk = original;
-    if (address && normalizeSearch(chunk).startsWith(normalizeSearch(address))) {
-      chunk = chunk.slice(address.length).trim();
-    }
-    const normalized = normalizeSearch(chunk);
-    const noteKeyword = AVAILABILITY_KEYWORDS.find((keyword) => normalized.includes(normalizeSearch(keyword))) || "";
-    const matches = [...chunk.matchAll(roomMatcher)];
-    for (const match of matches) {
-      const prefix = normalizeSearch(match[1]);
-      const title = prefix.includes("tang") ? `Tầng ${match[2]}` : `Phòng ${match[2]}`;
-      const roomPrice = normalizePrice(match[3]);
-      const key = `${normalizeSearch(title)}|${normalizeSearch(roomPrice)}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      rooms.push({ title, price: roomPrice, note: noteKeyword ? humanizeKeyword(noteKeyword) : "" });
-    }
-
-    if (!matches.length && (normalized.includes("phong trong") || normalized.includes("con phong")) && PRICE_PATTERN.test(chunk)) {
-      const roomPrice = normalizePrice(chunk.match(PRICE_PATTERN)?.[0] || "");
-      const key = `phong dang trong|${normalizeSearch(roomPrice)}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        rooms.push({ title: "Phòng đang trống", price: roomPrice, note: noteKeyword ? humanizeKeyword(noteKeyword) : "" });
-      }
-    }
+  const matcher = new RegExp(`\\b(?:phòng\\s*|phong\\s*|p\\.?\\s*)([A-Za-z]*\\d[A-Za-z0-9./\\-]*)\\s*(?:giá\\s*[:\\-]?\\s*)?(${PRICE_SOURCE})`, "giu");
+  const availabilityKeyword = AVAILABILITY_KEYWORDS.find((keyword) => normalizeSearch(cleanText).includes(normalizeSearch(keyword))) || "";
+  for (const match of cleanText.matchAll(matcher)) {
+    const title = `Phòng ${match[1]}`;
+    const price = normalizePrice(match[2]);
+    const key = `${normalizeSearch(title)}|${normalizeSearch(price)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    rooms.push({ title, price, note: availabilityKeyword ? humanizeKeyword(availabilityKeyword) : "" });
   }
   return rooms;
 }
@@ -403,45 +383,18 @@ function roomsFromStructuredFields(availability, price) {
   const roomCodes = [...String(availability || "").matchAll(/\bP?\d+[A-Za-z0-9/.\-]*\b/giu)]
     .map((match) => match[0])
     .filter((value) => !/^\d{1,2}\/\d{1,2}$/u.test(value));
-  if (!roomCodes.length) {
-    return [{ title: "Phòng đang trống", price, note: availability }];
-  }
-
+  if (!roomCodes.length) return [{ title: "Phòng đang trống", price, note: availability }];
   const noteMatch = String(availability).match(/\btrống\s+(.+)$/iu);
-  return roomCodes.map((code) => ({
-    title: `Phòng ${code}`,
-    price,
-    note: noteMatch ? `Trống ${noteMatch[1]}` : "",
-  }));
+  return roomCodes.map((code) => ({ title: `Phòng ${code}`, price, note: noteMatch ? `Trống ${noteMatch[1]}` : "" }));
 }
 
-function humanizeKeyword(value) {
-  const normalized = normalizeSearch(value);
-  const labels = new Map([
-    ["vao luon", "Có thể vào ở ngay"],
-    ["o ngay", "Có thể vào ở ngay"],
-    ["vao o ngay", "Có thể vào ở ngay"],
-    ["san phong", "Phòng đang sẵn"],
-    ["dau thang", "Có thể vào ở đầu tháng"],
-    ["cuoi thang", "Có thể vào ở cuối tháng"],
-  ]);
-  return labels.get(normalized) || value.trim();
+function extractRoomType(text) {
+  const keyword = ROOM_TYPE_KEYWORDS.find((item) => normalizeSearch(text).includes(normalizeSearch(item)));
+  return keyword ? capitalizeFirst(keyword) : "";
 }
 
-function firstMatchingChunk(chunks, keywords) {
-  return chunks.find((chunk) => containsAny(chunk, keywords)) || "";
-}
-
-function extractRoomType(chunks) {
-  const chunk = firstMatchingChunk(chunks, ROOM_TYPE_KEYWORDS);
-  if (!chunk) return "";
-  const keyword = ROOM_TYPE_KEYWORDS.find((item) => containsAny(chunk, [item]));
-  return keyword ? capitalizeFirst(keyword) : compactText(chunk);
-}
-
-function extractStairs(chunks) {
-  const combined = chunks.join(" · ");
-  const normalized = normalizeSearch(combined);
+function extractStairs(text) {
+  const normalized = normalizeSearch(text);
   if (normalized.includes("khong thang may")) return "Không";
   if (normalized.includes("thang may")) return "Có";
   if (normalized.includes("thang bo") || normalized.includes("cau thang bo")) return "Không";
@@ -449,15 +402,13 @@ function extractStairs(chunks) {
 }
 
 function extractFurniture(chunks) {
-  const matches = chunks.filter((chunk) => containsAny(chunk, FURNITURE_KEYWORDS));
+  const matches = chunks.filter((chunk) => FURNITURE_KEYWORDS.some((keyword) => normalizeSearch(chunk).includes(normalizeSearch(keyword))));
   if (!matches.length) return "";
-  const cleaned = matches
-    .map((chunk) => compactText(chunk)
-      .replace(/^(?:studio|1n1k|duplex|ccmn|chung cư mini|chung cu mini)\s*,?\s*/iu, "")
-      .replace(/^(?:nội thất|noi that)\s*[:\-]?\s*/iu, "")
-      .replace(/\b(?:điện|dien|nước|nuoc|wifi|internet|mạng|mang|gửi xe|gui xe|cọc|coc)\b.*$/iu, "")
-      .trim())
-    .filter(Boolean);
+  const cleaned = matches.map((chunk) => compactText(chunk)
+    .replace(/^(?:studio|1n1k|duplex|ccmn|chung cư mini|chung cu mini)\s*,?\s*/iu, "")
+    .replace(/^(?:nội thất|noi that)\s*[:\-]?\s*/iu, "")
+    .replace(/\b(?:thang máy|thang may|điện|dien|nước|nuoc|wifi|internet|mạng|mang|gửi xe|gui xe|để xe|de xe|cọc|coc)\b.*$/iu, "")
+    .trim()).filter(Boolean);
   return normalizeFurniture([...new Set(cleaned)].join(", "));
 }
 
@@ -470,29 +421,24 @@ function shouldHideNote(value) {
 }
 
 function normalizeNote(value) {
-  const stripped = stripDecorations(value)
-    .replace(/^[\-–—•·*]+\s*/u, "")
-    .replace(/[.!]+$/g, "")
-    .trim();
+  const stripped = stripDecorations(value).replace(/^[\-–—•·*]+\s*/u, "").replace(/[.!]+$/g, "").trim();
   if (!stripped || shouldHideNote(stripped)) return "";
-
   let clean = stripped;
   if (clean === clean.toUpperCase()) clean = clean.toLowerCase();
   clean = capitalizeFirst(clean);
-  clean = clean.replace(/^Không chung chủ giờ giấc tự do$/iu, "Không chung chủ, giờ giấc tự do");
-  return clean;
+  return clean.replace(/^Không chung chủ giờ giấc tự do$/iu, "Không chung chủ, giờ giấc tự do");
 }
 
-function extractNotes(chunks, usedText) {
-  const used = new Set([...usedText].map(normalizeSearch));
+function extractNotes(chunks) {
   const notes = [];
   for (const chunk of chunks) {
+    if (shouldHideNote(chunk)) continue;
     const normalized = normalizeSearch(chunk);
-    if (!normalized || used.has(normalized) || shouldHideNote(chunk)) continue;
     const roomChunk = (/\b(?:phong|p\.?|tang)\s*[a-z]*\d[a-z0-9./\-]*/iu.test(normalized)
       || normalized.includes("con phong") || normalized.includes("phong trong")) && PRICE_PATTERN.test(chunk);
-    if (roomChunk || containsAny(chunk, SERVICE_DEFINITIONS.flatMap((item) => item.patterns)) || containsAny(chunk, FURNITURE_KEYWORDS)) continue;
-    if (containsAny(chunk, NOTE_KEYWORDS) || containsAny(chunk, AVAILABILITY_KEYWORDS)) {
+    if (roomChunk || /\b(?:điện|dien|nước|nuoc|wifi|internet|mạng|mang|gửi xe|gui xe|để xe|de xe)\b/iu.test(chunk)) continue;
+    if (NOTE_KEYWORDS.some((keyword) => normalized.includes(normalizeSearch(keyword)))
+      || AVAILABILITY_KEYWORDS.some((keyword) => normalized.includes(normalizeSearch(keyword)))) {
       const clean = normalizeNote(compactText(chunk));
       if (clean && !notes.some((item) => normalizeSearch(item) === normalizeSearch(clean))) notes.push(clean);
     }
@@ -520,51 +466,19 @@ export function summarizeRoomListing(rawInput) {
   const structured = parseLabeledListing(original);
   const cleanText = stripInternalDetails(original);
   const chunks = splitChunks(cleanText);
-
-  const address = structured.fields.address
-    ? cleanAddress(structured.fields.address)
-    : extractAddress(cleanText, chunks);
-  const availability = structured.fields.availability
-    ? normalizeAvailability(structured.fields.availability)
-    : "";
-  const price = structured.fields.price
-    ? normalizePrice(structured.fields.price, { monthly: true })
-    : "";
-  const fallbackRooms = extractRooms(chunks, address);
-  const rooms = availability || price
-    ? roomsFromStructuredFields(availability, price)
-    : fallbackRooms;
-  const roomType = structured.fields.roomType
-    ? normalizeRoomType(structured.fields.roomType)
-    : extractRoomType(chunks);
-  const stairs = structured.fields.stairs
-    ? normalizeStairs(structured.fields.stairs)
-    : extractStairs(chunks);
-  const furniture = structured.fields.furniture
-    ? normalizeFurniture(structured.fields.furniture)
-    : extractFurniture(chunks);
+  const address = structured.fields.address ? cleanAddress(structured.fields.address) : extractAddress(cleanText, chunks);
+  const availability = structured.fields.availability ? normalizeAvailability(structured.fields.availability) : "";
+  const price = structured.fields.price ? normalizePrice(structured.fields.price, { monthly: true }) : "";
+  const fallbackRooms = extractRooms(cleanText);
+  const rooms = availability || price ? roomsFromStructuredFields(availability, price) : fallbackRooms;
+  const roomType = structured.fields.roomType ? normalizeRoomType(structured.fields.roomType) : extractRoomType(cleanText);
+  const stairs = structured.fields.stairs ? normalizeStairs(structured.fields.stairs) : extractStairs(cleanText);
+  const furniture = structured.fields.furniture ? normalizeFurniture(structured.fields.furniture) : extractFurniture(chunks);
   const services = extractServices(structured.fields.services || cleanText);
-
-  const used = new Set([
-    address,
-    availability,
-    price,
-    roomType,
-    furniture,
-    ...rooms.flatMap((room) => [room.title, room.price, room.note]),
-    ...services.flatMap((service) => [service.label, service.value]),
-  ].filter(Boolean));
-
-  const structuredNotes = structured.notes
-    .map(normalizeNote)
-    .filter(Boolean);
-  const notes = structuredNotes.length
-    ? [...new Set(structuredNotes)].slice(0, 8)
-    : extractNotes(chunks, used);
-
+  const structuredNotes = structured.notes.map(normalizeNote).filter(Boolean);
+  const notes = structuredNotes.length ? [...new Set(structuredNotes)].slice(0, 8) : extractNotes(chunks);
   const displayAvailability = availability || deriveAvailabilityFromRooms(rooms);
   const displayPrice = price || derivePriceFromRooms(rooms);
-
   return {
     address,
     availability: displayAvailability,
@@ -609,13 +523,11 @@ function renderListSection(container, title, className, items, editable, renderI
   heading.textContent = `${title}:`;
   const list = document.createElement("ul");
   list.className = className;
-
   for (const item of items) {
     const listItem = document.createElement("li");
     renderItem(listItem, item, editable);
     list.append(listItem);
   }
-
   section.append(heading, list);
   container.append(section);
 }
@@ -636,7 +548,6 @@ export function renderRoomSummary(container, summary, { editable = true } = {}) 
     container.append(empty);
     return;
   }
-
   const details = document.createElement("div");
   details.className = "room-share-details";
   appendDetailRow(details, "Địa chỉ", summary.address || "Địa chỉ chưa rõ", editable);
@@ -646,7 +557,6 @@ export function renderRoomSummary(container, summary, { editable = true } = {}) 
   appendDetailRow(details, "Thang máy", summary.stairs, editable);
   appendDetailRow(details, "Nội thất", summary.furniture, editable);
   container.append(details);
-
   renderListSection(container, "Dịch vụ", "room-share-services", summary.services, editable, (item, service, canEdit) => {
     const label = document.createElement("strong");
     label.textContent = `${service.label}:`;
@@ -654,7 +564,6 @@ export function renderRoomSummary(container, summary, { editable = true } = {}) 
     value.contentEditable = String(canEdit);
     item.append(label, document.createTextNode(" "), value);
   });
-
   renderListSection(container, "Lưu ý", "room-share-notes", summary.notes, editable, (item, note, canEdit) => {
     const value = editableText("span", "room-share-note-value", note);
     value.contentEditable = String(canEdit);
@@ -671,22 +580,18 @@ function initializeRoomSummary() {
   const captureLayer = document.querySelector("#room-summary-capture");
   const captureCard = document.querySelector("#room-summary-capture-card");
   if (!input || !output || !generate || !clear || !capture || !captureLayer || !captureCard) return;
-
   let current = summarizeRoomListing("");
   renderRoomSummary(output, current);
-
   const createSummary = () => {
     current = summarizeRoomListing(input.value);
     renderRoomSummary(output, current);
     capture.disabled = current.isEmpty;
     output.scrollIntoView({ behavior: "smooth", block: "nearest" });
   };
-
   generate.addEventListener("click", createSummary);
   input.addEventListener("keydown", (event) => {
     if ((event.ctrlKey || event.metaKey) && event.key === "Enter") createSummary();
   });
-
   clear.addEventListener("click", () => {
     input.value = "";
     current = summarizeRoomListing("");
@@ -694,7 +599,6 @@ function initializeRoomSummary() {
     capture.disabled = true;
     input.focus();
   });
-
   capture.addEventListener("click", () => {
     if (current.isEmpty) return;
     const clone = output.cloneNode(true);
@@ -704,12 +608,10 @@ function initializeRoomSummary() {
     captureLayer.hidden = false;
     document.body.classList.add("sale-room-capture-open");
   });
-
   captureLayer.addEventListener("click", () => {
     captureLayer.hidden = true;
     document.body.classList.remove("sale-room-capture-open");
   });
-
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !captureLayer.hidden) {
       captureLayer.hidden = true;
