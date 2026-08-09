@@ -39,7 +39,7 @@
   }
 
   function scheduleRender() {
-    if (renderScheduled) return;
+    if (!latestAnswer || renderScheduled) return;
     renderScheduled = true;
     queueMicrotask(() => {
       renderScheduled = false;
@@ -54,6 +54,8 @@
     if (!container || !flashcard) return;
 
     let response = container.querySelector("[data-vocab-chat-response]");
+    if (response?.dataset.answer === latestAnswer) return;
+
     if (!response) {
       response = document.createElement("section");
       response.className = "vocabulary-chat-response";
@@ -62,6 +64,7 @@
       container.insertBefore(response, flashcard);
     }
 
+    response.dataset.answer = latestAnswer;
     response.innerHTML = `
       <div class="vocabulary-chat-response-heading">
         <span aria-hidden="true">✦</span>
@@ -152,7 +155,9 @@
       .replaceAll("'", "&#039;");
   }
 
-  const observer = new MutationObserver(scheduleRender);
+  const observer = new MutationObserver(() => {
+    if (latestAnswer) scheduleRender();
+  });
   observer.observe(document.documentElement, { childList: true, subtree: true });
 
   window.JoyVocabularyChatResponse = Object.freeze({ normalizeAnswer, renderMarkdown });
