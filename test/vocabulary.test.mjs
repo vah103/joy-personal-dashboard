@@ -126,6 +126,14 @@ test("Saved words appear in one searchable library used by the flashcard deck", 
   assert.match(libraryStyles, /@media \(max-width: 760px\)/);
 });
 
+test("Compact vocabulary controls remain readable in narrow dashboard cards", () => {
+  assert.match(compactStyles, /container-type:\s*inline-size/);
+  assert.match(compactStyles, /flex-wrap:\s*wrap/);
+  assert.match(compactStyles, /white-space:\s*nowrap/);
+  assert.match(compactStyles, /@container \(max-width: 220px\)/);
+  assert.match(compactStyles, /grid-template-columns:\s*minmax\(0, 1fr\) minmax\(0, 1fr\) 28px/);
+});
+
 test("Vocabulary outside card clearly opens full practice in the popup", () => {
   assert.match(compactFrontend, /data-vocab-practice-root="desktop"/);
   assert.match(compactFrontend, /vocabulary-compact-card/);
@@ -201,7 +209,7 @@ test("Dashboard loader installs ChatGPT response, library, compact card and mobi
   assert.match(loader, /loadVocabularyCore/);
   assert.match(loader, /loadLibrary/);
   assert.match(loader, /vocabulary-openai\.css\?v=joy-vocabulary-openai-v2/);
-  assert.match(loader, /vocabulary-compact\.css\?v=joy-vocabulary-compact-v2/);
+  assert.match(loader, /vocabulary-compact\.css\?v=joy-vocabulary-compact-v3/);
   assert.match(loader, /vocabulary\.js\?v=joy-vocabulary-v2/);
   assert.match(loader, /vocabulary-compact\.js\?v=joy-vocabulary-compact-v3/);
   assert.match(loader, /vocabulary-mobile-inline\.js\?v=joy-vocabulary-mobile-inline-v3/);
