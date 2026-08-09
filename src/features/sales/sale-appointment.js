@@ -35,21 +35,48 @@ const LABELED_APPOINTMENT_FIELDS = new Map([
   ["gio xem", "viewingTime"],
 ]);
 
+function cleanStandaloneCustomerName(value) {
+  const cleaned = normalizeText(value)
+    .replace(/^[^\p{L}\p{N}]+/u, "")
+    .replace(/[^\p{L}\p{N}.' -]+$/u, "")
+    .trim();
+  if (!cleaned || cleaned.length > 80 || /\d/u.test(cleaned)) return "";
+
+  const normalized = normalizeSearch(cleaned);
+  if (/(?:house|home|room|phong|bds|bat dong san|apartment|homestay|motel|hotel|nguon|source|ctv|cho thue|nha dep)/iu.test(normalized)) {
+    return "";
+  }
+
+  const words = cleaned.match(/\p{L}+(?:['.-]\p{L}+)?/gu) || [];
+  if (!words.length || words.length > 5) return "";
+  return cleaned;
+}
+
 function parseLabeledAppointmentForm(text) {
   const fields = {};
   let recognizedFieldCount = 0;
+  let firstRecognizedLineIndex = Number.POSITIVE_INFINITY;
+  const lines = String(text || "").split("\n");
 
-  for (const line of String(text || "").split("\n")) {
+  lines.forEach((line, lineIndex) => {
     const match = line.match(/^[^\p{L}\p{N}]*(?<label>[\p{L}\s]+?)\s*[:：\-]\s*(?<value>.+?)\s*$/u);
-    if (!match?.groups) continue;
+    if (!match?.groups) return;
     const label = normalizeSearch(match.groups.label).replace(/\s+/g, " ").trim();
     const field = LABELED_APPOINTMENT_FIELDS.get(label);
-    if (!field) continue;
+    if (!field) return;
     recognizedFieldCount += 1;
+    firstRecognizedLineIndex = Math.min(firstRecognizedLineIndex, lineIndex);
     if (!fields[field]) fields[field] = normalizeText(match.groups.value);
-  }
+  });
 
-  return { fields, recognizedFieldCount };
+  const standaloneCustomerName = Number.isFinite(firstRecognizedLineIndex)
+    ? lines
+      .slice(0, firstRecognizedLineIndex)
+      .map(cleanStandaloneCustomerName)
+      .find(Boolean) || ""
+    : "";
+
+  return { fields, recognizedFieldCount, standaloneCustomerName };
 }
 
 function vietnamParts(timestamp = Date.now()) {
@@ -255,14 +282,21 @@ export function parseSaleAppointmentInput(rawInput, now = Date.now()) {
   const address = labeled.fields.viewingAddress
     ? { address: cleanAddress(labeled.fields.viewingAddress), matchedText: labeled.fields.viewingAddress }
     : extractAddress(text);
-  const detectedName = labeled.fields.customerName
-    ? normalizeText(labeled.fields.customerName).slice(0, 80)
-    : structuredForm ? "" : cleanCustomerName(text, [
+
+  let detectedName = "";
+  if (labeled.fields.customerName) {
+    detectedName = normalizeText(labeled.fields.customerName).slice(0, 80);
+  } else if (labeled.standaloneCustomerName) {
+    detectedName = labeled.standaloneCustomerName;
+  } else if (!structuredForm) {
+    detectedName = cleanCustomerName(text, [
       phone.matchedText,
       ...(viewingTime?.matchedParts || [viewingTime?.matchedText || ""]),
       address.matchedText,
       address.address,
     ]);
+  }
+
   const customerName = detectedName
     || (phone.phone ? `Khách ${phone.phone}` : address.address ? `Khách xem phòng ${address.address}` : "");
 

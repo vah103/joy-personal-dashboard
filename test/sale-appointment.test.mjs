@@ -89,6 +89,24 @@ test("parses labeled multiline Sale forms without treating the source as the cus
   assert.equal(parsed.valid, true);
 });
 
+test("uses a leading standalone customer name before the Sale source header", () => {
+  const parsed = parseSaleAppointmentInput(`
+    Thùy Dương
+    🏆TL21House🏆
+    🍀Địa chỉ : 66 hồ tùng mậu
+    🍀Giá : 4tr5
+    🍀Sđt : 0366823628
+    🍀Thời gian xem : chiều mai
+    🍀CTV : Vanh
+  `, NOW);
+
+  assert.equal(parsed.customerName, "Thùy Dương");
+  assert.equal(parsed.phone, "0366823628");
+  assert.equal(parsed.viewingAddress, "66 hồ tùng mậu");
+  assert.equal(parsed.viewingAt, "2026-07-28T08:00:00.000Z");
+  assert.equal(parsed.valid, true);
+});
+
 test("prefers an explicit customer label in multiline Sale forms", () => {
   const parsed = parseSaleAppointmentInput(`
     Tên khách: chị Lan
