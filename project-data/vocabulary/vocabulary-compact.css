@@ -12,13 +12,15 @@
   padding: 10px;
   display: grid;
   gap: 9px;
+  container-type: inline-size;
 }
 
 .vocabulary-compact-topline {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px 8px;
 }
 
 .vocabulary-compact-title {
@@ -49,6 +51,9 @@
 }
 
 .vocabulary-compact-actions {
+  min-width: 0;
+  margin-left: auto;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -64,11 +69,13 @@
 .vocabulary-compact-actions button {
   min-height: 28px;
   padding: 0 9px;
+  flex: 0 0 auto;
   border-radius: 9px;
   background: rgba(255, 255, 255, 0.52);
   color: #48636e;
   font-size: 8px;
   font-weight: 900;
+  white-space: nowrap;
 }
 
 .vocabulary-compact-actions button:last-child {
@@ -182,6 +189,32 @@
 .vocabulary-compact-empty:focus-visible {
   outline: 0;
   box-shadow: 0 0 0 3px rgba(91, 119, 132, 0.15);
+}
+
+@container (max-width: 220px) {
+  .vocabulary-compact-topline {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .vocabulary-compact-actions {
+    width: 100%;
+    margin-left: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 28px;
+    gap: 5px;
+  }
+
+  .vocabulary-compact-actions button {
+    width: 100%;
+    min-width: 0;
+    padding: 0 6px;
+  }
+
+  .vocabulary-compact-actions button:last-child {
+    width: 28px;
+  }
 }
 
 @media (max-width: 760px) {
