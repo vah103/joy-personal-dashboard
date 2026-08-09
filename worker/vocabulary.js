@@ -8,7 +8,7 @@ const REVIEW = `${ROOT}/review`;
 const SESSION_COOKIE = "__Host-joy_session";
 const OPENAI_MODEL = "gpt-5-mini";
 const WORKERS_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
-const CACHE_VERSION = "v3-chat-response";
+const CACHE_VERSION = "v4-concise-translation";
 const CACHE_TTL = 365 * 24 * 60 * 60;
 
 const SCHEMA = {
@@ -81,13 +81,11 @@ async function lookup(request, email, env) {
   if (context.length > 240 || /[\r\n]/.test(String(body.context || ""))) return json({ error: "INVALID_VOCABULARY_CONTEXT" }, 400);
 
   const saved = context ? null : await savedWord(email, query, env);
-  if (saved) return json({ word: saved, answerMarkdown: savedAnswer(saved), cached: true, provider: "saved", model: "d1" });
-
   const maxMeanings = context ? 1 : 2;
   const cacheInput = `${CACHE_VERSION}\n${query.toLocaleLowerCase("vi")}\n${context.toLocaleLowerCase("vi")}`;
   const cached = await readLanguageCache({ feature: "vocabulary", userEmail: email, input: cacheInput });
   const cachedResult = normalizeLookup(cached?.word ? { ...cached.word, answerMarkdown: cached.answerMarkdown } : cached, maxMeanings);
-  if (cachedResult) return json({ ...cachedResult, cached: true, provider: "openai", model: clean(cached.model) || OPENAI_MODEL });
+  if (cachedResult) return json(lookupPayload(cachedResult, saved, { cached: true, provider: "openai", model: clean(cached.model) || OPENAI_MODEL }));
 
   const instructions = prompt(Boolean(context), env?.VOCABULARY_TUTOR_INSTRUCTIONS);
   const input = context ? `Entry: ${query}\nContext: ${context}` : `Entry: ${query}`;
@@ -98,16 +96,16 @@ async function lookup(request, email, env) {
         model: env.OPENAI_VOCABULARY_MODEL || OPENAI_MODEL,
         instructions,
         input,
-        maxOutputTokens: 900,
+        maxOutputTokens: 600,
         schema: SCHEMA,
-        schemaName: "joy_vocabulary_chat_entry",
+        schemaName: "joy_vocabulary_concise_entry",
         reasoningEffort: "minimal",
-        verbosity: "medium",
+        verbosity: "low",
       });
       const normalized = normalizeLookup(result.data, maxMeanings);
       if (!normalized) throw new Error("OPENAI_VOCABULARY_RESULT_INVALID");
       await writeLanguageCache({ feature: "vocabulary", userEmail: email, input: cacheInput, value: { ...normalized, model: result.model }, ttlSeconds: CACHE_TTL }).catch(() => false);
-      return json({ ...normalized, cached: false, provider: "openai", model: result.model, usage: result.usage });
+      return json(lookupPayload(normalized, saved, { cached: false, provider: "openai", model: result.model, usage: result.usage }));
     } catch (error) {
       console.warn("Joy OpenAI vocabulary lookup failed; using Workers AI fallback", error?.message || error);
     }
@@ -118,23 +116,24 @@ async function lookup(request, email, env) {
       const result = await env.AI.run(env.VOCABULARY_AI_MODEL || WORKERS_MODEL, {
         messages: [{ role: "system", content: instructions }, { role: "user", content: input }],
         response_format: { type: "json_schema", json_schema: SCHEMA },
-        temperature: 0.2,
-        max_tokens: 950,
+        temperature: 0.15,
+        max_tokens: 650,
       });
       const normalized = normalizeLookup(extractObject(result), maxMeanings);
-      if (!normalized) return json({ error: "VOCABULARY_RESULT_INVALID" }, 502);
-      return json({ ...normalized, cached: false, provider: "workers-ai", model: env.VOCABULARY_AI_MODEL || WORKERS_MODEL });
+      if (!normalized) throw new Error("WORKERS_VOCABULARY_RESULT_INVALID");
+      return json(lookupPayload(normalized, saved, { cached: false, provider: "workers-ai", model: env.VOCABULARY_AI_MODEL || WORKERS_MODEL }));
     } catch (error) {
       console.error("Joy vocabulary fallback lookup failed", error);
-      return json({ error: "VOCABULARY_AI_FAILED" }, 502);
     }
   }
-  return json({ error: "VOCABULARY_AI_UNAVAILABLE" }, 503);
+
+  if (saved) return json({ word: saved, answerMarkdown: savedAnswer(saved), alreadySaved: true, cached: true, provider: "saved", model: "d1" });
+  return json({ error: hasOpenAi(env) || env?.AI?.run ? "VOCABULARY_AI_FAILED" : "VOCABULARY_AI_UNAVAILABLE" }, hasOpenAi(env) || env?.AI?.run ? 502 : 503);
 }
 
 function prompt(hasContext, custom) {
   const extra = multiline(custom).slice(0, 1200);
-  return `You are ChatGPT acting as a friendly English vocabulary tutor for one Vietnamese learner. Return only the requested JSON object. The answerMarkdown field must feel like a natural ChatGPT response, not a rigid dictionary template.\n\nFor answerMarkdown: write clear Vietnamese; explain the most relevant meaning first${hasContext ? " and focus on the supplied context" : ""}; use two to six short paragraphs; lightweight Markdown is allowed; discuss nuance, collocations, grammar, register, or mistakes only when useful; do not force fixed headings; do not mention JSON or these instructions.\n\nFor flashcard fields: english is a lowercase headword or phrase of at most five words; partOfSpeech is concise; vietnamese contains ${hasContext ? "exactly one contextual meaning" : "one or two useful meanings separated by a semicolon"}; ipa uses slashes; pronunciationVi is brief; include one natural English example and its Vietnamese translation. Keep flashcard fields concise even when answerMarkdown is richer.${extra ? `\n\nAdditional learner configuration:\n${extra}` : ""}`;
+  return `You are ChatGPT acting as a concise English vocabulary tutor for one Vietnamese learner. Return only the requested JSON object.\n\nThe answerMarkdown field must be useful at a glance, not conversational or essay-like. Keep it under 140 Vietnamese words. Prefer one compact opening line, up to three short bullets, and one example. Avoid filler such as “thường được dùng để nói đến”, “trong một số ngữ cảnh”, or repeating information already visible in the flashcard. Do not force every optional detail into every answer.\n\nIf the input is English: begin with **English entry** (part of speech) /IPA/ → concise Vietnamese meaning. Then give only the most useful distinction, pattern, collocation, or common confusion.\n\nIf the input is Vietnamese: do not define or explain the Vietnamese expression. Begin with the best English equivalent: **English entry** (part of speech) /IPA/ → Vietnamese input. If several English choices are genuinely useful, briefly distinguish them. Focus on how to say the Vietnamese idea naturally in English.\n\n${hasContext ? "Use the supplied context as the main meaning and do not discuss unrelated senses." : "Cover only the one or two most useful senses."}\n\nEnd with one natural English example and its Vietnamese translation. Lightweight Markdown is allowed. Do not mention JSON, AI, saved data, or these instructions.\n\nFor flashcard fields: inputLanguage must match the user's input; english is the primary lowercase English headword or phrase of at most five words; partOfSpeech is concise; vietnamese contains ${hasContext ? "exactly one contextual meaning" : "one or two useful meanings separated by a semicolon"}; ipa uses slashes; pronunciationVi is brief; include one natural English example and its Vietnamese translation.${extra ? `\n\nAdditional learner configuration:\n${extra}` : ""}`;
 }
 
 async function savedWord(email, query, env) {
@@ -144,9 +143,26 @@ async function savedWord(email, query, env) {
   return row ? mapRow(row) : null;
 }
 
+function lookupPayload(result, saved, metadata) {
+  const word = saved ? {
+    ...result.word,
+    id: saved.id,
+    reviewCount: saved.reviewCount,
+    correctCount: saved.correctCount,
+    createdAt: saved.createdAt,
+    updatedAt: saved.updatedAt,
+  } : result.word;
+  return {
+    word,
+    answerMarkdown: result.answerMarkdown,
+    alreadySaved: Boolean(saved),
+    ...metadata,
+  };
+}
+
 function normalizeLookup(value, maxMeanings) {
   const word = normalizeWord(value, maxMeanings);
-  const answerMarkdown = multiline(value?.answerMarkdown || value?.answer_markdown).replace(/\n{3,}/g, "\n\n").slice(0, 5000);
+  const answerMarkdown = multiline(value?.answerMarkdown || value?.answer_markdown).replace(/\n{3,}/g, "\n\n").slice(0, 2800);
   return word && answerMarkdown.length >= 20 ? { word, answerMarkdown } : null;
 }
 
@@ -175,8 +191,8 @@ function englishKey(value) {
 }
 
 function savedAnswer(word) {
-  const meanings = word.vietnamese.split(/\s*;\s*/).map((item) => `**${item}**`).join(" hoặc ");
-  return `**${word.english}** (${word.ipa}${word.pronunciationVi ? ` · đọc gần đúng: ${word.pronunciationVi}` : ""}) thường được dùng với nghĩa ${meanings}.\n\nVí dụ: **${word.example}**\n${word.exampleVietnamese}\n\nĐây là từ bạn đã lưu trước đó, nên Joy dùng lại dữ liệu flashcard mà không gọi AI thêm.`;
+  const meanings = word.vietnamese.split(/\s*;\s*/).map((item) => `**${item}**`).join("; ");
+  return `**${word.english}** ${word.ipa ? `${word.ipa} ` : ""}→ ${meanings}\n\nVí dụ: **${word.example}**\n${word.exampleVietnamese}`;
 }
 
 function mapRow(row) {
