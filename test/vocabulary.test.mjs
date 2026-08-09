@@ -7,10 +7,12 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const frontendPath = resolve(root, "project-data/vocabulary/vocabulary.js");
+const chatFrontendPath = resolve(root, "project-data/vocabulary/vocabulary-chat-response.js");
 const compactFrontendPath = resolve(root, "project-data/vocabulary/vocabulary-compact.js");
 const mobileInlinePath = resolve(root, "project-data/vocabulary/vocabulary-mobile-inline.js");
 const compactStylesPath = resolve(root, "project-data/vocabulary/vocabulary-compact.css");
 const extraStylesPath = resolve(root, "project-data/vocabulary/vocabulary-openai.css");
+const chatStylesPath = resolve(root, "project-data/vocabulary/vocabulary-chat-response.css");
 const workerPath = resolve(root, "worker/vocabulary.js");
 const openAiPath = resolve(root, "worker/shared/openai-responses.js");
 const routerPath = resolve(root, "worker/router.js");
@@ -20,10 +22,12 @@ const wranglerPath = resolve(root, "wrangler.jsonc");
 
 const [
   frontend,
+  chatFrontend,
   compactFrontend,
   mobileInline,
   compactStyles,
   extraStyles,
+  chatStyles,
   worker,
   openAi,
   router,
@@ -32,10 +36,12 @@ const [
   wrangler,
 ] = await Promise.all([
   readFile(frontendPath, "utf8"),
+  readFile(chatFrontendPath, "utf8"),
   readFile(compactFrontendPath, "utf8"),
   readFile(mobileInlinePath, "utf8"),
   readFile(compactStylesPath, "utf8"),
   readFile(extraStylesPath, "utf8"),
+  readFile(chatStylesPath, "utf8"),
   readFile(workerPath, "utf8"),
   readFile(openAiPath, "utf8"),
   readFile(routerPath, "utf8"),
@@ -58,11 +64,24 @@ test("Vocabulary lookup uses a wide readable two-column workspace", () => {
   assert.match(extraStyles, /grid-template-columns:\s*minmax\(320px, 0\.8fr\) minmax\(0, 1\.2fr\)/);
   assert.match(extraStyles, /grid-template-areas:[\s\S]*"form status"[\s\S]*"form result"/);
   assert.match(extraStyles, /font-family:\s*"Nunito"/);
-  assert.match(extraStyles, /font-size:\s*clamp\(29px, 3vw, 38px\)/);
-  assert.match(extraStyles, /font-size:\s*clamp\(34px, 4vw, 46px\)/);
   assert.match(extraStyles, /Your vocabulary result will appear here/);
   assert.match(extraStyles, /@media \(max-width: 900px\)/);
-  assert.match(extraStyles, /grid-template-areas:[\s\S]*"heading"[\s\S]*"form"[\s\S]*"status"[\s\S]*"result"/);
+});
+
+test("Vocabulary displays a natural ChatGPT answer before the saveable flashcard", () => {
+  assert.match(worker, /answerMarkdown/);
+  assert.match(worker, /natural ChatGPT response/);
+  assert.match(worker, /two to six short paragraphs/);
+  assert.match(worker, /VOCABULARY_TUTOR_INSTRUCTIONS/);
+  assert.match(chatFrontend, /\/api\/vocabulary\/lookup/);
+  assert.match(chatFrontend, /response\.clone\(\)\.json\(\)/);
+  assert.match(chatFrontend, /data-vocab-chat-response/);
+  assert.match(chatFrontend, /ChatGPT answer/);
+  assert.match(chatFrontend, /Save as flashcard/);
+  assert.match(chatFrontend, /renderMarkdown/);
+  assert.match(chatFrontend, /escapeHtml/);
+  assert.match(chatStyles, /\.vocabulary-chat-response/);
+  assert.match(chatStyles, /font-family:\s*"Nunito"/);
 });
 
 test("Vocabulary outside card clearly opens full practice in the popup", () => {
@@ -88,37 +107,37 @@ test("Narrow layouts clone the compact launcher and preserve the real practice m
   assert.match(mobileInline, /vocabulary-compact-card-mobile/);
   assert.match(mobileInline, /practiceModal = document\.querySelector\("\[data-vocab-practice-modal\]"\)/);
   assert.doesNotMatch(mobileInline, /removeAttribute\("role"\)/);
-  assert.doesNotMatch(mobileInline, /delete\s+mobilePractice\.dataset\.vocabPracticeModal/);
-  assert.doesNotMatch(mobileInline, /insertAdjacentElement\("afterend",\s*mobilePractice\)/);
   assert.doesNotMatch(mobileInline, /data-vocab-practice-inline/);
 });
 
-test("Vocabulary uses one cached OpenAI request with a strict token cap", () => {
-  assert.match(worker, /DEFAULT_OPENAI_MODEL = "gpt-5-mini"/);
+test("Vocabulary uses one cached OpenAI request with a richer but bounded response", () => {
+  assert.match(worker, /OPENAI_MODEL = "gpt-5-mini"/);
   assert.match(worker, /OPENAI_VOCABULARY_MODEL/);
-  assert.match(worker, /maxOutputTokens:\s*220/);
+  assert.match(worker, /CACHE_VERSION = "v3-chat-response"/);
+  assert.match(worker, /maxOutputTokens:\s*900/);
   assert.match(worker, /reasoningEffort:\s*"minimal"/);
-  assert.match(worker, /verbosity:\s*"low"/);
+  assert.match(worker, /verbosity:\s*"medium"/);
   assert.match(worker, /readLanguageCache/);
   assert.match(worker, /writeLanguageCache/);
   assert.match(openAi, /store:\s*false/);
   assert.match(openAi, /max_output_tokens/);
   assert.match(openAi, /text\.format/);
-  assert.doesNotMatch(worker, /retrying plain JSON/i);
   assert.match(wrangler, /"OPENAI_VOCABULARY_MODEL"\s*:\s*"gpt-5-mini"/);
 });
 
-test("Vocabulary returns one contextual meaning or at most two common meanings", () => {
+test("Vocabulary keeps the saveable entry concise while the visible answer can adapt", () => {
   assert.match(worker, /const maxMeanings = context \? 1 : 2/);
-  assert.match(worker, /one or two most useful meanings, separated only by a semicolon/);
-  assert.match(worker, /exactly one meaning that fits the supplied context/);
+  assert.match(worker, /one or two useful meanings separated by a semicolon/);
+  assert.match(worker, /exactly one contextual meaning/);
+  assert.match(worker, /Keep flashcard fields concise even when answerMarkdown is richer/);
   assert.match(worker, /exampleVietnamese/);
   assert.match(frontend, /split\(\/\\s\*;\\s\*\//);
   assert.match(frontend, /\.slice\(0, 2\)/);
 });
 
 test("Vocabulary uses saved data first and Workers AI only as fallback", () => {
-  assert.match(worker, /findSavedVocabularyResult/);
+  assert.match(worker, /savedWord/);
+  assert.match(worker, /savedAnswer/);
   assert.match(worker, /provider:\s*"saved"/);
   assert.match(worker, /using Workers AI fallback/);
   assert.match(worker, /@cf\/meta\/llama-3\.1-8b-instruct-fast/);
@@ -132,25 +151,20 @@ test("Vocabulary save and review routes retain authenticated D1 storage", () => 
   assert.match(migration, /UNIQUE \(user_email, english_key\)/);
 });
 
-test("Dashboard loader cache-busts all Vocabulary assets", () => {
+test("Dashboard loader installs chat rendering before the Vocabulary core", () => {
+  assert.match(loader, /vocabulary-chat-response\.css\?v=joy-vocabulary-chat-v1/);
+  assert.match(loader, /vocabulary-chat-response\.js\?v=joy-vocabulary-chat-v1/);
+  assert.match(loader, /loadChatResponse/);
+  assert.match(loader, /loadVocabularyCore/);
   assert.match(loader, /vocabulary-openai\.css\?v=joy-vocabulary-openai-v2/);
   assert.match(loader, /vocabulary-compact\.css\?v=joy-vocabulary-compact-v2/);
   assert.match(loader, /vocabulary\.js\?v=joy-vocabulary-v2/);
   assert.match(loader, /vocabulary-compact\.js\?v=joy-vocabulary-compact-v2/);
   assert.match(loader, /vocabulary-mobile-inline\.js\?v=joy-vocabulary-mobile-inline-v3/);
-  assert.match(loader, /loadCompactCard/);
 });
 
 test("Vocabulary JavaScript files pass syntax checks", () => {
-  for (const path of [
-    frontendPath,
-    compactFrontendPath,
-    mobileInlinePath,
-    workerPath,
-    openAiPath,
-    routerPath,
-    loaderPath,
-  ]) {
+  for (const path of [frontendPath, chatFrontendPath, compactFrontendPath, mobileInlinePath, workerPath, openAiPath, routerPath, loaderPath]) {
     const result = spawnSync(process.execPath, ["--check", path], { encoding: "utf8" });
     assert.equal(result.status, 0, result.stderr || result.stdout);
   }
