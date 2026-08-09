@@ -84,6 +84,13 @@ test("Vocabulary displays a natural ChatGPT answer before the saveable flashcard
   assert.match(chatStyles, /font-family:\s*"Nunito"/);
 });
 
+test("Vocabulary chat renderer does not observe its own render forever", () => {
+  assert.match(chatFrontend, /response\?\.dataset\.answer === latestAnswer/);
+  assert.match(chatFrontend, /response\.dataset\.answer = latestAnswer/);
+  assert.match(chatFrontend, /if \(!latestAnswer \|\| renderScheduled\) return/);
+  assert.match(chatFrontend, /if \(latestAnswer\) scheduleRender\(\)/);
+});
+
 test("Vocabulary outside card clearly opens full practice in the popup", () => {
   assert.match(compactFrontend, /data-vocab-practice-root="desktop"/);
   assert.match(compactFrontend, /vocabulary-compact-card/);
@@ -153,7 +160,8 @@ test("Vocabulary save and review routes retain authenticated D1 storage", () => 
 
 test("Dashboard loader installs chat rendering before the Vocabulary core", () => {
   assert.match(loader, /vocabulary-chat-response\.css\?v=joy-vocabulary-chat-v1/);
-  assert.match(loader, /vocabulary-chat-response\.js\?v=joy-vocabulary-chat-v1/);
+  assert.match(loader, /vocabulary-chat-response\.js\?v=joy-vocabulary-chat-v2/);
+  assert.match(loader, /joy-vocabulary-chat-v2/);
   assert.match(loader, /loadChatResponse/);
   assert.match(loader, /loadVocabularyCore/);
   assert.match(loader, /vocabulary-openai\.css\?v=joy-vocabulary-openai-v2/);
