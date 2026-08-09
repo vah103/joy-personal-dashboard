@@ -5,6 +5,7 @@
   const LOOKUP_PATH = "/api/vocabulary/lookup";
   const nativeFetch = window.fetch.bind(window);
   let latestAnswer = "";
+  let latestWord = null;
   let latestAlreadySaved = false;
   let renderScheduled = false;
 
@@ -15,6 +16,7 @@
 
     if (isLookup) {
       latestAnswer = "";
+      latestWord = null;
       latestAlreadySaved = false;
       removeChatResponse();
     }
@@ -24,10 +26,12 @@
 
     response.clone().json().then((payload) => {
       latestAnswer = normalizeAnswer(payload?.answerMarkdown || payload?.answer_markdown);
+      latestWord = normalizeWord(payload?.word);
       latestAlreadySaved = payload?.alreadySaved === true;
       scheduleRender();
     }).catch(() => {
       latestAnswer = "";
+      latestWord = null;
       latestAlreadySaved = false;
     });
 
@@ -57,9 +61,13 @@
     const flashcard = container?.querySelector(".vocabulary-result-card");
     if (!container || !flashcard) return;
 
-    const renderKey = `${latestAlreadySaved ? "saved" : "new"}:${latestAnswer}`;
+    const renderKey = [
+      latestAlreadySaved ? "saved" : "new",
+      latestAnswer,
+      latestWord?.vietnamese || "",
+      latestWord?.pronunciationVi || "",
+    ].join(":");
     let response = container.querySelector("[data-vocab-chat-response]");
-    if (response?.dataset.renderKey === renderKey) return;
 
     if (!response) {
       response = document.createElement("section");
@@ -69,14 +77,18 @@
       container.insertBefore(response, flashcard);
     }
 
-    response.dataset.renderKey = renderKey;
-    response.innerHTML = `
-      <div class="vocabulary-chat-response-heading">
-        <span aria-hidden="true">✦</span>
-        <div><small>ChatGPT answer</small><strong>Quick answer</strong></div>
-      </div>
-      <div class="vocabulary-chat-response-body">${renderMarkdown(latestAnswer)}</div>
-    `;
+    if (response.dataset.renderKey !== renderKey) {
+      response.dataset.renderKey = renderKey;
+      response.innerHTML = `
+        <div class="vocabulary-chat-response-heading">
+          <span aria-hidden="true">✦</span>
+          <div><small>ChatGPT answer</small><strong>Quick answer</strong></div>
+        </div>
+        <div class="vocabulary-chat-response-body">${renderMarkdown(latestAnswer)}</div>
+      `;
+    }
+
+    renderFlexibleFlashcard(flashcard);
 
     let label = container.querySelector("[data-vocab-flashcard-label]");
     if (!label) {
@@ -95,6 +107,42 @@
       const status = document.querySelector("[data-vocab-lookup-status]");
       if (status) status.textContent = "Already saved — GPT refreshed the explanation.";
     }
+  }
+
+  function renderFlexibleFlashcard(flashcard) {
+    if (!latestWord) return;
+    const rows = [...flashcard.querySelectorAll("dl > div")];
+    for (const row of rows) {
+      const label = row.querySelector("dt");
+      const value = row.querySelector("dd");
+      if (!label || !value) continue;
+      const key = label.textContent.trim().toLowerCase();
+      if (key === "vietnamese") {
+        value.innerHTML = renderMeanings(latestWord.vietnamese);
+      }
+      if (key === "vietnamese reading" || key === "vietnamese pronunciation") {
+        label.textContent = "Vietnamese pronunciation";
+        value.textContent = latestWord.pronunciationVi || "—";
+      }
+    }
+  }
+
+  function renderMeanings(value) {
+    return String(value || "")
+      .split(/\s*;\s*/)
+      .map((meaning) => meaning.trim())
+      .filter(Boolean)
+      .slice(0, 6)
+      .map((meaning, index) => `<span class="vocabulary-meaning">${index + 1}. ${escapeHtml(meaning)}</span>`)
+      .join("");
+  }
+
+  function normalizeWord(value) {
+    if (!value || typeof value !== "object") return null;
+    return {
+      vietnamese: String(value.vietnamese || "").trim(),
+      pronunciationVi: String(value.pronunciationVi || value.pronunciation_vi || "").trim(),
+    };
   }
 
   function removeChatResponse() {
@@ -175,5 +223,5 @@
   });
   observer.observe(document.documentElement, { childList: true, subtree: true });
 
-  window.JoyVocabularyChatResponse = Object.freeze({ normalizeAnswer, renderMarkdown });
+  window.JoyVocabularyChatResponse = Object.freeze({ normalizeAnswer, renderMarkdown, renderMeanings });
 })();
