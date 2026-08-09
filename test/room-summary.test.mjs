@@ -96,6 +96,41 @@ test("parses the labeled TL21House form into a customer-friendly layout", () => 
   assert.doesNotMatch(JSON.stringify(summary), /30%|007B|TL21House|alo trước 30p|Nguồn hàng/i);
 });
 
+test("separates refrigerator fees from parking details", () => {
+  const summary = summarizeRoomListing(`
+    Địa chỉ: 54 ngõ 66 Hồ Tùng Mậu - Cầu Giấy
+    Dịch vụ: Điện 4000/số.Nước 35k/m3. Mạng 100k/tháng,dvc 200k/ng,free 2 xe (xe T3 120k) Tủ Lạnh + 200k
+  `);
+
+  assert.deepEqual(summary.services.map(({ label, value }) => [label, value]), [
+    ["Điện", "4k/số"],
+    ["Nước", "35k/m³"],
+    ["Mạng", "100k/tháng"],
+    ["Dịch vụ chung", "200k/người"],
+    ["Gửi xe", "Free 2 xe, xe thứ 3 120k"],
+    ["Tủ lạnh", "200k"],
+  ]);
+});
+
+test("keeps common-service explanations and recognizes laundry fees", () => {
+  const summary = summarizeRoomListing(`
+    Địa chỉ: 66 Hồ Tùng Mậu - Cầu Giấy
+    Dịch vụ: Điện 4k/số.
+    Nước 34k/số.
+    Mạng 100k / phòng
+    Dịch vụ chung 250k / người ( vệ sinh , rác thải , điện dùng chung)
+    Giặt sấy 50k/ng
+  `);
+
+  assert.deepEqual(summary.services.map(({ label, value }) => [label, value]), [
+    ["Điện", "4k/số"],
+    ["Nước", "34k/số"],
+    ["Mạng", "100k/phòng"],
+    ["Dịch vụ chung", "250k/người (vệ sinh, rác thải, điện dùng chung)"],
+    ["Giặt sấy", "50k/người"],
+  ]);
+});
+
 test("Sale page exposes one screenshot-focused room summary interface", async () => {
   const [html, css, source, build] = await Promise.all([
     readFile(new URL("../src/pages/sale/index.html", import.meta.url), "utf8"),
