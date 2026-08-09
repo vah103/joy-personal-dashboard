@@ -2,13 +2,13 @@
   const STYLESHEET_URLS = [
     "/project-data/vocabulary/vocabulary.css?v=joy-vocabulary-v1",
     "/project-data/vocabulary/vocabulary-openai.css?v=joy-vocabulary-openai-v2",
-    "/project-data/vocabulary/vocabulary-chat-response.css?v=joy-vocabulary-chat-v1",
+    "/project-data/vocabulary/vocabulary-chat-response.css?v=joy-vocabulary-chat-v2",
     "/project-data/vocabulary/vocabulary-result-size.css?v=joy-vocabulary-result-size-v1",
     "/project-data/vocabulary/vocabulary-modal-fit.css?v=joy-vocabulary-modal-fit-v1",
     "/project-data/vocabulary/vocabulary-compact.css?v=joy-vocabulary-compact-v2",
   ];
   const BROWSER_SPEECH_SCRIPT_URL = "/project-data/shared/browser-speech.js?v=joy-browser-speech-v1";
-  const CHAT_RESPONSE_SCRIPT_URL = "/project-data/vocabulary/vocabulary-chat-response.js?v=joy-vocabulary-chat-v2";
+  const CHAT_RESPONSE_SCRIPT_URL = "/project-data/vocabulary/vocabulary-chat-response.js?v=joy-vocabulary-chat-v3";
   const SCRIPT_URL = "/project-data/vocabulary/vocabulary.js?v=joy-vocabulary-v2";
   const COMPACT_SCRIPT_URL = "/project-data/vocabulary/vocabulary-compact.js?v=joy-vocabulary-compact-v2";
   const MOBILE_SCRIPT_URL = "/project-data/vocabulary/vocabulary-mobile-inline.js?v=joy-vocabulary-mobile-inline-v3";
@@ -78,7 +78,7 @@
 
   function loadChatResponse() {
     const existing = document.querySelector('script[data-joy-vocabulary-chat-response="true"]');
-    if (existing && existing.src.includes("joy-vocabulary-chat-v2")) {
+    if (existing && existing.src.includes("joy-vocabulary-chat-v3")) {
       if (existing.dataset.loaded === "true" || window.__joyVocabularyChatResponseInstalled) loadVocabularyCore();
       else existing.addEventListener("load", loadVocabularyCore, { once: true });
       return;
