@@ -173,20 +173,27 @@ test("marks appointments under one hour as short notice", () => {
 });
 
 test("dashboard builds and routes the appointment assistant", async () => {
-  const [assistant, build, router, worker] = await Promise.all([
+  const [assistant, build, router, worker, dashboardRender] = await Promise.all([
     readFile(new URL("../src/features/sales/sales-assistant.js", import.meta.url), "utf8"),
     readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8"),
     readFile(new URL("../worker/router.js", import.meta.url), "utf8"),
     readFile(new URL("../worker/sale-viewing-create.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/pages/dashboard/app-render.js", import.meta.url), "utf8"),
   ]);
 
   assert.match(assistant, /Hẹn khách xem phòng/);
   assert.match(assistant, /fetch\("\/api\/sales\/viewings"/);
   assert.match(build, /sale-appointment\.js/);
   assert.match(router, /handleSaleViewingCreate/);
-  assert.match(worker, /Appointments!A:F/);
+  assert.match(worker, /APPOINTMENTS_SHEET_TITLE = "Appointments"/);
   assert.match(worker, /EMAIL_MODE=NORMAL; BEFORE_PENDING/);
   assert.match(worker, /EMAIL_MODE=SHORT_NOTICE; BEFORE_SKIPPED/);
   assert.match(worker, /viewingSerial/);
-  assert.match(worker, /insertDataOption: "INSERT_ROWS"/);
+  assert.match(worker, /insertDimension/);
+  assert.match(worker, /startIndex: 1/);
+  assert.match(worker, /sourceRow: 2/);
+  assert.doesNotMatch(worker, /:append\?/);
+  assert.match(dashboardRender, /groupViewingsByDay/);
+  assert.match(dashboardRender, /viewing-day-divider/);
+  assert.match(dashboardRender, /formatViewingDay/);
 });
