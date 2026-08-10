@@ -4,6 +4,8 @@ import { getSession, sha256Hex } from "./shared/session.js";
 const VIETNAM_TIME_ZONE = "Asia/Ho_Chi_Minh";
 const APPOINTMENTS_APPEND_RANGE = "Appointments!A:F";
 const SHORT_NOTICE_MS = 60 * 60 * 1000;
+const GOOGLE_SHEETS_EPOCH_UTC = Date.UTC(1899, 11, 30);
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 export function isSaleViewingCreateRoute(pathname, method = "") {
   return pathname === "/api/sales/viewings" && String(method).toUpperCase() === "POST";
@@ -47,9 +49,9 @@ export function validateSaleViewingInput(input, now = Date.now()) {
   };
 }
 
-export function formatSheetViewingTime(value) {
+function vietnamViewingParts(value) {
   const date = value instanceof Date ? value : new Date(value);
-  if (!Number.isFinite(date.getTime())) return "";
+  if (!Number.isFinite(date.getTime())) return null;
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: VIETNAM_TIME_ZONE,
     day: "2-digit",
@@ -59,8 +61,30 @@ export function formatSheetViewingTime(value) {
     minute: "2-digit",
     hour12: false,
   }).formatToParts(date);
-  const part = (type) => parts.find((item) => item.type === type)?.value || "";
-  return `${part("day")}/${part("month")}/${part("year")} ${part("hour")}:${part("minute")}`;
+  const part = (type) => Number(parts.find((item) => item.type === type)?.value || 0);
+  return {
+    day: part("day"),
+    month: part("month"),
+    year: part("year"),
+    hour: part("hour") % 24,
+    minute: part("minute"),
+  };
+}
+
+export function formatSheetViewingTime(value) {
+  const parts = vietnamViewingParts(value);
+  if (!parts) return "";
+  const pad = (number) => String(number).padStart(2, "0");
+  return `${pad(parts.day)}/${pad(parts.month)}/${parts.year} ${pad(parts.hour)}:${pad(parts.minute)}`;
+}
+
+export function googleSheetsViewingSerial(value) {
+  const parts = vietnamViewingParts(value);
+  if (!parts) return null;
+  return (
+    Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute)
+    - GOOGLE_SHEETS_EPOCH_UTC
+  ) / DAY_MS;
 }
 
 export async function handleSaleViewingCreate(request, env) {
@@ -107,6 +131,13 @@ export async function handleSaleViewingCreate(request, env) {
 }
 
 async function appendViewing(accessToken, spreadsheetId, appointment) {
+  const viewingSerial = googleSheetsViewingSerial(appointment.viewingAt);
+  if (!Number.isFinite(viewingSerial)) {
+    const error = new Error("Viewing time could not be converted for Google Sheets");
+    error.reason = "VIEWING_TIME_SERIALIZATION_FAILED";
+    throw error;
+  }
+
   const parameters = new URLSearchParams({
     valueInputOption: "RAW",
     insertDataOption: "INSERT_ROWS",
@@ -125,7 +156,7 @@ async function appendViewing(accessToken, spreadsheetId, appointment) {
           appointment.customerName,
           appointment.phone,
           appointment.viewingAddress,
-          appointment.viewingTime,
+          viewingSerial,
           appointment.beforeStatus,
           appointment.afterStatus,
         ]],
