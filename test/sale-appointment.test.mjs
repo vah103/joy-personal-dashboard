@@ -10,6 +10,7 @@ import {
   googleSheetsViewingSerial,
   isSaleViewingCreateRoute,
   validateSaleViewingInput,
+  viewingDaySeparatorIndexes,
 } from "../worker/sale-viewing-create.js";
 
 const NOW = Date.parse("2026-07-27T02:00:00.000Z"); // 09:00 in Vietnam
@@ -155,6 +156,21 @@ test("stores ambiguous August dates as locale-independent Google Sheets serials"
   assert.equal(formatSheetViewingTime("2026-08-11T05:00:00.000Z"), "11/08/2026 12:00");
 });
 
+test("finds missing blank rows only between different viewing dates", () => {
+  const day10Morning = googleSheetsViewingSerial("2026-08-10T01:00:00.000Z");
+  const day10Evening = googleSheetsViewingSerial("2026-08-10T13:00:00.000Z");
+  const day11 = googleSheetsViewingSerial("2026-08-11T05:00:00.000Z");
+
+  assert.deepEqual(
+    viewingDaySeparatorIndexes([[day10Morning], [day10Evening], [day11]]),
+    [3],
+  );
+  assert.deepEqual(
+    viewingDaySeparatorIndexes([[day10Morning], [], [day11]]),
+    [],
+  );
+});
+
 test("marks appointments under one hour as short notice", () => {
   const validation = validateSaleViewingInput({
     customerName: "",
@@ -186,14 +202,16 @@ test("dashboard builds and routes the appointment assistant", async () => {
   assert.match(build, /sale-appointment\.js/);
   assert.match(router, /handleSaleViewingCreate/);
   assert.match(worker, /APPOINTMENTS_SHEET_TITLE = "Appointments"/);
+  assert.match(worker, /APPOINTMENTS_TIME_RANGE = "Appointments!D2:D"/);
   assert.match(worker, /EMAIL_MODE=NORMAL; BEFORE_PENDING/);
   assert.match(worker, /EMAIL_MODE=SHORT_NOTICE; BEFORE_SKIPPED/);
   assert.match(worker, /viewingSerial/);
   assert.match(worker, /insertDimension/);
   assert.match(worker, /startIndex: 1/);
   assert.match(worker, /sourceRow: 2/);
+  assert.match(worker, /viewingDaySeparatorIndexes/);
   assert.doesNotMatch(worker, /:append\?/);
-  assert.match(dashboardRender, /groupViewingsByDay/);
-  assert.match(dashboardRender, /viewing-day-divider/);
-  assert.match(dashboardRender, /formatViewingDay/);
+  assert.doesNotMatch(dashboardRender, /groupViewingsByDay/);
+  assert.doesNotMatch(dashboardRender, /viewing-day-divider/);
+  assert.match(dashboardRender, /formatViewingTime\(viewing\.viewingAt\)/);
 });
