@@ -2,7 +2,7 @@ import { isSameOrigin, json } from "./shared/http.js";
 import { getSession, sha256Hex } from "./shared/session.js";
 
 const VIETNAM_TIME_ZONE = "Asia/Ho_Chi_Minh";
-const APPOINTMENTS_APPEND_RANGE = "Appointments!A:F";
+const APPOINTMENTS_SHEET_TITLE = "Appointments";
 const SHORT_NOTICE_MS = 60 * 60 * 1000;
 const GOOGLE_SHEETS_EPOCH_UTC = Date.UTC(1899, 11, 30);
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -102,7 +102,7 @@ export async function handleSaleViewingCreate(request, env) {
   try {
     const accessToken = await getAccessToken(session.user_email, env);
     const appointment = validation.value;
-    const result = await appendViewing(accessToken, env.SALE_SPREADSHEET_ID, appointment);
+    await insertViewingAtTop(accessToken, env.SALE_SPREADSHEET_ID, appointment);
     return json({
       ok: true,
       message: appointment.reminderMessage,
@@ -112,7 +112,7 @@ export async function handleSaleViewingCreate(request, env) {
         viewingAddress: appointment.viewingAddress,
         viewingAt: appointment.viewingAt,
         viewingTime: appointment.viewingTime,
-        sourceRow: updatedRowNumber(result?.updates?.updatedRange),
+        sourceRow: 2,
         beforeStatus: appointment.beforeStatus,
         afterStatus: appointment.afterStatus,
         shortNoticeAppointment: appointment.shortNoticeAppointment,
@@ -130,7 +130,7 @@ export async function handleSaleViewingCreate(request, env) {
   }
 }
 
-async function appendViewing(accessToken, spreadsheetId, appointment) {
+async function insertViewingAtTop(accessToken, spreadsheetId, appointment) {
   const viewingSerial = googleSheetsViewingSerial(appointment.viewingAt);
   if (!Number.isFinite(viewingSerial)) {
     const error = new Error("Viewing time could not be converted for Google Sheets");
@@ -138,12 +138,9 @@ async function appendViewing(accessToken, spreadsheetId, appointment) {
     throw error;
   }
 
-  const parameters = new URLSearchParams({
-    valueInputOption: "RAW",
-    insertDataOption: "INSERT_ROWS",
-  });
+  const sheetId = await appointmentsSheetId(accessToken, spreadsheetId);
   const response = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}/values/${encodeURIComponent(APPOINTMENTS_APPEND_RANGE)}:append?${parameters}`,
+    `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}:batchUpdate`,
     {
       method: "POST",
       headers: {
@@ -151,33 +148,88 @@ async function appendViewing(accessToken, spreadsheetId, appointment) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        majorDimension: "ROWS",
-        values: [[
-          appointment.customerName,
-          appointment.phone,
-          appointment.viewingAddress,
-          viewingSerial,
-          appointment.beforeStatus,
-          appointment.afterStatus,
-        ]],
+        requests: [
+          {
+            insertDimension: {
+              range: {
+                sheetId,
+                dimension: "ROWS",
+                startIndex: 1,
+                endIndex: 2,
+              },
+              inheritFromBefore: false,
+            },
+          },
+          {
+            copyPaste: {
+              source: {
+                sheetId,
+                startRowIndex: 2,
+                endRowIndex: 3,
+                startColumnIndex: 0,
+                endColumnIndex: 6,
+              },
+              destination: {
+                sheetId,
+                startRowIndex: 1,
+                endRowIndex: 2,
+                startColumnIndex: 0,
+                endColumnIndex: 6,
+              },
+              pasteType: "PASTE_FORMAT",
+              pasteOrientation: "NORMAL",
+            },
+          },
+          {
+            updateCells: {
+              start: { sheetId, rowIndex: 1, columnIndex: 0 },
+              rows: [{
+                values: [
+                  { userEnteredValue: { stringValue: appointment.customerName } },
+                  { userEnteredValue: { stringValue: appointment.phone } },
+                  { userEnteredValue: { stringValue: appointment.viewingAddress } },
+                  { userEnteredValue: { numberValue: viewingSerial } },
+                  { userEnteredValue: { stringValue: appointment.beforeStatus } },
+                  { userEnteredValue: { stringValue: appointment.afterStatus } },
+                ],
+              }],
+              fields: "userEnteredValue",
+            },
+          },
+        ],
       }),
     },
   );
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const error = new Error(`Google Sheets API returned ${response.status}`);
-    error.status = response.status;
-    error.reason = payload.error?.details?.find((detail) => detail.reason)?.reason
-      || payload.error?.status
-      || "";
-    throw error;
-  }
+  if (!response.ok) throwSheetsError(response, payload);
   return payload;
 }
 
-function updatedRowNumber(range) {
-  const match = String(range || "").match(/![A-Z]+(\d+):/i);
-  return match ? Number(match[1]) : null;
+async function appointmentsSheetId(accessToken, spreadsheetId) {
+  const response = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}?fields=sheets.properties(sheetId,title)`,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  );
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throwSheetsError(response, payload);
+  const sheet = (payload.sheets || []).find(
+    (item) => item.properties?.title === APPOINTMENTS_SHEET_TITLE,
+  );
+  if (!sheet) {
+    const error = new Error("Appointments sheet was not found");
+    error.status = 404;
+    throw error;
+  }
+  return Number(sheet.properties.sheetId);
+}
+
+function throwSheetsError(response, payload) {
+  const error = new Error(`Google Sheets API returned ${response.status}`);
+  error.status = response.status;
+  error.reason = payload.error?.details?.find((detail) => detail.reason)?.reason
+    || payload.error?.status
+    || "";
+  throw error;
 }
 
 function cleanText(value, maximum) {
