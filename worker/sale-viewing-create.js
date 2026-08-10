@@ -3,6 +3,7 @@ import { getSession, sha256Hex } from "./shared/session.js";
 
 const VIETNAM_TIME_ZONE = "Asia/Ho_Chi_Minh";
 const APPOINTMENTS_SHEET_TITLE = "Appointments";
+const APPOINTMENTS_TIME_RANGE = "Appointments!D2:D";
 const SHORT_NOTICE_MS = 60 * 60 * 1000;
 const GOOGLE_SHEETS_EPOCH_UTC = Date.UTC(1899, 11, 30);
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -85,6 +86,49 @@ export function googleSheetsViewingSerial(value) {
     Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute)
     - GOOGLE_SHEETS_EPOCH_UTC
   ) / DAY_MS;
+}
+
+function sheetViewingDaySerial(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const numeric = Number(value);
+  if (Number.isFinite(numeric)) return Math.floor(numeric);
+
+  const match = String(value).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s|$)/);
+  if (!match) return null;
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  return Math.floor((Date.UTC(year, month - 1, day) - GOOGLE_SHEETS_EPOCH_UTC) / DAY_MS);
+}
+
+export function viewingDaySeparatorIndexes(rows) {
+  const separatorIndexes = [];
+  let previousDay = null;
+  let blankSincePreviousViewing = false;
+
+  (Array.isArray(rows) ? rows : []).forEach((row, index) => {
+    const value = Array.isArray(row) ? row[0] : null;
+    const day = sheetViewingDaySerial(value);
+
+    if (!Number.isFinite(day)) {
+      if (previousDay !== null) blankSincePreviousViewing = true;
+      return;
+    }
+
+    if (
+      previousDay !== null
+      && day !== previousDay
+      && !blankSincePreviousViewing
+    ) {
+      separatorIndexes.push(index + 1);
+    }
+
+    previousDay = day;
+    blankSincePreviousViewing = false;
+  });
+
+  return separatorIndexes;
 }
 
 export async function handleSaleViewingCreate(request, env) {
@@ -202,7 +246,54 @@ async function insertViewingAtTop(accessToken, spreadsheetId, appointment) {
   );
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throwSheetsError(response, payload);
+
+  await ensureViewingDaySeparators(accessToken, spreadsheetId, sheetId);
   return payload;
+}
+
+async function ensureViewingDaySeparators(accessToken, spreadsheetId, sheetId) {
+  const parameters = new URLSearchParams({
+    majorDimension: "ROWS",
+    valueRenderOption: "UNFORMATTED_VALUE",
+    dateTimeRenderOption: "SERIAL_NUMBER",
+  });
+  const response = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}/values/${encodeURIComponent(APPOINTMENTS_TIME_RANGE)}?${parameters}`,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  );
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throwSheetsError(response, payload);
+
+  const separatorIndexes = viewingDaySeparatorIndexes(payload.values);
+  if (!separatorIndexes.length) return;
+
+  const spacerResponse = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}:batchUpdate`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        requests: separatorIndexes
+          .sort((a, b) => b - a)
+          .map((startIndex) => ({
+            insertDimension: {
+              range: {
+                sheetId,
+                dimension: "ROWS",
+                startIndex,
+                endIndex: startIndex + 1,
+              },
+              inheritFromBefore: true,
+            },
+          })),
+      }),
+    },
+  );
+  const spacerPayload = await spacerResponse.json().catch(() => ({}));
+  if (!spacerResponse.ok) throwSheetsError(spacerResponse, spacerPayload);
 }
 
 async function appointmentsSheetId(accessToken, spreadsheetId) {
