@@ -7,6 +7,7 @@ import {
 } from "../src/features/sales/sale-appointment.js";
 import {
   formatSheetViewingTime,
+  googleSheetsViewingSerial,
   isSaleViewingCreateRoute,
   validateSaleViewingInput,
 } from "../worker/sale-viewing-create.js";
@@ -141,6 +142,19 @@ test("validates normal appointments with pending reminder states", () => {
   assert.equal(formatSheetViewingTime("2026-07-28T13:00:00.000Z"), "28/07/2026 20:00");
 });
 
+test("stores ambiguous August dates as locale-independent Google Sheets serials", () => {
+  assert.equal(
+    googleSheetsViewingSerial("2026-08-10T08:00:00.000Z"),
+    46244.625,
+  );
+  assert.equal(
+    googleSheetsViewingSerial("2026-08-11T05:00:00.000Z"),
+    46245.5,
+  );
+  assert.equal(formatSheetViewingTime("2026-08-10T08:00:00.000Z"), "10/08/2026 15:00");
+  assert.equal(formatSheetViewingTime("2026-08-11T05:00:00.000Z"), "11/08/2026 12:00");
+});
+
 test("marks appointments under one hour as short notice", () => {
   const validation = validateSaleViewingInput({
     customerName: "",
@@ -173,5 +187,6 @@ test("dashboard builds and routes the appointment assistant", async () => {
   assert.match(worker, /Appointments!A:F/);
   assert.match(worker, /EMAIL_MODE=NORMAL; BEFORE_PENDING/);
   assert.match(worker, /EMAIL_MODE=SHORT_NOTICE; BEFORE_SKIPPED/);
+  assert.match(worker, /viewingSerial/);
   assert.match(worker, /insertDataOption: "INSERT_ROWS"/);
 });
