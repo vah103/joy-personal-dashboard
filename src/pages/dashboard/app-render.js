@@ -98,61 +98,6 @@ function renderTaskHistory() {
     </section>`).join("");
 }
 
-function viewingDateKey(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "unknown";
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: VIETNAM_TIME_ZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(date);
-  const part = (type) => parts.find((item) => item.type === type)?.value || "";
-  return `${part("year")}-${part("month")}-${part("day")}`;
-}
-
-function groupViewingsByDay(viewings) {
-  const groups = new Map();
-  viewings.forEach((viewing) => {
-    const key = viewingDateKey(viewing.viewingAt);
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(viewing);
-  });
-  return [...groups.entries()];
-}
-
-function formatViewingDay(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Ngày chưa xác định";
-  const label = new Intl.DateTimeFormat("vi-VN", {
-    timeZone: VIETNAM_TIME_ZONE,
-    weekday: "long",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(date);
-  return label.charAt(0).toUpperCase() + label.slice(1);
-}
-
-function formatViewingClock(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: VIETNAM_TIME_ZONE,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(date);
-}
-
-function createViewingDayDivider(viewing) {
-  const divider = document.createElement("div");
-  divider.className = "viewing-day-divider";
-  divider.textContent = formatViewingDay(viewing.viewingAt);
-  divider.style.cssText = "min-width:540px;padding:12px 8px 7px;border-top:1px solid #d8d4cd;background:#f4f2ee;color:#53606a;font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;";
-  return divider;
-}
-
 function renderSales() {
   elements.salesCount.textContent = sales.status === "ready"
     ? `${sales.viewings.length} ${sales.viewings.length === 1 ? "viewing" : "viewings"}`
@@ -220,21 +165,18 @@ function renderSales() {
   });
   scroll.append(columns);
 
-  groupViewingsByDay(sales.viewings).forEach(([, dayViewings]) => {
-    scroll.append(createViewingDayDivider(dayViewings[0]));
-    dayViewings.forEach((viewing) => {
-      const row = document.createElement("article");
-      row.className = "viewing-row";
-      const time = document.createElement("time");
-      time.dateTime = viewing.viewingAt;
-      time.textContent = formatViewingClock(viewing.viewingAt);
-      const customer = document.createElement("strong");
-      customer.textContent = viewing.customerName;
-      const address = document.createElement("span");
-      address.textContent = viewing.viewingAddress;
-      row.append(time, customer, address);
-      scroll.append(row);
-    });
+  sales.viewings.forEach((viewing) => {
+    const row = document.createElement("article");
+    row.className = "viewing-row";
+    const time = document.createElement("time");
+    time.dateTime = viewing.viewingAt;
+    time.textContent = formatViewingTime(viewing.viewingAt);
+    const customer = document.createElement("strong");
+    customer.textContent = viewing.customerName;
+    const address = document.createElement("span");
+    address.textContent = viewing.viewingAddress;
+    row.append(time, customer, address);
+    scroll.append(row);
   });
 
   elements.sales.replaceChildren(scroll);
@@ -282,32 +224,21 @@ function renderSalesModal() {
   head.append(headRow);
 
   const body = document.createElement("tbody");
-  groupViewingsByDay(sales.viewings).forEach(([, dayViewings]) => {
-    const dayRow = document.createElement("tr");
-    const dayCell = document.createElement("th");
-    dayCell.colSpan = 6;
-    dayCell.scope = "rowgroup";
-    dayCell.textContent = formatViewingDay(dayViewings[0].viewingAt);
-    dayCell.style.cssText = "padding:11px 12px;background:#f4f2ee;color:#53606a;font-size:11px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;text-align:left;";
-    dayRow.append(dayCell);
-    body.append(dayRow);
-
-    dayViewings.forEach((viewing) => {
-      const row = document.createElement("tr");
-      [
-        viewing.customerName,
-        viewing.phone || "—",
-        viewing.viewingAddress,
-        viewing.viewingTime,
-        viewing.beforeStatus || "—",
-        viewing.afterStatus || "—",
-      ].forEach((value) => {
-        const cell = document.createElement("td");
-        cell.textContent = value;
-        row.append(cell);
-      });
-      body.append(row);
+  sales.viewings.forEach((viewing) => {
+    const row = document.createElement("tr");
+    [
+      viewing.customerName,
+      viewing.phone || "—",
+      viewing.viewingAddress,
+      viewing.viewingTime,
+      viewing.beforeStatus || "—",
+      viewing.afterStatus || "—",
+    ].forEach((value) => {
+      const cell = document.createElement("td");
+      cell.textContent = value;
+      row.append(cell);
     });
+    body.append(row);
   });
   table.append(head, body);
   scroll.append(table);
