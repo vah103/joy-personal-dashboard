@@ -97,17 +97,17 @@
 }
 
 .sales-assistant-tabs button {
-  min-height: 36px;
-  padding: 0 13px;
+  min-height: 40px;
+  padding: 0 15px;
   border: 0;
-  border-radius: 10px;
-  color: #718087;
+  border-radius: 11px;
+  color: #63747a;
   background: transparent;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
 }
 .sales-assistant-tabs button.active {
-  color: #34515b;
+  color: #294852;
   background: #fff;
   box-shadow: 0 4px 14px rgba(44, 58, 63, .08);
 }
@@ -254,109 +254,180 @@
 
 .sales-history-workspace {
   min-height: 480px;
-  padding: 22px;
+  padding: 24px;
 }
 
 .sales-history-heading {
-  margin-bottom: 14px;
-  padding: 16px 18px;
+  margin-bottom: 16px;
+  padding: 18px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  border: 1px solid rgba(72, 90, 96, .13);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, .72);
+  border: 1px solid rgba(72, 90, 96, .14);
+  border-radius: 17px;
+  background: rgba(255, 255, 255, .92);
+  box-shadow: 0 8px 24px rgba(45, 61, 66, .045);
 }
 .sales-history-heading small,
 .sales-history-heading strong { display: block; }
-.sales-history-heading small { color: #7c898d; font-size: 10px; }
-.sales-history-heading strong { margin-top: 3px; color: #30474f; font-size: 16px; }
+.sales-history-heading small {
+  color: #65777d;
+  font-size: 11px;
+  font-weight: 700;
+}
+.sales-history-heading strong {
+  margin-top: 4px;
+  color: #243f49;
+  font-size: 19px;
+  line-height: 1.2;
+}
 
 .sales-history-table-wrap {
   overflow-x: auto;
-  border: 1px solid rgba(72, 90, 96, .13);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, .78);
+  border: 1px solid rgba(72, 90, 96, .15);
+  border-radius: 17px;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(45, 61, 66, .055);
 }
 .sales-history-table {
   width: 100%;
-  min-width: 1080px;
+  min-width: 1120px;
   border-collapse: separate;
   border-spacing: 0;
-  color: #33464d;
-  font-size: 11px;
+  color: #344a52;
+  font-family: "Nunito", ui-rounded, system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.42;
 }
 .sales-history-table th,
 .sales-history-table td {
-  padding: 12px 14px;
-  border-bottom: 1px solid rgba(78, 95, 101, .11);
+  padding: 15px 16px;
+  border-bottom: 1px solid rgba(78, 95, 101, .10);
   text-align: left;
-  vertical-align: top;
+  vertical-align: middle;
 }
 .sales-history-table th {
-  color: #728087;
-  background: rgba(236, 241, 241, .8);
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: .08em;
+  color: #536970;
+  background: #edf2f1;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .065em;
   text-transform: uppercase;
   white-space: nowrap;
 }
+.sales-history-table tbody tr {
+  transition: background-color .16s ease;
+}
+.sales-history-table tbody tr:not(.sales-history-edit-row):hover {
+  background: #f7faf9;
+}
+.sales-history-table th:first-child,
+.sales-history-table td:first-child {
+  padding-left: 18px;
+}
+.sales-history-table td:nth-child(1) {
+  width: 162px;
+  color: #3f5861;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+.sales-history-table td:nth-child(2) {
+  min-width: 148px;
+  color: #263f48;
+  font-size: 13.5px;
+  font-weight: 850;
+}
+.sales-history-table td:nth-child(3) {
+  min-width: 116px;
+  color: #516b73;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.sales-history-table td:nth-child(4) {
+  min-width: 235px;
+  color: #3d555d;
+  font-weight: 650;
+}
+.sales-history-table td:nth-child(5) {
+  min-width: 90px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+.sales-history-table td:nth-child(6),
+.sales-history-table td:nth-child(7) {
+  color: #61767c;
+  font-size: 12px;
+  font-weight: 750;
+}
+.sales-history-table tbody tr[data-status="upcoming"] td:nth-child(5) { color: #2f6a56; }
+.sales-history-table tbody tr[data-status="past"] td:nth-child(5) { color: #68787d; }
+.sales-history-table tbody tr[data-status="cancelled"] td:nth-child(5) { color: #916157; }
 .sales-history-table th:last-child,
 .sales-history-table td:last-child {
   position: sticky;
   right: 0;
   z-index: 2;
-  box-shadow: -8px 0 14px rgba(54, 70, 75, .06);
+  box-shadow: -10px 0 18px rgba(54, 70, 75, .07);
 }
 .sales-history-table th:last-child {
   z-index: 3;
-  background: rgba(236, 241, 241, .98);
+  background: #edf2f1;
 }
 .sales-history-table td:last-child {
   background: rgba(255, 255, 255, .98);
+}
+.sales-history-table tbody tr:not(.sales-history-edit-row):hover td:last-child {
+  background: #f7faf9;
 }
 .sales-history-table tbody tr.sales-history-edit-row td:last-child {
   background: rgba(239, 245, 244, .98);
 }
 .sales-history-table tbody tr:last-child td { border-bottom: 0; }
-.sales-history-table tbody tr[data-status="past"] { color: #778286; }
-.sales-history-table tbody tr[data-status="cancelled"] { opacity: .58; text-decoration: line-through; }
+.sales-history-table tbody tr[data-status="past"] { color: #5f7076; }
+.sales-history-table tbody tr[data-status="cancelled"] { opacity: .6; text-decoration: line-through; }
 .sales-history-table tbody tr.sales-history-edit-row {
   color: #33464d;
-  background: rgba(239, 245, 244, .68);
+  background: rgba(239, 245, 244, .78);
   text-decoration: none;
   opacity: 1;
 }
 .sales-history-actions-cell {
   width: 1%;
-  min-width: 74px;
+  min-width: 82px;
+  padding-left: 12px !important;
+  padding-right: 14px !important;
   white-space: nowrap;
 }
 .sales-history-edit-button,
 .sales-history-save-button,
 .sales-history-cancel-button {
-  min-height: 30px;
-  padding: 0 10px;
-  border-radius: 9px;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 10px;
   font: inherit;
-  font-size: 10px;
-  font-weight: 800;
+  font-size: 11px;
+  font-weight: 850;
 }
 .sales-history-edit-button,
 .sales-history-cancel-button {
-  border: 1px solid rgba(72, 90, 96, .18);
-  color: #526b73;
-  background: rgba(255, 255, 255, .82);
+  border: 1px solid rgba(65, 88, 96, .24);
+  color: #405d66;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(44, 60, 66, .04);
 }
 .sales-history-save-button {
-  border: 1px solid #435f68;
+  border: 1px solid #3d5d67;
   color: #fff;
-  background: #435f68;
+  background: #3d5d67;
 }
 .sales-history-edit-button:hover,
-.sales-history-cancel-button:hover { background: #fff; }
+.sales-history-cancel-button:hover {
+  border-color: rgba(65, 88, 96, .4);
+  color: #274953;
+  background: #f8fbfa;
+}
 .sales-history-save-button:hover { filter: brightness(.96); }
 .sales-history-edit-button:disabled,
 .sales-history-save-button:disabled,
@@ -364,42 +435,45 @@
 .sales-history-edit-input {
   width: 100%;
   min-width: 116px;
-  min-height: 36px;
-  padding: 7px 9px;
-  border: 1px solid rgba(67, 84, 90, .18);
-  border-radius: 9px;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid rgba(67, 84, 90, .20);
+  border-radius: 10px;
   outline: 0;
-  color: #304047;
+  color: #2d434b;
   background: #fff;
   font-family: "Nunito", ui-rounded, system-ui, sans-serif;
-  font-size: 11px;
+  font-size: 12.5px;
+  font-weight: 650;
 }
-.sales-history-edit-input[type="datetime-local"] { min-width: 168px; }
-.sales-history-edit-input[data-history-field="viewingAddress"] { min-width: 220px; }
+.sales-history-edit-input[type="datetime-local"] { min-width: 178px; }
+.sales-history-edit-input[data-history-field="viewingAddress"] { min-width: 235px; }
 .sales-history-edit-input:focus {
-  border-color: rgba(67, 102, 112, .48);
-  box-shadow: 0 0 0 3px rgba(91, 125, 135, .09);
+  border-color: rgba(67, 102, 112, .52);
+  box-shadow: 0 0 0 3px rgba(91, 125, 135, .10);
 }
 .sales-history-edit-controls {
   display: grid;
   grid-template-columns: auto auto;
-  gap: 6px;
+  gap: 7px;
   align-items: center;
 }
 .sales-history-edit-message {
   grid-column: 1 / -1;
-  max-width: 145px;
+  max-width: 150px;
   color: #8a5b50;
+  font-size: 11px;
   white-space: normal;
-  line-height: 1.3;
+  line-height: 1.35;
 }
 .sales-history-loading,
 .sales-history-empty {
   margin: 0;
-  padding: 28px;
-  color: #7c898d;
+  padding: 32px;
+  color: #66797f;
   text-align: center;
-  font-size: 11px;
+  font-size: 13px;
+  font-weight: 650;
 }
 
 .sales-assistant-modal .sale-room-composer textarea { font-family: "Nunito", ui-rounded, system-ui, sans-serif; }
@@ -446,5 +520,7 @@
   .sales-appointment-preview-heading { align-items: flex-start; }
   .sales-appointment-actions button { flex: 1; min-width: 0; }
   .sales-history-workspace { min-height: auto; padding: 14px; }
-  .sales-history-heading { padding: 14px; }
+  .sales-history-heading { padding: 15px; }
+  .sales-history-heading strong { font-size: 18px; }
+  .sales-history-table { font-size: 12px; }
 }
