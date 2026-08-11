@@ -20,6 +20,10 @@ export async function handleSaleViewingRequest(request, env) {
     if (!isSameOrigin(request)) return json({ error: "INVALID_ORIGIN" }, 403);
     return createViewing(request, session.user_email, env);
   }
+  if (request.method === "PATCH") {
+    if (!isSameOrigin(request)) return json({ error: "INVALID_ORIGIN" }, 403);
+    return updateViewing(request, session.user_email, env);
+  }
   return json({ error: "METHOD_NOT_ALLOWED" }, 405);
 }
 
@@ -31,7 +35,7 @@ async function listViewings(email, env) {
            cancelled_at, created_at, updated_at
     FROM sale_viewings
     WHERE user_email = ?
-    ORDER BY created_at DESC
+    ORDER BY viewing_at DESC, created_at DESC
     LIMIT 300
   `).bind(email).all();
 
@@ -103,7 +107,85 @@ async function createViewing(request, email, env) {
   }, 201);
 }
 
-function validateViewing(input) {
+async function updateViewing(request, email, env) {
+  const input = await request.json().catch(() => null);
+  const id = cleanText(input?.id, 120);
+  if (!id) return json({ error: "VIEWING_ID_REQUIRED" }, 400);
+
+  const existing = await env.DB.prepare(`
+    SELECT id, customer_name, phone, viewing_address, viewing_at,
+           reminder_at, reminder_notified_at, followup_at, followup_notified_at,
+           cancelled_at, created_at, updated_at
+    FROM sale_viewings
+    WHERE id = ? AND user_email = ?
+    LIMIT 1
+  `).bind(id, email).first();
+  if (!existing) return json({ error: "VIEWING_NOT_FOUND" }, 404);
+
+  const validation = validateViewing(input, { allowPast: true });
+  if (validation.error) return json({ error: validation.error }, 400);
+
+  const now = Date.now();
+  const viewing = validation.value;
+  const timeChanged = Number(existing.viewing_at) !== viewing.viewingAt;
+
+  let reminderAt = nullableNumber(existing.reminder_at);
+  let reminderNotifiedAt = nullableNumber(existing.reminder_notified_at);
+  let followupAt = nullableNumber(existing.followup_at);
+  let followupNotifiedAt = nullableNumber(existing.followup_notified_at);
+
+  if (timeChanged) {
+    reminderAt = viewing.viewingAt - now >= REMINDER_LEAD_MS
+      ? viewing.viewingAt - REMINDER_LEAD_MS
+      : null;
+    reminderNotifiedAt = null;
+    followupAt = viewing.viewingAt > now
+      ? viewing.viewingAt + FOLLOWUP_DELAY_MS
+      : null;
+    followupNotifiedAt = null;
+  }
+
+  const result = await env.DB.prepare(`
+    UPDATE sale_viewings
+    SET customer_name = ?, phone = ?, viewing_address = ?, viewing_at = ?,
+        reminder_at = ?, reminder_notified_at = ?,
+        followup_at = ?, followup_notified_at = ?, updated_at = ?
+    WHERE id = ? AND user_email = ?
+  `).bind(
+    viewing.customerName,
+    viewing.phone,
+    viewing.viewingAddress,
+    viewing.viewingAt,
+    reminderAt,
+    reminderNotifiedAt,
+    followupAt,
+    followupNotifiedAt,
+    now,
+    id,
+    email,
+  ).run();
+
+  if (!Number(result.meta?.changes || 0)) return json({ error: "VIEWING_NOT_FOUND" }, 404);
+
+  return json({
+    ok: true,
+    message: "Đã cập nhật lịch hẹn.",
+    viewing: serializeViewing({
+      ...existing,
+      customer_name: viewing.customerName,
+      phone: viewing.phone,
+      viewing_address: viewing.viewingAddress,
+      viewing_at: viewing.viewingAt,
+      reminder_at: reminderAt,
+      reminder_notified_at: reminderNotifiedAt,
+      followup_at: followupAt,
+      followup_notified_at: followupNotifiedAt,
+      updated_at: now,
+    }, now),
+  });
+}
+
+function validateViewing(input, { allowPast = false } = {}) {
   const phone = cleanPhone(input?.phone);
   const viewingAddress = cleanText(input?.viewingAddress, 220);
   const suppliedCustomerName = cleanText(input?.customerName, 100);
@@ -112,7 +194,7 @@ function validateViewing(input) {
 
   if (!viewingAddress) return { error: "VIEWING_ADDRESS_REQUIRED" };
   if (!Number.isFinite(timestamp)) return { error: "VIEWING_TIME_REQUIRED" };
-  if (timestamp < now - 10 * 60 * 1000) return { error: "VIEWING_TIME_IN_PAST" };
+  if (!allowPast && timestamp < now - 10 * 60 * 1000) return { error: "VIEWING_TIME_IN_PAST" };
   if (timestamp > now + 366 * 24 * 60 * 60 * 1000) return { error: "VIEWING_TIME_TOO_FAR" };
 
   return {
