@@ -1,6 +1,6 @@
 import { isSameOrigin, json } from "./shared/http.js";
 import { getSession } from "./shared/session.js";
-import { sendPushToUser } from "./reminder-delivery.js";
+import { sendPushToUser } from "./shared/push-send.js";
 
 const REMINDER_LEAD_MS = 30 * 60 * 1000;
 const FOLLOWUP_DELAY_MS = 2 * 60 * 60 * 1000;
