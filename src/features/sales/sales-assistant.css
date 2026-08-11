@@ -281,7 +281,7 @@
 }
 .sales-history-table {
   width: 100%;
-  min-width: 920px;
+  min-width: 1080px;
   border-collapse: collapse;
   color: #33464d;
   font-size: 11px;
@@ -305,6 +305,75 @@
 .sales-history-table tbody tr:last-child td { border-bottom: 0; }
 .sales-history-table tbody tr[data-status="past"] { color: #778286; }
 .sales-history-table tbody tr[data-status="cancelled"] { opacity: .58; text-decoration: line-through; }
+.sales-history-table tbody tr.sales-history-edit-row {
+  color: #33464d;
+  background: rgba(239, 245, 244, .68);
+  text-decoration: none;
+  opacity: 1;
+}
+.sales-history-actions-cell {
+  width: 1%;
+  white-space: nowrap;
+}
+.sales-history-edit-button,
+.sales-history-save-button,
+.sales-history-cancel-button {
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+}
+.sales-history-edit-button,
+.sales-history-cancel-button {
+  border: 1px solid rgba(72, 90, 96, .18);
+  color: #526b73;
+  background: rgba(255, 255, 255, .82);
+}
+.sales-history-save-button {
+  border: 1px solid #435f68;
+  color: #fff;
+  background: #435f68;
+}
+.sales-history-edit-button:hover,
+.sales-history-cancel-button:hover { background: #fff; }
+.sales-history-save-button:hover { filter: brightness(.96); }
+.sales-history-edit-button:disabled,
+.sales-history-save-button:disabled,
+.sales-history-cancel-button:disabled { cursor: wait; opacity: .55; }
+.sales-history-edit-input {
+  width: 100%;
+  min-width: 116px;
+  min-height: 36px;
+  padding: 7px 9px;
+  border: 1px solid rgba(67, 84, 90, .18);
+  border-radius: 9px;
+  outline: 0;
+  color: #304047;
+  background: #fff;
+  font-family: "Nunito", ui-rounded, system-ui, sans-serif;
+  font-size: 11px;
+}
+.sales-history-edit-input[type="datetime-local"] { min-width: 168px; }
+.sales-history-edit-input[data-history-field="viewingAddress"] { min-width: 220px; }
+.sales-history-edit-input:focus {
+  border-color: rgba(67, 102, 112, .48);
+  box-shadow: 0 0 0 3px rgba(91, 125, 135, .09);
+}
+.sales-history-edit-controls {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 6px;
+  align-items: center;
+}
+.sales-history-edit-message {
+  grid-column: 1 / -1;
+  max-width: 145px;
+  color: #8a5b50;
+  white-space: normal;
+  line-height: 1.3;
+}
 .sales-history-loading,
 .sales-history-empty {
   margin: 0;

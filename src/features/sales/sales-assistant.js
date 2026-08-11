@@ -4,6 +4,8 @@ import {
 } from "./sale-appointment.js";
 
 let historyLoaded = false;
+let viewingHistory = [];
+let editingViewingId = "";
 
 const ASSISTANT_HTML = `
   <div class="modal-backdrop sales-assistant-backdrop" id="sales-assistant-modal" role="presentation" hidden>
@@ -268,6 +270,8 @@ function appointmentErrorMessage(code) {
     VIEWING_TIME_REQUIRED: "Vui lòng chọn thời gian hẹn.",
     VIEWING_TIME_IN_PAST: "Thời gian hẹn đã qua. Hãy chọn lại.",
     VIEWING_TIME_TOO_FAR: "Joy chỉ nhận lịch trong vòng 1 năm tới.",
+    VIEWING_NOT_FOUND: "Không tìm thấy lịch hẹn này.",
+    VIEWING_ID_REQUIRED: "Joy chưa xác định được lịch cần sửa.",
     AUTH_REQUIRED: "Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại Joy.",
   };
   return messages[code] || "Joy chưa thể lưu lịch. Hãy thử lại.";
@@ -315,13 +319,118 @@ function notificationLabel(viewing, kind) {
   return "Chờ gửi";
 }
 
+function makeHistoryInput(field, value, { type = "text", maxLength = 0, required = false } = {}) {
+  const input = document.createElement("input");
+  input.className = "sales-history-edit-input";
+  input.dataset.historyField = field;
+  input.type = type;
+  input.value = value || "";
+  if (maxLength) input.maxLength = maxLength;
+  if (required) input.required = true;
+  if (type === "tel") input.inputMode = "tel";
+  return input;
+}
+
+function appendHistoryCell(row, value) {
+  const cell = document.createElement("td");
+  cell.textContent = value;
+  row.append(cell);
+  return cell;
+}
+
+function renderHistoryDisplayRow(viewing) {
+  const row = document.createElement("tr");
+  row.dataset.status = viewing.status;
+  [
+    formatVietnamViewingTime(viewing.viewingAt),
+    viewing.customerName || "—",
+    viewing.phone || "—",
+    viewing.viewingAddress || "—",
+    historyStatusLabel(viewing.status),
+    notificationLabel(viewing, "reminder"),
+    notificationLabel(viewing, "followup"),
+  ].forEach((value) => appendHistoryCell(row, value));
+
+  const actionCell = document.createElement("td");
+  actionCell.className = "sales-history-actions-cell";
+  const edit = document.createElement("button");
+  edit.type = "button";
+  edit.className = "sales-history-edit-button";
+  edit.dataset.action = "edit-sale-viewing";
+  edit.dataset.viewingId = viewing.id;
+  edit.textContent = "Sửa";
+  actionCell.append(edit);
+  row.append(actionCell);
+  return row;
+}
+
+function renderHistoryEditRow(viewing) {
+  const row = document.createElement("tr");
+  row.className = "sales-history-edit-row";
+  row.dataset.status = viewing.status;
+  row.dataset.viewingId = viewing.id;
+
+  const timeCell = document.createElement("td");
+  timeCell.append(makeHistoryInput("viewingTime", vietnamDatetimeLocal(viewing.viewingAt), { type: "datetime-local", required: true }));
+  row.append(timeCell);
+
+  const customerCell = document.createElement("td");
+  customerCell.append(makeHistoryInput("customerName", viewing.customerName, { maxLength: 100, required: true }));
+  row.append(customerCell);
+
+  const phoneCell = document.createElement("td");
+  phoneCell.append(makeHistoryInput("phone", viewing.phone, { type: "tel", maxLength: 20 }));
+  row.append(phoneCell);
+
+  const addressCell = document.createElement("td");
+  addressCell.append(makeHistoryInput("viewingAddress", viewing.viewingAddress, { maxLength: 220, required: true }));
+  row.append(addressCell);
+
+  appendHistoryCell(row, historyStatusLabel(viewing.status));
+  appendHistoryCell(row, notificationLabel(viewing, "reminder"));
+  appendHistoryCell(row, notificationLabel(viewing, "followup"));
+
+  const actionCell = document.createElement("td");
+  actionCell.className = "sales-history-actions-cell";
+  const controls = document.createElement("div");
+  controls.className = "sales-history-edit-controls";
+
+  const save = document.createElement("button");
+  save.type = "button";
+  save.className = "sales-history-save-button";
+  save.dataset.action = "save-sale-viewing";
+  save.dataset.viewingId = viewing.id;
+  save.textContent = "Lưu";
+
+  const cancel = document.createElement("button");
+  cancel.type = "button";
+  cancel.className = "sales-history-cancel-button";
+  cancel.dataset.action = "cancel-sale-viewing-edit";
+  cancel.dataset.viewingId = viewing.id;
+  cancel.textContent = "Huỷ";
+
+  const message = document.createElement("small");
+  message.className = "sales-history-edit-message";
+  message.hidden = true;
+
+  controls.append(save, cancel, message);
+  actionCell.append(controls);
+  row.append(actionCell);
+  return row;
+}
+
 function renderViewingHistory(history) {
   const content = document.querySelector("#sales-history-content");
   const count = document.querySelector("#sales-history-count");
   if (!content || !count) return;
-  count.textContent = `${history.length} lịch hẹn`;
 
-  if (!history.length) {
+  viewingHistory = Array.isArray(history) ? history : [];
+  if (editingViewingId && !viewingHistory.some((viewing) => viewing.id === editingViewingId)) {
+    editingViewingId = "";
+  }
+  count.textContent = `${viewingHistory.length} lịch hẹn`;
+
+  if (!viewingHistory.length) {
     const empty = document.createElement("p");
     empty.className = "sales-history-empty";
     empty.textContent = "Chưa có lịch hẹn nào trong Joy.";
@@ -333,7 +442,7 @@ function renderViewingHistory(history) {
   table.className = "sales-history-table";
   const head = document.createElement("thead");
   const headRow = document.createElement("tr");
-  ["Thời gian", "Khách", "SĐT", "Địa chỉ", "Trạng thái", "Nhắc 30p", "Follow-up"].forEach((label) => {
+  ["Thời gian", "Khách", "SĐT", "Địa chỉ", "Trạng thái", "Nhắc 30p", "Follow-up", ""].forEach((label) => {
     const th = document.createElement("th");
     th.scope = "col";
     th.textContent = label;
@@ -342,26 +451,64 @@ function renderViewingHistory(history) {
   head.append(headRow);
 
   const body = document.createElement("tbody");
-  history.forEach((viewing) => {
-    const row = document.createElement("tr");
-    row.dataset.status = viewing.status;
-    [
-      formatVietnamViewingTime(viewing.viewingAt),
-      viewing.customerName || "—",
-      viewing.phone || "—",
-      viewing.viewingAddress || "—",
-      historyStatusLabel(viewing.status),
-      notificationLabel(viewing, "reminder"),
-      notificationLabel(viewing, "followup"),
-    ].forEach((value) => {
-      const cell = document.createElement("td");
-      cell.textContent = value;
-      row.append(cell);
-    });
-    body.append(row);
+  viewingHistory.forEach((viewing) => {
+    body.append(
+      viewing.id === editingViewingId
+        ? renderHistoryEditRow(viewing)
+        : renderHistoryDisplayRow(viewing),
+    );
   });
   table.append(head, body);
   content.replaceChildren(table);
+}
+
+async function saveViewingHistoryEdit(control) {
+  const id = control.dataset.viewingId || "";
+  const row = control.closest("tr");
+  if (!id || !row) return;
+
+  const field = (name) => row.querySelector(`[data-history-field="${name}"]`);
+  const customerName = field("customerName")?.value.trim() || "";
+  const phone = field("phone")?.value.trim() || "";
+  const viewingAddress = field("viewingAddress")?.value.trim() || "";
+  const viewingAt = vietnamLocalToIso(field("viewingTime")?.value || "");
+  const message = row.querySelector(".sales-history-edit-message");
+
+  if (!customerName || !viewingAddress || !viewingAt) {
+    if (message) {
+      message.textContent = "Điền đủ tên, địa chỉ và thời gian.";
+      message.hidden = false;
+    }
+    return;
+  }
+
+  const buttons = row.querySelectorAll("button");
+  buttons.forEach((button) => { button.disabled = true; });
+  if (message) {
+    message.textContent = "Đang lưu…";
+    message.hidden = false;
+  }
+
+  try {
+    const response = await fetch("/api/sales/viewings", {
+      method: "PATCH",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, customerName, phone, viewingAddress, viewingAt }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw Object.assign(new Error(payload.error || "VIEWING_UPDATE_FAILED"), { code: payload.error });
+
+    editingViewingId = "";
+    historyLoaded = false;
+    await loadViewingHistory({ force: true });
+  } catch (error) {
+    buttons.forEach((button) => { button.disabled = false; });
+    if (message) {
+      message.textContent = appointmentErrorMessage(error.code);
+      message.hidden = false;
+    }
+  }
 }
 
 async function loadViewingHistory({ force = false } = {}) {
@@ -391,6 +538,15 @@ async function initializeSalesAssistant() {
     if (!control) return;
     if (control.dataset.action === "open-sales-assistant") openAssistant();
     if (control.dataset.action === "close-sales-assistant") closeAssistant();
+    if (control.dataset.action === "edit-sale-viewing") {
+      editingViewingId = control.dataset.viewingId || "";
+      renderViewingHistory(viewingHistory);
+    }
+    if (control.dataset.action === "cancel-sale-viewing-edit") {
+      editingViewingId = "";
+      renderViewingHistory(viewingHistory);
+    }
+    if (control.dataset.action === "save-sale-viewing") saveViewingHistoryEdit(control);
     if (control.dataset.assistantMode) switchMode(control.dataset.assistantMode);
   });
 
@@ -404,9 +560,17 @@ async function initializeSalesAssistant() {
   document.querySelector("#sale-appointment-input")?.addEventListener("keydown", (event) => {
     if ((event.ctrlKey || event.metaKey) && event.key === "Enter") parseAppointment();
   });
-  document.querySelector("#sales-history-refresh")?.addEventListener("click", () => loadViewingHistory({ force: true }));
+  document.querySelector("#sales-history-refresh")?.addEventListener("click", () => {
+    editingViewingId = "";
+    loadViewingHistory({ force: true });
+  });
 
   document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && editingViewingId) {
+      editingViewingId = "";
+      renderViewingHistory(viewingHistory);
+      return;
+    }
     if (event.key === "Escape" && !document.querySelector("#sales-assistant-modal")?.hidden) closeAssistant();
   });
 
