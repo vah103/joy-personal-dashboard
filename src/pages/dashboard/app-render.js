@@ -111,11 +111,11 @@ function renderSales() {
 
     if (sales.status === "loading") {
       title.textContent = "Loading viewing schedule";
-      copy.textContent = "Joy is checking the Appointments sheet.";
+      copy.textContent = "Joy is loading your saved appointments.";
     } else if (sales.status === "authorization-required") {
-      title.textContent = "Connect the viewing sheet once";
-      copy.textContent = "Approve read-only access so Joy can show live appointments.";
-      notice.append(title, copy, makeButton("Connect Sheet", "connect-sales", "primary-button"));
+      title.textContent = "Joy session expired";
+      copy.textContent = "Sign in to Joy again to load your private appointment history.";
+      notice.append(title, copy);
       elements.sales.replaceChildren(notice);
       renderSalesModal();
       return;
@@ -123,10 +123,8 @@ function renderSales() {
       title.textContent = "Live sales stays private";
       copy.textContent = "Open the secure Joy Cloudflare app to see customer appointments.";
     } else {
-      title.textContent = "Viewing schedule could not sync";
-      copy.textContent = sales.errorCode === "SHEETS_API_DISABLED"
-        ? "Google Sheets API still needs to be enabled for Joy."
-        : "Check the Sheet connection, then try again.";
+      title.textContent = "Viewing schedule could not load";
+      copy.textContent = "Joy could not reach the appointment database. Try again in a moment.";
       notice.append(title, copy, makeButton("Try again", "refresh-sales", "secondary-button"));
       elements.sales.replaceChildren(notice);
       renderSalesModal();
@@ -147,7 +145,7 @@ function renderSales() {
     const title = document.createElement("strong");
     title.textContent = "No upcoming viewings";
     const copy = document.createElement("p");
-    copy.textContent = "Past appointments are hidden automatically.";
+    copy.textContent = "Past appointments stay available in Sale Assistant history.";
     empty.append(check, title, copy);
     elements.sales.replaceChildren(empty);
     renderSalesModal();
@@ -198,13 +196,21 @@ function formatViewingTime(value) {
   return `${part("day")} ${part("month")} · ${part("hour")}:${part("minute")}`;
 }
 
+function saleNotificationState(viewing, kind) {
+  const notified = kind === "reminder" ? viewing.reminderNotifiedAt : viewing.followupNotifiedAt;
+  const scheduled = kind === "reminder" ? viewing.reminderAt : viewing.followupAt;
+  if (notified) return "Sent";
+  if (!scheduled) return kind === "reminder" ? "Skipped" : "—";
+  return "Pending";
+}
+
 function renderSalesModal() {
   if (sales.status !== "ready" || !sales.viewings.length) {
     const empty = document.createElement("div");
     empty.className = "sales-modal-empty";
     empty.textContent = sales.status === "ready"
-      ? "There are no upcoming appointments in the Sheet."
-      : "The live appointment list is not available yet.";
+      ? "There are no upcoming appointments. Open Assistant → Lịch sử to see past viewings."
+      : "The appointment list is not available yet.";
     elements.salesModalContent.replaceChildren(empty);
     return;
   }
@@ -215,7 +221,7 @@ function renderSalesModal() {
   table.className = "sales-table";
   const head = document.createElement("thead");
   const headRow = document.createElement("tr");
-  ["Customer", "Phone", "Viewing address", "Viewing time", "Before email", "Follow-up email"].forEach((label) => {
+  ["Customer", "Phone", "Viewing address", "Viewing time", "30 min reminder", "Follow-up"].forEach((label) => {
     const th = document.createElement("th");
     th.scope = "col";
     th.textContent = label;
@@ -230,9 +236,9 @@ function renderSalesModal() {
       viewing.customerName,
       viewing.phone || "—",
       viewing.viewingAddress,
-      viewing.viewingTime,
-      viewing.beforeStatus || "—",
-      viewing.afterStatus || "—",
+      formatViewingTime(viewing.viewingAt),
+      saleNotificationState(viewing, "reminder"),
+      saleNotificationState(viewing, "followup"),
     ].forEach((value) => {
       const cell = document.createElement("td");
       cell.textContent = value;
