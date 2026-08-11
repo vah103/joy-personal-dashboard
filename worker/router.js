@@ -65,9 +65,10 @@ import {
   runReliableReminderSchedule,
 } from "./reminder-delivery.js";
 import {
-  handleSaleViewingCreate,
-  isSaleViewingCreateRoute,
-} from "./sale-viewing-create.js";
+  handleSaleViewingRequest,
+  isSaleViewingRoute,
+  runSaleViewingSchedule,
+} from "./sale-viewings.js";
 import {
   handleSpeakingEnglishRequest,
   isSpeakingEnglishRoute,
@@ -218,15 +219,14 @@ export default {
       if (isTaskImportRoute(pathname)) {
         return handleTaskImportRequest(request, env);
       }
+      if (isSaleViewingRoute(pathname)) {
+        return handleSaleViewingRequest(request, env);
+      }
 
       const integration = integrationForApiPath(pathname);
       if (integration) {
         const denied = await guardGoogleIntegration(request, env, integration);
         if (denied) return denied;
-      }
-
-      if (isSaleViewingCreateRoute(pathname, request.method)) {
-        return handleSaleViewingCreate(request, env);
       }
 
       return app.fetch(request, env, ctx);
@@ -260,6 +260,7 @@ export default {
 
     scheduleIndependentJob(ctx, "weather", () => runRainPushSchedule(env));
     scheduleIndependentJob(ctx, "reminder", () => runReliableReminderSchedule(env));
+    scheduleIndependentJob(ctx, "Sale viewing", () => runSaleViewingSchedule(env));
     scheduleIndependentJob(ctx, "Daily Brief", () => runDailyBriefSchedule(env));
     scheduleIndependentJob(ctx, "IELTS", () => runIeltsSchedule(env));
     scheduleIndependentJob(ctx, "IELTS course", () => runIeltsCourseSyncSchedule(env));
