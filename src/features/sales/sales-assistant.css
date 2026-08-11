@@ -252,6 +252,68 @@
 .sales-appointment-actions button { min-width: 110px; }
 .sales-appointment-actions button:disabled { cursor: wait; opacity: .55; }
 
+.sales-history-workspace {
+  min-height: 480px;
+  padding: 22px;
+}
+
+.sales-history-heading {
+  margin-bottom: 14px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid rgba(72, 90, 96, .13);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .72);
+}
+.sales-history-heading small,
+.sales-history-heading strong { display: block; }
+.sales-history-heading small { color: #7c898d; font-size: 10px; }
+.sales-history-heading strong { margin-top: 3px; color: #30474f; font-size: 16px; }
+
+.sales-history-table-wrap {
+  overflow-x: auto;
+  border: 1px solid rgba(72, 90, 96, .13);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .78);
+}
+.sales-history-table {
+  width: 100%;
+  min-width: 920px;
+  border-collapse: collapse;
+  color: #33464d;
+  font-size: 11px;
+}
+.sales-history-table th,
+.sales-history-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(78, 95, 101, .11);
+  text-align: left;
+  vertical-align: top;
+}
+.sales-history-table th {
+  color: #728087;
+  background: rgba(236, 241, 241, .8);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.sales-history-table tbody tr:last-child td { border-bottom: 0; }
+.sales-history-table tbody tr[data-status="past"] { color: #778286; }
+.sales-history-table tbody tr[data-status="cancelled"] { opacity: .58; text-decoration: line-through; }
+.sales-history-loading,
+.sales-history-empty {
+  margin: 0;
+  padding: 28px;
+  color: #7c898d;
+  text-align: center;
+  font-size: 11px;
+}
+
 .sales-assistant-modal .sale-room-composer textarea { font-family: "Nunito", ui-rounded, system-ui, sans-serif; }
 .sales-assistant-modal .primary-button,
 .sales-assistant-modal .secondary-button {
@@ -285,8 +347,8 @@
   }
   .sales-assistant-heading { padding: 16px; }
   .sales-assistant-heading > div > span { max-width: 270px; font-size: 10px; }
-  .sales-assistant-tabs { top: 72px; padding: 8px 14px; }
-  .sales-assistant-tabs button { flex: 1; }
+  .sales-assistant-tabs { top: 72px; padding: 8px 14px; overflow-x: auto; }
+  .sales-assistant-tabs button { flex: 1 0 auto; }
   .sales-appointment-layout { min-height: auto; padding: 14px; gap: 12px; }
   .sales-appointment-composer,
   .sales-appointment-preview { padding: 15px; border-radius: 15px; }
@@ -295,4 +357,6 @@
   .sales-appointment-fields label.wide { grid-column: auto; }
   .sales-appointment-preview-heading { align-items: flex-start; }
   .sales-appointment-actions button { flex: 1; min-width: 0; }
+  .sales-history-workspace { min-height: auto; padding: 14px; }
+  .sales-history-heading { padding: 14px; }
 }
