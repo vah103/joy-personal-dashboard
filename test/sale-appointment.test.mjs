@@ -5,13 +5,7 @@ import {
   formatVietnamViewingTime,
   parseSaleAppointmentInput,
 } from "../src/features/sales/sale-appointment.js";
-import {
-  formatSheetViewingTime,
-  googleSheetsViewingSerial,
-  isSaleViewingCreateRoute,
-  validateSaleViewingInput,
-  viewingDaySeparatorIndexes,
-} from "../worker/sale-viewing-create.js";
+import { isSaleViewingRoute } from "../worker/sale-viewings.js";
 
 const NOW = Date.parse("2026-07-27T02:00:00.000Z"); // 09:00 in Vietnam
 
@@ -124,94 +118,36 @@ test("prefers an explicit customer label in multiline Sale forms", () => {
   assert.equal(parsed.valid, true);
 });
 
-test("validates normal appointments with pending reminder states", () => {
-  const validation = validateSaleViewingInput({
-    customerName: " Chị Lan ",
-    phone: "0987 654 321",
-    viewingAddress: "180 Phú Mỹ",
-    viewingAt: "2026-07-28T13:00:00.000Z",
-  }, NOW);
-
-  assert.equal(validation.error, undefined);
-  assert.equal(validation.value.customerName, "Chị Lan");
-  assert.equal(validation.value.phone, "0987654321");
-  assert.equal(validation.value.viewingTime, "28/07/2026 20:00");
-  assert.equal(validation.value.shortNoticeAppointment, false);
-  assert.equal(validation.value.beforeStatus, "EMAIL_MODE=NORMAL; BEFORE_PENDING");
-  assert.equal(validation.value.afterStatus, "AFTER_PENDING");
-  assert.match(validation.value.reminderMessage, /nhắc đúng giờ xem/);
-  assert.equal(formatSheetViewingTime("2026-07-28T13:00:00.000Z"), "28/07/2026 20:00");
+test("Sale viewing route is owned by the D1 module", () => {
+  assert.equal(isSaleViewingRoute("/api/sales/viewings"), true);
+  assert.equal(isSaleViewingRoute("/api/sales/deals"), false);
 });
 
-test("stores ambiguous August dates as locale-independent Google Sheets serials", () => {
-  assert.equal(
-    googleSheetsViewingSerial("2026-08-10T08:00:00.000Z"),
-    46244.625,
-  );
-  assert.equal(
-    googleSheetsViewingSerial("2026-08-11T05:00:00.000Z"),
-    46245.5,
-  );
-  assert.equal(formatSheetViewingTime("2026-08-10T08:00:00.000Z"), "10/08/2026 15:00");
-  assert.equal(formatSheetViewingTime("2026-08-11T05:00:00.000Z"), "11/08/2026 12:00");
-});
-
-test("finds missing blank rows only between different viewing dates", () => {
-  const day10Morning = googleSheetsViewingSerial("2026-08-10T01:00:00.000Z");
-  const day10Evening = googleSheetsViewingSerial("2026-08-10T13:00:00.000Z");
-  const day11 = googleSheetsViewingSerial("2026-08-11T05:00:00.000Z");
-
-  assert.deepEqual(
-    viewingDaySeparatorIndexes([[day10Morning], [day10Evening], [day11]]),
-    [3],
-  );
-  assert.deepEqual(
-    viewingDaySeparatorIndexes([[day10Morning], [], [day11]]),
-    [],
-  );
-});
-
-test("marks appointments under one hour as short notice", () => {
-  const validation = validateSaleViewingInput({
-    customerName: "",
-    phone: "0912345678",
-    viewingAddress: "25 Mỹ Đình",
-    viewingAt: "2026-07-27T02:30:00.000Z",
-  }, NOW);
-
-  assert.equal(validation.value.customerName, "Khách 0912345678");
-  assert.equal(validation.value.shortNoticeAppointment, true);
-  assert.equal(validation.value.beforeStatus, "EMAIL_MODE=SHORT_NOTICE; BEFORE_SKIPPED");
-  assert.equal(validation.value.afterStatus, "AFTER_PENDING");
-  assert.match(validation.value.reminderMessage, /hỏi lại sau 2 tiếng/);
-  assert.equal(isSaleViewingCreateRoute("/api/sales/viewings", "POST"), true);
-  assert.equal(isSaleViewingCreateRoute("/api/sales/viewings", "GET"), false);
-});
-
-test("dashboard builds and routes the appointment assistant", async () => {
-  const [assistant, build, router, worker, dashboardRender] = await Promise.all([
+test("dashboard builds D1-backed viewing history and schedules Sale pushes", async () => {
+  const [assistant, router, worker, migration] = await Promise.all([
     readFile(new URL("../src/features/sales/sales-assistant.js", import.meta.url), "utf8"),
-    readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8"),
     readFile(new URL("../worker/router.js", import.meta.url), "utf8"),
-    readFile(new URL("../worker/sale-viewing-create.js", import.meta.url), "utf8"),
-    readFile(new URL("../src/pages/dashboard/app-render.js", import.meta.url), "utf8"),
+    readFile(new URL("../worker/sale-viewings.js", import.meta.url), "utf8"),
+    readFile(new URL("../migrations/20260811_sale_viewings.sql", import.meta.url), "utf8"),
   ]);
 
-  assert.match(assistant, /Hẹn khách xem phòng/);
-  assert.match(assistant, /fetch\("\/api\/sales\/viewings"/);
-  assert.match(build, /sale-appointment\.js/);
-  assert.match(router, /handleSaleViewingCreate/);
-  assert.match(worker, /APPOINTMENTS_SHEET_TITLE = "Appointments"/);
-  assert.match(worker, /APPOINTMENTS_TIME_RANGE = "Appointments!D2:D"/);
-  assert.match(worker, /EMAIL_MODE=NORMAL; BEFORE_PENDING/);
-  assert.match(worker, /EMAIL_MODE=SHORT_NOTICE; BEFORE_SKIPPED/);
-  assert.match(worker, /viewingSerial/);
-  assert.match(worker, /insertDimension/);
-  assert.match(worker, /startIndex: 1/);
-  assert.match(worker, /sourceRow: 2/);
-  assert.match(worker, /viewingDaySeparatorIndexes/);
-  assert.doesNotMatch(worker, /:append\?/);
-  assert.doesNotMatch(dashboardRender, /groupViewingsByDay/);
-  assert.doesNotMatch(dashboardRender, /viewing-day-divider/);
-  assert.match(dashboardRender, /formatViewingTime\(viewing\.viewingAt\)/);
+  assert.match(assistant, /data-assistant-mode="history"/);
+  assert.match(assistant, /Lịch sử hẹn khách/);
+  assert.match(assistant, /Đang lưu lịch vào Joy/);
+  assert.doesNotMatch(assistant, /Appointments Sheet|Google Sheets trước khi lưu lịch/);
+
+  assert.match(router, /handleSaleViewingRequest/);
+  assert.match(router, /runSaleViewingSchedule/);
+  assert.doesNotMatch(router, /handleSaleViewingCreate/);
+
+  assert.match(worker, /INSERT INTO sale_viewings/);
+  assert.match(worker, /REMINDER_LEAD_MS = 30 \* 60 \* 1000/);
+  assert.match(worker, /FOLLOWUP_DELAY_MS = 2 \* 60 \* 60 \* 1000/);
+  assert.match(worker, /Lịch xem phòng sắp tới/);
+  assert.match(worker, /Theo dõi khách xem phòng/);
+  assert.doesNotMatch(worker, /sheets\.googleapis|SALE_SPREADSHEET_ID|Appointments!/);
+
+  assert.match(migration, /CREATE TABLE IF NOT EXISTS sale_viewings/);
+  assert.match(migration, /reminder_notified_at/);
+  assert.match(migration, /followup_notified_at/);
 });
