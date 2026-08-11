@@ -1,6 +1,6 @@
 const state = {
   months: [],
-  selectedMonth: "2026-07",
+  selectedMonth: "",
   editingDeal: null,
   query: "",
 };
@@ -31,8 +31,12 @@ async function loadDeals({ quiet = false } = {}) {
   try {
     const payload = await apiRequest("/api/sales/deals");
     state.months = Array.isArray(payload.months) ? payload.months : [];
-    if (!state.months.some((month) => month.key === state.selectedMonth)) {
-      state.selectedMonth = payload.selectedMonth || "2026-07";
+    const selectedMonthStillExists = state.months.some((month) => month.key === state.selectedMonth);
+    if (!selectedMonthStillExists) {
+      const suggestedMonth = String(payload.selectedMonth || "");
+      const currentMonth = state.months.find((month) => month.key === suggestedMonth);
+      const firstMonthWithDeals = state.months.find((month) => Number(month.count || 0) > 0);
+      state.selectedMonth = currentMonth?.key || firstMonthWithDeals?.key || state.months[0]?.key || "";
     }
     hideStatus();
     render();
@@ -54,8 +58,8 @@ function render() {
   elements.total.textContent = formatVnd(total);
   elements.average.textContent = formatVnd(month?.count ? total / month.count : 0);
   elements.count.textContent = String(month?.count || 0);
-  elements.summaryMonth.textContent = month?.label || "July 2026";
-  elements.ledgerTitle.textContent = `${month?.label?.replace(" 2026", "") || "July"} deals`;
+  elements.summaryMonth.textContent = month?.label || "—";
+  elements.ledgerTitle.textContent = month?.label ? `${month.label.replace(" 2026", "")} deals` : "Deals";
   elements.tableBody.replaceChildren(...deals.map(renderDealRow));
   elements.empty.hidden = Boolean(deals.length) || Boolean(state.query);
   elements.tableWrap.classList.toggle("is-empty", !deals.length && !state.query);
@@ -109,7 +113,7 @@ function renderDealRow(deal) {
 }
 
 function selectedMonth() {
-  return state.months.find((month) => month.key === state.selectedMonth) || state.months[6];
+  return state.months.find((month) => month.key === state.selectedMonth) || null;
 }
 
 function filteredDeals(deals) {
