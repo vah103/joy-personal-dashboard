@@ -30,9 +30,9 @@ test("Sale history supports account-scoped inline edits", async () => {
   assert.match(worker, /UPDATE sale_viewings/);
   assert.match(worker, /allowPast: true/);
   assert.match(worker, /ORDER BY viewing_at DESC/);
-  assert.match(assistant, /data\.action = "edit-sale-viewing"|dataset\.action = "edit-sale-viewing"/);
+  assert.match(assistant, /dataset\.action = "edit-sale-viewing"/);
   assert.match(assistant, /method: "PATCH"/);
-  assert.match(assistant, /data-history-field/);
+  assert.match(assistant, /dataset\.historyField = field/);
   assert.match(styles, /sales-history-edit-input/);
   assert.match(styles, /sales-history-save-button/);
 });
