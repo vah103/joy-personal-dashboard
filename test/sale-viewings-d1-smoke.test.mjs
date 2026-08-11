@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
+// PR-only smoke coverage also exercises the full current main tree in CI.
 test("Sale viewings no longer depend on Google Sheets at runtime", async () => {
   const [router, worker, assistant] = await Promise.all([
     readFile(new URL("../worker/router.js", import.meta.url), "utf8"),
