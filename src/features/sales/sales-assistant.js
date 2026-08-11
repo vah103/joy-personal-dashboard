@@ -3,6 +3,8 @@ import {
   parseSaleAppointmentInput,
 } from "./sale-appointment.js";
 
+let historyLoaded = false;
+
 const ASSISTANT_HTML = `
   <div class="modal-backdrop sales-assistant-backdrop" id="sales-assistant-modal" role="presentation" hidden>
     <section class="modal sales-assistant-modal" role="dialog" aria-modal="true" aria-labelledby="sales-assistant-title">
@@ -10,7 +12,7 @@ const ASSISTANT_HTML = `
         <div>
           <p class="section-kicker">Sale Assistant</p>
           <h2 id="sales-assistant-title">Hẹn khách xem phòng</h2>
-          <span>Nhập một câu tự nhiên, kiểm tra lại rồi mới lưu vào Appointments.</span>
+          <span>Tạo lịch, theo dõi lịch sử và tóm tắt thông tin phòng ngay trong Joy.</span>
         </div>
         <button type="button" aria-label="Đóng Sale Assistant" data-action="close-sales-assistant">×</button>
       </div>
@@ -18,6 +20,7 @@ const ASSISTANT_HTML = `
       <nav class="sales-assistant-tabs" aria-label="Sale Assistant tools">
         <button class="active" type="button" data-assistant-mode="appointment">Hẹn khách</button>
         <button type="button" data-assistant-mode="summary">Tóm tắt phòng</button>
+        <button type="button" data-assistant-mode="history">Lịch sử</button>
       </nav>
 
       <section class="sales-assistant-panel" data-assistant-panel="appointment">
@@ -32,7 +35,7 @@ const ASSISTANT_HTML = `
           <form class="sales-appointment-preview" id="sale-appointment-form" hidden>
             <div class="sales-appointment-preview-heading">
               <div><small>Kiểm tra trước khi lưu</small><strong id="sale-appointment-time-label">—</strong></div>
-              <span>Appointments Sheet</span>
+              <span>Joy lịch hẹn</span>
             </div>
             <div class="sales-appointment-fields">
               <label>Tên khách<input name="customerName" type="text" maxlength="100" required></label>
@@ -68,6 +71,21 @@ const ASSISTANT_HTML = `
             </div>
             <article class="room-share-card is-empty" id="room-summary-card" aria-live="polite"></article>
             <p class="sale-room-edit-note">Chạm vào nội dung đã tạo để sửa trước khi chụp.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="sales-assistant-panel" data-assistant-panel="history" hidden>
+        <div class="sales-history-workspace">
+          <div class="sales-history-heading">
+            <div>
+              <small>Lịch hẹn được lưu trong Joy</small>
+              <strong id="sales-history-count">Đang tải…</strong>
+            </div>
+            <button class="secondary-button" id="sales-history-refresh" type="button">Làm mới</button>
+          </div>
+          <div class="sales-history-table-wrap" id="sales-history-content" aria-live="polite">
+            <p class="sales-history-loading">Đang tải lịch sử…</p>
           </div>
         </div>
       </section>
@@ -149,7 +167,13 @@ function switchMode(mode) {
     panel.hidden = panel.dataset.assistantPanel !== mode;
   });
   const title = document.querySelector("#sales-assistant-title");
-  if (title) title.textContent = mode === "appointment" ? "Hẹn khách xem phòng" : "Tóm tắt thông tin phòng";
+  const titles = {
+    appointment: "Hẹn khách xem phòng",
+    summary: "Tóm tắt thông tin phòng",
+    history: "Lịch sử hẹn khách",
+  };
+  if (title) title.textContent = titles[mode] || titles.appointment;
+  if (mode === "history") loadViewingHistory();
 }
 
 function vietnamDatetimeLocal(isoValue) {
@@ -240,13 +264,11 @@ function resetAppointment() {
 
 function appointmentErrorMessage(code) {
   const messages = {
-    VIEWING_CUSTOMER_REQUIRED: "Vui lòng nhập tên khách.",
     VIEWING_ADDRESS_REQUIRED: "Vui lòng nhập địa chỉ xem phòng.",
     VIEWING_TIME_REQUIRED: "Vui lòng chọn thời gian hẹn.",
     VIEWING_TIME_IN_PAST: "Thời gian hẹn đã qua. Hãy chọn lại.",
-    SHEETS_AUTHORIZATION_REQUIRED: "Cần kết nối Google Sheets trước khi lưu lịch.",
-    SHEETS_WRITE_AUTHORIZATION_REQUIRED: "Joy chưa có quyền ghi vào Google Sheets.",
-    SALE_SHEET_ACCESS_DENIED: "Joy không có quyền ghi vào Sheet Appointments.",
+    VIEWING_TIME_TOO_FAR: "Joy chỉ nhận lịch trong vòng 1 năm tới.",
+    AUTH_REQUIRED: "Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại Joy.",
   };
   return messages[code] || "Joy chưa thể lưu lịch. Hãy thử lại.";
 }
@@ -258,7 +280,7 @@ async function saveAppointment(event) {
   const payload = appointmentFormPayload();
   if (!payload || !form.reportValidity()) return;
   save.disabled = true;
-  showAppointmentStatus("Đang lưu vào Appointments…", "loading");
+  showAppointmentStatus("Đang lưu lịch vào Joy…", "loading");
 
   try {
     const response = await fetch("/api/sales/viewings", {
@@ -269,11 +291,94 @@ async function saveAppointment(event) {
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw Object.assign(new Error(result.error || "VIEWING_CREATE_FAILED"), { code: result.error });
-    showAppointmentStatus(`Đã lưu lịch với ${result.viewing.customerName} · ${formatVietnamViewingTime(result.viewing.viewingAt)}.`, "success");
-    window.setTimeout(() => window.location.reload(), 1100);
+    historyLoaded = false;
+    showAppointmentStatus(`${result.message} ${result.viewing.customerName} · ${formatVietnamViewingTime(result.viewing.viewingAt)}.`, "success");
+    window.setTimeout(() => window.location.reload(), 1200);
   } catch (error) {
     showAppointmentStatus(appointmentErrorMessage(error.code), "error");
     save.disabled = false;
+  }
+}
+
+function historyStatusLabel(status) {
+  if (status === "upcoming") return "Sắp tới";
+  if (status === "cancelled") return "Đã huỷ";
+  return "Đã qua";
+}
+
+function notificationLabel(viewing, kind) {
+  const notified = kind === "reminder" ? viewing.reminderNotifiedAt : viewing.followupNotifiedAt;
+  const scheduled = kind === "reminder" ? viewing.reminderAt : viewing.followupAt;
+  if (notified) return "Đã gửi";
+  if (!scheduled) return kind === "reminder" ? "Không nhắc" : "—";
+  if (viewing.status === "cancelled") return "Đã huỷ";
+  return "Chờ gửi";
+}
+
+function renderViewingHistory(history) {
+  const content = document.querySelector("#sales-history-content");
+  const count = document.querySelector("#sales-history-count");
+  if (!content || !count) return;
+  count.textContent = `${history.length} lịch hẹn`;
+
+  if (!history.length) {
+    const empty = document.createElement("p");
+    empty.className = "sales-history-empty";
+    empty.textContent = "Chưa có lịch hẹn nào trong Joy.";
+    content.replaceChildren(empty);
+    return;
+  }
+
+  const table = document.createElement("table");
+  table.className = "sales-history-table";
+  const head = document.createElement("thead");
+  const headRow = document.createElement("tr");
+  ["Thời gian", "Khách", "SĐT", "Địa chỉ", "Trạng thái", "Nhắc 30p", "Follow-up"].forEach((label) => {
+    const th = document.createElement("th");
+    th.scope = "col";
+    th.textContent = label;
+    headRow.append(th);
+  });
+  head.append(headRow);
+
+  const body = document.createElement("tbody");
+  history.forEach((viewing) => {
+    const row = document.createElement("tr");
+    row.dataset.status = viewing.status;
+    [
+      formatVietnamViewingTime(viewing.viewingAt),
+      viewing.customerName || "—",
+      viewing.phone || "—",
+      viewing.viewingAddress || "—",
+      historyStatusLabel(viewing.status),
+      notificationLabel(viewing, "reminder"),
+      notificationLabel(viewing, "followup"),
+    ].forEach((value) => {
+      const cell = document.createElement("td");
+      cell.textContent = value;
+      row.append(cell);
+    });
+    body.append(row);
+  });
+  table.append(head, body);
+  content.replaceChildren(table);
+}
+
+async function loadViewingHistory({ force = false } = {}) {
+  if (historyLoaded && !force) return;
+  const content = document.querySelector("#sales-history-content");
+  const count = document.querySelector("#sales-history-count");
+  if (content) content.textContent = "Đang tải lịch sử…";
+  if (count) count.textContent = "Đang tải…";
+  try {
+    const response = await fetch("/api/sales/viewings", { credentials: "same-origin" });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || "VIEWING_HISTORY_FAILED");
+    renderViewingHistory(Array.isArray(payload.history) ? payload.history : []);
+    historyLoaded = true;
+  } catch {
+    if (content) content.textContent = "Joy chưa tải được lịch sử. Hãy thử lại.";
+    if (count) count.textContent = "Không tải được";
   }
 }
 
@@ -299,6 +404,7 @@ async function initializeSalesAssistant() {
   document.querySelector("#sale-appointment-input")?.addEventListener("keydown", (event) => {
     if ((event.ctrlKey || event.metaKey) && event.key === "Enter") parseAppointment();
   });
+  document.querySelector("#sales-history-refresh")?.addEventListener("click", () => loadViewingHistory({ force: true }));
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !document.querySelector("#sales-assistant-modal")?.hidden) closeAssistant();
