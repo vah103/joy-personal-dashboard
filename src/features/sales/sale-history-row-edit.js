@@ -17,6 +17,42 @@ function startRowEdit(row) {
   row?.querySelector(EDIT_CONTROL_SELECTOR)?.click();
 }
 
+function combinedReminderLabel(status, reminder, followup) {
+  if (status === "Đã huỷ") return "Đã huỷ";
+  if (followup === "Đã gửi") return "Đã follow-up";
+  if (status === "Đã qua" && followup === "Chờ gửi") return "Chờ follow-up";
+  if (status === "Sắp tới" && reminder === "Đã gửi") return "Đã nhắc";
+  if (status === "Sắp tới" && reminder === "Chờ gửi") return "Chờ nhắc";
+  if (status === "Sắp tới" && reminder === "Không nhắc") return "Không nhắc trước";
+  if (reminder === "Đã gửi") return "Đã nhắc";
+  if (followup === "Chờ gửi") return "Chờ follow-up";
+  return "—";
+}
+
+function mergeReminderColumns(content) {
+  const table = content.querySelector(".sales-history-table");
+  if (!table) return;
+
+  const headers = [...table.querySelectorAll("thead th")];
+  if (headers.length >= 8) {
+    headers[5].textContent = "Nhắc";
+    headers[6].remove();
+  }
+
+  table.querySelectorAll("tbody tr").forEach((row) => {
+    if (row.dataset.reminderMerged === "true") return;
+    const cells = [...row.children];
+    if (cells.length < 8) return;
+
+    const status = cells[4].textContent.trim();
+    const reminder = cells[5].textContent.trim();
+    const followup = cells[6].textContent.trim();
+    cells[5].textContent = combinedReminderLabel(status, reminder, followup);
+    cells[6].remove();
+    row.dataset.reminderMerged = "true";
+  });
+}
+
 function decorateDisplayRows(content) {
   content.querySelectorAll(DISPLAY_ROW_SELECTOR).forEach((row) => {
     if (!row.querySelector(EDIT_CONTROL_SELECTOR)) return;
@@ -96,6 +132,7 @@ function decorateEditRow(content) {
 }
 
 function decorateRows(content) {
+  mergeReminderColumns(content);
   decorateDisplayRows(content);
   decorateEditRow(content);
 }
