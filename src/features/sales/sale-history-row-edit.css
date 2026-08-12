@@ -99,13 +99,35 @@
   box-shadow: inset 0 0 0 2px rgba(64, 92, 101, .16);
 }
 
+.sales-history-table tbody tr[data-commission-state="pending"],
+.sales-history-table tbody tr[data-commission-state="pending"]:hover,
+.sales-history-table tbody tr[data-commission-state="pending"]:focus {
+  background: #fff9e7;
+  box-shadow: inset 3px 0 0 rgba(181, 145, 54, .28);
+}
+
+.sales-history-table tbody tr[data-commission-state="received"],
+.sales-history-table tbody tr[data-commission-state="received"]:hover,
+.sales-history-table tbody tr[data-commission-state="received"]:focus {
+  background: #eef8f0;
+  box-shadow: inset 3px 0 0 rgba(73, 133, 87, .28);
+}
+
+.sales-history-table tbody tr[data-commission-state="pending"] > td:last-child {
+  background: #fff9e7;
+}
+
+.sales-history-table tbody tr[data-commission-state="received"] > td:last-child {
+  background: #eef8f0;
+}
+
 .sales-history-table tbody tr[data-history-editable="true"]:hover > td:last-child,
 .sales-history-table tbody tr[data-history-editable="true"]:focus > td:last-child {
   background: inherit;
 }
 
 .sales-history-table tbody tr.sales-history-edit-row > .sales-history-actions-cell {
-  min-width: 132px;
+  min-width: 196px;
 }
 
 .sales-history-edit-row .sales-history-cancel-button {
@@ -113,20 +135,24 @@
 }
 
 .sales-history-edit-row .sales-history-edit-controls {
-  grid-template-columns: auto auto;
+  grid-template-columns: auto auto auto;
   justify-content: end;
 }
 
-.sales-history-delete-button {
+.sales-history-delete-button,
+.sales-history-close-button {
   min-height: 34px;
   padding: 0 12px;
-  border: 1px solid rgba(143, 81, 70, .22);
   border-radius: 10px;
-  color: #8a554c;
-  background: rgba(255, 255, 255, .88);
   font: inherit;
   font-size: 11px;
   font-weight: 850;
+}
+
+.sales-history-delete-button {
+  border: 1px solid rgba(143, 81, 70, .22);
+  color: #8a554c;
+  background: rgba(255, 255, 255, .88);
 }
 
 .sales-history-delete-button:hover {
@@ -135,9 +161,34 @@
   background: #fff8f6;
 }
 
-.sales-history-delete-button:disabled {
-  cursor: wait;
-  opacity: .55;
+.sales-history-close-button {
+  border: 1px solid rgba(154, 122, 43, .26);
+  color: #78612d;
+  background: #fffaf0;
+}
+
+.sales-history-close-button:hover {
+  border-color: rgba(154, 122, 43, .42);
+  color: #654f20;
+  background: #fff6df;
+}
+
+.sales-history-close-button[data-commission-state="pending"] {
+  border-color: rgba(172, 133, 37, .36);
+  color: #765c1f;
+  background: #fff4cf;
+}
+
+.sales-history-close-button[data-commission-state="received"] {
+  border-color: rgba(68, 126, 82, .28);
+  color: #416f4b;
+  background: #edf7ef;
+}
+
+.sales-history-delete-button:disabled,
+.sales-history-close-button:disabled {
+  cursor: default;
+  opacity: .62;
 }
 
 @media (max-width: 700px) {

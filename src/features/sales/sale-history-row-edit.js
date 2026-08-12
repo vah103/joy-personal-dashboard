@@ -2,6 +2,10 @@ const HISTORY_CONTENT_SELECTOR = "#sales-history-content";
 const DISPLAY_ROW_SELECTOR = ".sales-history-table tbody tr:not(.sales-history-edit-row)";
 const EDIT_CONTROL_SELECTOR = '[data-action="edit-sale-viewing"]';
 const CANCEL_CONTROL_SELECTOR = '[data-action="cancel-sale-viewing-edit"]';
+const COMMISSION_ENDPOINT = "/api/sales/viewings/commission";
+
+let commissionStates = new Map();
+let commissionSyncPromise = null;
 
 function isCoarsePointer() {
   return window.matchMedia?.("(pointer: coarse)")?.matches === true;
@@ -19,6 +23,55 @@ function startRowEdit(row) {
 
 function refreshHistory() {
   document.querySelector("#sales-history-refresh")?.click();
+}
+
+function viewingIdForRow(row) {
+  return String(
+    row?.dataset.viewingId
+    || row?.querySelector(EDIT_CONTROL_SELECTOR)?.dataset.viewingId
+    || "",
+  ).trim();
+}
+
+function commissionStateForRow(row) {
+  return commissionStates.get(viewingIdForRow(row)) || "none";
+}
+
+function applyCommissionState(row) {
+  const state = commissionStateForRow(row);
+  row.dataset.commissionState = state;
+  const button = row.querySelector(".sales-history-close-button");
+  if (!button) return;
+  button.dataset.commissionState = state;
+  button.disabled = state === "received";
+  button.title = state === "pending"
+    ? "Đã chốt, chưa nhận hoa hồng. Bấm lần nữa khi đã nhận tiền."
+    : state === "received"
+      ? "Đã nhận hoa hồng."
+      : "Chốt khách này.";
+}
+
+async function syncCommissionStates() {
+  if (commissionSyncPromise) return commissionSyncPromise;
+  commissionSyncPromise = (async () => {
+    try {
+      const response = await fetch(COMMISSION_ENDPOINT, { credentials: "same-origin" });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "VIEWING_COMMISSION_LOAD_FAILED");
+      commissionStates = new Map(
+        (Array.isArray(payload.states) ? payload.states : [])
+          .filter((item) => item?.viewingId && ["pending", "received"].includes(item.state))
+          .map((item) => [String(item.viewingId), item.state]),
+      );
+      const content = document.querySelector(HISTORY_CONTENT_SELECTOR);
+      if (content) decorateRows(content);
+    } catch {
+      // Commission color is helpful metadata; history remains usable if it cannot load.
+    } finally {
+      commissionSyncPromise = null;
+    }
+  })();
+  return commissionSyncPromise;
 }
 
 function combinedReminderLabel(status, reminder, followup) {
@@ -60,6 +113,7 @@ function mergeReminderColumns(content) {
 function decorateDisplayRows(content) {
   content.querySelectorAll(DISPLAY_ROW_SELECTOR).forEach((row) => {
     if (!row.querySelector(EDIT_CONTROL_SELECTOR)) return;
+    applyCommissionState(row);
     row.dataset.historyEditable = "true";
     row.tabIndex = 0;
     row.setAttribute(
@@ -105,6 +159,7 @@ async function deleteViewing(row, button) {
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || "VIEWING_DELETE_FAILED");
+    commissionStates.delete(id);
     refreshHistory();
   } catch {
     row.querySelectorAll("button").forEach((control) => { control.disabled = false; });
@@ -113,9 +168,44 @@ async function deleteViewing(row, button) {
   }
 }
 
+async function advanceCommissionState(row, button) {
+  const id = viewingIdForRow(row);
+  if (!id || commissionStateForRow(row) === "received") return;
+
+  button.disabled = true;
+  setDeleteMessage(row, "Đang cập nhật trạng thái chốt…");
+
+  try {
+    const response = await fetch(COMMISSION_ENDPOINT, {
+      method: "PATCH",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || "VIEWING_COMMISSION_UPDATE_FAILED");
+
+    const state = ["pending", "received"].includes(payload.state) ? payload.state : "none";
+    if (state === "none") throw new Error("VIEWING_COMMISSION_STATE_INVALID");
+    commissionStates.set(id, state);
+    applyCommissionState(row);
+    setDeleteMessage(
+      row,
+      state === "pending"
+        ? "Đã chốt · chưa nhận hoa hồng."
+        : "Đã nhận hoa hồng.",
+    );
+  } catch {
+    button.disabled = false;
+    setDeleteMessage(row, "Chưa cập nhật được trạng thái chốt. Hãy thử lại.");
+  }
+}
+
 function decorateEditRow(content) {
   const row = editRow(content);
-  if (!row || row.dataset.deleteReady === "true") return;
+  if (!row) return;
+  applyCommissionState(row);
+  if (row.dataset.deleteReady === "true") return;
   row.dataset.deleteReady = "true";
 
   const controls = row.querySelector(".sales-history-edit-controls");
@@ -132,7 +222,19 @@ function decorateEditRow(content) {
     event.stopPropagation();
     deleteViewing(row, remove);
   });
+
+  const close = document.createElement("button");
+  close.type = "button";
+  close.className = "sales-history-close-button";
+  close.textContent = "Chốt";
+  close.addEventListener("click", (event) => {
+    event.stopPropagation();
+    advanceCommissionState(row, close);
+  });
+
   controls.insertBefore(remove, save);
+  controls.insertBefore(close, save);
+  applyCommissionState(row);
 }
 
 function decorateRows(content) {
@@ -189,14 +291,20 @@ function installHistoryRowEditing() {
   document.addEventListener("click", (event) => {
     const historyTab = event.target.closest?.('[data-assistant-mode="history"]');
     if (historyTab) {
-      window.setTimeout(refreshHistory, 0);
+      window.setTimeout(() => {
+        refreshHistory();
+        syncCommissionStates();
+      }, 0);
     }
 
     const assistantLauncher = event.target.closest?.('[data-action="open-sales-assistant"]');
     if (assistantLauncher) {
       window.setTimeout(() => {
         const historyPanel = document.querySelector('[data-assistant-panel="history"]');
-        if (historyPanel && !historyPanel.hidden) refreshHistory();
+        if (historyPanel && !historyPanel.hidden) {
+          refreshHistory();
+          syncCommissionStates();
+        }
       }, 0);
     }
 
