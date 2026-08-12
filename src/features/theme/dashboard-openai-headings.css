@@ -137,10 +137,10 @@
   white-space: nowrap;
 }
 
-/* Sale Assistant uses one clean sans family and a quieter, integrated header. */
+/* Sale Assistant uses one fully loaded sans family so Vietnamese diacritics stay consistent. */
 .sales-assistant-modal,
 .sales-assistant-modal :is(h1, h2, h3, p, span, small, strong, label, button, input, textarea, select, table, th, td) {
-  font-family: "Nunito", "Instrument Sans", "Segoe UI", Arial, sans-serif !important;
+  font-family: "Instrument Sans", "Segoe UI", Arial, sans-serif !important;
   font-synthesis: none;
 }
 
@@ -169,7 +169,7 @@
   margin: 0 0 5px;
   color: #527078;
   font-size: 10px;
-  font-weight: 900;
+  font-weight: 700;
   letter-spacing: .15em;
   line-height: 1.2;
   text-transform: uppercase;
@@ -178,9 +178,9 @@
 .sales-assistant-modal .sales-assistant-heading h2 {
   margin: 0;
   color: #233d45;
-  font-family: "Nunito", "Instrument Sans", "Segoe UI", Arial, sans-serif !important;
+  font-family: "Instrument Sans", "Segoe UI", Arial, sans-serif !important;
   font-size: 26px !important;
-  font-weight: 850 !important;
+  font-weight: 700 !important;
   letter-spacing: -.035em !important;
   line-height: 1.12 !important;
 }
@@ -238,7 +238,7 @@
   color: #6c7d82;
   background: transparent;
   font-size: 12.5px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -.012em;
   box-shadow: none;
   transition: color .16s ease, background .16s ease, border-color .16s ease, transform .16s ease;
