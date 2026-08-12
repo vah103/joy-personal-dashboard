@@ -62,6 +62,10 @@
   width: 28%;
 }
 
+.sales-history-table tbody tr:not(.sales-history-edit-row) > td:nth-child(4) {
+  text-transform: capitalize;
+}
+
 .sales-history-table th:nth-child(5),
 .sales-history-table td:nth-child(5) {
   width: 12%;
