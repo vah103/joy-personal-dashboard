@@ -102,23 +102,23 @@
 .sales-history-table tbody tr[data-commission-state="pending"],
 .sales-history-table tbody tr[data-commission-state="pending"]:hover,
 .sales-history-table tbody tr[data-commission-state="pending"]:focus {
-  background: #fff9e7;
-  box-shadow: inset 3px 0 0 rgba(181, 145, 54, .28);
+  background: #fff3cf;
+  box-shadow: inset 3px 0 0 rgba(181, 145, 54, .40);
 }
 
 .sales-history-table tbody tr[data-commission-state="received"],
 .sales-history-table tbody tr[data-commission-state="received"]:hover,
 .sales-history-table tbody tr[data-commission-state="received"]:focus {
-  background: #eef8f0;
-  box-shadow: inset 3px 0 0 rgba(73, 133, 87, .28);
+  background: #e2f3e6;
+  box-shadow: inset 3px 0 0 rgba(73, 133, 87, .40);
 }
 
 .sales-history-table tbody tr[data-commission-state="pending"] > td:last-child {
-  background: #fff9e7;
+  background: #fff3cf;
 }
 
 .sales-history-table tbody tr[data-commission-state="received"] > td:last-child {
-  background: #eef8f0;
+  background: #e2f3e6;
 }
 
 .sales-history-table tbody tr[data-history-editable="true"]:hover > td:last-child,
@@ -174,15 +174,15 @@
 }
 
 .sales-history-close-button[data-commission-state="pending"] {
-  border-color: rgba(172, 133, 37, .36);
-  color: #765c1f;
-  background: #fff4cf;
+  border-color: rgba(172, 133, 37, .44);
+  color: #765616;
+  background: #ffe9aa;
 }
 
 .sales-history-close-button[data-commission-state="received"] {
-  border-color: rgba(68, 126, 82, .28);
-  color: #416f4b;
-  background: #edf7ef;
+  border-color: rgba(68, 126, 82, .38);
+  color: #356740;
+  background: #d7eddd;
 }
 
 .sales-history-delete-button:disabled,
