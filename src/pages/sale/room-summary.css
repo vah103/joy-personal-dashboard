@@ -185,6 +185,52 @@
   font-weight: 500;
 }
 
+.room-share-room-pricing {
+  margin: 1px 0 0;
+  padding: 0;
+}
+.room-share-room-pricing > h4 {
+  margin: 0 0 9px;
+  color: #171717;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+.room-share-price-list {
+  margin: 0;
+  padding-left: 24px;
+  color: #171717;
+}
+.room-share-price-list li {
+  margin-top: 5px;
+  padding-left: 2px;
+  font-size: 15px;
+  line-height: 1.52;
+  overflow-wrap: anywhere;
+}
+.room-share-price-list li:first-child { margin-top: 0; }
+.room-share-price-value { font-weight: 750; }
+.room-share-price-rooms { font-weight: 500; }
+.room-share-room-pricing-multi {
+  padding: 1px 0 0;
+}
+.room-share-availability-group {
+  margin-top: 13px;
+  padding-left: 13px;
+  border-left: 2px solid #dbe4e2;
+}
+.room-share-availability-group:first-of-type { margin-top: 7px; }
+.room-share-availability-group h5 {
+  margin: 0 0 7px;
+  color: #42585e;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+.room-share-availability-group .room-share-price-list {
+  padding-left: 21px;
+}
+
 .room-share-section {
   margin-top: 28px;
 }
@@ -269,6 +315,9 @@
   }
   .room-share-details { gap: 15px; }
   .room-share-detail-row { font-size: 15px; }
+  .room-share-room-pricing > h4 { font-size: 15px; }
+  .room-share-price-list li { font-size: 14px; }
+  .room-share-availability-group h5 { font-size: 13px; }
   .room-share-section { margin-top: 25px; }
   .room-share-section-title { font-size: 16px; }
   .room-share-services li,
