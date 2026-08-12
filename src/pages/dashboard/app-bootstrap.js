@@ -216,13 +216,21 @@ document.addEventListener("visibilitychange", () => {
 const SALE_ROOM_SUMMARY_AI_ENDPOINT = "/api/sales/room-summary/polish";
 const SALE_ROOM_SERVICE_KEYS = Object.freeze({
   "điện": "electricity",
+  electricity: "electricity",
   "nước": "water",
+  water: "water",
   "mạng": "internet",
+  internet: "internet",
   "dịch vụ chung": "common",
+  "common services": "common",
   "gửi xe": "parking",
+  parking: "parking",
   "tủ lạnh": "fridge",
+  fridge: "fridge",
   "giặt sấy": "laundry",
+  laundry: "laundry",
   "khác": "other",
+  other: "other",
 });
 let saleRoomAiRequestSequence = 0;
 
@@ -239,16 +247,18 @@ function setSaleRoomPreviewStatus(message) {
   if (status) status.textContent = message;
 }
 
-function roomSummarySection(card, label) {
+function roomSummarySection(card, labels) {
+  const accepted = (Array.isArray(labels) ? labels : [labels]).map(normalizedRoomLabel);
   return [...card.querySelectorAll(".room-share-section")].find((section) => (
-    normalizedRoomLabel(section.querySelector(".room-share-section-title")?.textContent) === normalizedRoomLabel(label)
+    accepted.includes(normalizedRoomLabel(section.querySelector(".room-share-section-title")?.textContent))
   )) || null;
 }
 
 function roomSummaryFurniture(card) {
-  const row = [...card.querySelectorAll(".room-share-detail-row")].find((item) => (
-    normalizedRoomLabel(item.querySelector("strong")?.textContent) === "nội thất"
-  ));
+  const row = [...card.querySelectorAll(".room-share-detail-row")].find((item) => {
+    const label = normalizedRoomLabel(item.querySelector("strong")?.textContent);
+    return label === "nội thất" || label === "furniture";
+  });
   return {
     row,
     value: row?.querySelector(".room-share-detail-value")?.textContent?.trim() || "",
@@ -281,7 +291,7 @@ function editableRoomText(className, value) {
 
 function applySaleRoomServices(card, services) {
   if (!Array.isArray(services)) return;
-  const section = roomSummarySection(card, "Dịch vụ");
+  const section = roomSummarySection(card, ["Services", "Dịch vụ"]);
   const list = section?.querySelector(".room-share-services");
   if (!list) return;
   list.replaceChildren();
@@ -298,7 +308,7 @@ function applySaleRoomServices(card, services) {
 
 function applySaleRoomNotes(card, notes) {
   if (!Array.isArray(notes)) return;
-  const section = roomSummarySection(card, "Lưu ý");
+  const section = roomSummarySection(card, ["Notes", "Lưu ý"]);
   const list = section?.querySelector(".room-share-notes");
   if (!list) return;
   list.replaceChildren();
@@ -331,7 +341,7 @@ async function runSaleRoomAiPolish(sequence) {
   const rawSnapshot = input.value;
   const summary = collectSaleRoomPolishInput(card);
   if (!summary) return;
-  setSaleRoomPreviewStatus("AI đang kiểm tra chính tả…");
+  setSaleRoomPreviewStatus("AI is polishing the text…");
 
   try {
     const response = await fetch(SALE_ROOM_SUMMARY_AI_ENDPOINT, {
@@ -343,14 +353,14 @@ async function runSaleRoomAiPolish(sequence) {
     const payload = await response.json().catch(() => ({}));
     if (sequence !== saleRoomAiRequestSequence || input.value !== rawSnapshot) return;
     if (!response.ok || !payload.applied || !payload.polish) {
-      setSaleRoomPreviewStatus("Sẵn sàng chụp màn hình");
+      setSaleRoomPreviewStatus("Ready to screenshot");
       return;
     }
     applySaleRoomAiPolish(card, payload.polish);
-    setSaleRoomPreviewStatus("Đã kiểm tra chính tả bằng AI");
+    setSaleRoomPreviewStatus("AI polish complete");
   } catch {
     if (sequence === saleRoomAiRequestSequence && input.value === rawSnapshot) {
-      setSaleRoomPreviewStatus("Sẵn sàng chụp màn hình");
+      setSaleRoomPreviewStatus("Ready to screenshot");
     }
   }
 }
@@ -364,3 +374,5 @@ document.addEventListener("click", (event) => {
   const sequence = ++saleRoomAiRequestSequence;
   window.setTimeout(() => runSaleRoomAiPolish(sequence), 0);
 });
+
+import("/sale-english-ui.js?v=joy-sale-english-ui-v1").catch(() => {});

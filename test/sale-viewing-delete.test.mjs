@@ -11,14 +11,14 @@ test("Sale history keeps compact edit controls and commission stages", async () 
     readFile(new URL("../migrations/20260812_sale_viewing_commission_state.sql", import.meta.url), "utf8"),
   ]);
 
-  assert.match(interaction, /textContent = "Xóa"/);
-  assert.match(interaction, /textContent = "Chốt"/);
+  assert.match(interaction, /textContent = "Delete"/);
+  assert.match(interaction, /textContent = "Close deal"/);
   assert.match(interaction, /method: "DELETE"/);
   assert.match(interaction, /method: "PATCH"/);
   assert.match(interaction, /COMMISSION_ENDPOINT/);
   assert.match(interaction, /commissionStates\.set\(id, state\)/);
-  assert.match(interaction, /state === "pending"[\s\S]*?Đã chốt · chưa nhận hoa hồng/);
-  assert.match(interaction, /Đã nhận hoa hồng/);
+  assert.match(interaction, /state === "pending"[\s\S]*?Closed · commission pending/);
+  assert.match(interaction, /Commission received/);
   assert.match(interaction, /document\.addEventListener\("click"/);
   assert.match(interaction, /cancelEditing\(content\)/);
   assert.match(
@@ -26,12 +26,12 @@ test("Sale history keeps compact edit controls and commission stages", async () 
     /event\.target\.closest\?\.\(EDIT_CONTROL_SELECTOR\)\) return;/,
     "the synthetic hidden Edit click must not be mistaken for an outside click",
   );
-  assert.match(interaction, /headers\[5\]\.textContent = "Nhắc"/);
+  assert.match(interaction, /headers\[5\]\.textContent = "Reminder"/);
   assert.match(interaction, /headers\[6\]\.remove\(\)/);
-  assert.match(interaction, /return "Chờ nhắc"/);
-  assert.match(interaction, /return "Đã nhắc"/);
-  assert.match(interaction, /return "Chờ follow-up"/);
-  assert.match(interaction, /return "Đã follow-up"/);
+  assert.match(interaction, /return "Reminder pending"/);
+  assert.match(interaction, /return "Reminder sent"/);
+  assert.match(interaction, /return "Follow-up pending"/);
+  assert.match(interaction, /return "Follow-up sent"/);
   assert.match(interaction, /function refreshHistory\(\)/);
   assert.match(interaction, /data-assistant-mode=\"history\"/);
   assert.match(interaction, /syncCommissionStates\(\)/);

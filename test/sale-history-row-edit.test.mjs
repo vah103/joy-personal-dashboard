@@ -16,6 +16,6 @@ test("Sale history edits from the row instead of a persistent action column", as
   assert.match(build, /resolve\(salesFeatures, "sale-history-row-edit\.css"\)/);
   assert.match(interactions, /addEventListener\("dblclick"/);
   assert.match(interactions, /\(pointer: coarse\)/);
-  assert.match(interactions, /Nhấp đúp vào một dòng để chỉnh sửa/);
+  assert.match(interactions, /Double-click a row to edit it/);
   assert.match(styles, /tr:not\(\.sales-history-edit-row\) > \.sales-history-actions-cell\s*\{\s*display:\s*none;/s);
 });
