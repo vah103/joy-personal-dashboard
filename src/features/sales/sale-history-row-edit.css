@@ -8,11 +8,43 @@
 }
 
 .sales-history-table {
-  min-width: 920px;
+  min-width: 960px;
+}
+
+.sales-history-table th:nth-child(1),
+.sales-history-table td:nth-child(1) {
+  width: 17%;
+}
+
+.sales-history-table th:nth-child(2),
+.sales-history-table td:nth-child(2) {
+  width: 15%;
+}
+
+.sales-history-table th:nth-child(3),
+.sales-history-table td:nth-child(3) {
+  width: 14%;
+}
+
+.sales-history-table th:nth-child(4),
+.sales-history-table td:nth-child(4) {
+  width: 28%;
+}
+
+.sales-history-table th:nth-child(5),
+.sales-history-table td:nth-child(5) {
+  width: 12%;
+  min-width: 112px;
+  text-align: center;
 }
 
 .sales-history-table th:nth-child(6),
 .sales-history-table td:nth-child(6) {
+  width: 14%;
+  min-width: 132px;
+  padding-left: 18px;
+  padding-right: 22px;
+  text-align: center;
   white-space: nowrap;
 }
 
