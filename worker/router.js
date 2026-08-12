@@ -65,6 +65,10 @@ import {
   runReliableReminderSchedule,
 } from "./reminder-delivery.js";
 import {
+  handleSaleViewingDeleteRequest,
+  isSaleViewingDeleteRoute,
+} from "./sale-viewing-delete.js";
+import {
   handleSaleViewingRequest,
   isSaleViewingRoute,
   runSaleViewingSchedule,
@@ -218,6 +222,9 @@ export default {
       }
       if (isTaskImportRoute(pathname)) {
         return handleTaskImportRequest(request, env);
+      }
+      if (isSaleViewingDeleteRoute(pathname)) {
+        return handleSaleViewingDeleteRequest(request, env);
       }
       if (isSaleViewingRoute(pathname)) {
         return handleSaleViewingRequest(request, env);
