@@ -1,7 +1,38 @@
+.sales-history-heading {
+  margin: 0 0 10px;
+  padding: 0 2px;
+  min-height: 0;
+  align-items: baseline;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.sales-history-heading > div {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.sales-history-heading > div > small:first-child,
+#sales-history-refresh {
+  display: none !important;
+}
+
+#sales-history-count {
+  margin: 0;
+  color: #536970;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
 .sales-history-edit-hint {
-  display: block;
-  margin-top: 5px;
-  color: #819096;
+  display: inline;
+  margin: 0;
+  color: #8a979b;
   font-size: 10px;
   font-weight: 650;
   line-height: 1.35;
@@ -110,6 +141,11 @@
 }
 
 @media (max-width: 700px) {
+  .sales-history-heading > div {
+    flex-wrap: wrap;
+    gap: 4px 8px;
+  }
+
   .sales-history-edit-hint {
     font-size: 10px;
   }
