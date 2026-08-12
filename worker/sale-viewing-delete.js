@@ -1,15 +1,24 @@
 import { isSameOrigin, json } from "./shared/http.js";
 import { getSession } from "./shared/session.js";
+import {
+  handleSaleRoomSummaryAiRequest,
+  SALE_ROOM_SUMMARY_AI_PATH,
+} from "./sale-room-summary-ai.js";
 
 const DELETE_PATH = "/api/sales/viewings/delete";
 const COMMISSION_PATH = "/api/sales/viewings/commission";
 
 export function isSaleViewingDeleteRoute(pathname) {
-  return pathname === DELETE_PATH || pathname === COMMISSION_PATH;
+  return pathname === DELETE_PATH
+    || pathname === COMMISSION_PATH
+    || pathname === SALE_ROOM_SUMMARY_AI_PATH;
 }
 
 export async function handleSaleViewingDeleteRequest(request, env) {
   const pathname = new URL(request.url).pathname;
+  if (pathname === SALE_ROOM_SUMMARY_AI_PATH) {
+    return handleSaleRoomSummaryAiRequest(request, env);
+  }
   if (pathname === COMMISSION_PATH) {
     return handleSaleViewingCommissionRequest(request, env);
   }
