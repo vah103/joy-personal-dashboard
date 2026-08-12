@@ -473,6 +473,157 @@ function extractGroupedPriceRooms(value) {
   return rooms;
 }
 
+function roomCode(room) {
+  return String(room?.title || "").replace(/^Phòng\s+/iu, "").trim();
+}
+
+function priceSortValue(value) {
+  const clean = normalizeSearch(value).replace(/\s+/g, "").replace(",", ".");
+  const million = clean.match(/^(\d+)(?:\.(\d+))?tr(\d*)/u);
+  if (million) {
+    if (million[2]) return Number(`${million[1]}.${million[2]}`) * 1_000_000;
+    if (million[3]) return Number(`${million[1]}.${million[3]}`) * 1_000_000;
+    return Number(million[1]) * 1_000_000;
+  }
+  const thousand = clean.match(/^(\d+(?:\.\d+)?)k/u);
+  return thousand ? Number(thousand[1]) * 1_000 : Number.POSITIVE_INFINITY;
+}
+
+function groupRoomsByPrice(rooms) {
+  const groups = new Map();
+  for (const room of rooms) {
+    const price = String(room.price || "Chưa rõ giá").trim();
+    const key = normalizeSearch(price);
+    if (!groups.has(key)) groups.set(key, { price, rooms: [] });
+    groups.get(key).rooms.push(roomCode(room));
+  }
+  return [...groups.values()].sort((a, b) => priceSortValue(a.price) - priceSortValue(b.price));
+}
+
+function availabilityMoment(value) {
+  const clean = normalizePunctuationSpacing(stripDecorations(value)).replace(/\s*\/\s*/g, "/").trim();
+  const normalized = normalizeSearch(clean);
+  const date = clean.match(/^\d{1,2}\/\d{1,2}(?:\/\d{2,4})?$/u);
+  if (date) return { key: `date:${date[0]}`, label: `Từ ${date[0]}`, summary: `Trống từ ${date[0]}` };
+  if (/^(?:vao luon|o ngay|vao o ngay|co the vao o ngay)$/u.test(normalized)) {
+    return { key: "now", label: "Vào luôn", summary: "Vào luôn" };
+  }
+  if (/^(?:dang trong|san phong|phong dang san)$/u.test(normalized)) {
+    return { key: "available", label: "Đang trống", summary: "Đang trống" };
+  }
+  return clean ? { key: `text:${normalized}`, label: capitalizeFirst(clean), summary: capitalizeFirst(clean) } : null;
+}
+
+function resolveRoomCodes(value, rooms) {
+  const known = new Map();
+  let usesPrefix = false;
+  for (const room of rooms) {
+    const code = roomCode(room);
+    if (/^P/iu.test(code)) usesPrefix = true;
+    known.set(normalizeSearch(code.replace(/^P/iu, "")), code);
+  }
+  const matches = String(value || "").match(/\bP?\d{2,4}[A-Za-z]?\b/giu) || [];
+  const result = [];
+  for (const rawCode of matches) {
+    const base = rawCode.replace(/^P/iu, "");
+    const resolved = known.get(normalizeSearch(base)) || `${usesPrefix ? "P" : ""}${base}`;
+    if (!result.some((code) => normalizeSearch(code) === normalizeSearch(resolved))) result.push(resolved);
+  }
+  return result;
+}
+
+function extractAvailabilityMoments(rawInput, rooms) {
+  const dateSource = String.raw`\d{1,2}\s*\/\s*\d{1,2}(?:\s*\/\s*\d{2,4})?`;
+  const immediateSource = String.raw`(?:vào\s*luôn|vao\s*luon|ở\s*ngay|o\s*ngay|vào\s*ở\s*ngay|vao\s*o\s*ngay|đang\s*trống|dang\s*trong|sẵn\s*phòng|san\s*phong)`;
+  const patterns = [
+    new RegExp(`^(${dateSource})\\s+(?:trống|trong)\\s*[:：-]?\\s*(.*)$`, "iu"),
+    new RegExp(`^(${immediateSource})\\s*[:：-]?\\s*(.*)$`, "iu"),
+    new RegExp(`^(?:trống|trong|phòng\\s*trống|phong\\s*trong)\\s*(?:từ|tu)?\\s*(${dateSource}|${immediateSource})\\s*[:：-]?\\s*(.*)$`, "iu"),
+    new RegExp(`^(${dateSource})\\s*[:：-]\\s*(.*)$`, "iu"),
+  ];
+  const groups = new Map();
+
+  for (const rawLine of normalizeWhitespace(rawInput).split("\n")) {
+    const line = stripDecorations(rawLine);
+    if (!line || isInternalLine(line)) continue;
+    let match = null;
+    for (const pattern of patterns) {
+      match = line.match(pattern);
+      if (match) break;
+    }
+    if (!match) continue;
+    const moment = availabilityMoment(match[1].replace(/\s*\/\s*/g, "/"));
+    if (!moment) continue;
+    const codes = resolveRoomCodes(match[2], rooms);
+    if (!groups.has(moment.key)) groups.set(moment.key, { ...moment, roomCodes: [] });
+    const group = groups.get(moment.key);
+    for (const code of codes) {
+      if (!group.roomCodes.some((item) => normalizeSearch(item) === normalizeSearch(code))) group.roomCodes.push(code);
+    }
+  }
+  return [...groups.values()];
+}
+
+function inferAvailabilityMoment(availability) {
+  const text = String(availability || "");
+  const date = text.match(/\b(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\b/u);
+  if (date) return availabilityMoment(date[1]);
+  const normalized = normalizeSearch(text);
+  if (/vao luon|o ngay|vao o ngay/u.test(normalized)) return availabilityMoment("Vào luôn");
+  if (/dang trong|san phong/u.test(normalized)) return availabilityMoment("Đang trống");
+  return null;
+}
+
+function buildRoomPresentation(rawInput, rooms, availability) {
+  if (!Array.isArray(rooms) || rooms.length < 2) return null;
+  const priceGroups = groupRoomsByPrice(rooms);
+  if (!priceGroups.length) return null;
+  const moments = extractAvailabilityMoments(rawInput, rooms);
+
+  if (moments.length <= 1) {
+    const moment = moments[0] || inferAvailabilityMoment(availability);
+    return {
+      mode: "single",
+      summary: `${rooms.length} phòng${moment?.summary ? ` · ${moment.summary}` : ""}`,
+      priceGroups,
+    };
+  }
+
+  const roomByCode = new Map(rooms.map((room) => [normalizeSearch(roomCode(room)), room]));
+  const assigned = new Set();
+  const groups = moments.map((moment) => {
+    const groupedRooms = [];
+    for (const code of moment.roomCodes) {
+      const room = roomByCode.get(normalizeSearch(code));
+      if (!room || assigned.has(normalizeSearch(roomCode(room)))) continue;
+      groupedRooms.push(room);
+      assigned.add(normalizeSearch(roomCode(room)));
+    }
+    return { label: moment.label, rooms: groupedRooms };
+  });
+
+  const unassigned = rooms.filter((room) => !assigned.has(normalizeSearch(roomCode(room))));
+  const emptyGroups = groups.filter((group) => group.rooms.length === 0);
+  if (unassigned.length && emptyGroups.length === 1) {
+    emptyGroups[0].rooms.push(...unassigned);
+    unassigned.length = 0;
+  }
+  if (unassigned.length) groups.push({ label: "Chưa rõ ngày trống", rooms: unassigned });
+
+  const presentationGroups = groups
+    .filter((group) => group.rooms.length)
+    .map((group) => ({ label: group.label, priceGroups: groupRoomsByPrice(group.rooms) }));
+  if (presentationGroups.length < 2) {
+    const moment = moments[0] || inferAvailabilityMoment(availability);
+    return {
+      mode: "single",
+      summary: `${rooms.length} phòng${moment?.summary ? ` · ${moment.summary}` : ""}`,
+      priceGroups,
+    };
+  }
+  return { mode: "multi", groups: presentationGroups };
+}
+
 function roomsFromStructuredFields(availability, price) {
   if (!availability && !price) return [];
   const roomCodes = [...String(availability || "").matchAll(/\bP?\d+[A-Za-z0-9/.\-]*\b/giu)]
@@ -609,6 +760,7 @@ export function summarizeRoomListing(rawInput) {
     : availability || price
       ? roomsFromStructuredFields(availability, price)
       : fallbackRooms;
+  const roomPresentation = buildRoomPresentation(original, rooms, availability);
   const roomType = structured.fields.roomType ? normalizeRoomType(structured.fields.roomType) : extractRoomType(cleanText);
   const stairs = structured.fields.stairs ? normalizeStairs(structured.fields.stairs) : extractStairs(cleanText);
   const furniture = structured.fields.furniture ? normalizeFurniture(structured.fields.furniture) : extractFurniture(chunks);
@@ -624,6 +776,7 @@ export function summarizeRoomListing(rawInput) {
     availability: displayAvailability,
     price: displayPrice,
     rooms,
+    roomPresentation,
     roomType,
     stairs,
     furniture,
@@ -652,6 +805,53 @@ function appendDetailRow(container, label, value, editable) {
   valueNode.contentEditable = String(editable);
   row.append(labelNode, document.createTextNode(" "), valueNode);
   container.append(row);
+}
+
+function appendRoomPriceList(container, groups, editable) {
+  const list = document.createElement("ul");
+  list.className = "room-share-price-list";
+  for (const group of groups) {
+    const item = document.createElement("li");
+    const price = editableText("strong", "room-share-price-value", group.price);
+    price.contentEditable = String(editable);
+    const rooms = editableText("span", "room-share-price-rooms", group.rooms.join(", "));
+    rooms.contentEditable = String(editable);
+    item.append(price, document.createTextNode(": "), rooms);
+    list.append(item);
+  }
+  container.append(list);
+}
+
+function renderRoomPresentation(container, presentation, editable) {
+  if (!presentation) return false;
+  if (presentation.mode === "single") {
+    appendDetailRow(container, "Phòng trống", presentation.summary, editable);
+    const section = document.createElement("section");
+    section.className = "room-share-room-pricing";
+    const title = document.createElement("h4");
+    title.textContent = "Giá phòng:";
+    section.append(title);
+    appendRoomPriceList(section, presentation.priceGroups, editable);
+    container.append(section);
+    return true;
+  }
+
+  const section = document.createElement("section");
+  section.className = "room-share-room-pricing room-share-room-pricing-multi";
+  const title = document.createElement("h4");
+  title.textContent = "Phòng trống:";
+  section.append(title);
+  for (const group of presentation.groups) {
+    const block = document.createElement("div");
+    block.className = "room-share-availability-group";
+    const heading = document.createElement("h5");
+    heading.textContent = group.label;
+    block.append(heading);
+    appendRoomPriceList(block, group.priceGroups, editable);
+    section.append(block);
+  }
+  container.append(section);
+  return true;
 }
 
 function renderListSection(container, title, className, items, editable, renderItem) {
@@ -691,8 +891,11 @@ export function renderRoomSummary(container, summary, { editable = true } = {}) 
   const details = document.createElement("div");
   details.className = "room-share-details";
   appendDetailRow(details, "Địa chỉ", summary.address || "Địa chỉ chưa rõ", editable);
-  appendDetailRow(details, "Phòng trống", summary.availability, editable);
-  appendDetailRow(details, "Giá", summary.price, editable);
+  const hasRoomPresentation = renderRoomPresentation(details, summary.roomPresentation, editable);
+  if (!hasRoomPresentation) {
+    appendDetailRow(details, "Phòng trống", summary.availability, editable);
+    appendDetailRow(details, "Giá", summary.price, editable);
+  }
   appendDetailRow(details, "Dạng phòng", summary.roomType, editable);
   appendDetailRow(details, "Thang máy", summary.stairs, editable);
   appendDetailRow(details, "Nội thất", summary.furniture, editable);
