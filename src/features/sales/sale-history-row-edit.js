@@ -146,6 +146,10 @@ function installHistoryRowEditing() {
   });
 
   document.addEventListener("click", (event) => {
+    // startRowEdit() triggers the hidden Edit button programmatically. That click
+    // bubbles after Sales Assistant has already replaced the display row with the
+    // edit row, so treating it as an outside click would immediately cancel edit.
+    if (event.target.closest?.(EDIT_CONTROL_SELECTOR)) return;
     const row = editRow(content);
     if (!row || row.contains(event.target)) return;
     cancelEditing(content);
