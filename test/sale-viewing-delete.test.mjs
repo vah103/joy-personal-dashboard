@@ -39,8 +39,8 @@ test("Sale history keeps compact edit controls and commission stages", async () 
   assert.match(styles, /\.sales-history-cancel-button\s*\{\s*display:\s*none !important;/s);
   assert.match(styles, /#sales-history-refresh\s*\{[\s\S]*?display:\s*none !important;/);
   assert.match(styles, /\.sales-history-heading\s*\{[\s\S]*?border:\s*0;[\s\S]*?background:\s*transparent;[\s\S]*?box-shadow:\s*none;/);
-  assert.match(styles, /data-commission-state=\"pending\"[\s\S]*?#fff9e7/);
-  assert.match(styles, /data-commission-state=\"received\"[\s\S]*?#eef8f0/);
+  assert.match(styles, /data-commission-state=\"pending\"[\s\S]*?#fff3cf/);
+  assert.match(styles, /data-commission-state=\"received\"[\s\S]*?#e2f3e6/);
   assert.match(styles, /grid-template-columns:\s*auto auto auto/);
   assert.match(styles, /min-width:\s*960px/);
   assert.match(styles, /th:nth-child\(4\)[\s\S]*?width:\s*28%/);
