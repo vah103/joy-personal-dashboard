@@ -109,8 +109,8 @@
 .sales-history-table tbody tr[data-commission-state="received"],
 .sales-history-table tbody tr[data-commission-state="received"]:hover,
 .sales-history-table tbody tr[data-commission-state="received"]:focus {
-  background: #e2f3e6;
-  box-shadow: inset 3px 0 0 rgba(73, 133, 87, .40);
+  background: #d8efd9;
+  box-shadow: inset 3px 0 0 rgba(65, 143, 76, .50);
 }
 
 .sales-history-table tbody tr[data-commission-state="pending"] > td:last-child {
@@ -118,7 +118,7 @@
 }
 
 .sales-history-table tbody tr[data-commission-state="received"] > td:last-child {
-  background: #e2f3e6;
+  background: #d8efd9;
 }
 
 .sales-history-table tbody tr[data-history-editable="true"]:hover > td:last-child,
@@ -180,9 +180,9 @@
 }
 
 .sales-history-close-button[data-commission-state="received"] {
-  border-color: rgba(68, 126, 82, .38);
-  color: #356740;
-  background: #d7eddd;
+  border-color: rgba(54, 132, 72, .46);
+  color: #2f6639;
+  background: #c9e9ce;
 }
 
 .sales-history-delete-button:disabled,
