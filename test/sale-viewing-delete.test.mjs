@@ -25,7 +25,12 @@ test("Sale history keeps only delete and save while editing", async () => {
   assert.match(interaction, /return "Đã nhắc"/);
   assert.match(interaction, /return "Chờ follow-up"/);
   assert.match(interaction, /return "Đã follow-up"/);
+  assert.match(interaction, /function refreshHistory\(\)/);
+  assert.match(interaction, /data-assistant-mode=\"history\"/);
+  assert.match(interaction, /window\.setTimeout\(refreshHistory, 0\)/);
   assert.match(styles, /\.sales-history-cancel-button\s*\{\s*display:\s*none !important;/s);
+  assert.match(styles, /#sales-history-refresh\s*\{[\s\S]*?display:\s*none !important;/);
+  assert.match(styles, /\.sales-history-heading\s*\{[\s\S]*?border:\s*0;[\s\S]*?background:\s*transparent;[\s\S]*?box-shadow:\s*none;/);
   assert.match(styles, /min-width:\s*960px/);
   assert.match(styles, /th:nth-child\(4\)[\s\S]*?width:\s*28%/);
   assert.match(styles, /th:nth-child\(5\)[\s\S]*?width:\s*12%[\s\S]*?text-align:\s*center/);
