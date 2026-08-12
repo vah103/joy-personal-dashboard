@@ -17,6 +17,10 @@ function startRowEdit(row) {
   row?.querySelector(EDIT_CONTROL_SELECTOR)?.click();
 }
 
+function refreshHistory() {
+  document.querySelector("#sales-history-refresh")?.click();
+}
+
 function combinedReminderLabel(status, reminder, followup) {
   if (status === "Đã huỷ") return "Đã huỷ";
   if (followup === "Đã gửi") return "Đã follow-up";
@@ -101,7 +105,7 @@ async function deleteViewing(row, button) {
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || "VIEWING_DELETE_FAILED");
-    document.querySelector("#sales-history-refresh")?.click();
+    refreshHistory();
   } catch {
     row.querySelectorAll("button").forEach((control) => { control.disabled = false; });
     button.disabled = false;
@@ -183,6 +187,19 @@ function installHistoryRowEditing() {
   });
 
   document.addEventListener("click", (event) => {
+    const historyTab = event.target.closest?.('[data-assistant-mode="history"]');
+    if (historyTab) {
+      window.setTimeout(refreshHistory, 0);
+    }
+
+    const assistantLauncher = event.target.closest?.('[data-action="open-sales-assistant"]');
+    if (assistantLauncher) {
+      window.setTimeout(() => {
+        const historyPanel = document.querySelector('[data-assistant-panel="history"]');
+        if (historyPanel && !historyPanel.hidden) refreshHistory();
+      }, 0);
+    }
+
     // startRowEdit() triggers the hidden Edit button programmatically. That click
     // bubbles after Sales Assistant has already replaced the display row with the
     // edit row, so treating it as an outside click would immediately cancel edit.
