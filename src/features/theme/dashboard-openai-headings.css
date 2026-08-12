@@ -146,6 +146,7 @@
 
 .sales-assistant-modal {
   --sale-assistant-header-height: 106px;
+  padding-top: 0;
   border: 1px solid rgba(67, 84, 90, .14);
   background: #f6f8f7;
   box-shadow: 0 28px 80px rgba(27, 40, 45, .18);
