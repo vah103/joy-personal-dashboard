@@ -51,6 +51,16 @@ test("parses price-first room groups without dropping rooms", () => {
     summary.price,
     "4tr4-P201-301-501-601\n4tr5-202-302-402-502\n4tr1-303-403-603\n4tr3-204\n4tr5-305-405",
   );
+  assert.deepEqual(summary.roomPresentation, {
+    mode: "single",
+    summary: "14 phòng · Trống từ 1/9",
+    priceGroups: [
+      { price: "4tr1", rooms: ["P303", "P403", "P603"] },
+      { price: "4tr3", rooms: ["P204"] },
+      { price: "4tr4", rooms: ["P201", "P301", "P501", "P601"] },
+      { price: "4tr5", rooms: ["P202", "P302", "P402", "P502", "P305", "P405"] },
+    ],
+  });
   assert.deepEqual(summary.services.map(({ label, value }) => [label, value]), [
     ["Điện", "4k2/số"],
     ["Nước", "38k/khối"],
@@ -58,6 +68,31 @@ test("parses price-first room groups without dropping rooms", () => {
     ["Dịch vụ chung", "khác: 180k/1 người, Xe: miễn phí"],
   ]);
   assert.deepEqual(summary.notes, ["Đóng 1 cọc 1", "Giới hạn xe, ng"]);
+});
+
+test("switches to availability-first groups when rooms have different move-in dates", () => {
+  const summary = summarizeRoomListing(`
+    Địa chỉ: 10 Kim Giang
+    Vào luôn: P201-301
+    1/9 Trống: P202-302-502
+    Giá 4tr4-P201-301
+    4tr5-P202-302-502
+    Dạng phòng: Studio
+  `);
+
+  assert.deepEqual(summary.roomPresentation, {
+    mode: "multi",
+    groups: [
+      {
+        label: "Vào luôn",
+        priceGroups: [{ price: "4tr4", rooms: ["P201", "P301"] }],
+      },
+      {
+        label: "Từ 1/9",
+        priceGroups: [{ price: "4tr5", rooms: ["P202", "P302", "P502"] }],
+      },
+    ],
+  });
 });
 
 test("room-first fallback does not borrow a price from the next line", () => {
