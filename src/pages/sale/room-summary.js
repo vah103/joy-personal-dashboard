@@ -5,7 +5,7 @@ const INTERNAL_PHRASES = [
   /\b(?:nguồn|nguon)\s*[:\-]?\s*[^,;|\n]*/giu,
 ];
 
-const PHONE_PATTERN = /(?:\+?84|0)(?:[\s.\-]?\d){8,10}/gu;
+const PHONE_PATTERN = /(?<![\p{L}\p{N}.\-])(?:\+?84|0)(?:[\s.\-]?\d){8,10}(?!\d)/gu;
 const URL_PATTERN = /https?:\/\/\S+|www\.\S+/giu;
 const EMOJI_PATTERN = /\p{Extended_Pictographic}|\uFE0F/gu;
 const PRICE_SOURCE = String.raw`\d+(?:[.,]\d+)?\s*(?:tr(?:\d+)?|triệu|trieu|k|nghìn|nghin|vnđ|vnd|đ)(?:\s*\/\s*(?:tháng|thang))?`;
@@ -145,7 +145,7 @@ function parseLabeledListing(value) {
       continue;
     }
 
-    const loosePrice = line.match(/^(?:giá|gia)(?:\s+(?:phòng|phong))?\s+(.+)$/iu);
+    const loosePrice = line.match(/^(?:giá|gia)(?:\s+(?:phòng|phong))?[ \t]+(?![:：])(.+)$/iu);
     if (loosePrice && PRICE_PATTERN.test(loosePrice[1])) {
       currentSection = "price";
       recognizedFieldCount += 1;
@@ -558,7 +558,7 @@ function deriveGroupedAvailability(rooms, availability) {
   if (/^\d{1,2}\/\d{1,2}(?:\/\d{2,4})?$/u.test(detail)) {
     return `${codes.join(", ")} (trống ${detail})`;
   }
-  return `${codes.join(", ")} (${lowerFirst(detail)})`;
+  return detail;
 }
 
 function derivePriceFromRooms(rooms) {
