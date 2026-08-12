@@ -212,6 +212,8 @@ const copies = [
   [resolve(salesFeatures, "sales-assistant.js"), "sales-assistant.js"],
   [resolve(salesFeatures, "sales-assistant.css"), "sales-assistant.css"],
   [resolve(salesFeatures, "sale-appointment.js"), "sale-appointment.js"],
+  [resolve(salesFeatures, "sale-history-row-edit.js"), "sale-history-row-edit.js"],
+  [resolve(salesFeatures, "sale-history-row-edit.css"), "sale-history-row-edit.css"],
   [resolve(features, "project-details", "project-details.js"), "project-details.js"],
   [resolve(features, "project-details", "project-details.css"), "project-details.css"],
   [resolve(features, "project-details", "turtlebot-roadmap.js"), "turtlebot-roadmap.js"],
