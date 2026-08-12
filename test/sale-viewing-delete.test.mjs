@@ -19,7 +19,14 @@ test("Sale history keeps only delete and save while editing", async () => {
     /event\.target\.closest\?\.\(EDIT_CONTROL_SELECTOR\)\) return;/,
     "the synthetic hidden Edit click must not be mistaken for an outside click",
   );
+  assert.match(interaction, /headers\[5\]\.textContent = "Nhắc"/);
+  assert.match(interaction, /headers\[6\]\.remove\(\)/);
+  assert.match(interaction, /return "Chờ nhắc"/);
+  assert.match(interaction, /return "Đã nhắc"/);
+  assert.match(interaction, /return "Chờ follow-up"/);
+  assert.match(interaction, /return "Đã follow-up"/);
   assert.match(styles, /\.sales-history-cancel-button\s*\{\s*display:\s*none !important;/s);
+  assert.match(styles, /min-width:\s*920px/);
   assert.match(endpoint, /DELETE FROM sale_viewings/);
   assert.match(endpoint, /WHERE id = \? AND user_email = \?/);
   assert.match(router, /isSaleViewingDeleteRoute/);
