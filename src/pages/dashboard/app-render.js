@@ -209,7 +209,7 @@ function renderSalesModal() {
     const empty = document.createElement("div");
     empty.className = "sales-modal-empty";
     empty.textContent = sales.status === "ready"
-      ? "There are no upcoming appointments. Open Assistant → Lịch sử to see past viewings."
+      ? "There are no upcoming appointments. Open Assistant → History to see past viewings."
       : "The appointment list is not available yet.";
     elements.salesModalContent.replaceChildren(empty);
     return;
