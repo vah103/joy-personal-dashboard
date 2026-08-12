@@ -10,6 +10,7 @@ const URL_PATTERN = /https?:\/\/\S+|www\.\S+/giu;
 const EMOJI_PATTERN = /\p{Extended_Pictographic}|\uFE0F/gu;
 const PRICE_SOURCE = String.raw`\d+(?:[.,]\d+)?\s*(?:tr(?:\d+)?|triệu|trieu|k|nghìn|nghin|vnđ|vnd|đ)(?:\s*\/\s*(?:tháng|thang))?`;
 const PRICE_PATTERN = new RegExp(`\\b${PRICE_SOURCE}`, "iu");
+const PRICE_ONLY_PATTERN = new RegExp(`^${PRICE_SOURCE}$`, "iu");
 
 const SERVICE_DEFINITIONS = [
   { key: "electricity", label: "Điện", patterns: ["điện", "dien"] },
@@ -68,11 +69,6 @@ function normalizeSearch(value) {
     .replace(/đ/g, "d");
 }
 
-function containsAny(value, keywords) {
-  const normalized = normalizeSearch(value);
-  return keywords.some((keyword) => normalized.includes(normalizeSearch(keyword.replaceAll("\\s+", " ").replaceAll("\\s*", ""))));
-}
-
 function capitalizeFirst(value) {
   const text = String(value || "").trim();
   return text ? text[0].toUpperCase() + text.slice(1) : "";
@@ -124,6 +120,11 @@ function splitChunks(value) {
     .filter(Boolean);
 }
 
+function appendStructuredField(fields, field, value) {
+  if (!value) return;
+  fields[field] = fields[field] ? `${fields[field]}\n${value}` : value;
+}
+
 function parseLabeledListing(value) {
   const fields = {};
   const notes = [];
@@ -138,10 +139,10 @@ function parseLabeledListing(value) {
       const label = normalizeSearch(labeled[1]).replace(/\s+/g, " ").trim();
       const field = LABELED_FIELDS.get(label);
       if (!field) {
-        if (["services", "furniture", "notes"].includes(currentSection)) {
+        if (["services", "furniture", "price", "notes"].includes(currentSection)) {
           const continuation = stripDecorations(line);
           if (currentSection === "notes") notes.push(continuation);
-          else fields[currentSection] = fields[currentSection] ? `${fields[currentSection]}\n${continuation}` : continuation;
+          else appendStructuredField(fields, currentSection, continuation);
         } else {
           currentSection = "";
         }
@@ -153,7 +154,7 @@ function parseLabeledListing(value) {
       if (field === "notes") {
         if (fieldValue) notes.push(fieldValue);
       } else if (fieldValue) {
-        fields[field] = fields[field] ? `${fields[field]}\n${fieldValue}` : fieldValue;
+        appendStructuredField(fields, field, fieldValue);
       }
       continue;
     }
@@ -162,8 +163,8 @@ function parseLabeledListing(value) {
     else if (currentSection === "furniture"
       && /\b(?:điện|dien|nước|nuoc|wifi|internet|mạng|mang|dịch vụ|dich vu|gửi xe|gui xe|để xe|de xe|cọc|coc|hợp đồng|hop dong)\b/iu.test(line)) {
       currentSection = "";
-    } else if (["services", "furniture"].includes(currentSection)) {
-      fields[currentSection] = fields[currentSection] ? `${fields[currentSection]}\n${line}` : line;
+    } else if (["services", "furniture", "price"].includes(currentSection)) {
+      appendStructuredField(fields, currentSection, line);
     }
   }
 
@@ -200,15 +201,17 @@ function compactText(value) {
     .replace(/\b(?:hoa\s*hồng|hoa\s*hong|hh)\b.*$/giu, ""));
 }
 
-function normalizePrice(value, { monthly = false } = {}) {
-  let clean = String(value || "")
+function normalizePrice(value, { monthly = false, preserveDetails = false } = {}) {
+  let clean = normalizeWhitespace(value)
     .replace(/(\d+(?:[.,]\d+)?)\s*triệu/giu, (_, amount) => `${amount.replace(",", ".")}tr`)
     .replace(/(\d+(?:[.,]\d+)?)\s*trieu/giu, (_, amount) => `${amount.replace(",", ".")}tr`)
     .replace(/(\d)\s+tr\b/giu, "$1tr")
     .replace(/\s*\/\s*/g, "/")
-    .replace(/\s+/g, " ")
     .trim();
-  if (monthly && clean && !/\/(?:tháng|thang)\b/iu.test(clean)) clean = `${clean}/tháng`;
+  if (monthly && clean && !/\/(?:tháng|thang)\b/iu.test(clean)) {
+    const oneSimplePrice = PRICE_ONLY_PATTERN.test(clean);
+    if (!preserveDetails || oneSimplePrice) clean = `${clean}/tháng`;
+  }
   return clean;
 }
 
@@ -267,6 +270,13 @@ function normalizeCommaSpacing(value) {
     .replaceAll(placeholder, ",");
 }
 
+function compactThousands(value) {
+  return String(value || "").replace(/\b(\d{4,6})\b/gu, (match, amount) => {
+    const number = Number(amount);
+    return number >= 1000 && number % 1000 === 0 ? `${number / 1000}k` : match;
+  });
+}
+
 function normalizeServiceValue(key, value) {
   let clean = normalizeWhitespace(value)
     .replace(/^[,.;:+\-\s]+|[,.;:+\-\s]+$/g, "")
@@ -275,17 +285,12 @@ function normalizeServiceValue(key, value) {
     .replace(/\s*\)/g, ")")
     .replace(/\s+/g, " ")
     .trim();
-  clean = normalizeCommaSpacing(clean)
+  clean = compactThousands(normalizeCommaSpacing(clean))
     .replace(/\/phong\b/giu, "/phòng")
     .replace(/\/thang\b/giu, "/tháng");
 
   if (key === "electricity") {
-    clean = clean
-      .replace(/\b(\d{4,})\b/gu, (match, amount) => {
-        const number = Number(amount);
-        return number % 1000 === 0 ? `${number / 1000}k` : match;
-      })
-      .replace(/\b(\d{1,2}[,.]\d{1,2})(?=\/(?:số|so)(?:\s|$))/giu, "$1k");
+    clean = clean.replace(/\b(\d{1,2}[,.]\d{1,2})(?=\/(?:số|so)(?:\s|$))/giu, "$1k");
   }
   if (key === "water") clean = clean.replace(/\/m3\b/giu, "/m³");
   if (["common", "laundry"].includes(key)) {
@@ -316,8 +321,15 @@ function isInsideParentheses(value, index) {
   return depth > 0;
 }
 
-function extractServices(serviceText) {
-  const text = normalizeWhitespace(expandCompositeServiceLabels(serviceText))
+function trimUnstructuredServiceTail(value) {
+  return String(value || "").replace(
+    /(?:[;\n]\s*)(?=(?:cọc|coc|hợp đồng|hop dong|lưu ý|luu y|ghi chú|ghi chu|pet|thú cưng|thu cung|không chung chủ|khong chung chu)\b)[\s\S]*$/iu,
+    "",
+  );
+}
+
+function extractServices(serviceText, { stopAtGeneralNotes = false } = {}) {
+  const text = normalizeWhitespace(expandCompositeServiceLabels(stripInternalDetails(serviceText)))
     .replace(/^(?:dịch vụ|dich vu|phí dịch vụ|phi dich vu)\s*[:\-]?\s*/iu, "");
   if (!text) return [];
 
@@ -328,26 +340,28 @@ function extractServices(serviceText) {
       for (const match of text.matchAll(matcher)) {
         const index = Number(match.index);
         if (isInsideParentheses(text, index)) continue;
+        if (definition.key === "electricity" && /\bxe\s*$/iu.test(text.slice(Math.max(0, index - 6), index))) continue;
         markerMatches.push({ key: definition.key, label: definition.label, index, end: index + match[0].length, marker: match[1] });
       }
     }
   }
   markerMatches.sort((a, b) => a.index - b.index || b.end - a.end);
-  const uniqueMarkers = markerMatches.filter((marker, index) => index === 0 || marker.index !== markerMatches[index - 1].index);
-  const firstKeys = new Set();
-  const effectiveMarkers = uniqueMarkers.filter((marker) => {
-    if (firstKeys.has(marker.key)) return false;
-    firstKeys.add(marker.key);
-    return true;
-  });
+  const markers = markerMatches.filter((marker, index) => index === 0 || marker.index !== markerMatches[index - 1].index);
   const services = [];
 
-  effectiveMarkers.forEach((marker, index) => {
-    const nextIndex = index + 1 < effectiveMarkers.length ? effectiveMarkers[index + 1].index : text.length;
-    let value = text.slice(marker.end, nextIndex).split(/[;\n]/, 1)[0];
+  markers.forEach((marker, index) => {
+    const nextIndex = index + 1 < markers.length ? markers[index + 1].index : text.length;
+    let value = text.slice(marker.end, nextIndex);
+    if (stopAtGeneralNotes) value = trimUnstructuredServiceTail(value);
     if (marker.key === "parking" && /^(?:free|miễn phí|mien phi)/iu.test(marker.marker)) value = `${marker.marker} ${value}`;
     value = normalizeServiceValue(marker.key, value);
-    if (!value || value.length > 220) return;
+    if (!value || value.length > 360) return;
+
+    const existing = services.find((service) => service.key === marker.key);
+    if (existing) {
+      if (!normalizeSearch(existing.value).includes(normalizeSearch(value))) existing.value = `${existing.value}; ${value}`;
+      return;
+    }
     services.push({ key: marker.key, label: marker.label, value });
   });
   return services;
@@ -468,13 +482,14 @@ export function summarizeRoomListing(rawInput) {
   const chunks = splitChunks(cleanText);
   const address = structured.fields.address ? cleanAddress(structured.fields.address) : extractAddress(cleanText, chunks);
   const availability = structured.fields.availability ? normalizeAvailability(structured.fields.availability) : "";
-  const price = structured.fields.price ? normalizePrice(structured.fields.price, { monthly: true }) : "";
+  const structuredPrice = structured.fields.price ? stripInternalDetails(structured.fields.price) : "";
+  const price = structuredPrice ? normalizePrice(structuredPrice, { monthly: true, preserveDetails: true }) : "";
   const fallbackRooms = extractRooms(cleanText);
   const rooms = availability || price ? roomsFromStructuredFields(availability, price) : fallbackRooms;
   const roomType = structured.fields.roomType ? normalizeRoomType(structured.fields.roomType) : extractRoomType(cleanText);
   const stairs = structured.fields.stairs ? normalizeStairs(structured.fields.stairs) : extractStairs(cleanText);
   const furniture = structured.fields.furniture ? normalizeFurniture(structured.fields.furniture) : extractFurniture(chunks);
-  const services = extractServices(structured.fields.services || cleanText);
+  const services = extractServices(structured.fields.services || cleanText, { stopAtGeneralNotes: !structured.fields.services });
   const structuredNotes = structured.notes.map(normalizeNote).filter(Boolean);
   const notes = structuredNotes.length ? [...new Set(structuredNotes)].slice(0, 8) : extractNotes(chunks);
   const displayAvailability = availability || deriveAvailabilityFromRooms(rooms);
