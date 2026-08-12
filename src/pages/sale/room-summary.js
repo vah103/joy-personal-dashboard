@@ -134,12 +134,34 @@ function parseLabeledListing(value) {
   for (const rawLine of normalizeWhitespace(value).split("\n")) {
     const line = stripDecorations(rawLine);
     if (!line || isInternalLine(line)) continue;
+
+    const reverseAvailability = line.match(/^(\d{1,2}\s*\/\s*\d{1,2}(?:\s*\/\s*\d{2,4})?)\s+(?:trống|trong)\s*[:：]?\s*(.*)$/iu);
+    if (reverseAvailability) {
+      currentSection = "availability";
+      recognizedFieldCount += 1;
+      const date = reverseAvailability[1].replace(/\s*\/\s*/g, "/");
+      const detail = stripDecorations(reverseAvailability[2]);
+      appendStructuredField(fields, "availability", detail ? `${date} ${detail}` : date);
+      continue;
+    }
+
+    const loosePrice = line.match(/^(?:giá|gia)(?:\s+(?:phòng|phong))?\s+(.+)$/iu);
+    if (loosePrice && PRICE_PATTERN.test(loosePrice[1])) {
+      currentSection = "price";
+      recognizedFieldCount += 1;
+      appendStructuredField(fields, "price", stripDecorations(loosePrice[1]));
+      continue;
+    }
+
     const labeled = line.match(/^([^:：]{1,36})\s*[:：]\s*(.*)$/u);
     if (labeled) {
       const label = normalizeSearch(labeled[1]).replace(/\s+/g, " ").trim();
       const field = LABELED_FIELDS.get(label);
       if (!field) {
-        if (["services", "furniture", "price", "notes"].includes(currentSection)) {
+        if (currentSection === "address" && /^(?:quận|quan|huyện|huyen|phường|phuong|xã|xa|thành phố|thanh pho|tỉnh|tinh)\b/iu.test(line)) {
+          const continuation = capitalizeFirst(line);
+          fields.address = fields.address ? `${fields.address} - ${continuation}` : continuation;
+        } else if (["services", "furniture", "price", "notes"].includes(currentSection)) {
           const continuation = stripDecorations(line);
           if (currentSection === "notes") notes.push(continuation);
           else appendStructuredField(fields, currentSection, continuation);
@@ -412,7 +434,7 @@ function humanizeKeyword(value) {
 function extractRooms(cleanText) {
   const rooms = [];
   const seen = new Set();
-  const matcher = new RegExp(`\\b(?:phòng\\s*|phong\\s*|p\\.?\\s*)([A-Za-z]*\\d[A-Za-z0-9./\\-]*)\\s*(?:giá\\s*[:\\-]?\\s*)?(${PRICE_SOURCE})`, "giu");
+  const matcher = new RegExp(`\\b(?:phòng\\s*|phong\\s*|p\\.?\\s*)([A-Za-z]*\\d[A-Za-z0-9./\\-]*)[ \\t]*(?:giá[ \\t]*[:\\-]?[ \\t]*)?(${PRICE_SOURCE})`, "giu");
   const availabilityKeyword = AVAILABILITY_KEYWORDS.find((keyword) => normalizeSearch(cleanText).includes(normalizeSearch(keyword))) || "";
   for (const match of cleanText.matchAll(matcher)) {
     const title = `Phòng ${match[1]}`;
@@ -421,6 +443,32 @@ function extractRooms(cleanText) {
     if (seen.has(key)) continue;
     seen.add(key);
     rooms.push({ title, price, note: availabilityKeyword ? humanizeKeyword(availabilityKeyword) : "" });
+  }
+  return rooms;
+}
+
+function extractGroupedPriceRooms(value) {
+  const text = normalizeWhitespace(value);
+  if (!text) return [];
+  const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
+  const usePrefix = lines.some((line) => /(?:^|[-–—,:\s])p\d{2,4}[a-z]?(?=$|[-–—,:\s])/iu.test(line));
+  const groupPattern = new RegExp(`^(${PRICE_SOURCE})\\s*[-–—:]\\s*(.+)$`, "iu");
+  const rooms = [];
+  const seen = new Set();
+
+  for (const line of lines) {
+    const match = line.match(groupPattern);
+    if (!match) continue;
+    const price = normalizePrice(match[1]);
+    const roomCodes = match[2].match(/\bP?\d{2,4}[A-Za-z]?\b/giu) || [];
+    for (const rawCode of roomCodes) {
+      const baseCode = rawCode.replace(/^P/iu, "");
+      const code = usePrefix ? `P${baseCode}` : baseCode;
+      const key = normalizeSearch(code);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      rooms.push({ title: `Phòng ${code}`, price, note: "" });
+    }
   }
   return rooms;
 }
@@ -502,6 +550,17 @@ function deriveAvailabilityFromRooms(rooms) {
   return rooms.map((room) => room.title.replace(/^Phòng\s+/iu, "")).join(", ");
 }
 
+function deriveGroupedAvailability(rooms, availability) {
+  const codes = rooms.map((room) => room.title.replace(/^Phòng\s+/iu, "")).filter(Boolean);
+  if (!codes.length) return availability;
+  const detail = normalizeAvailability(availability);
+  if (!detail) return codes.join(", ");
+  if (/^\d{1,2}\/\d{1,2}(?:\/\d{2,4})?$/u.test(detail)) {
+    return `${codes.join(", ")} (trống ${detail})`;
+  }
+  return `${codes.join(", ")} (${lowerFirst(detail)})`;
+}
+
 function derivePriceFromRooms(rooms) {
   if (!rooms.length) return "";
   if (rooms.length === 1) return rooms[0].price;
@@ -544,14 +603,21 @@ export function summarizeRoomListing(rawInput) {
   const structuredPrice = structured.fields.price ? stripInternalDetails(structured.fields.price) : "";
   const price = structuredPrice ? normalizePrice(structuredPrice, { monthly: true, preserveDetails: true }) : "";
   const fallbackRooms = extractRooms(cleanText);
-  const rooms = availability || price ? roomsFromStructuredFields(availability, price) : fallbackRooms;
+  const groupedPriceRooms = price ? extractGroupedPriceRooms(price) : [];
+  const rooms = groupedPriceRooms.length
+    ? groupedPriceRooms
+    : availability || price
+      ? roomsFromStructuredFields(availability, price)
+      : fallbackRooms;
   const roomType = structured.fields.roomType ? normalizeRoomType(structured.fields.roomType) : extractRoomType(cleanText);
   const stairs = structured.fields.stairs ? normalizeStairs(structured.fields.stairs) : extractStairs(cleanText);
   const furniture = structured.fields.furniture ? normalizeFurniture(structured.fields.furniture) : extractFurniture(chunks);
   const services = extractServices(structured.fields.services || cleanText, { stopAtGeneralNotes: !structured.fields.services });
   const structuredNotes = structured.notes.map(normalizeNote).filter(Boolean);
   const notes = structuredNotes.length ? [...new Set(structuredNotes)].slice(0, 8) : extractNotes(chunks);
-  const displayAvailability = availability || deriveAvailabilityFromRooms(rooms);
+  const displayAvailability = groupedPriceRooms.length
+    ? deriveGroupedAvailability(groupedPriceRooms, availability)
+    : availability || deriveAvailabilityFromRooms(rooms);
   const displayPrice = price || derivePriceFromRooms(rooms);
   return polishRoomSummary({
     address,
