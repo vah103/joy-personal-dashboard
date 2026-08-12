@@ -45,10 +45,10 @@ function applyCommissionState(row) {
   button.dataset.commissionState = state;
   button.disabled = state === "received";
   button.title = state === "pending"
-    ? "Đã chốt, chưa nhận hoa hồng. Bấm lần nữa khi đã nhận tiền."
+    ? "Closed, commission not received yet. Press again when payment is received."
     : state === "received"
-      ? "Đã nhận hoa hồng."
-      : "Chốt khách này.";
+      ? "Commission received."
+      : "Close this deal.";
 }
 
 async function syncCommissionStates() {
@@ -74,15 +74,19 @@ async function syncCommissionStates() {
   return commissionSyncPromise;
 }
 
+function matchesLabel(value, ...labels) {
+  return labels.includes(String(value || "").trim());
+}
+
 function combinedReminderLabel(status, reminder, followup) {
-  if (status === "Đã huỷ") return "Đã huỷ";
-  if (followup === "Đã gửi") return "Đã follow-up";
-  if (status === "Đã qua" && followup === "Chờ gửi") return "Chờ follow-up";
-  if (status === "Sắp tới" && reminder === "Đã gửi") return "Đã nhắc";
-  if (status === "Sắp tới" && reminder === "Chờ gửi") return "Chờ nhắc";
-  if (status === "Sắp tới" && reminder === "Không nhắc") return "Không nhắc trước";
-  if (reminder === "Đã gửi") return "Đã nhắc";
-  if (followup === "Chờ gửi") return "Chờ follow-up";
+  if (matchesLabel(status, "Đã huỷ", "Cancelled")) return "Cancelled";
+  if (matchesLabel(followup, "Đã gửi", "Sent")) return "Follow-up sent";
+  if (matchesLabel(status, "Đã qua", "Past") && matchesLabel(followup, "Chờ gửi", "Pending")) return "Follow-up pending";
+  if (matchesLabel(status, "Sắp tới", "Upcoming") && matchesLabel(reminder, "Đã gửi", "Sent")) return "Reminder sent";
+  if (matchesLabel(status, "Sắp tới", "Upcoming") && matchesLabel(reminder, "Chờ gửi", "Pending")) return "Reminder pending";
+  if (matchesLabel(status, "Sắp tới", "Upcoming") && matchesLabel(reminder, "Không nhắc", "No reminder")) return "No advance reminder";
+  if (matchesLabel(reminder, "Đã gửi", "Sent")) return "Reminder sent";
+  if (matchesLabel(followup, "Chờ gửi", "Pending")) return "Follow-up pending";
   return "—";
 }
 
@@ -92,7 +96,7 @@ function mergeReminderColumns(content) {
 
   const headers = [...table.querySelectorAll("thead th")];
   if (headers.length >= 8) {
-    headers[5].textContent = "Nhắc";
+    headers[5].textContent = "Reminder";
     headers[6].remove();
   }
 
@@ -119,8 +123,8 @@ function decorateDisplayRows(content) {
     row.setAttribute(
       "aria-label",
       isCoarsePointer()
-        ? "Chạm để sửa lịch hẹn này"
-        : "Nhấp đúp hoặc nhấn Enter để sửa lịch hẹn này",
+        ? "Tap to edit this appointment"
+        : "Double-click or press Enter to edit this appointment",
     );
   });
 }
@@ -144,11 +148,11 @@ async function deleteViewing(row, button) {
   const id = row.dataset.viewingId || "";
   if (!id) return;
 
-  const customer = row.querySelector('[data-history-field="customerName"]')?.value.trim() || "lịch hẹn này";
-  if (!window.confirm(`Xóa lịch hẹn của ${customer}?`)) return;
+  const customer = row.querySelector('[data-history-field="customerName"]')?.value.trim() || "this appointment";
+  if (!window.confirm(`Delete the appointment for ${customer}?`)) return;
 
   row.querySelectorAll("button").forEach((control) => { control.disabled = true; });
-  setDeleteMessage(row, "Đang xóa…");
+  setDeleteMessage(row, "Deleting…");
 
   try {
     const response = await fetch("/api/sales/viewings/delete", {
@@ -164,7 +168,7 @@ async function deleteViewing(row, button) {
   } catch {
     row.querySelectorAll("button").forEach((control) => { control.disabled = false; });
     button.disabled = false;
-    setDeleteMessage(row, "Chưa xóa được. Hãy thử lại.");
+    setDeleteMessage(row, "Could not delete the appointment. Please try again.");
   }
 }
 
@@ -173,7 +177,7 @@ async function advanceCommissionState(row, button) {
   if (!id || commissionStateForRow(row) === "received") return;
 
   button.disabled = true;
-  setDeleteMessage(row, "Đang cập nhật trạng thái chốt…");
+  setDeleteMessage(row, "Updating deal status…");
 
   try {
     const response = await fetch(COMMISSION_ENDPOINT, {
@@ -192,12 +196,12 @@ async function advanceCommissionState(row, button) {
     setDeleteMessage(
       row,
       state === "pending"
-        ? "Đã chốt · chưa nhận hoa hồng."
-        : "Đã nhận hoa hồng.",
+        ? "Closed · commission pending."
+        : "Commission received.",
     );
   } catch {
     button.disabled = false;
-    setDeleteMessage(row, "Chưa cập nhật được trạng thái chốt. Hãy thử lại.");
+    setDeleteMessage(row, "Could not update the deal status. Please try again.");
   }
 }
 
@@ -217,7 +221,7 @@ function decorateEditRow(content) {
   const remove = document.createElement("button");
   remove.type = "button";
   remove.className = "sales-history-delete-button";
-  remove.textContent = "Xóa";
+  remove.textContent = "Delete";
   remove.addEventListener("click", (event) => {
     event.stopPropagation();
     deleteViewing(row, remove);
@@ -226,7 +230,7 @@ function decorateEditRow(content) {
   const close = document.createElement("button");
   close.type = "button";
   close.className = "sales-history-close-button";
-  close.textContent = "Chốt";
+  close.textContent = "Close deal";
   close.addEventListener("click", (event) => {
     event.stopPropagation();
     advanceCommissionState(row, close);
@@ -249,8 +253,8 @@ function ensureEditHint() {
   const hint = document.createElement("span");
   hint.className = "sales-history-edit-hint";
   hint.textContent = isCoarsePointer()
-    ? "Chạm vào một dòng để chỉnh sửa"
-    : "Nhấp đúp vào một dòng để chỉnh sửa";
+    ? "Tap a row to edit it"
+    : "Double-click a row to edit it";
   headingCopy.append(hint);
 }
 
