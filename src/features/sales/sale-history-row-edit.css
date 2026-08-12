@@ -8,7 +8,12 @@
 }
 
 .sales-history-table {
-  min-width: 1030px;
+  min-width: 920px;
+}
+
+.sales-history-table th:nth-child(6),
+.sales-history-table td:nth-child(6) {
+  white-space: nowrap;
 }
 
 .sales-history-table thead th:last-child,
