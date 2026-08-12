@@ -26,7 +26,10 @@ test("Sale history keeps only delete and save while editing", async () => {
   assert.match(interaction, /return "Chờ follow-up"/);
   assert.match(interaction, /return "Đã follow-up"/);
   assert.match(styles, /\.sales-history-cancel-button\s*\{\s*display:\s*none !important;/s);
-  assert.match(styles, /min-width:\s*920px/);
+  assert.match(styles, /min-width:\s*960px/);
+  assert.match(styles, /th:nth-child\(4\)[\s\S]*?width:\s*28%/);
+  assert.match(styles, /th:nth-child\(5\)[\s\S]*?width:\s*12%[\s\S]*?text-align:\s*center/);
+  assert.match(styles, /th:nth-child\(6\)[\s\S]*?width:\s*14%[\s\S]*?min-width:\s*132px[\s\S]*?text-align:\s*center/);
   assert.match(endpoint, /DELETE FROM sale_viewings/);
   assert.match(endpoint, /WHERE id = \? AND user_email = \?/);
   assert.match(router, /isSaleViewingDeleteRoute/);
