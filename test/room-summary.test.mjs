@@ -19,7 +19,7 @@ test("creates a clean customer room summary without private sale details", () =>
   assert.equal(summary.stairs, "Có");
   assert.match(summary.furniture, /full nội thất/i);
   assert.deepEqual(summary.services.map(({ label, value }) => [label, value]), [
-    ["Điện", "4k"],
+    ["Điện", "4k/số"],
     ["Nước", "100k/người"],
     ["Mạng", "100k/phòng"],
     ["Gửi xe", "100k/xe"],

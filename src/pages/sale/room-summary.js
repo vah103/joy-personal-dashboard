@@ -277,6 +277,38 @@ function compactThousands(value) {
   });
 }
 
+function normalizePunctuationSpacing(value) {
+  const decimalComma = "__JOY_DECIMAL_COMMA__";
+  return normalizeWhitespace(value)
+    .split("\n")
+    .map((line) => line
+      .replace(/(\d),(\d)/g, `$1${decimalComma}$2`)
+      .replace(/\s*\/\s*/g, "/")
+      .replace(/\s+([,;:!?])/g, "$1")
+      .replace(/([,;:])(?=\S)/g, "$1 ")
+      .replaceAll(decimalComma, ",")
+      .replace(/\s{2,}/g, " ")
+      .trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
+function capitalizeDisplayValue(value) {
+  return normalizePunctuationSpacing(value)
+    .split("\n")
+    .map((line) => /^\p{Ll}/u.test(line) ? capitalizeFirst(line) : line)
+    .join("\n");
+}
+
+function ensureDefaultUtilityUnit(key, value) {
+  const defaultUnit = key === "electricity" ? "/số" : key === "water" ? "/khối" : "";
+  if (!defaultUnit) return value;
+  const clean = String(value || "").trim();
+  const amount = clean.match(/^(\d+(?:[.,]\d+)?(?:k\d*|tr\d*|nghìn|nghin|vnđ|vnd|đ)?)(\s*\/[^\s,;()]+)?/iu);
+  if (!amount || amount[2]) return clean;
+  return `${amount[1]}${defaultUnit}${clean.slice(amount[1].length)}`;
+}
+
 function normalizeServiceValue(key, value) {
   let clean = normalizeWhitespace(value)
     .replace(/^[,.;:+\-\s]+|[,.;:+\-\s]+$/g, "")
@@ -309,7 +341,8 @@ function normalizeServiceValue(key, value) {
       .replace(/\s*,\s*/g, ", ");
     clean = capitalizeFirst(clean);
   }
-  return clean;
+  clean = ensureDefaultUtilityUnit(key, clean);
+  return normalizePunctuationSpacing(clean);
 }
 
 function isInsideParentheses(value, index) {
@@ -435,11 +468,11 @@ function shouldHideNote(value) {
 }
 
 function normalizeNote(value) {
-  const stripped = stripDecorations(value).replace(/^[\-–—•·*]+\s*/u, "").replace(/[.!]+$/g, "").trim();
-  if (!stripped || shouldHideNote(stripped)) return "";
-  let clean = stripped;
+  const stripped = stripDecorations(value).replace(/^[\-–—•·*]+\s*/u, "").trim();
+  if (!stripped || /[:：]\s*$/u.test(stripped) || shouldHideNote(stripped)) return "";
+  let clean = stripped.replace(/[.!]+$/g, "").trim();
   if (clean === clean.toUpperCase()) clean = clean.toLowerCase();
-  clean = capitalizeFirst(clean);
+  clean = capitalizeFirst(normalizePunctuationSpacing(clean));
   return clean.replace(/^Không chung chủ giờ giấc tự do$/iu, "Không chung chủ, giờ giấc tự do");
 }
 
@@ -475,6 +508,32 @@ function derivePriceFromRooms(rooms) {
   return rooms.map((room) => `${room.title.replace(/^Phòng\s+/iu, "")}: ${room.price}`).join("; ");
 }
 
+function polishRoomSummary(summary) {
+  const services = (summary.services || [])
+    .map((service) => ({ ...service, value: normalizeServiceValue(service.key, service.value) }))
+    .filter((service) => service.value);
+  const notes = (summary.notes || []).map(normalizeNote).filter(Boolean);
+  const address = capitalizeDisplayValue(summary.address);
+  const availability = capitalizeDisplayValue(summary.availability).replace(/\bp(?=\d)/giu, "P");
+  const price = normalizePunctuationSpacing(summary.price).replace(/\bp(?=\d)/giu, "P");
+  const roomType = capitalizeDisplayValue(summary.roomType);
+  const stairs = capitalizeDisplayValue(summary.stairs);
+  const furniture = capitalizeDisplayValue(summary.furniture);
+
+  return {
+    ...summary,
+    address,
+    availability,
+    price,
+    roomType,
+    stairs,
+    furniture,
+    services,
+    notes,
+    isEmpty: !address && !availability && !price && !roomType && !stairs && !furniture && !services.length && !notes.length,
+  };
+}
+
 export function summarizeRoomListing(rawInput) {
   const original = normalizeWhitespace(rawInput);
   const structured = parseLabeledListing(original);
@@ -494,7 +553,7 @@ export function summarizeRoomListing(rawInput) {
   const notes = structuredNotes.length ? [...new Set(structuredNotes)].slice(0, 8) : extractNotes(chunks);
   const displayAvailability = availability || deriveAvailabilityFromRooms(rooms);
   const displayPrice = price || derivePriceFromRooms(rooms);
-  return {
+  return polishRoomSummary({
     address,
     availability: displayAvailability,
     price: displayPrice,
@@ -504,8 +563,8 @@ export function summarizeRoomListing(rawInput) {
     furniture,
     services,
     notes,
-    isEmpty: !address && !displayAvailability && !displayPrice && !roomType && !stairs && !furniture && !services.length && !notes.length,
-  };
+    isEmpty: false,
+  });
 }
 
 function editableText(tagName, className, text) {
