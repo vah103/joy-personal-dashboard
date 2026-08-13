@@ -1,12 +1,15 @@
 (() => {
-  if (!document.querySelector('link[data-joy-i18n-style="true"]')) {
+  const canWriteHead = typeof document?.createElement === "function" && document?.head?.append;
+  if (canWriteHead && !document.querySelector('link[data-joy-i18n-style="true"]')) {
     const link = document.createElement("link");
     link.rel = "stylesheet";
     link.href = "/i18n/i18n.css?v=joy-i18n-v1";
     link.dataset.joyI18nStyle = "true";
     document.head.append(link);
   }
-  void import("/i18n/index.js?v=joy-i18n-v1");
+  if (typeof document?.createElement === "function") {
+    void import("/i18n/index.js?v=joy-i18n-v1");
+  }
 })();
 
 window.JoyDashboardConfig = Object.freeze({
