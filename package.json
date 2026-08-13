@@ -7,13 +7,14 @@
     "node": ">=24"
   },
   "scripts": {
-    "build": "node scripts/validate-ielts-sources.mjs && node scripts/build.mjs && node scripts/sync-turtlebot-fallbacks.mjs dist && node scripts/version-turtlebot-assets.mjs dist && node scripts/sanitize-public-project-data.mjs && node scripts/build-finance-bundle.mjs",
+    "build": "node scripts/validate-ielts-sources.mjs && node scripts/build.mjs && node scripts/sync-turtlebot-fallbacks.mjs dist && node scripts/version-turtlebot-assets.mjs dist && node scripts/sanitize-public-project-data.mjs && node scripts/build-finance-bundle.mjs && node scripts/build-i18n.mjs",
     "test": "node scripts/run-tests.mjs",
+    "i18n:check": "node scripts/check-i18n.mjs",
     "audit:prod": "npm audit --omit=dev --audit-level=high",
     "audit:all": "npm audit --audit-level=high",
     "db:migrate:smoke": "node scripts/validate-d1-migrations.mjs",
     "db:migrate:check:remote": "node scripts/check-remote-d1-migrations.mjs",
-    "verify": "npm run audit:prod && npm run audit:all && npm run db:migrate:smoke && npm test && npm run build",
+    "verify": "npm run audit:prod && npm run audit:all && npm run db:migrate:smoke && npm run i18n:check && npm test && npm run build",
     "test:finance": "node scripts/run-feature-tests.mjs finance",
     "test:ielts": "node scripts/run-feature-tests.mjs ielts",
     "dev": "npm run build && wrangler dev",
