@@ -21,17 +21,41 @@
   let cloudSaveChain = Promise.resolve();
   let localMutationVersion = 0;
 
+  function i18n() {
+    return window.JoyI18n || null;
+  }
+
+  function tr(key, values = {}, fallback = "") {
+    const translated = i18n()?.t?.(key, values);
+    return translated && translated !== key ? translated : fallback || key;
+  }
+
+  function currentLocale() {
+    return i18n()?.getLocale?.() || "vi";
+  }
+
+  function displayMonth(monthKey) {
+    const fallback = MONTH_LABELS[monthKey] || monthKey;
+    if (currentLocale() !== "en") return fallback;
+    const date = new Date(`${monthKey}-01T12:00:00+07:00`);
+    return i18n()?.formatDate?.(date, {
+      timeZone: "Asia/Ho_Chi_Minh",
+      month: "long",
+      year: "numeric",
+    }) || fallback;
+  }
+
   function currentMonthKey() {
     const value = document.querySelector("[data-p1008-month]")?.value;
     return MONTH_LABELS[value] ? value : "2026-08";
   }
 
   function syncLabel() {
-    if (syncState === "loading") return "Đang tải từ tài khoản…";
-    if (syncState === "syncing") return "Đang đồng bộ…";
-    if (syncState === "synced") return "Đã đồng bộ tài khoản";
-    if (syncState === "offline") return "Chưa đồng bộ · lưu tạm trên máy";
-    return "Lưu trên thiết bị này";
+    if (syncState === "loading") return tr("p1008.syncLoading", {}, "Đang tải từ tài khoản…");
+    if (syncState === "syncing") return tr("p1008.syncing", {}, "Đang đồng bộ…");
+    if (syncState === "synced") return tr("p1008.synced", {}, "Đã đồng bộ tài khoản");
+    if (syncState === "offline") return tr("p1008.syncOffline", {}, "Chưa đồng bộ · lưu tạm trên máy");
+    return tr("p1008.syncLocal", {}, "Lưu trên thiết bị này");
   }
 
   function setSyncState(state) {
@@ -64,7 +88,9 @@
   }
 
   function formatNumber(value) {
-    return new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(Number(value || 0));
+    const amount = Number(value || 0);
+    return i18n()?.formatNumber?.(amount, { maximumFractionDigits: 0 })
+      || new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(amount);
   }
 
   function formatVnd(value) {
@@ -150,9 +176,9 @@
   }
 
   function excludedLabel(splitCount) {
-    if (splitCount === 5) return "Không tính Hưng";
-    if (splitCount === 4) return "Không tính Hưng và A Mạnh";
-    return "Đủ 6 người";
+    if (splitCount === 5) return tr("p1008.shopping.excludeHung", {}, "Không tính Hưng");
+    if (splitCount === 4) return tr("p1008.shopping.excludeHungManh", {}, "Không tính Hưng và A Mạnh");
+    return tr("p1008.shopping.allSix", {}, "Đủ 6 người");
   }
 
   function calculateShoppingSplit(items) {
@@ -176,9 +202,9 @@
 
   function splitOptions(selected) {
     return [
-      [6, "6 người · chia đều tất cả"],
-      [5, "5 người · không Hưng"],
-      [4, "4 người · không Hưng, A Mạnh"],
+      [6, tr("p1008.shopping.split6", {}, "6 người · chia đều tất cả")],
+      [5, tr("p1008.shopping.split5", {}, "5 người · không Hưng")],
+      [4, tr("p1008.shopping.split4", {}, "4 người · không Hưng, A Mạnh")],
     ].map(([value, label]) => `<option value="${value}"${selected === value ? " selected" : ""}>${label}</option>`).join("");
   }
 
@@ -186,22 +212,22 @@
     return items.map((item) => `
       <tr data-shopping-row="${escapeHtml(item.id)}">
         <td>
-          <input class="p1008-shopping-name-input" type="text" maxlength="80" value="${escapeHtml(item.name)}" data-shopping-name="${escapeHtml(item.id)}" aria-label="Tên món ${escapeHtml(item.name)}">
+          <input class="p1008-shopping-name-input" type="text" maxlength="80" value="${escapeHtml(item.name)}" data-shopping-name="${escapeHtml(item.id)}" aria-label="${escapeHtml(tr("p1008.shopping.itemNameAria", { name: item.name }, `Tên món ${item.name}`))}">
         </td>
         <td>
           <label class="p1008-shopping-amount-field">
-            <input type="text" inputmode="numeric" autocomplete="off" value="${formatNumber(item.amount)}" data-shopping-amount="${escapeHtml(item.id)}" aria-label="Số tiền ${escapeHtml(item.name)}">
+            <input type="text" inputmode="numeric" autocomplete="off" value="${formatNumber(item.amount)}" data-shopping-amount="${escapeHtml(item.id)}" aria-label="${escapeHtml(tr("p1008.shopping.itemAmountAria", { name: item.name }, `Số tiền ${item.name}`))}">
             <span>₫</span>
           </label>
         </td>
         <td class="p1008-shopping-split-cell">
-          <select data-shopping-split="${escapeHtml(item.id)}" aria-label="Số người chia ${escapeHtml(item.name)}">
+          <select data-shopping-split="${escapeHtml(item.id)}" aria-label="${escapeHtml(tr("p1008.shopping.itemSplitAria", { name: item.name }, `Số người chia ${item.name}`))}">
             ${splitOptions(item.splitCount)}
           </select>
           <small>${excludedLabel(item.splitCount)}</small>
         </td>
         <td class="p1008-shopping-per-person">${formatVnd(Math.round(item.amount / item.splitCount))}</td>
-        <td><button class="p1008-shopping-delete" type="button" data-shopping-delete="${escapeHtml(item.id)}" aria-label="Xóa ${escapeHtml(item.name)}" title="Xóa món">×</button></td>
+        <td><button class="p1008-shopping-delete" type="button" data-shopping-delete="${escapeHtml(item.id)}" aria-label="${escapeHtml(tr("p1008.shopping.deleteItemAria", { name: item.name }, `Xóa ${item.name}`))}" title="${tr("p1008.shopping.deleteItem", {}, "Xóa món")}">×</button></td>
       </tr>
     `).join("");
   }
@@ -211,7 +237,7 @@
       <article class="${person === "Vanh" ? "is-vanh" : ""}">
         <span>${person}</span>
         <strong>${formatVnd(people[person])}</strong>
-        ${person === "Vanh" ? "<small>Bạn</small>" : ""}
+        ${person === "Vanh" ? `<small>${tr("p1008.you", {}, "Bạn")}</small>` : ""}
       </article>
     `).join("");
   }
@@ -226,14 +252,14 @@
     if (!card) return;
 
     const monthKey = currentMonthKey();
-    const monthLabel = MONTH_LABELS[monthKey];
+    const monthLabel = displayMonth(monthKey);
     const items = readData()[monthKey] || [];
     const split = calculateShoppingSplit(items);
 
     card.setAttribute("aria-labelledby", "p1008-shopping-title");
     card.innerHTML = `
       <header>
-        <div><p>Mua đồ chung</p><h3 id="p1008-shopping-title">Chia tiền mua đồ chung</h3></div>
+        <div><p>${tr("p1008.shopping.kicker", {}, "Mua đồ chung")}</p><h3 id="p1008-shopping-title">${tr("p1008.shopping.title", {}, "Chia tiền mua đồ chung")}</h3></div>
         <div class="p1008-shopping-header-meta">
           <span>${monthLabel}</span>
           <span class="p1008-local-state p1008-shopping-sync" data-sync-state="${syncState}">${syncLabel()}</span>
@@ -241,53 +267,53 @@
       </header>
       <div class="p1008-shopping-body">
         <aside class="p1008-shopping-rule">
-          <strong>Quy tắc chia</strong>
-          <span>6 người: chia đều tất cả · 5 người: không tính Hưng · 4 người: không tính Hưng và A Mạnh.</span>
-          <small>Nhập theo tháng đóng tiền. Ví dụ khoản chốt ngày 15/8 được lưu trong Tháng 8/2026.</small>
+          <strong>${tr("p1008.shopping.ruleTitle", {}, "Quy tắc chia")}</strong>
+          <span>${tr("p1008.shopping.ruleHelp", {}, "6 người: chia đều tất cả · 5 người: không tính Hưng · 4 người: không tính Hưng và A Mạnh.")}</span>
+          <small>${tr("p1008.shopping.entryHelp", {}, "Nhập theo tháng đóng tiền. Ví dụ khoản chốt ngày 15/8 được lưu trong Tháng 8/2026.")}</small>
         </aside>
 
-        <div class="p1008-shopping-summary" aria-label="Tóm tắt mua đồ chung ${monthLabel}">
-          <article><span>Tổng mua chung</span><strong>${formatVnd(split.total)}</strong></article>
-          <article class="is-primary"><span>Phần của Vanh</span><strong>${formatVnd(split.vanhTotal)}</strong></article>
-          <article><span>Số món</span><strong>${items.length}</strong></article>
+        <div class="p1008-shopping-summary" aria-label="${tr("p1008.shopping.title", {}, "Chia tiền mua đồ chung")} · ${monthLabel}">
+          <article><span>${tr("p1008.shopping.total", {}, "Tổng mua chung")}</span><strong>${formatVnd(split.total)}</strong></article>
+          <article class="is-primary"><span>${tr("p1008.vanhShare", {}, "Phần của Vanh")}</span><strong>${formatVnd(split.vanhTotal)}</strong></article>
+          <article><span>${tr("p1008.shopping.itemCount", {}, "Số món")}</span><strong>${items.length}</strong></article>
         </div>
 
         <form class="p1008-shopping-form" data-shopping-form>
           <label>
-            <span>Tên món</span>
-            <input type="text" maxlength="80" autocomplete="off" placeholder="Ví dụ: Nước rửa chén" data-shopping-new-name required>
+            <span>${tr("p1008.shopping.itemName", {}, "Tên món")}</span>
+            <input type="text" maxlength="80" autocomplete="off" placeholder="${tr("p1008.shopping.itemExample", {}, "Ví dụ: Nước rửa chén")}" data-shopping-new-name required>
           </label>
           <label>
-            <span>Số tiền</span>
+            <span>${tr("p1008.shopping.amount", {}, "Số tiền")}</span>
             <span class="p1008-shopping-amount-field">
               <input type="text" inputmode="numeric" autocomplete="off" placeholder="0" data-shopping-new-amount required>
               <span>₫</span>
             </span>
           </label>
           <label>
-            <span>Chia cho</span>
+            <span>${tr("p1008.shopping.splitFor", {}, "Chia cho")}</span>
             <select data-shopping-new-split>${splitOptions(6)}</select>
           </label>
-          <button type="submit">+ Thêm món</button>
+          <button type="submit">${tr("p1008.shopping.addItem", {}, "+ Thêm món")}</button>
         </form>
 
         ${items.length ? `
           <div class="p1008-table-wrap p1008-shopping-table-wrap">
             <table class="p1008-shopping-table">
-              <thead><tr><th>Món mua</th><th>Tiền</th><th>Chia cho</th><th>Mỗi người</th><th></th></tr></thead>
+              <thead><tr><th>${tr("p1008.shopping.purchasedItem", {}, "Món mua")}</th><th>${tr("p1008.money", {}, "Tiền")}</th><th>${tr("p1008.splitAmong", {}, "Chia cho")}</th><th>${tr("p1008.perPerson", {}, "Mỗi người")}</th><th></th></tr></thead>
               <tbody>${renderShoppingRows(items)}</tbody>
-              <tfoot><tr><th>Tổng</th><td>${formatVnd(split.total)}</td><td></td><td></td><td></td></tr></tfoot>
+              <tfoot><tr><th>${tr("p1008.shopping.total", {}, "Tổng mua chung")}</th><td>${formatVnd(split.total)}</td><td></td><td></td><td></td></tr></tfoot>
             </table>
           </div>
         ` : `
           <div class="p1008-shopping-empty is-ready">
             <span aria-hidden="true">15</span>
-            <div><strong>Chưa có món nào trong ${monthLabel}</strong><p>Nhập tên món, số tiền và số người chia ở phía trên để bắt đầu.</p></div>
+            <div><strong>${tr("p1008.shopping.emptyTitle", { month: monthLabel }, `Chưa có món nào trong ${monthLabel}`)}</strong><p>${tr("p1008.shopping.emptyHelp", {}, "Nhập tên món, số tiền và số người chia ở phía trên để bắt đầu.")}</p></div>
           </div>
         `}
 
         <section class="p1008-shopping-people" aria-labelledby="p1008-shopping-people-title">
-          <div><p>Phần từng người</p><h4 id="p1008-shopping-people-title">Tổng mua chung phải đóng</h4></div>
+          <div><p>${tr("p1008.shopping.personSection", {}, "Phần từng người")}</p><h4 id="p1008-shopping-people-title">${tr("p1008.shopping.personTotal", {}, "Tổng mua chung phải đóng")}</h4></div>
           <div class="p1008-shopping-people-grid">${renderPeopleTotals(split.people)}</div>
         </section>
       </div>
@@ -399,7 +425,7 @@
       button.addEventListener("click", () => {
         const item = items.find((entry) => entry.id === button.dataset.shoppingDelete);
         if (!item) return;
-        if (!window.confirm(`Xóa món “${item.name}”?`)) return;
+        if (!window.confirm(tr("p1008.shopping.deleteConfirm", { name: item.name }, `Xóa món “${item.name}”?`))) return;
         persistMonthItems(monthKey, items.filter((entry) => entry.id !== item.id));
       });
     });
@@ -498,6 +524,13 @@
 
   window.addEventListener("storage", (event) => {
     if (event.key === STORAGE_KEY && isP1008Visible()) enhanceShoppingCard();
+  });
+
+  window.addEventListener("joy:i18n-ready", () => {
+    if (isP1008Visible()) enhanceShoppingCard();
+  });
+  window.addEventListener("joy:locale-changed", () => {
+    if (isP1008Visible()) enhanceShoppingCard();
   });
 
   queueMicrotask(() => {
