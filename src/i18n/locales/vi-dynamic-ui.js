@@ -27,6 +27,13 @@ export default Object.freeze({
   "dynamic.finance.noTransactions": "Chưa có giao dịch. Thêm giao dịch đầu tiên trực tiếp trong Joy.",
   "dynamic.finance.deleteTransaction": "Xóa giao dịch",
   "dynamic.finance.noDetail": "Không có chi tiết",
+  "dynamic.finance.planned": "dự kiến",
+  "dynamic.finance.summary": "tóm tắt",
+  "dynamic.finance.carryoverIncomeSuffix": "· Số dư chuyển sang được tính trong Thu nhập.",
+  "dynamic.finance.entries": "giao dịch",
+  "dynamic.finance.overviewSuffix": "tổng quan tài chính",
+  "dynamic.finance.carryoverMonthlySuffix": "· Số dư chuyển sang được tính trong thu nhập tháng.",
+  "dynamic.finance.add": "Thêm",
 
   "dynamic.ielts.joyToChatGPT": "Joy → ChatGPT",
   "dynamic.ielts.chatGPTToJoy": "ChatGPT → Joy",
@@ -42,6 +49,7 @@ export default Object.freeze({
   "dynamic.ielts.howJoyUses": "Cách Joy sử dụng",
   "dynamic.ielts.liveCourseContext": "Ngữ cảnh khóa học hiện tại",
   "dynamic.ielts.autoRefreshHelp": "Joy tự động kiểm tra tài liệu mỗi 24 giờ sau khi kết nối. Khi hash nội dung thay đổi, Joy làm mới kiến thức đã lưu; ghi chú không đổi sẽ được giữ nguyên.",
+  "dynamic.ielts.minuteSuffix": "phút",
 
   "dynamic.projectHub.title": "Trung tâm dự án TurtleBot",
   "dynamic.projectHub.robot": "TurtleBot 4",
@@ -56,6 +64,10 @@ export default Object.freeze({
   "dynamic.projectHub.connecting": "Đang kết nối dự án TurtleBot…",
   "dynamic.projectHub.lab": "Lab",
   "dynamic.projectHub.sendQuestion": "Gửi câu hỏi",
+  "dynamic.projectHub.stageOf": "Stage trên",
+  "dynamic.projectHub.completeSuffix": "% hoàn thành",
+  "dynamic.projectHub.commandsLower": "lệnh",
+  "dynamic.projectHub.recordedSession": "buổi đã ghi",
 
   "dynamic.sale.subtitleLegacy": "Tạo lịch, theo dõi lịch sử và tóm tắt thông tin phòng ngay trong Joy.",
 
@@ -86,6 +98,9 @@ export default Object.freeze({
   "dynamic.p1008.perPerson": "Phần từng người",
   "dynamic.p1008.totalShoppingDue": "Tổng mua chung phải đóng",
   "dynamic.p1008.members": "A Mạnh · A Cường · Vanh · Dương · Hưng · Trung",
+  "dynamic.p1008.splitCountAria": "Số người chia",
+  "dynamic.p1008.shoppingSummaryAria": "Tóm tắt mua đồ chung",
+  "dynamic.p1008.roomSummaryAria": "Tóm tắt tiền phòng",
 
   "dynamic.speaking.examplePlaceholder": "e.g. Tôi có thể ngồi ở đây không?",
 
@@ -98,5 +113,8 @@ export default Object.freeze({
   "dynamic.vocabulary.vietnameseReading": "Cách đọc tiếng Việt",
   "dynamic.vocabulary.example": "Ví dụ",
   "dynamic.vocabulary.hearEnglish": "Nghe từ tiếng Anh",
-  "dynamic.vocabulary.saveEntry": "Lưu mục này?"
+  "dynamic.vocabulary.saveEntry": "Lưu mục này?",
+  "dynamic.vocabulary.savedWordsAria": "từ đã lưu",
+  "dynamic.vocabulary.saved": "đã lưu",
+  "dynamic.vocabulary.translateInto": "Dịch sang"
 });
