@@ -30,6 +30,7 @@ function looksLikeInterfaceCopy(value) {
   if (/^(?:true|false|null|undefined)$/iu.test(text)) return false;
   if (/^(?:https?:\/\/|\/api\/|data:|#[a-z0-9_-]+$)/iu.test(text)) return false;
   if (/\b(?:render[A-Z]\w*|\.join\(|=>)\b/u.test(text)) return false;
+  if (/\?\s*["']|["']\s*:\s*["']/u.test(text)) return false;
   return true;
 }
 
