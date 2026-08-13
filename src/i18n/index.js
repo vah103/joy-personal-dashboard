@@ -170,6 +170,25 @@ function localizedSpeakingTone(value, locale = currentLocale) {
   return keys[normalized] ? t(keys[normalized], {}, locale) : value;
 }
 
+function parseDisplayedNumber(value) {
+  const source = String(value || "").trim();
+  if (!source) return NaN;
+  const sign = source.startsWith("-") ? -1 : 1;
+  const unsigned = source.replace(/^[+-]/u, "");
+  if (/^\d{1,3}(?:[.,]\d{3})+$/u.test(unsigned)) {
+    return sign * Number(unsigned.replace(/[.,]/g, ""));
+  }
+  if (/^\d+(?:[.,]\d+)?$/u.test(unsigned)) {
+    return sign * Number(unsigned.replace(",", "."));
+  }
+  return NaN;
+}
+
+function localizedDisplayedNumber(value, locale = currentLocale, options = {}) {
+  const parsed = parseDisplayedNumber(value);
+  return Number.isFinite(parsed) ? formatNumber(parsed, options, locale) : "";
+}
+
 function formatViewingDate(day, month, year, time, locale = currentLocale) {
   const date = new Date(`${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}T12:00:00+07:00`);
   if (Number.isNaN(date.getTime())) return "";
@@ -184,6 +203,35 @@ function dynamicTranslation(text, locale = currentLocale) {
 
   match = text.match(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s*(\d{2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})\s*·\s*(\d{2}:\d{2})$/u);
   if (match) return formatViewingDate(Number(match[2]), parseMonthName(match[3]), match[4], match[5], locale);
+
+  match = text.match(/^([+-]?[\d.,]+)\s*₫$/u);
+  if (match) {
+    const number = localizedDisplayedNumber(match[1], locale, { maximumFractionDigits: 0 });
+    if (number) return `${number} ₫`;
+  }
+
+  match = text.match(/^([+-]?[\d.,]+)\s*(?:tr|m)\s*₫$/iu);
+  if (match) {
+    const number = localizedDisplayedNumber(match[1], locale, { maximumFractionDigits: 2 });
+    if (number) return `${number} ${locale === "vi" ? "tr" : "m"} ₫`;
+  }
+
+  match = text.match(/^([+-]?[\d.,]+)%$/u);
+  if (match) {
+    const number = localizedDisplayedNumber(match[1], locale, { maximumFractionDigits: 2 });
+    if (number) return `${number}%`;
+  }
+
+  match = text.match(/^(\d+)\s*=\s*([\d.,]+)\s*₫$/u);
+  if (match) {
+    const number = localizedDisplayedNumber(match[2], locale, { maximumFractionDigits: 0 });
+    if (number) return `${match[1]} = ${number} ₫`;
+  }
+
+  match = text.match(/^(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)$/u);
+  if (match) return locale === "vi" ? `${Number(match[1])} thg ${parseMonthName(match[2])}` : `${String(match[1]).padStart(2, "0")} ${match[2]}`;
+  match = text.match(/^(\d{1,2})\s+thg\s+(1[0-2]|[1-9])$/iu);
+  if (match) return locale === "vi" ? `${Number(match[1])} thg ${Number(match[2])}` : `${String(match[1]).padStart(2, "0")} ${MONTHS_EN[Number(match[2]) - 1]}`;
 
   match = text.match(/^(\d+)\s+(?:lịch hẹn|appointments?)$/iu);
   if (match) return t("saleAssistant.appointmentCount", { count: match[1] }, locale);
@@ -361,7 +409,11 @@ const USER_DATA_SKIP_SELECTOR = [
   ".sales-history-table tbody td:nth-child(4)",
   ".viewing-row > strong",
   ".viewing-row > span",
-  ".sale-table tbody",
+  ".sale-table tbody td:nth-child(1) strong",
+  ".sale-table tbody td:nth-child(1) small",
+  ".sale-table tbody td:nth-child(2)",
+  ".sale-table tbody td:nth-child(3)",
+  ".finance-transaction-row button span small",
   ".room-share-detail-value",
   ".room-share-service-value",
   ".room-share-note-value",
