@@ -41,6 +41,14 @@ test("shared i18n assets are copied without creating a second HTML owner", async
   assert.match(login, /\/i18n\/index\.js/);
 });
 
+test("i18n observer cannot observe the DOM writes produced by translation itself", async () => {
+  const runtime = await readFile(new URL("../src/i18n/index.js", import.meta.url), "utf8");
+  assert.match(runtime, /function pauseObserver\(\)[\s\S]*observer\.disconnect\(\)/);
+  assert.match(runtime, /const reconnect = pauseObserver\(\);[\s\S]*finally[\s\S]*connectObserver\(\)/);
+  assert.match(runtime, /if \(root\.nodeType === 9\) applyLocaleSpecificFormatting\(document\)/);
+  assert.match(runtime, /if \(element\.textContent !== translated\) element\.textContent = translated/);
+});
+
 test("i18n rules run inside the existing canonical verification path", async () => {
   const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
   assert.match(packageJson.scripts.test, /check-i18n-v2\.mjs/);
