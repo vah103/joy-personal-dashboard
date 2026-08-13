@@ -11,10 +11,18 @@ const MONTHS_EN = Object.freeze(["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"
 const MONTHS_EN_LONG = Object.freeze(["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]);
 const WEEKDAYS_EN = Object.freeze(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]);
 const WEEKDAYS_VI = Object.freeze(["CN", "Th 2", "Th 3", "Th 4", "Th 5", "Th 6", "Th 7"]);
+const OBSERVER_OPTIONS = Object.freeze({
+  childList: true,
+  subtree: true,
+  characterData: true,
+  attributes: true,
+  attributeFilter: ["placeholder", "aria-label", "title"],
+});
 
 let currentLocale = readStoredLocale();
 let translating = false;
 let observer = null;
+let observerConnected = false;
 let queuedRoots = new Set();
 let translationFrame = 0;
 
@@ -292,7 +300,9 @@ function translateExplicitKeys(root) {
   root?.querySelectorAll?.("[data-i18n]").forEach((element) => nodes.push(element));
   nodes.forEach((element) => {
     const key = element.dataset.i18n;
-    if (key) element.textContent = t(key);
+    if (!key) return;
+    const translated = t(key);
+    if (element.textContent !== translated) element.textContent = translated;
   });
 }
 
@@ -302,7 +312,8 @@ function applyFinanceMonths(root = document) {
   if (!labels) return;
   [...labels.children].forEach((label, index) => {
     if (index > 11) return;
-    label.textContent = currentLocale === "vi" ? `Thg ${index + 1}` : MONTHS_EN[index];
+    const next = currentLocale === "vi" ? `Thg ${index + 1}` : MONTHS_EN[index];
+    if (label.textContent !== next) label.textContent = next;
   });
 }
 
@@ -319,16 +330,21 @@ function vietnamHour() {
   }
 }
 
+function setTextIfChanged(element, value) {
+  if (element && element.textContent !== value) element.textContent = value;
+}
+
 function applyHeaderLocale() {
   if (typeof document === "undefined") return;
   const today = document.querySelector("#today-label");
   if (today) {
-    today.textContent = new Intl.DateTimeFormat(getBrowserLocale(), {
+    const value = new Intl.DateTimeFormat(getBrowserLocale(), {
       timeZone: "Asia/Ho_Chi_Minh",
       weekday: "long",
       month: "long",
       day: "numeric",
     }).format(new Date());
+    setTextIfChanged(today, value);
   }
 
   const greeting = document.querySelector("#greeting");
@@ -341,10 +357,10 @@ function applyHeaderLocale() {
   const namePart = greeting.querySelector(".greeting-name");
   if (daypart && namePart) {
     const separator = full.lastIndexOf(name);
-    daypart.textContent = separator >= 0 ? full.slice(0, separator).trim() : full;
-    namePart.textContent = separator >= 0 ? full.slice(separator).trim() : "";
+    setTextIfChanged(daypart, separator >= 0 ? full.slice(0, separator).trim() : full);
+    setTextIfChanged(namePart, separator >= 0 ? full.slice(separator).trim() : "");
   } else {
-    greeting.textContent = full;
+    setTextIfChanged(greeting, full);
   }
 }
 
@@ -354,10 +370,10 @@ function applyPageMeta() {
   if (path.includes("login")) {
     document.title = t("meta.loginTitle");
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.content = t("meta.loginDescription");
+    if (meta && meta.content !== t("meta.loginDescription")) meta.content = t("meta.loginDescription");
   } else if (path === "/" || path.endsWith("/index.html")) {
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.content = t("meta.dashboardDescription");
+    if (meta && meta.content !== t("meta.dashboardDescription")) meta.content = t("meta.dashboardDescription");
   }
 }
 
@@ -367,8 +383,23 @@ function applyLocaleSpecificFormatting(root = document) {
   applyPageMeta();
 }
 
+function connectObserver() {
+  if (!observer || !document?.body || observerConnected) return;
+  observer.observe(document.body, OBSERVER_OPTIONS);
+  observerConnected = true;
+}
+
+function pauseObserver() {
+  if (!observer || !observerConnected) return false;
+  observer.disconnect();
+  observer.takeRecords?.();
+  observerConnected = false;
+  return true;
+}
+
 export function translateRoot(root = typeof document !== "undefined" ? document : null) {
   if (!root || translating) return;
+  const reconnect = pauseObserver();
   translating = true;
   try {
     translateExplicitKeys(root);
@@ -380,19 +411,35 @@ export function translateRoot(root = typeof document !== "undefined" ? document 
       textNodes.forEach(translateTextNode);
     }
     translateElementAttributes(root.nodeType === 9 ? root.documentElement : root);
-    applyLocaleSpecificFormatting(root.nodeType === 9 ? document : root);
+    if (root.nodeType === 9) applyLocaleSpecificFormatting(document);
   } finally {
     translating = false;
+    if (reconnect) connectObserver();
   }
 }
 
+function normalizeScheduledRoot(root) {
+  if (!root) return null;
+  if (root.nodeType === 3) return root.parentElement;
+  return root.nodeType === 1 ? root : null;
+}
+
+function queueRoot(root) {
+  const normalized = normalizeScheduledRoot(root);
+  if (!normalized || !normalized.isConnected) return;
+  for (const existing of queuedRoots) {
+    if (existing === normalized || existing.contains?.(normalized)) return;
+    if (normalized.contains?.(existing)) queuedRoots.delete(existing);
+  }
+  queuedRoots.add(normalized);
+}
+
 function scheduleTranslate(root) {
-  if (!root) return;
-  queuedRoots.add(root.nodeType === 3 ? root.parentElement : root);
-  if (translationFrame || typeof window === "undefined") return;
+  queueRoot(root);
+  if (!queuedRoots.size || translationFrame || typeof window === "undefined") return;
   translationFrame = window.requestAnimationFrame(() => {
     translationFrame = 0;
-    const roots = [...queuedRoots].filter(Boolean);
+    const roots = [...queuedRoots].filter((item) => item?.isConnected);
     queuedRoots = new Set();
     roots.forEach((item) => translateRoot(item));
   });
@@ -408,13 +455,7 @@ function installObserver() {
       mutation.addedNodes?.forEach((node) => scheduleTranslate(node));
     }
   });
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-    characterData: true,
-    attributes: true,
-    attributeFilter: ["placeholder", "aria-label", "title"],
-  });
+  connectObserver();
 }
 
 function settingsMarkup() {
@@ -447,7 +488,7 @@ function syncSettingsUi() {
     button.setAttribute("aria-label", t("settings.open"));
     button.setAttribute("title", t("settings.open"));
     const label = button.querySelector("[data-joy-settings-label]");
-    if (label) label.textContent = t("settings.open");
+    if (label) setTextIfChanged(label, t("settings.open"));
   });
   const avatar = document.querySelector(".header-avatar");
   if (avatar) avatar.setAttribute("aria-label", `${t("dashboard.profile")} · ${t("settings.open")}`);
@@ -528,7 +569,12 @@ export function setLocale(locale, { persist = true } = {}) {
   if (typeof document !== "undefined") {
     document.documentElement.lang = locale;
     translateRoot(document);
-    syncSettingsUi();
+    const reconnect = pauseObserver();
+    try {
+      syncSettingsUi();
+    } finally {
+      if (reconnect) connectObserver();
+    }
   }
   if (changed && typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("joy:locale-changed", { detail: { locale } }));
