@@ -13,7 +13,7 @@ const performancePath = resolve(root, "src/features/project-hub/project-hub-perf
 const removedVietnameseLayerPath = resolve(root, "project-data/turtlebot4/project-state-v2-vi.js");
 const vietnameseCharacters = /[ăâđêôơưàáạảãèéẹẻẽìíịỉĩòóọỏõùúụủũỳýỵỷỹ]/i;
 
-test("TurtleBot roadmap source remains English-only", async () => {
+test("TurtleBot keeps one canonical project source and delegates interface language to JoyI18n", async () => {
   const [roadmap, language, projectState, performance] = await Promise.all([
     readFile(roadmapPath, "utf8"),
     readFile(languagePath, "utf8"),
@@ -22,14 +22,15 @@ test("TurtleBot roadmap source remains English-only", async () => {
   ]);
 
   assert.doesNotMatch(roadmap, vietnameseCharacters);
-  assert.doesNotMatch(language, vietnameseCharacters);
   assert.doesNotMatch(projectState, vietnameseCharacters);
   assert.doesNotMatch(performance, /project-state-v2-vi|turtlebot-vietnamese|turtlebotVietnamese/i);
   assert.match(roadmap, /Main content/);
   assert.match(roadmap, /Objective/);
   assert.match(roadmap, /Completion gate/);
-  assert.match(language, /Overall completion/);
-  assert.match(language, /Next lab session/);
+  assert.match(language, /JoyI18n/);
+  assert.match(language, /joy:locale-changed/);
+  assert.match(language, /turtlebot\.progress/);
+  assert.doesNotMatch(language, /setAttribute\("lang",\s*"en"\)/);
   assert.match(projectState, /10-week execution plan/);
   assert.match(projectState, /Project State unavailable/);
   await assert.rejects(access(removedVietnameseLayerPath, constants.F_OK));
