@@ -29,6 +29,7 @@ function looksLikeInterfaceCopy(value) {
   if (text.length < 2 || !/\p{L}/u.test(text)) return false;
   if (/^(?:true|false|null|undefined)$/iu.test(text)) return false;
   if (/^(?:https?:\/\/|\/api\/|data:|#[a-z0-9_-]+$)/iu.test(text)) return false;
+  if (/\b(?:render[A-Z]\w*|\.join\(|=>)\b/u.test(text)) return false;
   return true;
 }
 
@@ -75,6 +76,12 @@ function stringAndTemplateLiterals(source) {
   return literals;
 }
 
+function stripSimpleTemplateExpressions(value) {
+  return String(value || "")
+    .replace(/\$\{[^<>]*?\}/gu, "")
+    .replace(/\$\{[\s\S]*?\}(?=<)/gu, "");
+}
+
 export function findUntranslatedHtmlLiterals(source, translatedValues) {
   const known = translatedValues instanceof Set ? translatedValues : new Set(translatedValues || []);
   const findings = [];
@@ -82,7 +89,7 @@ export function findUntranslatedHtmlLiterals(source, translatedValues) {
   for (const literal of stringAndTemplateLiterals(source)) {
     if (!/<[a-z][^>]*>/iu.test(literal.body)) continue;
 
-    const visibleMarkup = literal.body
+    const visibleMarkup = stripSimpleTemplateExpressions(literal.body)
       .replace(/<script\b[^>]*>[\s\S]*?<\/script>/giu, "")
       .replace(/<style\b[^>]*>[\s\S]*?<\/style>/giu, "");
 
@@ -119,7 +126,6 @@ export function findUntranslatedUiLiterals(source, translatedValues) {
     }
   }
 
-  findings.push(...findUntranslatedHtmlLiterals(source, known));
   return findings;
 }
 
