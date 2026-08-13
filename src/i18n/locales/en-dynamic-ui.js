@@ -27,6 +27,13 @@ export default Object.freeze({
   "dynamic.finance.noTransactions": "No transactions yet. Add the first one directly in Joy.",
   "dynamic.finance.deleteTransaction": "Delete transaction",
   "dynamic.finance.noDetail": "No detail",
+  "dynamic.finance.planned": "planned",
+  "dynamic.finance.summary": "summary",
+  "dynamic.finance.carryoverIncomeSuffix": "· Carryover is included in Income.",
+  "dynamic.finance.entries": "entries",
+  "dynamic.finance.overviewSuffix": "finance overview",
+  "dynamic.finance.carryoverMonthlySuffix": "· Carryover is included in monthly income.",
+  "dynamic.finance.add": "Add",
 
   "dynamic.ielts.joyToChatGPT": "Joy → ChatGPT",
   "dynamic.ielts.chatGPTToJoy": "ChatGPT → Joy",
@@ -42,6 +49,7 @@ export default Object.freeze({
   "dynamic.ielts.howJoyUses": "How Joy uses it",
   "dynamic.ielts.liveCourseContext": "Live course context",
   "dynamic.ielts.autoRefreshHelp": "Joy checks the document automatically every 24 hours after connection. A changed content hash refreshes the stored knowledge; unchanged notes are left untouched.",
+  "dynamic.ielts.minuteSuffix": "min",
 
   "dynamic.projectHub.title": "TurtleBot project hub",
   "dynamic.projectHub.robot": "TurtleBot 4",
@@ -56,6 +64,10 @@ export default Object.freeze({
   "dynamic.projectHub.connecting": "Connecting TurtleBot project…",
   "dynamic.projectHub.lab": "Lab",
   "dynamic.projectHub.sendQuestion": "Send question",
+  "dynamic.projectHub.stageOf": "Stage of",
+  "dynamic.projectHub.completeSuffix": "% complete",
+  "dynamic.projectHub.commandsLower": "commands",
+  "dynamic.projectHub.recordedSession": "recorded session",
 
   "dynamic.sale.subtitleLegacy": "Create appointments, track history, and summarize room information directly in Joy.",
 
@@ -86,6 +98,9 @@ export default Object.freeze({
   "dynamic.p1008.perPerson": "Each person's share",
   "dynamic.p1008.totalShoppingDue": "Total shared shopping due",
   "dynamic.p1008.members": "A Mạnh · A Cường · Vanh · Dương · Hưng · Trung",
+  "dynamic.p1008.splitCountAria": "Split count",
+  "dynamic.p1008.shoppingSummaryAria": "Shared shopping summary",
+  "dynamic.p1008.roomSummaryAria": "Room cost summary",
 
   "dynamic.speaking.examplePlaceholder": "e.g. Tôi có thể ngồi ở đây không?",
 
@@ -98,5 +113,8 @@ export default Object.freeze({
   "dynamic.vocabulary.vietnameseReading": "Vietnamese reading",
   "dynamic.vocabulary.example": "Example",
   "dynamic.vocabulary.hearEnglish": "Hear the English entry",
-  "dynamic.vocabulary.saveEntry": "Save this entry?"
+  "dynamic.vocabulary.saveEntry": "Save this entry?",
+  "dynamic.vocabulary.savedWordsAria": "saved words",
+  "dynamic.vocabulary.saved": "saved",
+  "dynamic.vocabulary.translateInto": "Translate into"
 });
