@@ -3,10 +3,10 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import {
   DEFAULT_LOCALE,
+  LOCALES,
   getLocale,
   t,
   translateText,
-  validateLocaleParity,
 } from "../src/i18n/index.js";
 
 test("Joy i18n defaults to English and exposes Vietnamese from the same semantic keys", () => {
@@ -17,12 +17,8 @@ test("Joy i18n defaults to English and exposes Vietnamese from the same semantic
   assert.equal(t("projects.currentFocus", {}, "vi"), "Trọng tâm hiện tại");
 });
 
-test("English and Vietnamese locale dictionaries stay structurally identical", () => {
-  assert.deepEqual(validateLocaleParity(), {
-    missingInVi: [],
-    missingInEn: [],
-    placeholderMismatches: [],
-  });
+test("English and Vietnamese locale dictionaries keep identical semantic keys", () => {
+  assert.deepEqual(Object.keys(LOCALES.en).sort(), Object.keys(LOCALES.vi).sort());
 });
 
 test("legacy visible Sale copy is translated centrally while source facts stay untouched", () => {
@@ -33,16 +29,21 @@ test("legacy visible Sale copy is translated centrally while source facts stay u
   assert.equal(translateText("59 Dương Khuê", "en"), "59 Dương Khuê");
 });
 
-test("build stage injects one shared language runtime into every top-level page", async () => {
-  const source = await readFile(new URL("../scripts/build-i18n.mjs", import.meta.url), "utf8");
-  assert.match(source, /inject\("index\.html"\)/);
-  assert.match(source, /inject\("login\.html"\)/);
-  assert.match(source, /inject\("sale-manager\.html"\)/);
-  assert.match(source, /\/i18n\/index\.js/);
+test("shared i18n assets are copied without creating a second HTML owner", async () => {
+  const [buildStage, saleAdapter, login] = await Promise.all([
+    readFile(new URL("../scripts/build-i18n.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/sale-english-ui.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/pages/login/index.html", import.meta.url), "utf8"),
+  ]);
+  assert.match(buildStage, /cp\(source, target/);
+  assert.doesNotMatch(buildStage, /writeFile|inject\(/);
+  assert.match(saleAdapter, /\/i18n\/index\.js/);
+  assert.match(login, /\/i18n\/index\.js/);
 });
 
-test("i18n rules are enforced by verify", async () => {
+test("i18n rules run inside the existing canonical verification path", async () => {
   const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
-  assert.match(packageJson.scripts.verify, /i18n:check/);
+  assert.match(packageJson.scripts.test, /check-i18n-v2\.mjs/);
   assert.match(packageJson.scripts.build, /build-i18n\.mjs/);
+  assert.equal(packageJson.scripts.verify, "npm run audit:prod && npm run audit:all && npm run db:migrate:smoke && npm test && npm run build");
 });
