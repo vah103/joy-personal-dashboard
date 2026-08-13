@@ -1,11 +1,21 @@
 (() => {
   const ROADMAP_ROOT_SELECTOR = "#turtlebot-hub-modal .hub-roadmap-layout";
 
-  function markRoadmapAsEnglish() {
+  function i18n() {
+    return window.JoyI18n || null;
+  }
+
+  function tr(key, values, fallback) {
+    return i18n()?.t?.(key, values) || fallback;
+  }
+
+  function syncRoadmapLanguage() {
+    const locale = i18n()?.getLocale?.() || "en";
     const modal = document.querySelector("#turtlebot-hub-modal");
     const roadmap = document.querySelector(ROADMAP_ROOT_SELECTOR);
-    if (modal) modal.setAttribute("lang", "en");
-    if (roadmap) roadmap.setAttribute("lang", "en");
+    if (modal) modal.setAttribute("lang", locale);
+    if (roadmap) roadmap.setAttribute("lang", locale);
+    i18n()?.translateRoot?.(modal || roadmap || document.body);
   }
 
   function stageSummary() {
@@ -52,54 +62,88 @@
   }
 
   function formatDate(value) {
-    if (!value) return "No date scheduled";
+    if (!value) return tr("common.noDate", {}, "No date scheduled");
+    const date = new Date(`${value}T00:00:00+07:00`);
+    if (i18n()?.formatDate) {
+      return i18n().formatDate(date, {
+        timeZone: "Asia/Ho_Chi_Minh",
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+    }
     return new Intl.DateTimeFormat("en-GB", {
       timeZone: "Asia/Ho_Chi_Minh",
       weekday: "short",
       day: "numeric",
       month: "short",
       year: "numeric",
-    }).format(new Date(`${value}T00:00:00+07:00`));
+    }).format(date);
   }
 
   answerProjectQuestion = (question) => {
     const value = String(question || "").trim().toLowerCase();
     const { stage, progress, pending } = stageSummary();
     const plan = typeof effectivePlan === "function" ? effectivePlan() : {};
-    const stageName = stage?.name || "Current stage";
+    const stageName = stage?.name || tr("turtlebot.currentStage", {}, "Current stage");
     const stageProgress = stage?.progress ?? 0;
-    const nextAction = pending?.label || plan.nextAction || plan.title || "Review the next completion gate";
+    const nextAction = pending?.label || plan.nextAction || plan.title || tr("turtlebot.reviewGate", {}, "Review the next completion gate");
+    const stageNumber = stage?.number || "-";
 
-    if (/(today|next|what should i do|focus)/.test(value)) {
-      return `Current focus: Stage ${stage?.number || "-"}, ${stageName} (${stageProgress}%). Next action: ${nextAction}.`;
+    if (/(today|next|what should i do|focus|hôm nay|tiếp theo|làm gì|trọng tâm)/i.test(value)) {
+      return tr("turtlebot.currentFocus", {
+        stage: stageNumber,
+        name: stageName,
+        progress: stageProgress,
+        next: nextAction,
+      }, `Current focus: Stage ${stageNumber}, ${stageName} (${stageProgress}%). Next action: ${nextAction}.`);
     }
 
-    if (/(lab|prepare|robot session)/.test(value)) {
+    if (/(lab|prepare|robot session|chuẩn bị|buổi robot)/i.test(value)) {
       const lab = nextLabSession();
       const tasks = (lab?.tasks || []).filter((task) => !scheduleTaskDone(task)).map((task) => task.label);
       return lab
-        ? `Next lab session: ${formatDate(lab.date)}. Prepare for: ${tasks.join("; ") || nextAction}.`
-        : `No pending lab session was found. Continue with: ${nextAction}.`;
+        ? tr("turtlebot.nextLab", {
+            date: formatDate(lab.date),
+            tasks: tasks.join("; ") || nextAction,
+          }, `Next lab session: ${formatDate(lab.date)}. Prepare for: ${tasks.join("; ") || nextAction}.`)
+        : tr("turtlebot.noLab", { next: nextAction }, `No pending lab session was found. Continue with: ${nextAction}.`);
     }
 
-    if (/(progress|percent|completion|roadmap)/.test(value)) {
-      return `Overall completion is ${progress}%. Stage ${stage?.number || "-"}, ${stageName}, is ${stageProgress}% complete. Progress is calculated from completed roadmap checklist items.`;
+    if (/(progress|percent|completion|roadmap|tiến độ|hoàn thành)/i.test(value)) {
+      return tr("turtlebot.progress", {
+        overall: progress,
+        stage: stageNumber,
+        name: stageName,
+        progress: stageProgress,
+      }, `Overall completion is ${progress}%. Stage ${stageNumber}, ${stageName}, is ${stageProgress}% complete. Progress is calculated from completed roadmap checklist items.`);
     }
 
-    if (/(schedule|track|late|behind|overdue)/.test(value)) {
+    if (/(schedule|track|late|behind|overdue|lịch|chậm|trễ)/i.test(value)) {
       const upcoming = scheduledDays().filter((day) => (day.tasks || []).some((task) => !scheduleTaskDone(task)));
-      return `The plan has ${upcoming.length} scheduled days with unfinished work. The next priority is: ${nextAction}.`;
+      return tr("turtlebot.schedule", { count: upcoming.length, next: nextAction }, `The plan has ${upcoming.length} scheduled days with unfinished work. The next priority is: ${nextAction}.`);
     }
 
-    if (/(blocker|gate|criteria|risk)/.test(value)) {
+    if (/(blocker|gate|criteria|risk|vướng|tiêu chí|rủi ro)/i.test(value)) {
       const blockers = hubState?.projectState?.project?.currentBlockers || [];
-      return `Completion gate: ${stage?.completionCriteria || plan.completionCriteria || "Review the stage criteria."} Blockers: ${blockers.join("; ") || "No blocker is recorded."}`;
+      const gate = stage?.completionCriteria || plan.completionCriteria || tr("turtlebot.reviewCriteria", {}, "Review the stage criteria.");
+      const blockerText = blockers.join("; ") || tr("turtlebot.noBlocker", {}, "No blocker is recorded.");
+      return tr("turtlebot.gate", { gate, blockers: blockerText }, `Completion gate: ${gate} Blockers: ${blockerText}`);
     }
 
-    return `Joy is tracking ${progress}% overall completion. The project is at Stage ${stage?.number || "-"}, ${stageName} (${stageProgress}%). Next action: ${nextAction}.`;
+    return tr("turtlebot.tracking", {
+      overall: progress,
+      stage: stageNumber,
+      name: stageName,
+      progress: stageProgress,
+      next: nextAction,
+    }, `Joy is tracking ${progress}% overall completion. The project is at Stage ${stageNumber}, ${stageName} (${stageProgress}%). Next action: ${nextAction}.`);
   };
 
-  const observer = new MutationObserver(markRoadmapAsEnglish);
+  const observer = new MutationObserver(syncRoadmapLanguage);
   observer.observe(document.documentElement, { childList: true, subtree: true });
-  markRoadmapAsEnglish();
+  window.addEventListener("joy:i18n-ready", syncRoadmapLanguage);
+  window.addEventListener("joy:locale-changed", syncRoadmapLanguage);
+  syncRoadmapLanguage();
 })();
