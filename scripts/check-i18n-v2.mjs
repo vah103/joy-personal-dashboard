@@ -4,7 +4,10 @@ import en from "../src/i18n/locales/en.js";
 import vi from "../src/i18n/locales/vi.js";
 
 const root = resolve(import.meta.dirname, "..");
-const sourceRoot = resolve(root, "src");
+const sourceRoots = [
+  resolve(root, "src"),
+  resolve(root, "project-data"),
+];
 const dictionaries = { en, vi };
 const supported = Object.keys(dictionaries);
 const ICU_PLURAL = /\{([a-zA-Z0-9_]+),\s*plural,\s*one\s*\{[^{}]*\}\s*other\s*\{[^{}]*\}\}/g;
@@ -58,7 +61,7 @@ async function walk(directory) {
   return files;
 }
 
-const files = await walk(sourceRoot);
+const files = (await Promise.all(sourceRoots.map((directory) => walk(directory)))).flat();
 const literalKeyPatterns = [
   /JoyI18n\.t\(\s*["'`]([^"'`]+)["'`]/g,
   /data-i18n=["']([^"']+)["']/g,
@@ -81,6 +84,28 @@ for (const file of files) {
   ]);
   if ((name.includes("english-ui") || name.includes("vietnamese-ui") || name.includes("-language")) && !allowedLegacy.has(legacyAdapter)) {
     errors.push(`${legacyAdapter} looks like a new feature-specific language layer; use shared JoyI18n instead`);
+  }
+}
+
+const publicRuntimeUiFiles = [
+  "project-data/finance/finance-p1008.js",
+  "project-data/finance/finance-p1008-shopping-v1.js",
+  "project-data/vocabulary/vocabulary.js",
+  "project-data/speaking/speaking.js",
+];
+for (const file of publicRuntimeUiFiles) {
+  const path = resolve(root, file);
+  try {
+    if (!(await stat(path)).isFile()) {
+      errors.push(`${file} is registered as public runtime UI but is not a file`);
+      continue;
+    }
+    const source = await readFile(path, "utf8");
+    if (/\b(?:EXACT_TEXT|TRANSLATIONS|LOCALE_TEXT|I18N_TEXT)\s*=\s*(?:new\s+Map|\{|Object\.freeze)/u.test(source)) {
+      errors.push(`${file} must not introduce a private translation dictionary; use shared JoyI18n`);
+    }
+  } catch {
+    errors.push(`${file} is required by the public runtime i18n coverage list`);
   }
 }
 
@@ -134,4 +159,4 @@ for (const [file, requiredFragments] of agentPolicyRequirements) {
 }
 
 if (errors.length) fail(errors);
-console.log(`Joy i18n check passed: ${allKeys.size} shared keys across ${supported.join("/")} with agent policy enforced`);
+console.log(`Joy i18n check passed: ${allKeys.size} shared keys across ${supported.join("/")} with src/project-data runtime coverage and agent policy enforced`);
