@@ -103,5 +103,35 @@ for (const [file, required] of languageAdapterRules) {
 const taskEnglish = await readFile(resolve(root, "src/features/tasks/task-english.js"), "utf8");
 if (!/\/api\/tasks\/english/u.test(taskEnglish)) errors.push("task-english.js must remain a task-content feature, not UI localization");
 
+const agentPolicyRequirements = [
+  ["AGENTS.md", [
+    "docs/i18n.md",
+    "src/i18n/locales/en.js",
+    "src/i18n/locales/vi.js",
+    "JoyI18n",
+    "npm run i18n:check",
+  ]],
+  [".agents/skills/joy-dashboard/SKILL.md", [
+    "docs/i18n.md",
+    "JoyI18n",
+    "npm run i18n:check",
+  ]],
+];
+
+for (const [file, requiredFragments] of agentPolicyRequirements) {
+  let source = "";
+  try {
+    source = await readFile(resolve(root, file), "utf8");
+  } catch {
+    errors.push(`${file} is required so coding agents inherit Joy's shared i18n rules`);
+    continue;
+  }
+  for (const fragment of requiredFragments) {
+    if (!source.includes(fragment)) {
+      errors.push(`${file} must preserve the repository-wide i18n instruction: ${fragment}`);
+    }
+  }
+}
+
 if (errors.length) fail(errors);
-console.log(`Joy i18n check passed: ${allKeys.size} shared keys across ${supported.join("/")}`);
+console.log(`Joy i18n check passed: ${allKeys.size} shared keys across ${supported.join("/")} with agent policy enforced`);

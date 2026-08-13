@@ -39,10 +39,47 @@ Use these files as authoritative project guidance:
 - `docs/REPOSITORY_STRUCTURE.md`
 - `docs/CLOUDFLARE_SETUP.md`
 - `docs/JOY_CORE.md`
+- `docs/i18n.md`
 - `docs/privacy-history-rewrite.md`
 - `package.json`
 - `scripts/run-tests.mjs`
 - `scripts/deploy-clean-main.mjs`
+
+## UI language and i18n — mandatory for every feature
+
+Joy has one shared bilingual interface system under `src/i18n`. Interface
+language is a repository-wide contract, not a feature-specific concern.
+
+Before adding or changing any user-visible UI copy, read `docs/i18n.md` and
+inspect the existing keys in:
+
+- `src/i18n/locales/en.js`
+- `src/i18n/locales/vi.js`
+
+For every new or changed UI string:
+
+- use `window.JoyI18n.t("semantic.key")` or `data-i18n="semantic.key"` instead
+  of hard-coding a new English/Vietnamese pair inside the feature;
+- add or update the same semantic key in both `en.js` and `vi.js` in the same
+  change;
+- keep user data unchanged: names, addresses, notes, tasks, project content,
+  email content, room-listing source text, and other user-entered facts are
+  not interface translations;
+- keep parser/input language independent from UI language; Vietnamese natural
+  language input must continue to work when the interface is English where
+  the feature already supports it;
+- use shared locale-aware date, number, and currency formatting for new UI;
+- never add a new feature-owned translation dictionary, DOM translation shim,
+  `*-english-ui.js`, `*-vietnamese-ui.js`, or similar language layer. Extend
+  shared `JoyI18n` instead.
+
+`src/features/tasks/task-english.js` is a content transformation feature, not
+UI localization. Existing legacy language adapters may remain only while they
+delegate to `JoyI18n`; do not copy their old architecture into new work.
+
+Any UI/i18n change must run `npm run i18n:check` in addition to the relevant
+focused tests. Do not bypass an i18n CI failure; fix the shared locale keys or
+language system.
 
 ## Security and privacy
 
@@ -61,8 +98,8 @@ Use these files as authoritative project guidance:
 ## Implementation and verification
 
 - For a bug fix, add or update a regression test when practical.
-- For UI work, check desktop and mobile behavior, accessibility, and the
-  repository's Nunito typography requirements.
+- For UI work, check desktop and mobile behavior, accessibility, the shared
+  i18n contract above, and the repository's Nunito typography requirements.
 - After editing, run the tests appropriate to the affected subsystem.
 - Run `npm run verify` for cross-cutting changes.
 - Do not run `npm run deploy` automatically.
