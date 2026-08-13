@@ -12,6 +12,8 @@ test("dynamic Finance labels localize composed status and count copy", () => {
   assert.equal(translateDynamicText("4 planned entries", "vi"), "4 giao dịch dự kiến");
   assert.equal(translateDynamicText("Actual · Carryover is included in monthly income.", "vi"), "Thực tế · Số dư chuyển sang được tính trong thu nhập tháng.");
   assert.equal(translateDynamicText("August 2026 finance overview", "vi"), "Tổng quan tài chính Tháng 8 2026");
+  assert.equal(translateDynamicText("Tổng quan tài chính Tháng 8 2026", "en"), "August 2026 finance overview");
+  assert.equal(translateDynamicText("September 2026 summary", "vi"), "Tóm tắt Tháng 9 2026");
   assert.equal(translateDynamicText("Tóm tắt Tháng 9 2026", "en"), "September 2026 summary");
 });
 
