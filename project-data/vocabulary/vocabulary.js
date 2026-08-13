@@ -16,8 +16,21 @@
     nextTimer: null,
   };
 
+  function i18n() {
+    return window.JoyI18n || null;
+  }
+
+  function tr(key, values = {}, fallback = "") {
+    const translated = i18n()?.t?.(key, values);
+    return translated && translated !== key ? translated : fallback || key;
+  }
+
+  function translateUi(value) {
+    return i18n()?.translateText?.(value) || value;
+  }
+
   scratchpad.className = "vocabulary-widget";
-  scratchpad.setAttribute("aria-label", "Vocabulary flashcards");
+  scratchpad.setAttribute("aria-label", tr("vocabulary.flashcardsAria", {}, "Vocabulary flashcards"));
   scratchpad.innerHTML = '<div data-vocab-practice-root="desktop"></div>';
 
   const lookupModal = createLookupModal();
@@ -40,17 +53,17 @@
     modal.innerHTML = `
       <section class="modal vocabulary-lookup-modal" role="dialog" aria-modal="true" aria-labelledby="vocabulary-lookup-title">
         <div class="modal-heading">
-          <div><p class="section-kicker">Vocabulary</p><h2 id="vocabulary-lookup-title">Add a word or phrase</h2></div>
-          <button type="button" aria-label="Close vocabulary lookup" data-vocab-close-lookup>×</button>
+          <div><p class="section-kicker">${tr("vocabulary.title", {}, "Vocabulary")}</p><h2 id="vocabulary-lookup-title">${tr("vocabulary.addEntry", {}, "Add a word or phrase")}</h2></div>
+          <button type="button" aria-label="${tr("vocabulary.closeLookup", {}, "Close vocabulary lookup")}" data-vocab-close-lookup>×</button>
         </div>
         <form class="vocabulary-lookup-form" data-vocab-lookup-form>
-          <label for="vocabulary-lookup-input">English or Vietnamese entry</label>
-          <input id="vocabulary-lookup-input" name="query" type="text" maxlength="80" autocomplete="off" placeholder="e.g. issue or vấn đề" required>
+          <label for="vocabulary-lookup-input">${tr("vocabulary.entryLabel", {}, "English or Vietnamese entry")}</label>
+          <input id="vocabulary-lookup-input" name="query" type="text" maxlength="80" autocomplete="off" placeholder="${tr("vocabulary.entryPlaceholder", {}, "e.g. issue or vấn đề")}" required>
           <label class="vocabulary-context-field" for="vocabulary-context-input">
-            <span>Context <small>optional · use this for the exact meaning</small></span>
-            <input id="vocabulary-context-input" name="context" type="text" maxlength="240" autocomplete="off" placeholder="e.g. The company issued a certificate.">
+            <span>${tr("vocabulary.context", {}, "Context")} <small>${tr("vocabulary.contextOptional", {}, "optional · use this for the exact meaning")}</small></span>
+            <input id="vocabulary-context-input" name="context" type="text" maxlength="240" autocomplete="off" placeholder="${tr("vocabulary.contextPlaceholder", {}, "e.g. The company issued a certificate.")}">
           </label>
-          <button class="primary-button vocabulary-lookup-submit" type="submit">Look up</button>
+          <button class="primary-button vocabulary-lookup-submit" type="submit">${tr("vocabulary.lookup", {}, "Look up")}</button>
         </form>
         <p class="vocabulary-lookup-status" data-vocab-lookup-status aria-live="polite"></p>
         <div data-vocab-lookup-result></div>
@@ -70,8 +83,8 @@
     modal.innerHTML = `
       <section class="modal vocabulary-mobile-modal" role="dialog" aria-modal="true" aria-labelledby="vocabulary-mobile-title">
         <div class="modal-heading">
-          <div><p class="section-kicker">Quick practice</p><h2 id="vocabulary-mobile-title">Vocabulary</h2></div>
-          <button type="button" aria-label="Close vocabulary practice" data-vocab-close-practice>×</button>
+          <div><p class="section-kicker">${tr("vocabulary.quickPractice", {}, "Quick practice")}</p><h2 id="vocabulary-mobile-title">${tr("vocabulary.title", {}, "Vocabulary")}</h2></div>
+          <button type="button" aria-label="${tr("vocabulary.closePractice", {}, "Close vocabulary practice")}" data-vocab-close-practice>×</button>
         </div>
         <div data-vocab-practice-root="mobile"></div>
       </section>
@@ -89,8 +102,8 @@
     button.type = "button";
     button.className = "vocabulary-mobile-nav-button";
     button.dataset.vocabOpenPractice = "true";
-    button.innerHTML = "<small>Words</small>";
-    button.setAttribute("aria-label", "Open vocabulary practice");
+    button.innerHTML = `<small>${tr("vocabulary.words", {}, "Words")}</small>`;
+    button.setAttribute("aria-label", tr("vocabulary.openPractice", {}, "Open vocabulary practice"));
     nav.append(button);
   }
 
@@ -176,21 +189,21 @@
     const count = state.words.length;
     if (state.loading && !count) {
       return `
-        <div class="vocabulary-widget-heading"><div><strong>Vocabulary</strong><small>Loading saved words…</small></div></div>
-        <div class="vocabulary-empty"><span aria-hidden="true">Aa</span><p>Preparing your flashcards.</p></div>
+        <div class="vocabulary-widget-heading"><div><strong>${tr("vocabulary.title", {}, "Vocabulary")}</strong><small>${tr("vocabulary.loadingSaved", {}, "Loading saved words…")}</small></div></div>
+        <div class="vocabulary-empty"><span aria-hidden="true">Aa</span><p>${tr("vocabulary.preparing", {}, "Preparing your flashcards.")}</p></div>
       `;
     }
 
     if (!count) {
       return `
         <div class="vocabulary-widget-heading">
-          <div><strong>Vocabulary</strong><small>No saved words</small></div>
-          <button type="button" data-vocab-open-lookup>+ Add</button>
+          <div><strong>${tr("vocabulary.title", {}, "Vocabulary")}</strong><small>${tr("vocabulary.noSaved", {}, "No saved words")}</small></div>
+          <button type="button" data-vocab-open-lookup>${tr("vocabulary.add", {}, "+ Add")}</button>
         </div>
         <div class="vocabulary-empty">
           <span aria-hidden="true">Aa</span>
-          <p>Add your first word to start practicing.</p>
-          <button type="button" data-vocab-open-lookup>+ Add word</button>
+          <p>${tr("vocabulary.addFirstHelp", {}, "Add your first word to start practicing.")}</p>
+          <button type="button" data-vocab-open-lookup>${tr("vocabulary.addWord", {}, "+ Add word")}</button>
         </div>
       `;
     }
@@ -199,23 +212,25 @@
     if (!word) return "";
     const prompt = state.direction === "vi-en" ? word.vietnamese : word.english;
     const target = state.direction === "vi-en" ? "English" : "Vietnamese";
+    const savedCount = tr(count === 1 ? "vocabulary.savedCountOne" : "vocabulary.savedCountMany", { count }, `${count} saved ${count === 1 ? "word" : "words"}`);
+    const direction = translateUi(`Translate into ${target}`);
 
     return `
       <div class="vocabulary-widget-heading">
-        <div><strong>Vocabulary</strong><small>${count} saved ${count === 1 ? "word" : "words"}</small></div>
-        <button type="button" data-vocab-open-lookup>+ Add</button>
+        <div><strong>${tr("vocabulary.title", {}, "Vocabulary")}</strong><small>${savedCount}</small></div>
+        <button type="button" data-vocab-open-lookup>${tr("vocabulary.add", {}, "+ Add")}</button>
       </div>
       <div class="vocabulary-practice">
-        <small class="vocabulary-direction">Translate into ${target}</small>
-        <strong class="vocabulary-prompt">${escapeHtml(prompt)}</strong>
+        <small class="vocabulary-direction">${direction}</small>
+        <strong class="vocabulary-prompt" data-i18n-skip>${escapeHtml(prompt)}</strong>
         <form class="vocabulary-answer-form" data-vocab-practice-form>
-          <input name="answer" type="text" autocomplete="off" placeholder="Your answer…" aria-label="Vocabulary answer" required>
-          <button type="submit">Check</button>
+          <input name="answer" type="text" autocomplete="off" placeholder="${tr("vocabulary.answerPlaceholder", {}, "Your answer…")}" aria-label="${tr("vocabulary.answerAria", {}, "Vocabulary answer")}" required>
+          <button type="submit">${tr("vocabulary.check", {}, "Check")}</button>
         </form>
         <p class="vocabulary-feedback" data-vocab-feedback aria-live="polite"></p>
         <div class="vocabulary-practice-actions">
-          <button type="button" data-vocab-show-answer>Show answer</button>
-          <button type="button" data-vocab-next>Next →</button>
+          <button type="button" data-vocab-show-answer>${tr("vocabulary.showAnswer", {}, "Show answer")}</button>
+          <button type="button" data-vocab-next>${tr("vocabulary.next", {}, "Next →")}</button>
         </div>
       </div>
     `;
@@ -269,7 +284,7 @@
     const expected = state.direction === "vi-en" ? word.english : word.vietnamese;
     const correct = answersMatch(input.value, expected, state.direction === "en-vi");
     feedback.className = `vocabulary-feedback is-${correct ? "correct" : "wrong"}`;
-    feedback.textContent = correct ? "Correct ✓" : "Try again";
+    feedback.textContent = correct ? tr("vocabulary.correct", {}, "Correct ✓") : tr("common.tryAgain", {}, "Try again");
     if (!state.reviewRecorded) {
       state.reviewRecorded = true;
       recordReview(word.id, correct);
@@ -290,7 +305,7 @@
     if (!feedback) return;
     const expected = state.direction === "vi-en" ? word.english : word.vietnamese;
     feedback.className = "vocabulary-feedback is-answer";
-    feedback.textContent = `Answer: ${expected}`;
+    feedback.textContent = tr("vocabulary.answerValue", { value: expected }, `Answer: ${expected}`);
   }
 
   function nextWord() {
@@ -363,7 +378,7 @@
     renderLookupResult();
     const status = lookupModal.querySelector("[data-vocab-lookup-status]");
     const button = form.querySelector('button[type="submit"]');
-    status.textContent = "Joy is checking saved and cached results…";
+    status.textContent = tr("vocabulary.checkingCache", {}, "Joy is checking saved and cached results…");
     button.disabled = true;
 
     try {
@@ -384,10 +399,10 @@
   }
 
   function lookupStatus(payload) {
-    if (payload.cached && payload.provider === "saved") return "Already saved — no AI call used.";
-    if (payload.cached) return "Reused a previous result — no new AI call used.";
-    if (payload.provider === "openai") return "GPT found a concise dictionary result.";
-    return "Fallback result found.";
+    if (payload.cached && payload.provider === "saved") return tr("vocabulary.alreadySavedNoAi", {}, "Already saved — no AI call used.");
+    if (payload.cached) return tr("vocabulary.reusedNoAi", {}, "Reused a previous result — no new AI call used.");
+    if (payload.provider === "openai") return tr("vocabulary.gptResult", {}, "GPT found a concise dictionary result.");
+    return tr("vocabulary.fallbackResult", {}, "Fallback result found.");
   }
 
   function renderLookupResult() {
@@ -399,28 +414,32 @@
       return;
     }
 
+    const englishMeta = word.partOfSpeech
+      ? `${tr("vocabulary.englishLabel", {}, "English")} · ${escapeHtml(word.partOfSpeech)}`
+      : tr("vocabulary.englishLabel", {}, "English");
+
     container.innerHTML = `
       <article class="vocabulary-result-card">
         <div class="vocabulary-result-main">
           <div>
-            <small>English${word.partOfSpeech ? ` · ${escapeHtml(word.partOfSpeech)}` : ""}</small>
-            <strong>${escapeHtml(word.english)}</strong>
+            <small>${englishMeta}</small>
+            <strong data-i18n-skip>${escapeHtml(word.english)}</strong>
           </div>
-          <button type="button" data-vocab-speak aria-label="Hear the English entry">🔊</button>
+          <button type="button" data-vocab-speak aria-label="${tr("vocabulary.hearEntry", {}, "Hear the English entry")}">🔊</button>
         </div>
         <dl>
-          <div><dt>Vietnamese</dt><dd>${renderMeanings(word.vietnamese)}</dd></div>
-          <div><dt>IPA</dt><dd>${escapeHtml(word.ipa || "—")}</dd></div>
-          <div><dt>Vietnamese reading</dt><dd>${escapeHtml(word.pronunciationVi || "—")}</dd></div>
+          <div><dt>${tr("vocabulary.vietnameseLabel", {}, "Vietnamese")}</dt><dd data-i18n-skip>${renderMeanings(word.vietnamese)}</dd></div>
+          <div><dt>IPA</dt><dd data-i18n-skip>${escapeHtml(word.ipa || "—")}</dd></div>
+          <div><dt>${tr("vocabulary.vietnameseReading", {}, "Vietnamese reading")}</dt><dd data-i18n-skip>${escapeHtml(word.pronunciationVi || "—")}</dd></div>
           <div class="vocabulary-example">
-            <dt>Example</dt>
-            <dd><span>${escapeHtml(word.example || "—")}</span>${word.exampleVietnamese ? `<small>${escapeHtml(word.exampleVietnamese)}</small>` : ""}</dd>
+            <dt>${tr("vocabulary.example", {}, "Example")}</dt>
+            <dd data-i18n-skip><span>${escapeHtml(word.example || "—")}</span>${word.exampleVietnamese ? `<small>${escapeHtml(word.exampleVietnamese)}</small>` : ""}</dd>
           </div>
         </dl>
-        <p>Save this entry?</p>
+        <p>${tr("vocabulary.saveQuestion", {}, "Save this entry?")}</p>
         <div class="modal-actions vocabulary-save-actions">
-          <button class="secondary-button" type="button" data-vocab-no-save>No</button>
-          <button class="primary-button" type="button" data-vocab-save ${state.saveBusy ? "disabled" : ""}>Yes</button>
+          <button class="secondary-button" type="button" data-vocab-no-save>${tr("common.no", {}, "No")}</button>
+          <button class="primary-button" type="button" data-vocab-save ${state.saveBusy ? "disabled" : ""}>${tr("common.yes", {}, "Yes")}</button>
         </div>
       </article>
     `;
@@ -440,7 +459,7 @@
     state.saveBusy = true;
     renderLookupResult();
     const status = lookupModal.querySelector("[data-vocab-lookup-status]");
-    status.textContent = "Saving…";
+    status.textContent = tr("common.saving", {}, "Saving…");
 
     try {
       const payload = await requestJson(API_ROOT, {
@@ -456,7 +475,9 @@
       state.currentId = saved.id;
       state.direction = Math.random() < 0.5 ? "vi-en" : "en-vi";
       renderPracticeRoots();
-      status.textContent = payload.created === false ? "This entry was already saved." : "Saved.";
+      status.textContent = payload.created === false
+        ? tr("vocabulary.alreadySaved", {}, "This entry was already saved.")
+        : tr("vocabulary.saved", {}, "Saved.");
       window.setTimeout(closeLookupModal, 450);
     } catch (error) {
       status.textContent = vocabularyErrorMessage(error.code || error.message);
@@ -476,12 +497,12 @@
   }
 
   function vocabularyErrorMessage(code) {
-    if (code === "INVALID_VOCABULARY_INPUT") return "Enter one English or Vietnamese word or short phrase.";
-    if (code === "INVALID_VOCABULARY_CONTEXT") return "Keep the optional context to one short sentence.";
-    if (code === "VOCABULARY_AI_UNAVAILABLE") return "Vocabulary lookup is temporarily unavailable.";
-    if (code === "VOCABULARY_RESULT_INVALID") return "Joy could not form a clear dictionary entry. Add a short context sentence.";
-    if (code === "UNAUTHENTICATED") return "Your Joy session expired. Refresh and sign in again.";
-    return "Joy could not complete this vocabulary request.";
+    if (code === "INVALID_VOCABULARY_INPUT") return tr("vocabulary.invalidInput", {}, "Enter one English or Vietnamese word or short phrase.");
+    if (code === "INVALID_VOCABULARY_CONTEXT") return tr("vocabulary.invalidContext", {}, "Keep the optional context to one short sentence.");
+    if (code === "VOCABULARY_AI_UNAVAILABLE") return tr("vocabulary.unavailable", {}, "Vocabulary lookup is temporarily unavailable.");
+    if (code === "VOCABULARY_RESULT_INVALID") return tr("vocabulary.invalidResult", {}, "Joy could not form a clear dictionary entry. Add a short context sentence.");
+    if (code === "UNAUTHENTICATED") return tr("vocabulary.sessionExpired", {}, "Your Joy session expired. Refresh and sign in again.");
+    return tr("vocabulary.requestFailed", {}, "Joy could not complete this vocabulary request.");
   }
 
   async function requestJson(path, options = {}) {
@@ -530,6 +551,22 @@
       .replaceAll('"', "&quot;")
       .replaceAll("'", "&#039;");
   }
+
+  function syncLocaleUi() {
+    scratchpad.setAttribute("aria-label", tr("vocabulary.flashcardsAria", {}, "Vocabulary flashcards"));
+    renderPracticeRoots();
+    renderLookupResult();
+    i18n()?.translateRoot?.(lookupModal);
+    i18n()?.translateRoot?.(mobilePracticeModal);
+    const mobileButton = document.querySelector("[data-vocab-open-practice]");
+    if (mobileButton) {
+      mobileButton.innerHTML = `<small>${tr("vocabulary.words", {}, "Words")}</small>`;
+      mobileButton.setAttribute("aria-label", tr("vocabulary.openPractice", {}, "Open vocabulary practice"));
+    }
+  }
+
+  window.addEventListener("joy:i18n-ready", syncLocaleUi);
+  window.addEventListener("joy:locale-changed", syncLocaleUi);
 
   window.JoyVocabulary = Object.freeze({ normalizeAnswer, answersMatch });
 })();
