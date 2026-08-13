@@ -1,8 +1,7 @@
 {
   "id": "/",
-  "name": "Hey Joy! — Personal Dashboard",
+  "name": "Hey Joy!",
   "short_name": "Hey Joy!",
-  "description": "Vanh's personal dashboard for projects, tasks, sales, email, and finance.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

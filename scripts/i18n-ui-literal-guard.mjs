@@ -29,11 +29,85 @@ function looksLikeInterfaceCopy(value) {
   if (text.length < 2 || !/\p{L}/u.test(text)) return false;
   if (/^(?:true|false|null|undefined)$/iu.test(text)) return false;
   if (/^(?:https?:\/\/|\/api\/|data:|#[a-z0-9_-]+$)/iu.test(text)) return false;
+  if (/\b(?:render[A-Z]\w*|\.join\(|=>)\b/u.test(text)) return false;
+  if (/\?\s*["']|["']\s*:\s*["']/u.test(text)) return false;
   return true;
 }
 
 function lineNumberAt(source, index) {
   return source.slice(0, index).split("\n").length;
+}
+
+function pushFinding(findings, known, value, source, index, sink) {
+  const text = String(value || "").replace(/\s+/gu, " ").trim();
+  if (!looksLikeInterfaceCopy(text) || known.has(text) || text.includes("${")) return;
+  findings.push({ value: text, line: lineNumberAt(source, index), sink });
+}
+
+function stringAndTemplateLiterals(source) {
+  const literals = [];
+  let index = 0;
+  while (index < source.length) {
+    const quote = source[index];
+    if (!["'", '"', "`"].includes(quote)) {
+      index += 1;
+      continue;
+    }
+
+    const start = index;
+    index += 1;
+    let body = "";
+    while (index < source.length) {
+      const char = source[index];
+      if (char === "\\") {
+        body += char;
+        if (index + 1 < source.length) body += source[index + 1];
+        index += 2;
+        continue;
+      }
+      if (char === quote) {
+        index += 1;
+        break;
+      }
+      body += char;
+      index += 1;
+    }
+    literals.push({ body, start });
+  }
+  return literals;
+}
+
+function stripSimpleTemplateExpressions(value) {
+  return String(value || "")
+    .replace(/\$\{[^<>]*?\}/gu, "")
+    .replace(/\$\{[\s\S]*?\}(?=<)/gu, "");
+}
+
+export function findUntranslatedHtmlLiterals(source, translatedValues) {
+  const known = translatedValues instanceof Set ? translatedValues : new Set(translatedValues || []);
+  const findings = [];
+
+  for (const literal of stringAndTemplateLiterals(source)) {
+    if (!/<[a-z][^>]*>/iu.test(literal.body)) continue;
+
+    const visibleMarkup = stripSimpleTemplateExpressions(literal.body)
+      .replace(/<script\b[^>]*>[\s\S]*?<\/script>/giu, "")
+      .replace(/<style\b[^>]*>[\s\S]*?<\/style>/giu, "");
+
+    for (const match of visibleMarkup.matchAll(/>([^<>]+)</gu)) {
+      const value = match[1]
+        .replace(/&nbsp;/giu, " ")
+        .replace(/&amp;/giu, "&")
+        .trim();
+      pushFinding(findings, known, value, source, literal.start + (match.index || 0), "HTML text");
+    }
+
+    for (const match of visibleMarkup.matchAll(/\b(?:aria-label|title|placeholder)=["']([^"']+)["']/giu)) {
+      pushFinding(findings, known, match[1], source, literal.start + (match.index || 0), "HTML attribute");
+    }
+  }
+
+  return findings;
 }
 
 export function findUntranslatedUiLiterals(source, translatedValues) {

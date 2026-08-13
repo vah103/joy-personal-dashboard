@@ -28,16 +28,17 @@ test("hard-coded UI guard accepts shared catalog copy and dynamic user data", ()
   assert.deepEqual(findUntranslatedUiLiterals(source, translatedValues), []);
 });
 
-test("legacy hard-code baseline is frozen and may only shrink", async () => {
+test("legacy hard-code baseline is retired and stays empty", async () => {
   const [baselineSource, scanner] = await Promise.all([
     readFile(new URL("../scripts/i18n-hardcoded-ui-baseline.json", import.meta.url), "utf8"),
     readFile(new URL("../scripts/check-i18n-hardcoded-ui.mjs", import.meta.url), "utf8"),
   ]);
   const baseline = JSON.parse(baselineSource);
-  assert.ok(baseline.length <= 55);
+  assert.deepEqual(baseline, []);
   assert.equal(new Set(baseline).size, baseline.length);
-  assert.match(scanner, /LEGACY_BASELINE_CEILING = 55/);
+  assert.match(scanner, /LEGACY_BASELINE_CEILING = 0/);
   assert.match(scanner, /legacyBaseline\.size > LEGACY_BASELINE_CEILING/);
+  assert.match(scanner, /legacy hard-code baseline must remain empty/);
 });
 
 test("canonical i18n command includes the hard-coded UI scanner", async () => {
