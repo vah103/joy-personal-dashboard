@@ -14,11 +14,11 @@
   ];
   const PEOPLE = ["A Mạnh", "A Cường", "Vanh", "Dương", "Hưng", "Trung"];
   const SERVICES = [
-    { id: "apartment", label: "Dịch vụ căn hộ", julyIncludesTrung: true },
-    { id: "electricity", label: "Điện", julyIncludesTrung: false },
-    { id: "water", label: "Nước sinh hoạt", julyIncludesTrung: false },
-    { id: "parking", label: "Phí gửi xe", julyIncludesTrung: true },
-    { id: "wifi", label: "Wi‑Fi", julyIncludesTrung: false },
+    { id: "apartment", labelKey: "p1008.apartmentService", label: "Dịch vụ căn hộ", julyIncludesTrung: true },
+    { id: "electricity", labelKey: "p1008.electricityService", label: "Điện", julyIncludesTrung: false },
+    { id: "water", labelKey: "p1008.waterService", label: "Nước sinh hoạt", julyIncludesTrung: false },
+    { id: "parking", labelKey: "p1008.parkingService", label: "Phí gửi xe", julyIncludesTrung: true },
+    { id: "wifi", labelKey: "p1008.wifiService", label: "Wi‑Fi", julyIncludesTrung: false },
   ];
 
   let selectedMonth = defaultMonth();
@@ -26,6 +26,33 @@
   let cloudLoadPromise = null;
   let cloudSaveChain = Promise.resolve();
   let localMutationVersion = 0;
+
+  function i18n() {
+    return window.JoyI18n || null;
+  }
+
+  function tr(key, values = {}, fallback = "") {
+    return i18n()?.t?.(key, values) || fallback || key;
+  }
+
+  function currentLocale() {
+    return i18n()?.getLocale?.() || "vi";
+  }
+
+  function displayMonth(month, { short = false } = {}) {
+    if (!month) return "";
+    if (currentLocale() !== "en") return short ? month.shortLabel : month.label;
+    const date = new Date(`${month.key}-01T12:00:00+07:00`);
+    return i18n()?.formatDate?.(date, {
+      timeZone: "Asia/Ho_Chi_Minh",
+      month: "long",
+      ...(short ? {} : { year: "numeric" }),
+    }) || (short ? month.shortLabel : month.label);
+  }
+
+  function serviceLabel(service) {
+    return tr(service.labelKey, {}, service.label);
+  }
 
   function defaultMonth() {
     const now = new Date();
@@ -52,11 +79,11 @@
   }
 
   function syncLabel() {
-    if (syncState === "loading") return "Đang tải từ tài khoản…";
-    if (syncState === "syncing") return "Đang đồng bộ…";
-    if (syncState === "synced") return "Đã đồng bộ tài khoản";
-    if (syncState === "offline") return "Chưa đồng bộ · lưu tạm trên máy";
-    return "Lưu trên thiết bị này";
+    if (syncState === "loading") return tr("p1008.syncLoading", {}, "Đang tải từ tài khoản…");
+    if (syncState === "syncing") return tr("p1008.syncing", {}, "Đang đồng bộ…");
+    if (syncState === "synced") return tr("p1008.synced", {}, "Đã đồng bộ tài khoản");
+    if (syncState === "offline") return tr("p1008.syncOffline", {}, "Chưa đồng bộ · lưu tạm trên máy");
+    return tr("p1008.syncLocal", {}, "Lưu trên thiết bị này");
   }
 
   function setSyncState(state) {
@@ -82,6 +109,7 @@
     });
 
     const month = MONTHS.find((item) => item.key === selectedMonth) || MONTHS[0];
+    const monthLabel = displayMonth(month);
     const amounts = readMonthAmounts(selectedMonth);
     const split = calculateSplit(selectedMonth, amounts);
     const serviceTotal = SERVICES.reduce((sum, service) => sum + amounts[service.id], 0);
@@ -91,78 +119,78 @@
     content.innerHTML = `
       <section class="p1008-hero" aria-labelledby="p1008-title">
         <div>
-          <p class="p1008-kicker">Phòng P1008</p>
-          <h2 id="p1008-title">Chia tiền nhà</h2>
-          <p>Tiền dịch vụ được chia tự động cho 6 thành viên theo quy tắc của từng tháng.</p>
+          <p class="p1008-kicker">${tr("p1008.room", {}, "Phòng P1008")}</p>
+          <h2 id="p1008-title">${tr("p1008.splitRent", {}, "Chia tiền nhà")}</h2>
+          <p>${tr("p1008.description", {}, "Tiền dịch vụ được chia tự động cho 6 thành viên theo quy tắc của từng tháng.")}</p>
         </div>
         <label class="p1008-month-picker">
-          <span>Tháng theo dõi</span>
+          <span>${tr("p1008.trackingMonth", {}, "Tháng theo dõi")}</span>
           <select data-p1008-month>
-            ${MONTHS.map((item) => `<option value="${item.key}"${item.key === selectedMonth ? " selected" : ""}>${item.label}</option>`).join("")}
+            ${MONTHS.map((item) => `<option value="${item.key}"${item.key === selectedMonth ? " selected" : ""}>${displayMonth(item)}</option>`).join("")}
           </select>
         </label>
       </section>
 
-      <div class="p1008-summary" aria-label="Tóm tắt tiền phòng ${month.label}">
-        <article><span>Tổng dịch vụ</span><strong>${formatVnd(serviceTotal)}</strong><small>5 khoản trong tháng</small></article>
-        <article class="is-primary"><span>Phần của Vanh</span><strong>${formatVnd(vanhTotal)}</strong><small>Tự tính theo bảng chia</small></article>
-        <article><span>Thành viên</span><strong>6 người</strong><small>A Mạnh · A Cường · Vanh · Dương · Hưng · Trung</small></article>
+      <div class="p1008-summary" aria-label="${tr("p1008.summaryAria", { month: monthLabel }, `Tóm tắt tiền phòng ${monthLabel}`)}">
+        <article><span>${tr("p1008.totalServices", {}, "Tổng dịch vụ")}</span><strong>${formatVnd(serviceTotal)}</strong><small>${tr("p1008.fiveMonthlyItems", {}, "5 khoản trong tháng")}</small></article>
+        <article class="is-primary"><span>${tr("p1008.vanhShare", {}, "Phần của Vanh")}</span><strong>${formatVnd(vanhTotal)}</strong><small>${tr("p1008.autoCalculated", {}, "Tự tính theo bảng chia")}</small></article>
+        <article><span>${tr("p1008.members", {}, "Thành viên")}</span><strong>${tr("p1008.sixPeople", {}, "6 người")}</strong><small>A Mạnh · A Cường · Vanh · Dương · Hưng · Trung</small></article>
       </div>
 
       ${selectedMonth === "2026-07" ? `
         <aside class="p1008-rule-note">
-          <strong>Quy tắc riêng tháng 7</strong>
-          <span>Trung chỉ đóng Dịch vụ căn hộ và Phí gửi xe. Điện, Nước sinh hoạt và Wi‑Fi chia đều cho 5 người còn lại.</span>
+          <strong>${tr("p1008.julyRule", {}, "Quy tắc riêng tháng 7")}</strong>
+          <span>${tr("p1008.julyRuleHelp", {}, "Trung chỉ đóng Dịch vụ căn hộ và Phí gửi xe. Điện, Nước sinh hoạt và Wi‑Fi chia đều cho 5 người còn lại.")}</span>
         </aside>
       ` : `
         <aside class="p1008-rule-note is-standard">
-          <strong>Chia đều ${month.shortLabel}</strong>
-          <span>Cả 5 khoản dịch vụ được chia đều cho đủ 6 thành viên.</span>
+          <strong>${tr("p1008.standardSplit", { month: displayMonth(month, { short: true }) }, `Chia đều ${month.shortLabel}`)}</strong>
+          <span>${tr("p1008.standardSplitHelp", {}, "Cả 5 khoản dịch vụ được chia đều cho đủ 6 thành viên.")}</span>
         </aside>
       `}
 
       <section class="p1008-card p1008-services-card">
         <header>
-          <h3>Tiền dịch vụ</h3>
+          <h3>${tr("p1008.services", {}, "Tiền dịch vụ")}</h3>
           <span class="p1008-local-state" data-sync-state="${syncState}">${syncLabel()}</span>
         </header>
         <div class="p1008-table-wrap">
           <table class="p1008-services-table">
-            <thead><tr><th>Hạng mục</th><th>Tiền</th><th>Chia cho</th><th>Mỗi người</th></tr></thead>
+            <thead><tr><th>${tr("p1008.category", {}, "Hạng mục")}</th><th>${tr("p1008.money", {}, "Tiền")}</th><th>${tr("p1008.splitAmong", {}, "Chia cho")}</th><th>${tr("p1008.perPerson", {}, "Mỗi người")}</th></tr></thead>
             <tbody>
               ${SERVICES.map((service) => renderServiceRow(service, selectedMonth, amounts)).join("")}
             </tbody>
-            <tfoot><tr><th>Tổng</th><td>${formatVnd(serviceTotal)}</td><td></td><td></td></tr></tfoot>
+            <tfoot><tr><th>${tr("p1008.total", {}, "Tổng")}</th><td>${formatVnd(serviceTotal)}</td><td></td><td></td></tr></tfoot>
           </table>
         </div>
       </section>
 
       <section class="p1008-card">
         <header>
-          <div><p>Bảng 2</p><h3>Số tiền từng người phải đóng</h3></div>
-          <span>${month.label}</span>
+          <div><p>${tr("p1008.table2", {}, "Bảng 2")}</p><h3>${tr("p1008.amountEachPerson", {}, "Số tiền từng người phải đóng")}</h3></div>
+          <span>${monthLabel}</span>
         </header>
         <div class="p1008-table-wrap">
           <table class="p1008-people-table">
             <thead>
-              <tr><th>Thành viên</th>${SERVICES.map((service) => `<th>${service.label}</th>`).join("")}<th>Tổng đóng</th></tr>
+              <tr><th>${tr("p1008.members", {}, "Thành viên")}</th>${SERVICES.map((service) => `<th>${serviceLabel(service)}</th>`).join("")}<th>${tr("p1008.totalContribution", {}, "Tổng đóng")}</th></tr>
             </thead>
             <tbody>
               ${PEOPLE.map((person) => renderPersonRow(person, split)).join("")}
             </tbody>
-            <tfoot><tr><th colspan="6">Tổng đã phân bổ</th><td>${formatVnd(split.allocatedTotal)}</td></tr></tfoot>
+            <tfoot><tr><th colspan="6">${tr("p1008.totalAllocated", {}, "Tổng đã phân bổ")}</th><td>${formatVnd(split.allocatedTotal)}</td></tr></tfoot>
           </table>
         </div>
       </section>
 
       <section class="p1008-card p1008-shopping-card" aria-labelledby="p1008-shopping-title">
         <header>
-          <div><p>Bảng 3</p><h3 id="p1008-shopping-title">Chia tiền mua sắm</h3></div>
-          <span class="p1008-pending-pill">Chờ cập nhật</span>
+          <div><p>${tr("p1008.table3", {}, "Bảng 3")}</p><h3 id="p1008-shopping-title">${tr("p1008.shoppingSplit", {}, "Chia tiền mua sắm")}</h3></div>
+          <span class="p1008-pending-pill">${tr("p1008.pendingUpdate", {}, "Chờ cập nhật")}</span>
         </header>
         <div class="p1008-shopping-empty">
           <span aria-hidden="true">15</span>
-          <div><strong>Chưa nhập dữ liệu mua sắm</strong><p>Khoản mua sắm được chốt vào ngày 15 hằng tháng. Bảng chi tiết sẽ được bổ sung sau.</p></div>
+          <div><strong>${tr("p1008.noShopping", {}, "Chưa nhập dữ liệu mua sắm")}</strong><p>${tr("p1008.shoppingDeadline", {}, "Khoản mua sắm được chốt vào ngày 15 hằng tháng. Bảng chi tiết sẽ được bổ sung sau.")}</p></div>
         </div>
       </section>
     `;
@@ -178,7 +206,7 @@
 
     return `
       <tr>
-        <th>${service.label}</th>
+        <th>${serviceLabel(service)}</th>
         <td>
           <label class="p1008-amount-field">
             <input type="text" inputmode="numeric" autocomplete="off" data-p1008-service="${service.id}" value="${amount ? formatNumber(amount) : ""}" placeholder="0">
@@ -195,7 +223,7 @@
     const personSplit = split.people[person];
     return `
       <tr class="${person === "Vanh" ? "is-vanh" : ""}">
-        <th><strong>${person}</strong>${person === "Vanh" ? "<small>Bạn</small>" : ""}</th>
+        <th><strong>${person}</strong>${person === "Vanh" ? `<small>${tr("p1008.you", {}, "Bạn")}</small>` : ""}</th>
         ${SERVICES.map((service) => {
           const value = personSplit.services[service.id];
           return `<td>${value === null ? '<span class="p1008-not-applicable">—</span>' : formatVnd(value)}</td>`;
@@ -419,7 +447,9 @@
   }
 
   function formatNumber(value) {
-    return new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(Number(value || 0));
+    const amount = Number(value || 0);
+    return i18n()?.formatNumber?.(amount, { maximumFractionDigits: 0 })
+      || new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(amount);
   }
 
   function formatVnd(value) {
@@ -432,6 +462,13 @@
 
   window.addEventListener("storage", (event) => {
     if (event.key === STORAGE_KEY && isP1008Visible()) renderP1008View();
+  });
+
+  window.addEventListener("joy:i18n-ready", () => {
+    if (isP1008Visible()) renderP1008View();
+  });
+  window.addEventListener("joy:locale-changed", () => {
+    if (isP1008Visible()) renderP1008View();
   });
 
   if (!installP1008()) {
