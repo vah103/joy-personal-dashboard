@@ -1,4 +1,5 @@
 import "../sw-locale.js";
+import "../dynamic-runtime.js";
 import core from "./en-core.js";
 import hardening from "./en-hardening.js";
 import cleanup from "./en-cleanup.js";
