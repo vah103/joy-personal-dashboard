@@ -29,16 +29,28 @@ test("legacy visible Sale copy is translated centrally while source facts stay u
   assert.equal(translateText("59 Dương Khuê", "en"), "59 Dương Khuê");
 });
 
+test("audited legacy surfaces translate through the shared JoyI18n dictionaries", () => {
+  assert.equal(translateText("Chia tiền nhà", "en"), "Split household costs");
+  assert.equal(translateText("Actual balance", "vi"), "Số dư thực tế");
+  assert.equal(translateText("Vocabulary", "vi"), "Từ vựng");
+  assert.equal(translateText("How do I say this?", "vi"), "Câu này nói tiếng Anh thế nào?");
+  assert.equal(translateText("Overall progress", "vi"), "Tiến độ tổng thể");
+  assert.equal(translateText("No matching deals in this month.", "vi"), "Không có giao dịch phù hợp trong tháng này.");
+});
+
 test("shared i18n assets are copied without creating a second HTML owner", async () => {
-  const [buildStage, saleAdapter, login] = await Promise.all([
+  const [buildStage, saleAdapter, login, dashboardBootstrap] = await Promise.all([
     readFile(new URL("../scripts/build-i18n.mjs", import.meta.url), "utf8"),
     readFile(new URL("../src/features/sales/sale-english-ui.js", import.meta.url), "utf8"),
     readFile(new URL("../src/pages/login/index.html", import.meta.url), "utf8"),
+    readFile(new URL("../src/pages/dashboard/app-config.js", import.meta.url), "utf8"),
   ]);
   assert.match(buildStage, /cp\(source, target/);
   assert.doesNotMatch(buildStage, /writeFile|inject\(/);
   assert.match(saleAdapter, /\/i18n\/index\.js/);
   assert.match(login, /\/i18n\/index\.js/);
+  assert.match(dashboardBootstrap, /import\(["']\/i18n\/index\.js/);
+  assert.match(dashboardBootstrap, /\/i18n\/i18n\.css/);
 });
 
 test("i18n observer cannot observe the DOM writes produced by translation itself", async () => {
@@ -51,7 +63,10 @@ test("i18n observer cannot observe the DOM writes produced by translation itself
 
 test("i18n rules run inside the existing canonical verification path", async () => {
   const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+  const checker = await readFile(new URL("../scripts/check-i18n-v2.mjs", import.meta.url), "utf8");
   assert.match(packageJson.scripts.test, /check-i18n-v2\.mjs/);
   assert.match(packageJson.scripts.build, /build-i18n\.mjs/);
   assert.equal(packageJson.scripts.verify, "npm run audit:prod && npm run audit:all && npm run db:migrate:smoke && npm test && npm run build");
+  assert.match(checker, /resolve\(root, "project-data"\)/);
+  assert.match(checker, /auditedSurfaceCopy/);
 });
