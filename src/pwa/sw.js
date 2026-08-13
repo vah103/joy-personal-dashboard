@@ -1,4 +1,36 @@
 const APP_SHELL_VERSION = "__JOY_BUILD_VERSION__";
+const UI_LOCALE_CACHE = "joy-ui-locale-v1";
+const UI_LOCALE_REQUEST = "/__joy/ui-locale";
+const UI_LOCALE_MESSAGE = "JOY_UI_LOCALE";
+
+const NOTIFICATION_COPY = Object.freeze({
+  en: Object.freeze({
+    notification: "New notification",
+    test: "Working",
+    testBody: "iPhone notifications are working, hahahaa",
+    weather: "Weather update",
+    task: "Task reminder",
+    focus: "Focus reminder",
+    saleReminder: "Upcoming room viewing",
+    saleFollowup: "Room viewing follow-up",
+    complete: "Complete",
+    tenMinutes: "10 min",
+    oneHour: "1 hour",
+  }),
+  vi: Object.freeze({
+    notification: "Thông báo mới",
+    test: "Đã hoạt động",
+    testBody: "Thông báo trên iPhone đã hoạt động, hahahaa",
+    weather: "Cập nhật thời tiết",
+    task: "Nhắc công việc",
+    focus: "Nhắc tập trung",
+    saleReminder: "Lịch xem phòng sắp tới",
+    saleFollowup: "Theo dõi khách xem phòng",
+    complete: "Hoàn thành",
+    tenMinutes: "10 phút",
+    oneHour: "1 giờ",
+  }),
+});
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -23,33 +55,101 @@ self.addEventListener("activate", (event) => {
   })());
 });
 
+self.addEventListener("message", (event) => {
+  if (event.data?.type !== UI_LOCALE_MESSAGE) return;
+  const locale = ["en", "vi"].includes(event.data?.locale) ? event.data.locale : "en";
+  event.waitUntil?.(storeUiLocale(locale));
+});
+
 self.addEventListener("push", (event) => {
   let data = {};
   try {
     data = event.data ? event.data.json() : {};
   } catch {
-    data = { title: "Thông báo mới", body: event.data?.text() || "Bạn có thông báo mới." };
+    data = { title: "", body: event.data?.text() || "" };
   }
 
   event.waitUntil(showPushNotification(data));
 });
 
-async function showPushNotification(data) {
-  const kind = String(data.data?.kind || "");
-  const payloadTitle = typeof data.title === "string" ? data.title.trim() : "";
-  let notificationTitle = payloadTitle
+async function storeUiLocale(locale) {
+  try {
+    const cache = await caches.open(UI_LOCALE_CACHE);
+    await cache.put(UI_LOCALE_REQUEST, new Response(locale, {
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    }));
+  } catch (error) {
+    console.warn("Hey Joy could not persist notification locale", error);
+  }
+}
+
+async function readUiLocale() {
+  try {
+    const cache = await caches.open(UI_LOCALE_CACHE);
+    const response = await cache.match(UI_LOCALE_REQUEST);
+    const locale = String(await response?.text() || "").trim();
+    if (["en", "vi"].includes(locale)) return locale;
+  } catch {
+    // English is the repository-wide fallback when no saved locale is available.
+  }
+  return "en";
+}
+
+function localizedTitle(kind, payloadTitle, copy) {
+  if (kind === "test") return copy.test;
+  if (["rain", "dry", "chill", "sunny"].includes(kind)) return copy.weather;
+  if (kind === "task-reminder") return copy.task;
+  if (kind === "focus-reminder") return copy.focus;
+  if (kind === "sale-viewing-reminder") return copy.saleReminder;
+  if (kind === "sale-viewing-followup") return copy.saleFollowup;
+
+  const cleaned = String(payloadTitle || "")
+    .trim()
     .replace(/^Hey Joy!\s*(?:·|-)??\s*/i, "")
     .trim();
+  return cleaned || copy.notification;
+}
 
-  if (kind === "test") notificationTitle = "Đã hoạt động";
-  if (["rain", "dry", "chill", "sunny"].includes(kind)) notificationTitle = "Weather update";
-  if (kind === "task-reminder") notificationTitle = "Task reminder";
-  if (kind === "focus-reminder") notificationTitle = "Focus reminder";
-  if (!notificationTitle) notificationTitle = "Thông báo mới";
+function localizeSaleFollowupBody(body, locale) {
+  const source = String(body || "").trim();
+  const vi = source.match(/^(.+?) đã xem phòng tại (.+?)\. Bạn đã follow-up khách chưa\?$/u);
+  if (vi) {
+    return locale === "en"
+      ? `${vi[1]} viewed the room at ${vi[2]}. Have you followed up with the customer?`
+      : source;
+  }
 
-  const notificationBody = kind === "test"
-    ? "Thông báo trên iPhone đã hoạt động, hahahaa"
-    : (data.body || "");
+  const en = source.match(/^(.+?) viewed the room at (.+?)\. Have you followed up with the customer\?$/u);
+  if (en) {
+    return locale === "vi"
+      ? `${en[1]} đã xem phòng tại ${en[2]}. Bạn đã follow-up khách chưa?`
+      : source;
+  }
+  return source;
+}
+
+function localizeActions(actions, copy) {
+  return (Array.isArray(actions) ? actions : []).map((action) => {
+    const next = { ...action };
+    if (next.action === "complete") next.title = copy.complete;
+    if (next.action === "snooze10") next.title = copy.tenMinutes;
+    if (next.action === "snooze60") next.title = copy.oneHour;
+    return next;
+  });
+}
+
+async function showPushNotification(data) {
+  const locale = await readUiLocale();
+  const copy = NOTIFICATION_COPY[locale] || NOTIFICATION_COPY.en;
+  const kind = String(data.data?.kind || "");
+  const notificationTitle = localizedTitle(kind, data.title, copy);
+
+  let notificationBody = kind === "test"
+    ? copy.testBody
+    : String(data.body || "");
+  if (kind === "sale-viewing-followup") {
+    notificationBody = localizeSaleFollowupBody(notificationBody, locale);
+  }
 
   const options = {
     body: notificationBody,
@@ -64,7 +164,7 @@ async function showPushNotification(data) {
   // make showNotification reject entirely, so only include them when supported.
   const maxActions = Number(self.Notification?.maxActions || 0);
   if (maxActions > 0 && Array.isArray(data.actions) && data.actions.length) {
-    options.actions = data.actions.slice(0, maxActions);
+    options.actions = localizeActions(data.actions, copy).slice(0, maxActions);
   }
 
   try {
