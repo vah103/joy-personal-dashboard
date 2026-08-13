@@ -29,6 +29,41 @@ test("legacy visible Sale copy is translated centrally while source facts stay u
   assert.equal(translateText("59 Dương Khuê", "en"), "59 Dương Khuê");
 });
 
+test("shared i18n localizes numeric UI displays without touching arbitrary source text", () => {
+  assert.equal(translateText("1.250.000 ₫", "en"), "1,250,000 ₫");
+  assert.equal(translateText("1,250,000 ₫", "vi"), "1.250.000 ₫");
+  assert.equal(translateText("1,5 tr ₫", "en"), "1.5 m ₫");
+  assert.equal(translateText("1.5 m ₫", "vi"), "1,5 tr ₫");
+  assert.equal(translateText("Ghi chú khách tự nhập", "en"), "Ghi chú khách tự nhập");
+});
+
+test("P1008 Vocabulary and Speaking delegate interface copy to shared JoyI18n", async () => {
+  const [p1008, shopping, vocabulary, speaking] = await Promise.all([
+    readFile(new URL("../project-data/finance/finance-p1008.js", import.meta.url), "utf8"),
+    readFile(new URL("../project-data/finance/finance-p1008-shopping-v1.js", import.meta.url), "utf8"),
+    readFile(new URL("../project-data/vocabulary/vocabulary.js", import.meta.url), "utf8"),
+    readFile(new URL("../project-data/speaking/speaking.js", import.meta.url), "utf8"),
+  ]);
+  for (const source of [p1008, shopping, vocabulary, speaking]) {
+    assert.match(source, /window\.JoyI18n/);
+    assert.doesNotMatch(source, /const\s+(?:EXACT_TEXT|TRANSLATIONS|LOCALE_TEXT|I18N_TEXT)\s*=/);
+  }
+  assert.match(vocabulary, /data-i18n-skip/);
+  assert.match(speaking, /data-i18n-skip/);
+});
+
+test("Finance and Sale Manager use shared locale formatters instead of a fixed display locale", async () => {
+  const [finance, saleManager] = await Promise.all([
+    readFile(new URL("../src/features/finance/finance.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/pages/sale/sale-manager.js", import.meta.url), "utf8"),
+  ]);
+  assert.match(finance, /financeI18n\(\)\?\.formatNumber/);
+  assert.match(finance, /financeI18n\(\)\?\.formatDate/);
+  assert.match(saleManager, /saleI18n\(\)\?\.formatNumber/);
+  assert.match(saleManager, /saleI18n\(\)\?\.formatDate/);
+  assert.match(finance, /data-i18n-skip/);
+});
+
 test("shared i18n assets are copied without creating a second HTML owner", async () => {
   const [buildStage, saleAdapter, login] = await Promise.all([
     readFile(new URL("../scripts/build-i18n.mjs", import.meta.url), "utf8"),
@@ -39,6 +74,7 @@ test("shared i18n assets are copied without creating a second HTML owner", async
   assert.doesNotMatch(buildStage, /writeFile|inject\(/);
   assert.match(saleAdapter, /\/i18n\/index\.js/);
   assert.match(login, /\/i18n\/index\.js/);
+  assert.match(login, /data-i18n="login\.continueGoogle"/);
 });
 
 test("i18n observer cannot observe the DOM writes produced by translation itself", async () => {
