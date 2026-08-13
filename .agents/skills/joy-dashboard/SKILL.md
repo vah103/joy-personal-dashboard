@@ -1,6 +1,6 @@
 ---
 name: joy-dashboard
-description: Work safely on the Joy Personal Dashboard repository, including frontend, Cloudflare Worker APIs, Joy Core, D1 migrations, public project data, tests, builds, and deployment readiness. Use for implementation, debugging, code review, architecture assessment, migration planning, regression testing, or repository maintenance in Joy.
+description: Work safely on the Joy Personal Dashboard repository, including frontend, Cloudflare Worker APIs, Joy Core, D1 migrations, public project data, tests, builds, deployment readiness, and the shared bilingual JoyI18n interface contract. Use for implementation, debugging, code review, architecture assessment, migration planning, regression testing, or repository maintenance in Joy.
 ---
 
 # Joy Dashboard workflow
@@ -32,6 +32,9 @@ Classify the task as one or more of:
 - build, test, CI, or deployment tooling;
 - documentation only.
 
+If the change touches frontend UI or any user-visible copy, treat i18n as an
+affected subsystem even when the user's request does not mention language.
+
 Read [references/architecture.md](references/architecture.md) whenever file
 ownership, runtime boundaries, generated output, compatibility, or data flow
 is relevant.
@@ -40,6 +43,11 @@ is relevant.
 
 Read the relevant implementation and tests first. Then read the authoritative
 documents routed by `references/architecture.md`.
+
+For any user-visible UI change, also read `docs/i18n.md`, inspect both
+`src/i18n/locales/en.js` and `src/i18n/locales/vi.js`, and reuse or add shared
+semantic keys through `JoyI18n`. Do not create feature-owned translation maps
+or language shims.
 
 For credentials, OAuth, personal data, Worker permissions, Git history, or
 public artifacts, also read
@@ -51,7 +59,7 @@ State or internally establish:
 
 - intended behavior and affected contracts;
 - smallest set of source and test files needed;
-- compatibility, authentication, privacy, and migration risks;
+- compatibility, authentication, privacy, migration, and i18n risks;
 - verification required for the affected subsystem.
 
 Do not include opportunistic refactors or generated `dist/` edits.
@@ -63,15 +71,22 @@ task explicitly coordinates their change. Keep migrations additive and Worker
 writes authorized and audited. Add or update regression coverage for bug
 fixes when practical.
 
-For UI changes, preserve responsive behavior, accessibility, and Nunito
-typography.
+For UI changes:
+
+- preserve responsive behavior, accessibility, and Nunito typography;
+- route new or changed interface copy through shared `JoyI18n`;
+- keep English and Vietnamese locale keys synchronized in the same change;
+- do not translate user-entered facts or couple parser/input language to UI
+  language;
+- prefer shared locale-aware date, number, and currency formatting.
 
 ## 6. Verify
 
 Read and follow
 [references/verification-matrix.md](references/verification-matrix.md).
-Start with focused checks and expand based on risk. Run `npm run verify` for
-cross-cutting changes. Never turn verification into an automatic deployment.
+Start with focused checks and expand based on risk. Run `npm run i18n:check`
+for any UI/i18n change. Run `npm run verify` for cross-cutting changes. Never
+turn verification into an automatic deployment.
 
 ## 7. Review the result
 
@@ -82,7 +97,8 @@ Inspect the final diff and status. Check that:
 - no secret, token, personal data, or private identifier appears;
 - public URLs, asset and service-worker paths, and API contracts remain
   compatible;
-- migration and authorization boundaries remain intact.
+- migration and authorization boundaries remain intact;
+- UI copy uses the shared language system and both locales remain synchronized.
 
 ## 8. Report
 
