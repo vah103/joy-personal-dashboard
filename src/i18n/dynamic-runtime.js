@@ -113,13 +113,23 @@ function translateDynamicText(value, locale = currentLocale) {
   match = text.match(/^(\d+)\s+entries$/iu) || text.match(/^(\d+)\s+giao dịch$/iu);
   if (match) return preserveWhitespace(source, locale === "vi" ? `${match[1]} giao dịch` : `${match[1]} ${Number(match[1]) === 1 ? "entry" : "entries"}`);
 
-  match = text.match(/^(.+?)\s+(summary|tóm tắt)$/iu);
+  match = text.match(/^(.+?)\s+summary$/iu);
+  if (match) {
+    const label = translateMonthLabel(match[1], locale);
+    return preserveWhitespace(source, locale === "vi" ? `Tóm tắt ${label}` : `${label} summary`);
+  }
+  match = text.match(/^Tóm tắt\s+(.+)$/iu);
   if (match) {
     const label = translateMonthLabel(match[1], locale);
     return preserveWhitespace(source, locale === "vi" ? `Tóm tắt ${label}` : `${label} summary`);
   }
 
-  match = text.match(/^(.+?)\s+(?:finance overview|tổng quan tài chính)$/iu);
+  match = text.match(/^(.+?)\s+finance overview$/iu);
+  if (match) {
+    const label = translateMonthLabel(match[1], locale);
+    return preserveWhitespace(source, locale === "vi" ? `Tổng quan tài chính ${label}` : `${label} finance overview`);
+  }
+  match = text.match(/^Tổng quan tài chính\s+(.+)$/iu);
   if (match) {
     const label = translateMonthLabel(match[1], locale);
     return preserveWhitespace(source, locale === "vi" ? `Tổng quan tài chính ${label}` : `${label} finance overview`);
