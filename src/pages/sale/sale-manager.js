@@ -26,8 +26,33 @@ const elements = {
   toast: document.querySelector("#sale-toast"),
 };
 
+function saleI18n() {
+  return window.JoyI18n || null;
+}
+
+function saleTr(key, values = {}, fallback = "") {
+  const translated = saleI18n()?.t?.(key, values);
+  return translated && translated !== key ? translated : fallback || key;
+}
+
+function saleLocale() {
+  return saleI18n()?.getLocale?.() || "en";
+}
+
+function monthDisplay(month, { short = false } = {}) {
+  if (!month) return "";
+  const key = String(month.key || "");
+  if (!/^\d{4}-\d{2}$/.test(key)) return short ? month.shortLabel : month.label;
+  const date = new Date(`${key}-01T12:00:00+07:00`);
+  return saleI18n()?.formatDate?.(date, {
+    timeZone: "Asia/Ho_Chi_Minh",
+    month: short ? "short" : "long",
+    ...(short ? {} : { year: "numeric" }),
+  }) || (short ? month.shortLabel : month.label);
+}
+
 async function loadDeals({ quiet = false } = {}) {
-  if (!quiet) showStatus("loading", "Loading Sale 2026…");
+  if (!quiet) showStatus("loading", saleTr("saleManager.loading", {}, "Loading Sale 2026…"));
   try {
     const payload = await apiRequest("/api/sales/deals");
     state.months = Array.isArray(payload.months) ? payload.months : [];
@@ -44,8 +69,12 @@ async function loadDeals({ quiet = false } = {}) {
     const reconnect = ["AUTH_REQUIRED", "SHEETS_AUTHORIZATION_REQUIRED", "SHEETS_WRITE_AUTHORIZATION_REQUIRED"].includes(error.code);
     showStatus(
       "error",
-      reconnect ? "Google Sheets needs to be connected again before Joy can manage Sale." : "Joy could not load the Sale sheet.",
-      reconnect ? { label: "Connect Google", href: "/auth/start" } : { label: "Try again", action: "retry-load" },
+      reconnect
+        ? saleTr("saleManager.sheetsReconnect", {}, "Google Sheets needs to be connected again before Joy can manage Sale.")
+        : saleTr("saleManager.sheetsLoadFailed", {}, "Joy could not load the Sale sheet."),
+      reconnect
+        ? { label: saleTr("saleManager.connectGoogle", {}, "Connect Google"), href: "/auth/start" }
+        : { label: saleTr("common.tryAgain", {}, "Try again"), action: "retry-load" },
     );
   }
 }
@@ -58,8 +87,10 @@ function render() {
   elements.total.textContent = formatVnd(total);
   elements.average.textContent = formatVnd(month?.count ? total / month.count : 0);
   elements.count.textContent = String(month?.count || 0);
-  elements.summaryMonth.textContent = month?.label || "—";
-  elements.ledgerTitle.textContent = month?.label ? `${month.label.replace(" 2026", "")} deals` : "Deals";
+  elements.summaryMonth.textContent = month ? monthDisplay(month) : "—";
+  elements.ledgerTitle.textContent = month
+    ? (saleLocale() === "vi" ? `Giao dịch tháng ${Number(month.key.slice(5, 7))}` : `${monthDisplay(month, { short: false }).replace(/\s+2026$/u, "")} deals`)
+    : saleTr("saleManager.deals", {}, "Deals");
   elements.tableBody.replaceChildren(...deals.map(renderDealRow));
   elements.empty.hidden = Boolean(deals.length) || Boolean(state.query);
   elements.tableWrap.classList.toggle("is-empty", !deals.length && !state.query);
@@ -69,7 +100,7 @@ function render() {
     const cell = document.createElement("td");
     cell.colSpan = 7;
     cell.className = "sale-no-results";
-    cell.textContent = "No matching deals in this month.";
+    cell.textContent = saleTr("saleManager.noMatches", {}, "No matching deals in this month.");
     row.append(cell);
     elements.tableBody.append(row);
   }
@@ -82,7 +113,7 @@ function renderMonths() {
     button.className = month.key === state.selectedMonth ? "active" : "";
     button.dataset.month = month.key;
     const label = document.createElement("span");
-    label.textContent = month.shortLabel;
+    label.textContent = monthDisplay(month, { short: true });
     const count = document.createElement("small");
     count.textContent = String(month.count || 0);
     button.append(label, count);
@@ -106,7 +137,7 @@ function renderDealRow(deal) {
   edit.className = "sale-edit-button";
   edit.dataset.action = "edit-deal";
   edit.dataset.row = String(deal.sourceRow);
-  edit.textContent = "Edit";
+  edit.textContent = saleTr("common.edit", {}, "Edit");
   actionCell.append(edit);
   row.append(actionCell);
   return row;
@@ -123,11 +154,22 @@ function filteredDeals(deals) {
     .some((value) => String(value || "").toLocaleLowerCase("vi").includes(query)));
 }
 
+function syncFormLocale() {
+  if (elements.modal.hidden) return;
+  elements.formTitle.textContent = state.editingDeal
+    ? saleTr("saleManager.editClosed", {}, "Edit closed room")
+    : saleTr("saleManager.addClosed", {}, "Add a closed room");
+  elements.save.textContent = saleTr("saleManager.saveSheet", {}, "Save to Sheet");
+  updateCommissionPreview();
+}
+
 function openForm(deal = null) {
   state.editingDeal = deal;
   elements.form.reset();
   elements.formError.hidden = true;
-  elements.formTitle.textContent = deal ? "Edit closed room" : "Add a closed room";
+  elements.formTitle.textContent = deal
+    ? saleTr("saleManager.editClosed", {}, "Edit closed room")
+    : saleTr("saleManager.addClosed", {}, "Add a closed room");
   elements.form.elements.sourceRow.value = deal?.sourceRow || "";
   elements.form.elements.month.value = deal?.month || state.selectedMonth;
   elements.form.elements.month.disabled = Boolean(deal);
@@ -165,7 +207,7 @@ async function saveDeal(event) {
   };
 
   elements.save.disabled = true;
-  elements.save.textContent = "Saving…";
+  elements.save.textContent = saleTr("saleManager.saving", {}, "Saving…");
   elements.formError.hidden = true;
   try {
     await apiRequest("/api/sales/deals", {
@@ -175,19 +217,23 @@ async function saveDeal(event) {
     });
     state.selectedMonth = payload.month;
     closeForm();
-    showToast(wasEditing ? "Deal updated in Google Sheets" : "Deal added to Google Sheets");
+    showToast(wasEditing
+      ? saleTr("saleManager.updatedSheets", {}, "Deal updated in Google Sheets")
+      : saleTr("saleManager.addedSheets", {}, "Deal added to Google Sheets"));
     await loadDeals({ quiet: true });
   } catch (error) {
-    const messages = {
-      SHEETS_WRITE_AUTHORIZATION_REQUIRED: "Reconnect Google once to allow Joy to save changes.",
-      SHEETS_WRITE_ACCESS_DENIED: "Joy does not have permission to edit this Sheet.",
-      SALE_DEAL_NOT_FOUND: "This row moved in Google Sheets. Close the form and try again.",
-    };
-    elements.formError.textContent = messages[error.code] || "The deal could not be saved. Please try again.";
+    const key = {
+      SHEETS_WRITE_AUTHORIZATION_REQUIRED: "saleManager.reconnectSave",
+      SHEETS_WRITE_ACCESS_DENIED: "saleManager.permissionDenied",
+      SALE_DEAL_NOT_FOUND: "saleManager.movedRow",
+    }[error.code];
+    elements.formError.textContent = key
+      ? saleTr(key, {}, error.code)
+      : saleTr("saleManager.saveFailed", {}, "The deal could not be saved. Please try again.");
     elements.formError.hidden = false;
   } finally {
     elements.save.disabled = false;
-    elements.save.textContent = "Save to Sheet";
+    elements.save.textContent = saleTr("saleManager.saveSheet", {}, "Save to Sheet");
   }
 }
 
@@ -234,9 +280,11 @@ function showToast(message) {
 function cellWithPrimary(primary, secondary) {
   const cell = document.createElement("td");
   const strong = document.createElement("strong");
-  strong.textContent = primary || "Unnamed customer";
+  strong.textContent = primary || saleTr("saleManager.unnamedCustomer", {}, "Unnamed customer");
+  strong.dataset.i18nSkip = "true";
   const small = document.createElement("small");
-  small.textContent = secondary || "No phone";
+  small.textContent = secondary || saleTr("saleManager.noPhone", {}, "No phone");
+  small.dataset.i18nSkip = "true";
   cell.append(strong, small);
   return cell;
 }
@@ -244,21 +292,28 @@ function cellWithPrimary(primary, secondary) {
 function textCell(value) {
   const cell = document.createElement("td");
   cell.textContent = value;
+  cell.dataset.i18nSkip = "true";
   return cell;
 }
 
 function privateCell(value, className = "") {
-  const cell = textCell(value);
+  const cell = document.createElement("td");
+  cell.textContent = value;
   cell.className = `private-cell ${className}`.trim();
   return cell;
 }
 
 function formatVnd(value) {
-  return `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(Number(value || 0))} ₫`;
+  const amount = Number(value || 0);
+  const number = saleI18n()?.formatNumber?.(amount, { maximumFractionDigits: 0 })
+    || new Intl.NumberFormat(saleLocale() === "vi" ? "vi-VN" : "en-GB", { maximumFractionDigits: 0 }).format(amount);
+  return `${number} ₫`;
 }
 
 function formatPercent(value) {
-  return new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 2 }).format(Number(value || 0) * 100);
+  const percent = Number(value || 0) * 100;
+  return saleI18n()?.formatNumber?.(percent, { maximumFractionDigits: 2 })
+    || new Intl.NumberFormat(saleLocale() === "vi" ? "vi-VN" : "en-GB", { maximumFractionDigits: 2 }).format(percent);
 }
 
 document.addEventListener("click", (event) => {
@@ -287,4 +342,14 @@ elements.form.elements.rent.addEventListener("input", updateCommissionPreview);
 elements.form.elements.rate.addEventListener("input", updateCommissionPreview);
 elements.modal.addEventListener("mousedown", (event) => { if (event.target === elements.modal) closeForm(); });
 document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !elements.modal.hidden) closeForm(); });
+
+function syncSaleLocale() {
+  render();
+  syncFormLocale();
+  saleI18n()?.translateRoot?.(document.querySelector(".sale-page") || document.body);
+}
+
+window.addEventListener("joy:i18n-ready", syncSaleLocale);
+window.addEventListener("joy:locale-changed", syncSaleLocale);
+
 loadDeals();
