@@ -4,7 +4,7 @@ import en from "../src/i18n/locales/en.js";
 import vi from "../src/i18n/locales/vi.js";
 
 const root = resolve(import.meta.dirname, "..");
-const sourceRoot = resolve(root, "src");
+const sourceRoots = [resolve(root, "src"), resolve(root, "project-data")];
 const dictionaries = { en, vi };
 const supported = Object.keys(dictionaries);
 const ICU_PLURAL = /\{([a-zA-Z0-9_]+),\s*plural,\s*one\s*\{[^{}]*\}\s*other\s*\{[^{}]*\}\}/g;
@@ -58,7 +58,7 @@ async function walk(directory) {
   return files;
 }
 
-const files = await walk(sourceRoot);
+const files = (await Promise.all(sourceRoots.map((directory) => walk(directory)))).flat();
 const literalKeyPatterns = [
   /JoyI18n\.t\(\s*["'`]([^"'`]+)["'`]/g,
   /data-i18n=["']([^"']+)["']/g,
@@ -82,6 +82,32 @@ for (const file of files) {
   if ((name.includes("english-ui") || name.includes("vietnamese-ui") || name.includes("-language")) && !allowedLegacy.has(legacyAdapter)) {
     errors.push(`${legacyAdapter} looks like a new feature-specific language layer; use shared JoyI18n instead`);
   }
+}
+
+const auditedSurfaceCopy = [
+  ["project-data/finance/finance-p1008.js", ["Chia tiền nhà", "Tổng dịch vụ", "Đang đồng bộ…"]],
+  ["project-data/finance/finance-p1008-shopping-v1.js", ["Không tính Hưng", "Đủ 6 người"]],
+  ["project-data/vocabulary/vocabulary.js", ["Vocabulary", "Show answer", "Correct ✓"]],
+  ["project-data/speaking/speaking.js", ["How do I say this?", "Make it English", "Try another"]],
+  ["src/features/finance/finance.js", ["Actual balance", "Monthly finance", "Save transaction"]],
+  ["src/features/project-hub/project-hub-render.js", ["Overall progress", "Completion gate", "Recommended next action"]],
+  ["src/pages/sale/sale-manager.js", ["No matching deals in this month.", "Edit closed room", "Saving…"]],
+];
+const translatedValues = new Set(Object.values(en).concat(Object.values(vi)));
+for (const [file, expectedCopy] of auditedSurfaceCopy) {
+  const source = await readFile(resolve(root, file), "utf8");
+  for (const copy of expectedCopy) {
+    if (!source.includes(copy)) errors.push(`${file} no longer contains audited UI copy: ${copy}`);
+    if (!translatedValues.has(copy)) errors.push(`${file} has audited UI copy without shared JoyI18n coverage: ${copy}`);
+  }
+}
+
+const dashboardBootstrap = await readFile(resolve(root, "src/pages/dashboard/app-config.js"), "utf8");
+if (!/import\(["']\/i18n\/index\.js/u.test(dashboardBootstrap)) {
+  errors.push("Dashboard must bootstrap the shared /i18n/index.js runtime");
+}
+if (!/\/i18n\/i18n\.css/u.test(dashboardBootstrap)) {
+  errors.push("Dashboard must load the shared /i18n/i18n.css styles");
 }
 
 const languageAdapterRules = [
@@ -134,4 +160,4 @@ for (const [file, requiredFragments] of agentPolicyRequirements) {
 }
 
 if (errors.length) fail(errors);
-console.log(`Joy i18n check passed: ${allKeys.size} shared keys across ${supported.join("/")} with agent policy enforced`);
+console.log(`Joy i18n check passed: ${allKeys.size} shared keys across ${supported.join("/")}; src + project-data surfaces audited`);
