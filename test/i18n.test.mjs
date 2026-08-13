@@ -64,7 +64,9 @@ test("i18n observer cannot observe the DOM writes produced by translation itself
 test("i18n rules run inside the existing canonical verification path", async () => {
   const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
   const checker = await readFile(new URL("../scripts/check-i18n-v2.mjs", import.meta.url), "utf8");
-  assert.match(packageJson.scripts.test, /check-i18n-v2\.mjs/);
+  assert.match(packageJson.scripts.test, /npm run i18n:check/);
+  assert.match(packageJson.scripts["i18n:check"], /check-i18n-v2\.mjs/);
+  assert.match(packageJson.scripts["i18n:check"], /check-i18n-hardcoded-ui\.mjs/);
   assert.match(packageJson.scripts.build, /build-i18n\.mjs/);
   assert.equal(packageJson.scripts.verify, "npm run audit:prod && npm run audit:all && npm run db:migrate:smoke && npm test && npm run build");
   assert.match(checker, /resolve\(root, "project-data"\)/);
