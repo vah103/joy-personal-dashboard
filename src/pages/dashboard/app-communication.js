@@ -200,7 +200,7 @@ function renderGmailMessage(message) {
   const read = makeButton("", "dismiss-email", "gmail-square-button gmail-read-button");
   read.dataset.emailId = message.id;
   read.setAttribute("aria-label", "Done with this email");
-  read.title = "Đã đọc · remove from Joy";
+  read.title = "Read · remove from Joy";
 
   messageActions.append(open, pin, read);
 
