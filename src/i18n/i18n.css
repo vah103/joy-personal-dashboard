@@ -1,0 +1,174 @@
+.joy-settings-trigger{
+  width:100%;
+  min-height:38px;
+  margin:0 0 10px;
+  padding:8px 11px;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  border:1px solid rgba(58,73,78,.12);
+  border-radius:11px;
+  background:rgba(255,255,255,.42);
+  color:#52646a;
+  font:700 12px/1.2 "Nunito","Instrument Sans",Arial,sans-serif;
+  cursor:pointer;
+}
+
+.joy-settings-trigger:hover{
+  background:rgba(255,255,255,.72);
+  border-color:rgba(58,73,78,.22);
+}
+
+.joy-settings-trigger-sale{
+  margin:0 0 12px;
+  background:rgba(255,255,255,.08);
+  border-color:rgba(255,255,255,.12);
+  color:inherit;
+}
+
+.header-avatar[role="button"]{cursor:pointer}
+.header-avatar[role="button"]:focus-visible{
+  outline:2px solid rgba(69,105,116,.52);
+  outline-offset:3px;
+}
+
+.joy-settings-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:1400;
+  padding:20px;
+  display:grid;
+  place-items:center;
+  background:rgba(27,34,37,.34);
+  backdrop-filter:blur(8px);
+}
+
+.joy-settings-backdrop[hidden]{display:none!important}
+body.joy-settings-open{overflow:hidden}
+
+.joy-settings-dialog{
+  width:min(560px,100%);
+  max-height:min(760px,calc(100svh - 40px));
+  overflow:auto;
+  border:1px solid rgba(54,72,78,.12);
+  border-radius:22px;
+  background:#f8f7f3;
+  box-shadow:0 26px 80px rgba(31,43,48,.24);
+  color:#2e4046;
+  font-family:"Nunito","Instrument Sans",Arial,sans-serif;
+}
+
+.joy-settings-header{
+  padding:22px 22px 18px;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+  border-bottom:1px solid rgba(54,72,78,.09);
+}
+
+.joy-settings-header small{
+  display:block;
+  margin-bottom:4px;
+  color:#728087;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+
+.joy-settings-header h2{
+  margin:0;
+  color:#2e434b;
+  font-size:24px;
+  font-weight:850;
+  letter-spacing:-.035em;
+}
+
+.joy-settings-header p{
+  max-width:420px;
+  margin:6px 0 0;
+  color:#718087;
+  font-size:13px;
+  line-height:1.45;
+}
+
+.joy-settings-close{
+  width:36px;
+  height:36px;
+  flex:0 0 auto;
+  border:0;
+  border-radius:11px;
+  background:rgba(54,72,78,.07);
+  color:#607178;
+  font-size:22px;
+  line-height:1;
+  cursor:pointer;
+}
+
+.joy-settings-body{padding:20px 22px 24px}
+.joy-settings-section{display:grid;gap:14px}
+.joy-settings-section-copy strong{
+  display:block;
+  color:#334b53;
+  font-size:14px;
+  font-weight:850;
+}
+
+.joy-settings-section-copy p{
+  margin:5px 0 0;
+  color:#78868b;
+  font-size:12px;
+  line-height:1.5;
+}
+
+.joy-language-options{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+
+.joy-language-option{
+  min-width:0;
+  min-height:82px;
+  padding:14px 15px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  text-align:left;
+  border:1px solid rgba(57,76,83,.12);
+  border-radius:15px;
+  background:rgba(255,255,255,.58);
+  color:#354b53;
+  cursor:pointer;
+  transition:border-color .16s ease,background .16s ease,transform .16s ease;
+}
+
+.joy-language-option:hover{transform:translateY(-1px);border-color:rgba(57,89,99,.28)}
+.joy-language-option[aria-checked="true"]{
+  border-color:rgba(66,103,115,.42);
+  background:#edf3f4;
+  box-shadow:inset 0 0 0 1px rgba(66,103,115,.06);
+}
+
+.joy-language-option span{min-width:0;display:grid;gap:3px}
+.joy-language-option strong{font:850 14px/1.25 "Nunito","Instrument Sans",Arial,sans-serif}
+.joy-language-option small{color:#7c898e;font:600 11px/1.35 "Nunito","Instrument Sans",Arial,sans-serif}
+.joy-language-option i{
+  width:17px;
+  height:17px;
+  flex:0 0 auto;
+  border:2px solid #aab5b9;
+  border-radius:50%;
+  box-shadow:inset 0 0 0 3px #f7f8f7;
+}
+.joy-language-option[aria-checked="true"] i{background:#587d88;border-color:#587d88}
+
+@media(max-width:640px){
+  .joy-settings-backdrop{padding:12px;align-items:end}
+  .joy-settings-dialog{max-height:calc(100svh - 24px);border-radius:20px 20px 16px 16px}
+  .joy-settings-header{padding:19px 18px 16px}
+  .joy-settings-body{padding:17px 18px 20px}
+  .joy-language-options{grid-template-columns:1fr}
+}
