@@ -10,9 +10,10 @@ test("translates core Sale Assistant controls to English", () => {
   assert.equal(translateSaleUiText("Đang lưu lịch vào Joy…"), "Saving appointment to Joy…");
 });
 
-test("translates dynamic viewing history text", () => {
+test("translates dynamic viewing history text and date chrome", () => {
   assert.equal(translateSaleUiText("1 lịch hẹn"), "1 appointment");
   assert.equal(translateSaleUiText("4 lịch hẹn"), "4 appointments");
+  assert.equal(translateSaleUiText("Th 3, 11/08/2026 · 20:03"), "Tue, 11 Aug 2026 · 20:03");
   assert.equal(
     translateSaleUiText("Chưa nhận ra tên khách, địa chỉ. Bạn có thể điền trực tiếp bên dưới."),
     "Could not recognize customer name, address. You can fill it in below.",
@@ -26,6 +27,13 @@ test("translates generated Room Summary labels without translating source facts"
   assert.equal(translateSaleUiText("14 phòng · Trống từ 1/9"), "14 rooms · Available from 1/9");
   assert.equal(translateSaleUiText("P201, P202 (trống 1/9)"), "P201, P202 (available from 1/9)");
   assert.equal(translateSaleUiText("35k/m"), "35k/m");
+});
+
+test("Sale English installer covers every Sale scope while preserving history customer data", async () => {
+  const source = await readFile(new URL("../src/features/sales/sale-english-ui.js", import.meta.url), "utf8");
+  assert.match(source, /querySelectorAll\?\.\(SALE_SCOPE_SELECTOR\)/);
+  assert.match(source, /index === 0 \|\| index >= 4/);
+  assert.doesNotMatch(source, /historyNodeReady/);
 });
 
 test("build ships the Sale English UI and dashboard loads it", async () => {

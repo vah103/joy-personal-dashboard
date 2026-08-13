@@ -110,10 +110,30 @@ const ATTRIBUTE_TEXT = new Map([
   ["Chốt khách này.", "Close this deal."],
 ]);
 
+const VIETNAMESE_WEEKDAY_TO_ENGLISH = Object.freeze({
+  "Th 2": "Mon",
+  "Th 3": "Tue",
+  "Th 4": "Wed",
+  "Th 5": "Thu",
+  "Th 6": "Fri",
+  "Th 7": "Sat",
+  CN: "Sun",
+});
+const ENGLISH_MONTHS = Object.freeze(["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]);
+
 function preserveWhitespace(source, replacement) {
   const leading = source.match(/^\s*/u)?.[0] || "";
   const trailing = source.match(/\s*$/u)?.[0] || "";
   return `${leading}${replacement}${trailing}`;
+}
+
+function translateViewingDate(text) {
+  const match = text.match(/^(Th\s*[2-7]|CN),\s*(\d{2})\/(\d{2})\/(\d{4})\s*·\s*(\d{2}:\d{2})$/u);
+  if (!match) return "";
+  const weekday = VIETNAMESE_WEEKDAY_TO_ENGLISH[match[1].replace(/\s+/gu, " ")] || match[1];
+  const month = ENGLISH_MONTHS[Number(match[3]) - 1];
+  if (!month) return "";
+  return `${weekday}, ${match[2]} ${month} ${match[4]} · ${match[5]}`;
 }
 
 export function translateSaleUiText(value) {
@@ -122,6 +142,9 @@ export function translateSaleUiText(value) {
   if (!text) return source;
   const exact = EXACT_TEXT.get(text);
   if (exact) return preserveWhitespace(source, exact);
+
+  const translatedDate = translateViewingDate(text);
+  if (translatedDate) return preserveWhitespace(source, translatedDate);
 
   let match = text.match(/^(\d+)\s+lịch hẹn$/u);
   if (match) return preserveWhitespace(source, `${match[1]} ${Number(match[1]) === 1 ? "appointment" : "appointments"}`);
@@ -170,19 +193,19 @@ function translateAttribute(element, name) {
   if (translated !== value) element.setAttribute(name, translated);
 }
 
-function historyNodeReady(node) {
-  const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
-  const row = element?.closest?.(".sales-history-table tbody tr");
-  if (row && row.dataset.reminderMerged !== "true") return false;
-  const table = element?.closest?.(".sales-history-table");
-  if (table && element?.closest?.("thead") && table.querySelectorAll("thead th").length >= 8) return false;
-  return true;
+function historyCellMayTranslate(node) {
+  const parent = node.parentElement;
+  const cell = parent?.closest?.(".sales-history-table tbody td");
+  if (!cell) return true;
+  const cells = [...cell.parentElement.children];
+  const index = cells.indexOf(cell);
+  return index === 0 || index >= 4;
 }
 
 function translateTextNode(node) {
-  if (!historyNodeReady(node)) return;
   const parent = node.parentElement;
   if (!parent || parent.closest("textarea, input, script, style")) return;
+  if (!historyCellMayTranslate(node)) return;
   const translated = translateSaleUiText(node.nodeValue);
   if (translated !== node.nodeValue) node.nodeValue = translated;
 }
@@ -199,14 +222,7 @@ function translateRoomDetails(root) {
   });
 }
 
-export function translateSaleUiRoot(root) {
-  if (!root) return;
-  const element = root.nodeType === Node.ELEMENT_NODE ? root : root.parentElement;
-  const inScope = element?.matches?.(SALE_SCOPE_SELECTOR) || element?.closest?.(SALE_SCOPE_SELECTOR);
-  const containsScope = element?.querySelector?.(SALE_SCOPE_SELECTOR);
-  if (!inScope && !containsScope) return;
-
-  const scopeRoot = inScope ? element : containsScope;
+function translateScopeRoot(scopeRoot) {
   if (!scopeRoot) return;
   const walker = document.createTreeWalker(scopeRoot, NodeFilter.SHOW_TEXT);
   const textNodes = [];
@@ -222,6 +238,21 @@ export function translateSaleUiRoot(root) {
   translateAttribute(scopeRoot, "aria-label");
   translateAttribute(scopeRoot, "title");
   translateRoomDetails(scopeRoot);
+}
+
+export function translateSaleUiRoot(root) {
+  if (!root) return;
+  const element = root.nodeType === Node.ELEMENT_NODE ? root : root.parentElement;
+  if (!element) return;
+
+  const scopes = new Set();
+  const closestScope = element.matches?.(SALE_SCOPE_SELECTOR)
+    ? element
+    : element.closest?.(SALE_SCOPE_SELECTOR);
+  if (closestScope) scopes.add(closestScope);
+  element.querySelectorAll?.(SALE_SCOPE_SELECTOR).forEach((scope) => scopes.add(scope));
+
+  scopes.forEach(translateScopeRoot);
 }
 
 export function installSaleEnglishUi(doc = document) {
