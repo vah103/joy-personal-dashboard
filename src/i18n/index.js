@@ -135,6 +135,41 @@ function parseMonthName(value) {
   return viMatch ? Number(viMatch[1]) : 0;
 }
 
+function localizedMonthYear(month, year, locale = currentLocale, { slash = false } = {}) {
+  const number = Number(month);
+  if (number < 1 || number > 12) return "";
+  if (locale === "vi") return slash ? `Tháng ${number}/${year}` : `Tháng ${number} ${year}`;
+  return `${MONTHS_EN_LONG[number - 1]} ${year}`;
+}
+
+function localizedMonthOnly(month, locale = currentLocale) {
+  const number = Number(month);
+  if (number < 1 || number > 12) return "";
+  return locale === "vi" ? `Tháng ${number}` : MONTHS_EN_LONG[number - 1];
+}
+
+function localizedLanguageLabel(value, locale = currentLocale) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (["english", "tiếng anh"].includes(normalized)) return locale === "vi" ? "tiếng Anh" : "English";
+  if (["vietnamese", "tiếng việt"].includes(normalized)) return locale === "vi" ? "tiếng Việt" : "Vietnamese";
+  return value;
+}
+
+function localizedSpeakingTone(value, locale = currentLocale) {
+  const normalized = String(value || "").trim().toLowerCase();
+  const keys = {
+    natural: "speaking.natural",
+    "tự nhiên": "speaking.natural",
+    casual: "speaking.casual",
+    "thân mật": "speaking.casual",
+    polite: "speaking.polite",
+    "lịch sự": "speaking.polite",
+    work: "speaking.work",
+    "công việc": "speaking.work",
+  };
+  return keys[normalized] ? t(keys[normalized], {}, locale) : value;
+}
+
 function formatViewingDate(day, month, year, time, locale = currentLocale) {
   const date = new Date(`${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}T12:00:00+07:00`);
   if (Number.isNaN(date.getTime())) return "";
@@ -190,13 +225,87 @@ function dynamicTranslation(text, locale = currentLocale) {
   match = text.match(/^Hoàn thành\s+(\d+)%$/iu);
   if (match) return t("ielts.completePercent", { value: match[1] }, locale);
 
+  match = text.match(/^Tháng\s+(1[0-2]|[1-9])\/(\d{4})$/u);
+  if (match) return localizedMonthYear(match[1], match[2], locale, { slash: true });
   match = text.match(/^(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})$/u);
-  if (match) {
-    const month = parseMonthName(match[1]);
-    return locale === "vi" ? `Tháng ${month} ${match[2]}` : `${MONTHS_EN_LONG[month - 1]} ${match[2]}`;
-  }
+  if (match) return localizedMonthYear(parseMonthName(match[1]), match[2], locale, { slash: false });
   match = text.match(/^Tháng\s+(1[0-2]|[1-9])\s+(\d{4})$/u);
-  if (match) return locale === "vi" ? text : `${MONTHS_EN_LONG[Number(match[1]) - 1]} ${match[2]}`;
+  if (match) return localizedMonthYear(match[1], match[2], locale, { slash: false });
+
+  match = text.match(/^Chia đều\s+Tháng\s+(1[0-2]|[1-9])$/iu);
+  if (match) return t("p1008.standardSplit", { month: localizedMonthOnly(match[1], locale) }, locale);
+  match = text.match(/^Equal split for\s+(January|February|March|April|May|June|July|August|September|October|November|December)$/iu);
+  if (match) return t("p1008.standardSplit", { month: localizedMonthOnly(parseMonthName(match[1]), locale) }, locale);
+
+  match = text.match(/^Chưa có món nào trong\s+Tháng\s+(1[0-2]|[1-9])\/(\d{4})$/iu);
+  if (match) return t("p1008.shopping.emptyTitle", { month: localizedMonthYear(match[1], match[2], locale, { slash: true }) }, locale);
+  match = text.match(/^No items in\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})$/iu);
+  if (match) return t("p1008.shopping.emptyTitle", { month: localizedMonthYear(parseMonthName(match[1]), match[2], locale, { slash: true }) }, locale);
+
+  match = text.match(/^Tên món\s+(.+)$/u);
+  if (match) return t("p1008.shopping.itemNameAria", { name: match[1] }, locale);
+  match = text.match(/^Item name\s+(.+)$/u);
+  if (match) return t("p1008.shopping.itemNameAria", { name: match[1] }, locale);
+  match = text.match(/^Số tiền\s+(.+)$/u);
+  if (match) return t("p1008.shopping.itemAmountAria", { name: match[1] }, locale);
+  match = text.match(/^Amount for\s+(.+)$/u);
+  if (match) return t("p1008.shopping.itemAmountAria", { name: match[1] }, locale);
+  match = text.match(/^Số người chia\s+(.+)$/u);
+  if (match) return t("p1008.shopping.itemSplitAria", { name: match[1] }, locale);
+  match = text.match(/^Split count for\s+(.+)$/u);
+  if (match) return t("p1008.shopping.itemSplitAria", { name: match[1] }, locale);
+  match = text.match(/^Xóa món\s+[“"](.+)[”"]\?$/u);
+  if (match) return t("p1008.shopping.deleteConfirm", { name: match[1] }, locale);
+  match = text.match(/^Delete\s+[“"](.+)[”"]\?$/u);
+  if (match) return t("p1008.shopping.deleteConfirm", { name: match[1] }, locale);
+
+  match = text.match(/^(\d+)\s+saved\s+(word|words)$/iu);
+  if (match) return t(Number(match[1]) === 1 ? "vocabulary.savedCountOne" : "vocabulary.savedCountMany", { count: match[1] }, locale);
+  match = text.match(/^Đã lưu\s+(\d+)\s+từ$/iu);
+  if (match) return t(Number(match[1]) === 1 ? "vocabulary.savedCountOne" : "vocabulary.savedCountMany", { count: match[1] }, locale);
+
+  match = text.match(/^Translate into\s+(English|Vietnamese)$/iu);
+  if (match) return t("vocabulary.translateInto", { language: localizedLanguageLabel(match[1], locale) }, locale);
+  match = text.match(/^Dịch sang\s+(tiếng Anh|tiếng Việt)$/iu);
+  if (match) return t("vocabulary.translateInto", { language: localizedLanguageLabel(match[1], locale) }, locale);
+
+  match = text.match(/^Answer:\s*(.+)$/u);
+  if (match) return t("vocabulary.answerValue", { value: match[1] }, locale);
+  match = text.match(/^Đáp án:\s*(.+)$/u);
+  if (match) return t("vocabulary.answerValue", { value: match[1] }, locale);
+
+  match = text.match(/^(English|Tiếng Anh)\s*·\s*(.+)$/iu);
+  if (match) return `${locale === "vi" ? "Tiếng Anh" : "English"} · ${match[2]}`;
+
+  match = text.match(/^(Natural|Casual|Polite|Work)\s+English$/iu);
+  if (match) return t("speaking.resultTone", { tone: localizedSpeakingTone(match[1], locale) }, locale);
+  match = text.match(/^Tiếng Anh\s*·\s*(Tự nhiên|Thân mật|Lịch sự|Công việc)$/iu);
+  if (match) return t("speaking.resultTone", { tone: localizedSpeakingTone(match[1], locale) }, locale);
+
+  match = text.match(/^Stage\s+(\d+)\s+of\s+(\d+)$/iu);
+  if (match) return t("projectHub.stageOf", { stage: match[1], total: match[2] }, locale);
+  match = text.match(/^Stage\s+(\d+)\/(\d+)$/iu);
+  if (match) return t("projectHub.stageOf", { stage: match[1], total: match[2] }, locale);
+
+  match = text.match(/^(\d+)\s+commands$/iu);
+  if (match) return t("projectHub.commandCount", { count: match[1] }, locale);
+  match = text.match(/^(\d+)\s+lệnh$/iu);
+  if (match) return t("projectHub.commandCount", { count: match[1] }, locale);
+
+  match = text.match(/^Verified\s+(.+)$/u);
+  if (match) return t("projectHub.verifiedDate", { date: match[1] }, locale);
+  match = text.match(/^Đã xác minh\s+(.+)$/u);
+  if (match) return t("projectHub.verifiedDate", { date: match[1] }, locale);
+
+  match = text.match(/^(\d+)\s+recorded\s+(session|sessions)$/iu);
+  if (match) return t(Number(match[1]) === 1 ? "projectHub.sessionCountOne" : "projectHub.sessionCountMany", { count: match[1] }, locale);
+  match = text.match(/^(\d+)\s+buổi đã ghi$/iu);
+  if (match) return t(Number(match[1]) === 1 ? "projectHub.sessionCountOne" : "projectHub.sessionCountMany", { count: match[1] }, locale);
+
+  match = text.match(/^(\d+)\s+command\s+(block|blocks)\s+used$/iu);
+  if (match) return t(Number(match[1]) === 1 ? "projectHub.commandBlockOne" : "projectHub.commandBlockMany", { count: match[1] }, locale);
+  match = text.match(/^Đã dùng\s+(\d+)\s+khối lệnh$/iu);
+  if (match) return t(Number(match[1]) === 1 ? "projectHub.commandBlockOne" : "projectHub.commandBlockMany", { count: match[1] }, locale);
 
   match = text.match(/^(January|February|March|April|May|June|July|August|September|October|November|December)\s+deals$/u);
   if (match) {
@@ -263,6 +372,25 @@ const USER_DATA_SKIP_SELECTOR = [
   ".ielts-task-copy > small",
   ".ielts-course-list article > span > strong",
   ".ielts-course-list article > span > p",
+  ".vocabulary-prompt",
+  ".vocabulary-result-main strong",
+  ".vocabulary-result-card dd",
+  ".speaking-result-card p",
+  ".hub-stage-heading h3",
+  ".hub-stage-objective",
+  ".hub-check-row > span:last-child",
+  ".hub-completion-gate p",
+  ".hub-result-card p",
+  ".hub-command-card h3",
+  ".hub-command-card > p",
+  ".hub-command-card pre",
+  ".hub-command-result p",
+  ".hub-journal-card h3",
+  ".hub-journal-card textarea",
+  ".hub-open-issues li",
+  ".hub-plan-card input",
+  ".hub-plan-card textarea",
+  ".hub-chat-message p",
 ].join(",");
 
 function shouldSkipNode(node) {
