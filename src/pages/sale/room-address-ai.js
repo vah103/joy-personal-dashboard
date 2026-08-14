@@ -9,6 +9,18 @@ function normalizeRoomCodeForDisplay(value) {
   return match ? `P${match[1]}` : source;
 }
 
+function roomValueIsFloorOnly(sourceValue, roomValue) {
+  const room = String(roomValue ?? "").trim();
+  if (!/^\d{1,2}$/u.test(room)) return false;
+
+  const escaped = room.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const floorPattern = new RegExp(`(?:phòng\\s+)?tầng\\s*[:#-]?\\s*${escaped}\\b`, "iu");
+  if (!floorPattern.test(String(sourceValue ?? ""))) return false;
+
+  const explicitRoomPattern = new RegExp(`(?:phòng|room)\\s*[:#-]?\\s*${escaped}\\b|\\bp\\s*[-:]?\\s*${escaped}\\b`, "iu");
+  return !explicitRoomPattern.test(String(sourceValue ?? ""));
+}
+
 function normalizeFurnitureForDisplay(value) {
   const items = String(value ?? "")
     .split(",")
@@ -238,11 +250,14 @@ async function detectRoomSummary(source) {
   }
 
   const rooms = Array.isArray(payload.rooms)
-    ? payload.rooms.map((room) => ({
-      room: normalizeRoomCodeForDisplay(room?.room),
-      price: String(room?.price || "").trim(),
-      availability: String(room?.availability || "").trim(),
-    })).filter((room) => room.room || room.price || room.availability)
+    ? payload.rooms.map((room) => {
+      const sourceRoom = String(room?.room || "").trim();
+      return {
+        room: roomValueIsFloorOnly(source, sourceRoom) ? "" : normalizeRoomCodeForDisplay(sourceRoom),
+        price: String(room?.price || "").trim(),
+        availability: String(room?.availability || "").trim(),
+      };
+    }).filter((room) => room.room || room.price || room.availability)
     : [];
 
   return {
