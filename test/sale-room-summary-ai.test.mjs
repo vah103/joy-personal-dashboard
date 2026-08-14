@@ -147,13 +147,14 @@ test("drops invented room details instead of displaying AI guesses", () => {
 });
 
 test("Room Summary exposes only address and current room rental facts", async () => {
-  const [html, build, router, frontend, legacyBridge, assistant] = await Promise.all([
+  const [html, build, router, frontend, legacyBridge, assistant, dashboardBootstrap] = await Promise.all([
     readFile(new URL("../src/pages/sale/index.html", import.meta.url), "utf8"),
     readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8"),
     readFile(new URL("../worker/router.js", import.meta.url), "utf8"),
     readFile(new URL("../src/pages/sale/room-address-ai.js", import.meta.url), "utf8"),
     readFile(new URL("../src/pages/sale/room-summary.js", import.meta.url), "utf8"),
     readFile(new URL("../src/features/sales/sales-assistant.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/pages/dashboard/app-bootstrap.js", import.meta.url), "utf8"),
   ]);
 
   assert.match(html, /room-address-ai\.js\?v=joy-room-address-ai-v2/);
@@ -176,4 +177,5 @@ test("Room Summary exposes only address and current room rental facts", async ()
   assert.doesNotMatch(legacyBridge, /summarizeRoomListing|SERVICE_DEFINITIONS|FURNITURE_KEYWORDS|NOTE_KEYWORDS/);
 
   assert.match(assistant, /import\("\.\/room-summary\.js\?v=joy-room-summary-v1"\)/);
+  assert.doesNotMatch(dashboardBootstrap, /room-summary\/polish|SALE_ROOM_SUMMARY_AI_ENDPOINT|SALE_ROOM_SERVICE_KEYS|runSaleRoomAiPolish/);
 });
