@@ -27,6 +27,9 @@ export default Object.freeze({
   "cleanup.sale.serviceFridge": "Tủ lạnh",
   "cleanup.sale.serviceLaundry": "Giặt sấy",
   "cleanup.sale.serviceOther": "Khác",
+  "cleanup.sale.aiAnalyzing": "AI đang phân tích…",
   "cleanup.sale.aiAnalysisComplete": "AI đã phân tích xong",
   "cleanup.sale.parserFallback": "Đang dùng parser dự phòng",
+  "cleanup.sale.summaryFailed": "Không thể tạo tóm tắt",
+  "cleanup.sale.summaryFailedDetail": "Hãy thử lại. Nếu lỗi tiếp tục, tải lại Joy rồi thử lại.",
 });
