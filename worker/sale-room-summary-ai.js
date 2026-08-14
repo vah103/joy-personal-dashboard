@@ -36,8 +36,19 @@ const ROOM_SUMMARY_SCHEMA = {
       type: "array",
       items: { type: "string" },
     },
+    electricity: { type: "string" },
+    water: { type: "string" },
   },
-  required: ["address", "rooms", "roomType", "elevator", "furnitureAsImage", "furnitureItems"],
+  required: [
+    "address",
+    "rooms",
+    "roomType",
+    "elevator",
+    "furnitureAsImage",
+    "furnitureItems",
+    "electricity",
+    "water",
+  ],
 };
 
 const EXPLICIT_UNAVAILABLE_PATTERNS = Object.freeze([
@@ -86,7 +97,7 @@ export async function handleSaleRoomSummaryAiRequest(request, env) {
         json_schema: ROOM_SUMMARY_SCHEMA,
       },
       temperature: 0,
-      max_tokens: 1100,
+      max_tokens: 1250,
     });
 
     const detected = extractAiObject(result) || {};
@@ -103,10 +114,19 @@ export async function handleSaleRoomSummaryAiRequest(request, env) {
     const roomType = normalizeDetectedRoomType(source, detected.roomType);
     const elevator = normalizeDetectedElevator(source, detected.elevator);
     const furniture = normalizeDetectedFurniture(source, detected.furnitureItems, detected.furnitureAsImage);
+    const services = normalizeDetectedServices(source, detected.electricity, detected.water);
 
     return json({
       ok: true,
-      found: Boolean(address || rooms.length || roomType || elevator || furniture),
+      found: Boolean(
+        address
+        || rooms.length
+        || roomType
+        || elevator
+        || furniture
+        || services.electricity
+        || services.water
+      ),
       provider: "workers-ai",
       model,
       address,
@@ -114,6 +134,7 @@ export async function handleSaleRoomSummaryAiRequest(request, env) {
       roomType,
       elevator,
       furniture,
+      services,
     });
   } catch (error) {
     console.warn("Joy Sale room-summary AI unavailable", error?.message || error);
@@ -290,6 +311,73 @@ function formatFurnitureItems(items) {
   return joined.charAt(0).toLocaleUpperCase("vi") + joined.slice(1);
 }
 
+export function normalizeDetectedServices(sourceValue, electricityValue, waterValue) {
+  return {
+    electricity: normalizeDetectedServiceRate(sourceValue, "electricity", electricityValue),
+    water: normalizeDetectedServiceRate(sourceValue, "water", waterValue),
+  };
+}
+
+export function normalizeDetectedServiceRate(sourceValue, serviceKind, value) {
+  const candidate = normalizeDetectedRoomField(value)
+    .replace(/^(?:điện|dien|electricity|nước|nuoc|water)\s*[:：-]?\s*/iu, "")
+    .trim();
+  if (!candidate || candidate.length > 80 || !/\d/u.test(candidate)) return "";
+  if (!serviceRateIsGroundedInSource(sourceValue, serviceKind, candidate)) return "";
+  return formatServiceRate(candidate, serviceKind);
+}
+
+export function serviceRateIsGroundedInSource(sourceValue, serviceKind, rateValue) {
+  const rate = normalizeComparable(rateValue);
+  if (!rate || !["electricity", "water"].includes(serviceKind)) return false;
+
+  const targetToken = serviceKind === "electricity" ? "dien" : "nuoc";
+  const serviceTokens = ["dien", "nuoc"];
+
+  return sourceClauses(sourceValue).some((clause) => {
+    if (!containsNormalizedPhrase(clause, rate) || !containsNormalizedPhrase(clause, targetToken)) return false;
+
+    const tokensInClause = serviceTokens.filter((token) => containsNormalizedPhrase(clause, token));
+    if (tokensInClause.length <= 1) return true;
+
+    const ratePositions = phrasePositions(clause, rate);
+    const targetPositions = phrasePositions(clause, targetToken);
+    if (!ratePositions.length || !targetPositions.length) return false;
+
+    return ratePositions.some((ratePosition) => {
+      const distances = tokensInClause.map((token) => {
+        const tokenPositions = phrasePositions(clause, token);
+        const distance = Math.min(...tokenPositions.map((position) => Math.abs(position - ratePosition)));
+        return { token, distance };
+      });
+      const minimum = Math.min(...distances.map(({ distance }) => distance));
+      const nearest = distances.filter(({ distance }) => distance === minimum);
+      return nearest.length === 1 && nearest[0].token === targetToken;
+    });
+  });
+}
+
+function formatServiceRate(value, serviceKind) {
+  let clean = String(value || "")
+    .trim()
+    .replace(/\s*\/\s*/g, "/")
+    .replace(/\bK\b/g, "k");
+
+  if (serviceKind === "electricity") {
+    clean = clean
+      .replace(/\/(?:1\s*)?(?:số|so)$/iu, "/số")
+      .replace(/\/kwh$/iu, "/số");
+  }
+
+  if (serviceKind === "water") {
+    clean = clean
+      .replace(/\/(?:ng|người|nguoi)$/iu, "/người")
+      .replace(/\/(?:m3|m³|khối|khoi)$/iu, "/khối");
+  }
+
+  return clean;
+}
+
 export function addressIsGroundedInSource(sourceValue, addressValue) {
   return valueIsGroundedInSource(sourceValue, addressValue);
 }
@@ -388,7 +476,7 @@ export function normalizeDetectedRooms(sourceValue, roomValues) {
 
 function roomSummaryInstructions() {
   return `Bạn là bộ trích xuất dữ liệu tin phòng trọ/căn hộ bằng tiếng Việt.
-Nhiệm vụ hiện tại gồm 5 phần: địa chỉ; các phòng/căn đang cần cho thuê cùng giá và thời gian trống; dạng phòng chung; thang máy; và nội thất của phòng.
+Nhiệm vụ hiện tại gồm 6 phần: địa chỉ; các phòng/căn đang cần cho thuê cùng giá và thời gian trống; dạng phòng chung; thang máy; nội thất; và dịch vụ điện/nước.
 
 Trả về đúng JSON theo schema:
 {
@@ -399,7 +487,9 @@ Trả về đúng JSON theo schema:
   "roomType": "...",
   "elevator": "...",
   "furnitureAsImage": false,
-  "furnitureItems": ["..."]
+  "furnitureItems": ["..."],
+  "electricity": "...",
+  "water": "..."
 }
 
 QUY TẮC CHUNG:
@@ -445,7 +535,17 @@ NỘI THẤT:
 - Nếu nguồn ghi rõ nội thất/full đồ/đồ đạc "như ảnh" hoặc "như hình", đặt furnitureAsImage=true và furnitureItems=[]; không cố suy ra danh sách đồ từ câu đó.
 - Nếu nguồn liệt kê đồ cụ thể thì furnitureAsImage=false và đưa từng món vào furnitureItems.
 - Nếu nguồn chỉ nói "full đồ" mà không liệt kê và không nói "như ảnh/như hình", có thể trả furnitureItems=["full đồ"].
-- Nếu không có thông tin nội thất rõ ràng, furnitureAsImage=false và furnitureItems=[].`;
+- Nếu không có thông tin nội thất rõ ràng, furnitureAsImage=false và furnitureItems=[].
+
+DỊCH VỤ — GIAI ĐOẠN HIỆN TẠI CHỈ LẤY ĐIỆN VÀ NƯỚC:
+- electricity chỉ chứa mức giá điện đúng như nguồn viết, không chứa chữ "Điện". Ví dụ: "4k/số", "4k/1 số", "4k".
+- water chỉ chứa mức giá nước đúng như nguồn viết, không chứa chữ "Nước". Ví dụ: "35k/khối", "135k/ng", "100k/người".
+- Điện thường tính theo số điện/kWh; nước thường tính theo khối hoặc theo người. Đây chỉ là ngữ cảnh để nhận diện, không được tự thêm đơn vị mà nguồn không ghi.
+- Nếu nguồn ghi "Điện 4k" thì electricity="4k", không tự biến thành "4k/số".
+- Nếu nguồn ghi "Nước 135k/ng" thì water="135k/ng"; backend có thể chuẩn hóa cách viết đơn vị sau khi đã xác minh nguồn.
+- Không lấy mạng, wifi, gửi xe, phí vệ sinh, phí dịch vụ chung, máy giặt hoặc khoản khác vào electricity/water.
+- Nếu một dòng có cả điện và nước, phải ghép đúng mức giá với đúng dịch vụ; không tráo hai mức giá.
+- Nếu không có hoặc không chắc chắn, trả chuỗi rỗng.`;
 }
 
 function valueIsGroundedInSource(sourceValue, candidateValue) {
@@ -675,6 +775,8 @@ function extractAiObject(result) {
       || Object.hasOwn(raw, "elevator")
       || Object.hasOwn(raw, "furnitureAsImage")
       || Object.hasOwn(raw, "furnitureItems")
+      || Object.hasOwn(raw, "electricity")
+      || Object.hasOwn(raw, "water")
     ) return raw;
     const nested = raw.response ?? raw.result ?? raw.text;
     if (nested && typeof nested === "object" && !Array.isArray(nested)) return nested;
