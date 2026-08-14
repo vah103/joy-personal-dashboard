@@ -28,6 +28,16 @@ test("dashboard controller blocks the old parser click and keeps it only as fall
   assert.match(controller, /summarizeRoomListing\(source\)/);
 });
 
+test("dashboard Room Summary never waits forever or fails silently", () => {
+  assert.match(controller, /ROOM_SUMMARY_AI_TIMEOUT_MS = 12_000/);
+  assert.match(controller, /new AbortController\(\)/);
+  assert.match(controller, /controller\.abort\(\)/);
+  assert.match(controller, /setPreviewState\(elements,\s*"cleanup\.sale\.aiAnalyzing",\s*"ai-loading"\)/);
+  assert.match(controller, /renderFallbackSafely\(elements,\s*source/);
+  assert.match(controller, /renderFailure\(elements/);
+  assert.match(controller, /cleanup\.sale\.summaryFailedDetail/);
+});
+
 test("dashboard semantic renderer supports area, floor and service includes", () => {
   assert.match(controller, /cleanup\.sale\.roomArea/);
   assert.match(controller, /cleanup\.sale\.roomFloor/);
