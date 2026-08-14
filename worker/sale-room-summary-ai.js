@@ -1,6 +1,8 @@
 import * as core from "./sale-room-summary-ai-core.js";
+import { extractDynamicServiceItems } from "./sale-room-service-items-ai.js";
 
 export * from "./sale-room-summary-ai-core.js";
+export * from "./sale-room-service-items-ai.js";
 
 const MAX_RECONCILED_ROOMS = 24;
 
@@ -288,20 +290,28 @@ export function normalizeDetectedRooms(sourceValue, roomValues) {
   return rows;
 }
 
-function responseWithReconciledRooms(response, payload, rooms) {
+function responseWithReconciledData(response, payload, rooms, serviceItems) {
   const headers = new Headers(response.headers);
   headers.delete("content-length");
+
+  const services = {
+    ...(payload?.services || {}),
+    items: Array.isArray(serviceItems) ? serviceItems : [],
+  };
+
   const nextPayload = {
     ...payload,
     rooms,
+    services,
     found: Boolean(
       payload?.address
       || rooms.length
       || payload?.roomType
       || payload?.elevator
       || payload?.furniture
-      || payload?.services?.electricity
-      || payload?.services?.water
+      || services.electricity
+      || services.water
+      || services.items.length
     ),
   };
 
@@ -327,5 +337,11 @@ export async function handleSaleRoomSummaryAiRequest(request, env) {
   if (!source) return response;
 
   const rooms = normalizeDetectedRooms(source, payload.rooms);
-  return responseWithReconciledRooms(response, payload, rooms);
+  const serviceItems = await extractDynamicServiceItems(
+    source,
+    env,
+    payload.model || core.DEFAULT_SALE_ROOM_SUMMARY_AI_MODEL,
+  );
+
+  return responseWithReconciledData(response, payload, rooms, serviceItems);
 }
