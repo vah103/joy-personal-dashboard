@@ -1,19 +1,21 @@
 const MAX_SERVICE_ITEMS = 16;
 
 const RATE_SOURCE = String.raw`(?:\d+(?:[.,]\d+)?\s*(?:tr(?:iệu|ieu)?|m|k|nghìn|nghin|đ|d|vnd)\s*\d*(?:\s*\/\s*(?:1\s*)?(?:ng|người|nguoi|phòng|phong|xe|tháng|thang|m3|m³|khối|khoi|số|so|kwh))?|\d+(?:[.,]\d+)?\s*\/\s*(?:1\s*)?(?:ng|người|nguoi|phòng|phong|xe|tháng|thang|m3|m³|khối|khoi|số|so|kwh)|(?:miễn\s+phí|mien\s+phi|free))`;
-
 const COMMON_LABEL_SOURCE = String.raw`(?:phí\s+(?:dịch\s+vụ|dv)\s+chung|dịch\s+vụ\s+chung|dv\s+chung|phí\s+chung|phí\s+(?:dịch\s+vụ|dv)|dịch\s+vụ|dv)`;
+const SHARED_UTILITY_LABEL_SOURCE = String.raw`(?:điện\s*(?:\+|&|và)?\s*nước|nước\s*(?:\+|&|và)?\s*điện)`;
 
 const PACKAGE_MEMBER_PATTERNS = Object.freeze([
-  { value: "Mạng", pattern: /(?:^|[^\p{L}\p{N}_])(?:mạng|internet|wifi)(?=$|[^\p{L}\p{N}_])/iu },
-  { value: "Vệ sinh", pattern: /(?:^|[^\p{L}\p{N}_])(?:vệ\s+sinh|vs)(?=$|[^\p{L}\p{N}_])/iu },
-  { value: "Rác", pattern: /(?:^|[^\p{L}\p{N}_])(?:rác|rác\s+thải)(?=$|[^\p{L}\p{N}_])/iu },
-  { value: "Máy giặt chung", pattern: /(?:^|[^\p{L}\p{N}_])(?:máy\s+giặt(?:\s+chung)?|giặt\s+chung)(?=$|[^\p{L}\p{N}_])/iu },
-  { value: "Gửi xe", pattern: /(?:^|[^\p{L}\p{N}_])(?:gửi\s+xe|xe\s+máy|parking|phí\s+xe)(?=$|[^\p{L}\p{N}_])/iu },
-  { value: "Điện chung", pattern: /(?:^|[^\p{L}\p{N}_])(?:điện\s+chung|điện\s+hành\s+lang)(?=$|[^\p{L}\p{N}_])/iu },
-  { value: "Nước chung", pattern: /(?:^|[^\p{L}\p{N}_])nước\s+chung(?=$|[^\p{L}\p{N}_])/iu },
-  { value: "Camera", pattern: /(?:^|[^\p{L}\p{N}_])camera(?=$|[^\p{L}\p{N}_])/iu },
-  { value: "Bảo vệ", pattern: /(?:^|[^\p{L}\p{N}_])bảo\s+vệ(?=$|[^\p{L}\p{N}_])/iu },
+  { value: "Mạng", pattern: /(?<![\p{L}\p{N}_])(?:mạng|internet|wifi)(?![\p{L}\p{N}_])/iu },
+  { value: "Vệ sinh", pattern: /(?<![\p{L}\p{N}_])(?:vệ\s+sinh|vs)(?![\p{L}\p{N}_])/iu },
+  { value: "Rác", pattern: /(?<![\p{L}\p{N}_])(?:rác|rác\s+thải)(?![\p{L}\p{N}_])/iu },
+  { value: "Máy giặt chung", pattern: /(?<![\p{L}\p{N}_])(?:máy\s+giặt(?:\s+chung)?|giặt\s+chung)(?![\p{L}\p{N}_])/iu },
+  { value: "Gửi xe", pattern: /(?<![\p{L}\p{N}_])(?:gửi\s+xe|xe\s+máy|parking|phí\s+xe)(?![\p{L}\p{N}_])/iu },
+  { value: "Điện chung", pattern: /(?<![\p{L}\p{N}_])(?:điện\s+chung|điện\s+hành\s+lang)(?![\p{L}\p{N}_])/iu },
+  { value: "Nước chung", pattern: /(?<![\p{L}\p{N}_])nước\s+chung(?![\p{L}\p{N}_])/iu },
+  { value: "Điện", pattern: /(?<![\p{L}\p{N}_])điện(?!\s+(?:chung|hành\s+lang))(?![\p{L}\p{N}_])/iu },
+  { value: "Nước", pattern: /(?<![\p{L}\p{N}_])nước(?!\s+chung)(?![\p{L}\p{N}_])/iu },
+  { value: "Camera", pattern: /(?<![\p{L}\p{N}_])camera(?![\p{L}\p{N}_])/iu },
+  { value: "Bảo vệ", pattern: /(?<![\p{L}\p{N}_])bảo\s+vệ(?![\p{L}\p{N}_])/iu },
 ]);
 
 const EXPLICIT_SERVICE_DEFINITIONS = Object.freeze([
@@ -51,6 +53,7 @@ function normalizeRateIdentity(value) {
     .replace(/\/(?:1)?phong$/u, "/phong")
     .replace(/\/(?:1)?xe$/u, "/xe")
     .replace(/\/(?:1)?thang$/u, "/thang")
+    .replace(/\/(?:1)?(?:so|kwh)$/u, "/so")
     .trim();
 }
 
@@ -63,11 +66,20 @@ function formatSourceServiceValue(value) {
     .replace(/\/(?:1\s*)?(?:m3|m³|khối|khoi)$/iu, "/khối")
     .replace(/\/(?:1\s*)?(?:phòng|phong)$/iu, "/phòng")
     .replace(/\/(?:1\s*)?xe$/iu, "/xe")
-    .replace(/\/(?:1\s*)?(?:tháng|thang)$/iu, "/tháng");
+    .replace(/\/(?:1\s*)?(?:tháng|thang)$/iu, "/tháng")
+    .replace(/\/(?:1\s*)?(?:số|so|kwh)$/iu, "/số");
+}
+
+function rateMatches(value) {
+  return [...String(value ?? "").matchAll(new RegExp(RATE_SOURCE, "giu"))].map((match) => ({
+    value: match[0],
+    start: match.index ?? 0,
+    end: (match.index ?? 0) + match[0].length,
+  }));
 }
 
 function hasRate(value) {
-  return new RegExp(RATE_SOURCE, "iu").test(String(value ?? ""));
+  return rateMatches(value).length > 0;
 }
 
 function looksLikePackageContinuation(value) {
@@ -88,7 +100,7 @@ function sourceServiceSegments(sourceValue) {
   const segments = [];
   for (let index = 0; index < pieces.length; index += 1) {
     let segment = pieces[index];
-    const commonRate = new RegExp(`${COMMON_LABEL_SOURCE}\\s*[:：=-]?\\s*${RATE_SOURCE}`, "iu").test(segment);
+    const commonRate = new RegExp(`(?<![\\p{L}\\p{N}_])${COMMON_LABEL_SOURCE}(?![\\p{L}\\p{N}_])\\s*[:：=-]?\\s*${RATE_SOURCE}`, "iu").test(segment);
     if (commonRate && index + 1 < pieces.length && looksLikePackageContinuation(pieces[index + 1])) {
       segment = `${segment} ${pieces[index + 1]}`;
       index += 1;
@@ -98,7 +110,7 @@ function sourceServiceSegments(sourceValue) {
   return segments;
 }
 
-function packageIncludes(segment, rateEnd) {
+function packageIncludes(segment, rateEnd = 0) {
   const tail = String(segment ?? "").slice(rateEnd);
   const includes = [];
   for (const definition of PACKAGE_MEMBER_PATTERNS) {
@@ -107,23 +119,60 @@ function packageIncludes(segment, rateEnd) {
   return [...new Set(includes)];
 }
 
+function utilitySpecificRate(value) {
+  const normalized = normalizeRateIdentity(value);
+  return /\/(?:so|khoi)$/u.test(normalized);
+}
+
+function tailStartsWithUtilityCue(value) {
+  const normalized = normalizeComparable(value);
+  return /^(?:dien|nuoc)\b/u.test(normalized);
+}
+
+function genericCommonScopeIsClear(label, rate, tail, includes) {
+  const normalizedLabel = normalizeComparable(label);
+  if (/\bchung\b/u.test(normalizedLabel) || normalizedLabel === "phi chung") return true;
+  if (includes.length) return true;
+  const normalizedTail = normalizeComparable(tail);
+  if (/^(?:gom|bao gom|incl|including)\b/u.test(normalizedTail)) return true;
+  if (utilitySpecificRate(rate) || tailStartsWithUtilityCue(tail)) return false;
+  return true;
+}
+
 function commonCandidates(segment) {
   const candidates = [];
-  const pattern = new RegExp(`(${COMMON_LABEL_SOURCE})\\s*[:：=-]?\\s*(${RATE_SOURCE})`, "giu");
+  const pattern = new RegExp(`(?<![\\p{L}\\p{N}_])(${COMMON_LABEL_SOURCE})(?![\\p{L}\\p{N}_])\\s*[:：=-]?\\s*(${RATE_SOURCE})`, "giu");
 
   for (const match of segment.matchAll(pattern)) {
     const full = match[0];
     const rate = match[2];
     const rateOffset = full.lastIndexOf(rate);
     const rateEnd = (match.index ?? 0) + Math.max(rateOffset, 0) + rate.length;
+    const tail = segment.slice(rateEnd);
+    const includes = packageIncludes(segment, rateEnd);
+    if (!genericCommonScopeIsClear(match[1], rate, tail, includes)) continue;
     candidates.push({
       kind: "common",
       name: "Dịch vụ chung",
       value: formatSourceServiceValue(rate),
-      includes: packageIncludes(segment, rateEnd),
+      includes,
     });
   }
 
+  return candidates;
+}
+
+function sharedUtilityCandidates(segment) {
+  const candidates = [];
+  const pattern = new RegExp(`(?<![\\p{L}\\p{N}_])(${SHARED_UTILITY_LABEL_SOURCE})(?![\\p{L}\\p{N}_])\\s*[:：=-]?\\s*(${RATE_SOURCE})`, "giu");
+  for (const match of segment.matchAll(pattern)) {
+    candidates.push({
+      kind: "other",
+      name: "Điện + nước",
+      value: formatSourceServiceValue(match[2]),
+      includes: [],
+    });
+  }
   return candidates;
 }
 
@@ -131,8 +180,8 @@ function explicitServiceCandidates(segment) {
   const candidates = [];
 
   for (const definition of EXPLICIT_SERVICE_DEFINITIONS) {
-    const pattern = new RegExp(`(?:^|[^\\p{L}\\p{N}_])(${definition.label})(?=$|[^\\p{L}\\p{N}_])\\s*[:：=-]?\\s*(${RATE_SOURCE})`, "giu");
-    for (const match of segment.matchAll(pattern)) {
+    const forward = new RegExp(`(?<![\\p{L}\\p{N}_])(${definition.label})(?![\\p{L}\\p{N}_])\\s*[:：=-]?\\s*(${RATE_SOURCE})`, "giu");
+    for (const match of segment.matchAll(forward)) {
       candidates.push({
         kind: definition.kind,
         name: definition.name,
@@ -140,9 +189,52 @@ function explicitServiceCandidates(segment) {
         includes: [],
       });
     }
+
+    const reverse = new RegExp(`(${RATE_SOURCE})\\s*[:：=-]?\\s*(?<![\\p{L}\\p{N}_])(${definition.label})(?![\\p{L}\\p{N}_])`, "giu");
+    for (const match of segment.matchAll(reverse)) {
+      candidates.push({
+        kind: definition.kind,
+        name: definition.name,
+        value: formatSourceServiceValue(match[1]),
+        includes: [],
+      });
+    }
   }
 
   return candidates;
+}
+
+function memberBundleCandidates(segment) {
+  const rates = rateMatches(segment);
+  if (rates.length !== 1) return [];
+  const includes = packageIncludes(segment, 0);
+  if (includes.length < 2) return [];
+
+  const normalized = normalizeComparable(segment);
+  const hasBundleCue = /(?:^|\s)(?:gom|bao gom)(?:\s|$)/u.test(normalized)
+    || /\s(?:va|voi)\s/u.test(normalized)
+    || /[+&]/u.test(segment);
+  if (!hasBundleCue) return [];
+
+  return [{
+    kind: "common",
+    name: "Dịch vụ chung",
+    value: formatSourceServiceValue(rates[0].value),
+    includes,
+  }];
+}
+
+function mergeIncludes(left, right) {
+  const seen = new Set();
+  const output = [];
+  for (const value of [...(left || []), ...(right || [])]) {
+    const clean = String(value ?? "").trim();
+    const key = normalizeComparable(clean);
+    if (!clean || !key || seen.has(key)) continue;
+    seen.add(key);
+    output.push(clean);
+  }
+  return output;
 }
 
 function dedupeSourceItems(items) {
@@ -168,22 +260,19 @@ export function extractSourceDynamicServiceItems(sourceValue) {
   const candidates = [];
   for (const segment of sourceServiceSegments(sourceValue)) {
     candidates.push(...commonCandidates(segment));
+    candidates.push(...sharedUtilityCandidates(segment));
     candidates.push(...explicitServiceCandidates(segment));
+    candidates.push(...memberBundleCandidates(segment));
   }
   return dedupeSourceItems(candidates).slice(0, MAX_SERVICE_ITEMS);
 }
 
-function mergeIncludes(left, right) {
-  const seen = new Set();
-  const output = [];
-  for (const value of [...(left || []), ...(right || [])]) {
-    const clean = String(value ?? "").trim();
-    const key = normalizeComparable(clean);
-    if (!clean || !key || seen.has(key)) continue;
-    seen.add(key);
-    output.push(clean);
-  }
-  return output;
+function semanticIdentity(item) {
+  return `${String(item?.kind ?? "other").trim() || "other"}|${normalizeComparable(item?.name)}`;
+}
+
+function fullIdentity(item) {
+  return `${semanticIdentity(item)}|${normalizeRateIdentity(item?.value)}`;
 }
 
 function packageContainsItem(pkg, item) {
@@ -196,27 +285,31 @@ function packageContainsItem(pkg, item) {
 
 export function reconcileDynamicServiceItems(sourceValue, aiItems) {
   const sourceItems = extractSourceDynamicServiceItems(sourceValue);
+  const sourceBySemantic = new Map(sourceItems.map((item) => [semanticIdentity(item), item]));
   const byIdentity = new Map();
 
-  for (const item of [...(Array.isArray(aiItems) ? aiItems : []), ...sourceItems]) {
+  for (const item of Array.isArray(aiItems) ? aiItems : []) {
     const name = String(item?.name ?? "").trim();
     const value = String(item?.value ?? "").trim();
     const kind = String(item?.kind ?? "other").trim() || "other";
     if (!name || !value) continue;
 
-    const identity = `${kind}|${normalizeComparable(name)}|${normalizeRateIdentity(value)}`;
-    const existing = byIdentity.get(identity);
-    if (existing) {
-      existing.includes = mergeIncludes(existing.includes, item?.includes);
+    const normalizedItem = { kind, name, value, includes: mergeIncludes([], item?.includes) };
+    const sourceEquivalent = sourceBySemantic.get(semanticIdentity(normalizedItem));
+    if (sourceEquivalent && normalizeRateIdentity(sourceEquivalent.value) !== normalizeRateIdentity(value)) {
       continue;
     }
+    byIdentity.set(fullIdentity(normalizedItem), normalizedItem);
+  }
 
-    byIdentity.set(identity, {
-      kind,
-      name,
-      value,
-      includes: mergeIncludes([], item?.includes),
-    });
+  for (const item of sourceItems) {
+    const identity = fullIdentity(item);
+    const existing = byIdentity.get(identity);
+    if (existing) {
+      existing.includes = mergeIncludes(existing.includes, item.includes);
+    } else {
+      byIdentity.set(identity, { ...item, includes: mergeIncludes([], item.includes) });
+    }
   }
 
   const merged = [...byIdentity.values()];
