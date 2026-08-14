@@ -13,6 +13,100 @@
     <link rel="stylesheet" href="room-summary.css?v=joy-room-summary-v1">
     <script src="sale-manager.js?v=joy-sale-nunito-v3" defer></script>
     <script type="module" src="room-summary.js?v=joy-room-summary-v1"></script>
+    <script type="module">
+      (() => {
+        const AI_ENDPOINT = "/api/sales/room-summary/analyze";
+
+        function initializeAiFirstRoomSummary() {
+          const input = document.querySelector("#room-summary-input");
+          const generate = document.querySelector("#room-summary-generate");
+          const clear = document.querySelector("#room-summary-clear");
+          if (!input || !generate || !clear) return;
+
+          let bypassAi = false;
+          let generation = 0;
+
+          const runLegacyParser = (source) => {
+            const originalSource = input.value;
+            bypassAi = true;
+            input.value = source;
+            try {
+              generate.click();
+            } finally {
+              input.value = originalSource;
+              bypassAi = false;
+            }
+          };
+
+          const analyze = async (source, requestGeneration) => {
+            try {
+              const response = await fetch(AI_ENDPOINT, {
+                method: "POST",
+                credentials: "same-origin",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ source }),
+              });
+              const payload = await response.json().catch(() => ({}));
+              if (requestGeneration !== generation) return;
+
+              const canonicalListing = typeof payload?.canonicalListing === "string"
+                ? payload.canonicalListing.trim()
+                : "";
+              if (response.ok && payload?.applied === true && canonicalListing) {
+                runLegacyParser(canonicalListing);
+              } else {
+                runLegacyParser(source);
+              }
+            } catch {
+              if (requestGeneration === generation) runLegacyParser(source);
+            } finally {
+              if (requestGeneration === generation) generate.removeAttribute("aria-busy");
+            }
+          };
+
+          const start = (source) => {
+            const cleanSource = String(source || "").trim();
+            const requestGeneration = ++generation;
+            if (!cleanSource) {
+              runLegacyParser("");
+              return;
+            }
+            generate.setAttribute("aria-busy", "true");
+            void analyze(source, requestGeneration);
+          };
+
+          generate.addEventListener("click", (event) => {
+            if (bypassAi) return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            start(input.value);
+          }, true);
+
+          input.addEventListener("keydown", (event) => {
+            if (!(event.ctrlKey || event.metaKey) || event.key !== "Enter") return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            start(input.value);
+          }, true);
+
+          input.addEventListener("input", () => {
+            generation += 1;
+            generate.removeAttribute("aria-busy");
+          }, true);
+
+          clear.addEventListener("click", () => {
+            generation += 1;
+            generate.removeAttribute("aria-busy");
+          }, true);
+        }
+
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", initializeAiFirstRoomSummary, { once: true });
+        } else {
+          initializeAiFirstRoomSummary();
+        }
+      })();
+    </script>
     <script type="module" src="sale-english-ui.js?v=joy-sale-english-ui-v1"></script>
   </head>
   <body class="sale-page">
