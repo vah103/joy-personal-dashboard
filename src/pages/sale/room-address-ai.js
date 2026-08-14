@@ -97,6 +97,16 @@ function appendRooms(details, rooms) {
   appendMultipleRooms(details, rooms);
 }
 
+function appendRoomType(details, roomType) {
+  if (!roomType) return;
+  const row = document.createElement("p");
+  row.className = "room-share-detail-row";
+  const label = document.createElement("strong");
+  label.append("Dạng", " phòng");
+  row.append(label, document.createTextNode(": "), editableValue(roomType));
+  details.append(row);
+}
+
 function renderSummary(container, summary = {}) {
   container.replaceChildren();
   container.classList.remove("is-empty");
@@ -105,6 +115,7 @@ function renderSummary(container, summary = {}) {
   details.className = "room-share-details";
   appendAddress(details, summary.address);
   appendRooms(details, Array.isArray(summary.rooms) ? summary.rooms : []);
+  appendRoomType(details, summary.roomType);
   container.append(details);
 }
 
@@ -136,6 +147,7 @@ async function detectRoomSummary(source) {
   return {
     address: String(payload.address || "").trim(),
     rooms,
+    roomType: String(payload.roomType || "").trim(),
   };
 }
 
@@ -167,7 +179,7 @@ function initializeRoomAddressAi() {
     generate.disabled = true;
     generate.textContent = "Đang kiểm tra…";
     capture.disabled = true;
-    renderSummary(output, { address: "…", rooms: [] });
+    renderSummary(output, { address: "…", rooms: [], roomType: "" });
 
     try {
       const summary = await detectRoomSummary(source);
@@ -175,13 +187,14 @@ function initializeRoomAddressAi() {
       renderSummary(output, {
         address: summary.address || "Không xác định",
         rooms: summary.rooms,
+        roomType: summary.roomType,
       });
       capture.disabled = false;
       output.scrollIntoView({ behavior: "smooth", block: "nearest" });
     } catch (error) {
       if (version !== requestVersion) return;
       console.warn("Joy Sale room summary detection failed", error?.code || error?.message || error);
-      renderSummary(output, { address: "Không xác định", rooms: [] });
+      renderSummary(output, { address: "Không xác định", rooms: [], roomType: "" });
       capture.disabled = true;
     } finally {
       if (version === requestVersion) {
