@@ -65,6 +65,10 @@ import {
   runReliableReminderSchedule,
 } from "./reminder-delivery.js";
 import {
+  handleSaleRoomSummaryAiExtractRequest,
+  isSaleRoomSummaryAiExtractRoute,
+} from "./sale-room-summary-extract.js";
+import {
   handleSaleViewingDeleteRequest,
   isSaleViewingDeleteRoute,
 } from "./sale-viewing-delete.js";
@@ -198,6 +202,9 @@ export default {
       }
       if (isVocabularyRoute(pathname)) {
         return handleVocabularyRequest(request, env);
+      }
+      if (isSaleRoomSummaryAiExtractRoute(pathname)) {
+        return handleSaleRoomSummaryAiExtractRequest(request, env);
       }
       if (isGoogleDocsAuthRoute(pathname, request)) {
         return handleGoogleDocsAuthRequest(request, env);
