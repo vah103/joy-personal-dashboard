@@ -23,7 +23,7 @@ test("one grouped price applies to every room even when AI leaves one price blan
   ]);
 });
 
-test("grouped-price rule does not merge separate room prices", () => {
+test("separate room prices stay isolated and source reconciliation recovers an AI omission", () => {
   const source = "Giá: P301 4tr3 - P501 4tr8";
 
   assert.equal(roomFieldIsAssociatedInSource(source, "P301", "4tr3", ["P301", "P501"], "price"), true);
@@ -35,7 +35,7 @@ test("grouped-price rule does not merge separate room prices", () => {
     { room: "P501", price: "", availability: "" },
   ]), [
     { room: "P301", price: "4tr3", availability: "" },
-    { room: "P501", price: "", availability: "" },
+    { room: "P501", price: "4tr8", availability: "" },
   ]);
 });
 
