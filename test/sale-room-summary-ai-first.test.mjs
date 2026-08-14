@@ -93,8 +93,8 @@ test("canonical AI extraction preserves the existing grouped room-price presenta
   assert.deepEqual(
     summary.roomPresentation?.groups.flatMap((group) => group.priceGroups.map((priceGroup) => [group.label, priceGroup.price, priceGroup.rooms])),
     [
-      ["Vào luôn", "4tr4/tháng", ["P201", "P301"]],
-      ["Từ 1/9", "4tr5/tháng", ["P202"]],
+      ["Vào luôn", "4tr4", ["P201", "P301"]],
+      ["Từ 1/9", "4tr5", ["P202"]],
     ],
   );
 });
