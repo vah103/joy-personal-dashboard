@@ -216,7 +216,7 @@ test("drops invented room details instead of displaying AI guesses", () => {
   ]);
 });
 
-test("Room Summary exposes only address and current room rental facts", async () => {
+test("Room Summary exposes the current staged AI fields without legacy parser categories", async () => {
   const [html, build, router, frontend, legacyBridge, assistant, dashboardBootstrap] = await Promise.all([
     readFile(new URL("../src/pages/sale/index.html", import.meta.url), "utf8"),
     readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8"),
@@ -240,7 +240,14 @@ test("Room Summary exposes only address and current room rental facts", async ()
   assert.match(frontend, /room\.room/);
   assert.match(frontend, /room\.price/);
   assert.match(frontend, /room\.availability/);
-  assert.doesNotMatch(frontend, /Dạng phòng|Nội thất|Dịch vụ|Lưu ý|SERVICE_DEFINITIONS|FURNITURE_KEYWORDS|NOTE_KEYWORDS/);
+  assert.match(frontend, /summary\.roomType/);
+  assert.match(frontend, /summary\.elevator/);
+  assert.match(frontend, /summary\.furniture/);
+  assert.match(frontend, /summary\.services/);
+  assert.match(frontend, /payload\.services\?\.electricity/);
+  assert.match(frontend, /payload\.services\?\.water/);
+  assert.match(frontend, /appendServices\(details, summary\.services\)/);
+  assert.doesNotMatch(frontend, /Lưu ý|SERVICE_DEFINITIONS|FURNITURE_KEYWORDS|NOTE_KEYWORDS/);
   assert.doesNotMatch(frontend, /`#\$\{index \+ 1\}`/);
 
   assert.match(legacyBridge, /room-address-ai\.js\?v=joy-room-address-ai-v2/);
