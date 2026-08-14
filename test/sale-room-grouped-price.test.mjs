@@ -5,7 +5,7 @@ import {
   roomFieldIsAssociatedInSource,
 } from "../worker/sale-room-summary-ai.js";
 
-test("one grouped price applies to every room listed after it", () => {
+test("one grouped price applies to every room even when AI leaves one price blank", () => {
   const source = `
     Trống: 1/9
     Giá: 4tr3-p301-501
@@ -16,7 +16,7 @@ test("one grouped price applies to every room listed after it", () => {
 
   assert.deepEqual(normalizeDetectedRooms(source, [
     { room: "p301", price: "4tr3", availability: "1/9" },
-    { room: "501", price: "4tr3", availability: "1/9" },
+    { room: "501", price: "", availability: "1/9" },
   ]), [
     { room: "p301", price: "4tr3", availability: "1/9" },
     { room: "501", price: "4tr3", availability: "1/9" },
@@ -29,4 +29,12 @@ test("grouped-price rule does not merge separate room prices", () => {
   assert.equal(roomFieldIsAssociatedInSource(source, "P301", "4tr3", ["P301", "P501"], "price"), true);
   assert.equal(roomFieldIsAssociatedInSource(source, "P501", "4tr8", ["P301", "P501"], "price"), true);
   assert.equal(roomFieldIsAssociatedInSource(source, "P501", "4tr3", ["P301", "P501"], "price"), false);
+
+  assert.deepEqual(normalizeDetectedRooms(source, [
+    { room: "P301", price: "4tr3", availability: "" },
+    { room: "P501", price: "", availability: "" },
+  ]), [
+    { room: "P301", price: "4tr3", availability: "" },
+    { room: "P501", price: "", availability: "" },
+  ]);
 });
