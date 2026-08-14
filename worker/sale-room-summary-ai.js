@@ -1,5 +1,5 @@
 import * as core from "./sale-room-summary-ai-core.js";
-import { extractDynamicServiceItems } from "./sale-room-service-items-ai.js";
+import { normalizeDynamicServiceItems } from "./sale-room-service-items-ai.js";
 import { reconcileDynamicServiceItems } from "./sale-room-service-source-reconciliation.js";
 
 export * from "./sale-room-summary-ai-core.js";
@@ -366,17 +366,18 @@ function responseWithReconciledData(response, payload, rooms, serviceItems) {
   const headers = new Headers(response.headers);
   headers.delete("content-length");
 
-  const services = reconcileUtilityServiceFields(payload?.services, serviceItems);
+  const { serviceItems: _rawServiceItems, ...publicPayload } = payload || {};
+  const services = reconcileUtilityServiceFields(publicPayload.services, serviceItems);
   const nextPayload = {
-    ...payload,
+    ...publicPayload,
     rooms,
     services,
     found: Boolean(
-      payload?.address
+      publicPayload.address
       || rooms.length
-      || payload?.roomType
-      || payload?.elevator
-      || payload?.furniture
+      || publicPayload.roomType
+      || publicPayload.elevator
+      || publicPayload.furniture
       || services.electricity
       || services.water
       || services.items.length
@@ -405,11 +406,7 @@ export async function handleSaleRoomSummaryAiRequest(request, env) {
   if (!source) return response;
 
   const rooms = normalizeDetectedRooms(source, payload.rooms);
-  const detectedServiceItems = await extractDynamicServiceItems(
-    source,
-    env,
-    payload.model || core.DEFAULT_SALE_ROOM_SUMMARY_AI_MODEL,
-  );
+  const detectedServiceItems = normalizeDynamicServiceItems(source, payload.serviceItems);
   const serviceItems = reconcileDynamicServiceItems(source, detectedServiceItems);
 
   return responseWithReconciledData(response, payload, rooms, serviceItems);
