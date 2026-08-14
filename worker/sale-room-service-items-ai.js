@@ -5,6 +5,7 @@ const MAX_SERVICE_EVIDENCE_LENGTH = 420;
 const MAX_SERVICE_INCLUDES = 12;
 
 const SERVICE_KINDS = new Set(["common", "internet", "parking", "cleaning", "washing", "other"]);
+const RATE_SOURCE = String.raw`(?:\d+(?:[.,]\d+)?\s*(?:tr(?:iệu|ieu)?|m|k|nghìn|nghin|đ|d|vnd)\s*\d*(?:\s*\/\s*(?:1\s*)?(?:ng|người|nguoi|phòng|phong|xe|tháng|thang|m3|m³|khối|khoi|số|so|kwh))?|\d+(?:[.,]\d+)?\s*\/\s*(?:1\s*)?(?:ng|người|nguoi|phòng|phong|xe|tháng|thang|m3|m³|khối|khoi|số|so|kwh)|(?:miễn\s+phí|mien\s+phi|free))`;
 
 const SERVICE_ITEMS_SCHEMA = {
   type: "object",
@@ -67,8 +68,12 @@ function cleanEvidence(value) {
     .slice(0, MAX_SERVICE_EVIDENCE_LENGTH);
 }
 
-function ratePattern() {
-  return /(?:\b\d+(?:[.,]\d+)?\s*(?:tr(?:iệu|ieu)?|m|k|nghìn|nghin|đ|d|vnd)\s*\d*(?:\s*\/\s*(?:1\s*)?(?:ng|người|nguoi|phòng|phong|xe|tháng|thang|m3|m³|khối|khoi|số|so|kwh))?\b|\b\d+(?:[.,]\d+)?\s*\/\s*(?:1\s*)?(?:ng|người|nguoi|phòng|phong|xe|tháng|thang|m3|m³|khối|khoi|số|so|kwh)\b|\b(?:miễn\s+phí|mien\s+phi|free)\b)/giu;
+function unicodeCue(source) {
+  return new RegExp(`(?<![\\p{L}\\p{N}_])(?:${source})(?![\\p{L}\\p{N}_])`, "giu");
+}
+
+function ratePattern(flags = "giu") {
+  return new RegExp(`(?<![\\p{L}\\p{N}_])${RATE_SOURCE}(?![\\p{L}\\p{N}_])`, flags);
 }
 
 function normalizeRateSignature(value) {
@@ -104,18 +109,19 @@ function formatDynamicServiceValue(value) {
     .replace(/\/(?:1\s*)?(?:m3|m³|khối|khoi)$/iu, "/khối")
     .replace(/\/(?:1\s*)?(?:phòng|phong)$/iu, "/phòng")
     .replace(/\/(?:1\s*)?xe$/iu, "/xe")
-    .replace(/\/(?:1\s*)?(?:tháng|thang)$/iu, "/tháng");
+    .replace(/\/(?:1\s*)?(?:tháng|thang)$/iu, "/tháng")
+    .replace(/\/(?:1\s*)?(?:số|so|kwh)$/iu, "/số");
 }
 
 function inferServiceKind(kindValue, nameValue) {
   const requested = String(kindValue ?? "").trim().toLowerCase();
   const name = normalizeComparable(nameValue);
 
-  if (/\b(?:dich vu chung|dv chung|phi chung|phi dich vu chung|phi dv chung)\b/u.test(name)) return "common";
-  if (/\b(?:mang|internet|wifi)\b/u.test(name)) return "internet";
-  if (/\b(?:gui xe|xe may|parking|phi xe)\b/u.test(name)) return "parking";
-  if (/\b(?:ve sinh|rac)\b/u.test(name)) return "cleaning";
-  if (/\b(?:may giat|giat chung)\b/u.test(name)) return "washing";
+  if (/(?:^|\s)(?:dich vu chung|dv chung|phi chung|phi dich vu chung|phi dv chung)(?:\s|$)/u.test(name)) return "common";
+  if (/(?:^|\s)(?:mang|internet|wifi)(?:\s|$)/u.test(name)) return "internet";
+  if (/(?:^|\s)(?:gui xe|xe may|parking|phi xe)(?:\s|$)/u.test(name)) return "parking";
+  if (/(?:^|\s)(?:ve sinh|rac)(?:\s|$)/u.test(name)) return "cleaning";
+  if (/(?:^|\s)(?:may giat|giat chung)(?:\s|$)/u.test(name)) return "washing";
   return SERVICE_KINDS.has(requested) ? requested : "other";
 }
 
@@ -127,9 +133,10 @@ function canonicalServiceName(kind, nameValue) {
   if (kind === "internet") return "Mạng";
   if (kind === "parking") return "Gửi xe";
   if (kind === "washing") return "Máy giặt chung";
-  if (kind === "cleaning") return /\brac\b/u.test(comparable) && !/\bve sinh\b/u.test(comparable)
+  if (kind === "cleaning") return /(?:^|\s)rac(?:\s|$)/u.test(comparable) && !/(?:^|\s)ve sinh(?:\s|$)/u.test(comparable)
     ? "Rác"
     : "Vệ sinh";
+  if (comparable === "dien nuoc" || comparable === "nuoc dien") return "Điện + nước";
 
   if (!name) return "";
   return name.charAt(0).toLocaleUpperCase("vi") + name.slice(1);
@@ -147,6 +154,8 @@ function canonicalIncludedService(value) {
   if (/^(?:gui xe|xe may|parking|phi xe)$/u.test(comparable)) return "Gửi xe";
   if (/^(?:dien chung|dien hanh lang)$/u.test(comparable)) return "Điện chung";
   if (/^(?:nuoc chung)$/u.test(comparable)) return "Nước chung";
+  if (/^dien$/u.test(comparable)) return "Điện";
+  if (/^nuoc$/u.test(comparable)) return "Nước";
   if (/^(?:camera)$/u.test(comparable)) return "Camera";
   if (/^(?:bao ve)$/u.test(comparable)) return "Bảo vệ";
 
@@ -158,33 +167,37 @@ function escapedPattern(value) {
 }
 
 function targetCuePatterns(kind, name) {
+  const comparable = normalizeComparable(name);
   if (kind === "common") {
     return [
-      /(?:dịch\s+vụ\s+chung|dv\s+chung|phí\s+chung|phí\s+(?:dịch\s+vụ|dv)\s+chung)/giu,
-      /(?:\b(?:dịch\s+vụ|dv|phí\s+dịch\s+vụ|phí\s+dv)\b)\s*[:=-]?\s*(?=\d)/giu,
+      unicodeCue(String.raw`(?:dịch\s+vụ\s+chung|dv\s+chung|phí\s+chung|phí\s+(?:dịch\s+vụ|dv)\s+chung)`),
+      unicodeCue(String.raw`(?:dịch\s+vụ|dv|phí\s+dịch\s+vụ|phí\s+dv)`),
     ];
   }
-  if (kind === "internet") return [/\b(?:mạng|internet|wifi)\b/giu];
-  if (kind === "parking") return [/\b(?:gửi\s+xe|xe\s+máy|parking|phí\s+xe|xe)\b/giu];
-  if (kind === "washing") return [/\b(?:máy\s+giặt(?:\s+chung)?|giặt\s+chung)\b/giu];
+  if (kind === "internet") return [unicodeCue(String.raw`(?:mạng|internet|wifi)`)];
+  if (kind === "parking") return [unicodeCue(String.raw`(?:gửi\s+xe|xe\s+máy|parking|phí\s+xe)`)];
+  if (kind === "washing") return [unicodeCue(String.raw`(?:máy\s+giặt(?:\s+chung)?|giặt\s+chung)`)];
   if (kind === "cleaning") {
-    return normalizeComparable(name) === "rac"
-      ? [/\brác\b/giu]
-      : [/\b(?:vệ\s+sinh|vs)\b/giu];
+    return comparable === "rac"
+      ? [unicodeCue(String.raw`rác`)]
+      : [unicodeCue(String.raw`(?:vệ\s+sinh|vs)`)];
+  }
+  if (comparable === "dien nuoc" || comparable === "nuoc dien") {
+    return [unicodeCue(String.raw`(?:điện\s*(?:\+|&|và)?\s*nước|nước\s*(?:\+|&|và)?\s*điện)`)];
   }
 
   const literal = cleanField(name, MAX_SERVICE_NAME_LENGTH);
-  return literal ? [new RegExp(escapedPattern(literal), "giu")] : [];
+  return literal ? [unicodeCue(escapedPattern(literal))] : [];
 }
 
 const KNOWN_SERVICE_CUE_PATTERNS = Object.freeze([
-  { id: "common", pattern: /(?:dịch\s+vụ\s+chung|dv\s+chung|phí\s+chung|phí\s+(?:dịch\s+vụ|dv)\s+chung)/giu },
-  { id: "internet", pattern: /\b(?:mạng|internet|wifi)\b/giu },
-  { id: "parking", pattern: /\b(?:gửi\s+xe|xe\s+máy|parking|phí\s+xe)\b/giu },
-  { id: "cleaning", pattern: /\b(?:vệ\s+sinh|vs|rác)\b/giu },
-  { id: "washing", pattern: /\b(?:máy\s+giặt(?:\s+chung)?|giặt\s+chung)\b/giu },
-  { id: "electricity", pattern: /\b(?:điện|electricity)\b/giu },
-  { id: "water", pattern: /\b(?:nước|water)\b/giu },
+  unicodeCue(String.raw`(?:dịch\s+vụ\s+chung|dv\s+chung|phí\s+chung|phí\s+(?:dịch\s+vụ|dv)\s+chung)`),
+  unicodeCue(String.raw`(?:mạng|internet|wifi)`),
+  unicodeCue(String.raw`(?:gửi\s+xe|xe\s+máy|parking|phí\s+xe)`),
+  unicodeCue(String.raw`(?:vệ\s+sinh|vs|rác)`),
+  unicodeCue(String.raw`(?:máy\s+giặt(?:\s+chung)?|giặt\s+chung)`),
+  unicodeCue(String.raw`(?:điện|electricity)`),
+  unicodeCue(String.raw`(?:nước|water)`),
 ]);
 
 function patternPositions(text, patterns) {
@@ -218,14 +231,8 @@ function rateIsAssociatedWithService(evidence, kind, name, value) {
   const targetPositions = patternPositions(evidence, targetCuePatterns(kind, name));
   if (!targetPositions.length) return false;
 
-  const otherPositions = [];
-  for (const cue of KNOWN_SERVICE_CUE_PATTERNS) {
-    const positions = patternPositions(evidence, [cue.pattern]);
-    for (const position of positions) {
-      if (targetPositions.some((target) => rangeDistance(position, target) === 0)) continue;
-      otherPositions.push(position);
-    }
-  }
+  const otherPositions = patternPositions(evidence, KNOWN_SERVICE_CUE_PATTERNS)
+    .filter((position) => !targetPositions.some((target) => rangeDistance(position, target) === 0));
 
   return candidateRates.some((rate) => {
     const targetDistance = Math.min(...targetPositions.map((target) => rangeDistance(rate, target)));
@@ -239,7 +246,7 @@ export function serviceEvidenceIsGroundedInSource(sourceValue, evidenceValue) {
   const source = normalizeComparable(sourceValue);
   const evidence = normalizeComparable(evidenceValue);
   if (!source || !evidence || evidence.length < 3) return false;
-  return source.includes(evidence);
+  return (` ${source} `).includes(` ${evidence} `);
 }
 
 function includedServiceIsGroundedInEvidence(evidenceValue, includeValue) {
@@ -255,6 +262,8 @@ function includedServiceIsGroundedInEvidence(evidenceValue, includeValue) {
     ["gui xe", ["gui xe", "xe may", "parking", "phi xe"]],
     ["dien chung", ["dien chung", "dien hanh lang"]],
     ["nuoc chung", ["nuoc chung"]],
+    ["dien", ["dien"]],
+    ["nuoc", ["nuoc"]],
     ["camera", ["camera"]],
     ["bao ve", ["bao ve"]],
   ]);
@@ -263,7 +272,7 @@ function includedServiceIsGroundedInEvidence(evidenceValue, includeValue) {
   return candidates.some((candidate) => (` ${evidence} `).includes(` ${candidate} `));
 }
 
-function itemIsElectricityOrWater(kind, name) {
+function itemIsStandaloneElectricityOrWater(kind, name) {
   if (["common", "internet", "parking", "cleaning", "washing"].includes(kind)) return false;
   const comparable = normalizeComparable(name);
   return /^(?:dien|dien sinh hoat|electricity|nuoc|water)$/u.test(comparable);
@@ -305,7 +314,7 @@ export function normalizeDynamicServiceItems(sourceValue, itemValues) {
     if (!serviceEvidenceIsGroundedInSource(sourceValue, evidence)) continue;
     if (!rateMatches(evidence).some((rate) => rate.signature === normalizeRateSignature(rawValue))) continue;
     if (!rateIsAssociatedWithService(evidence, kind, rawName || name, rawValue)) continue;
-    if (itemIsElectricityOrWater(kind, name)) continue;
+    if (itemIsStandaloneElectricityOrWater(kind, name)) continue;
 
     const includes = kind === "common"
       ? [...new Set((Array.isArray(raw?.includes) ? raw.includes : [])
@@ -326,7 +335,7 @@ export function normalizeDynamicServiceItems(sourceValue, itemValues) {
 export function shouldExtractDynamicServices(sourceValue) {
   const source = normalizeComparable(sourceValue);
   if (!source) return false;
-  return /\b(?:dich vu|dv|phi|mang|internet|wifi|ve sinh|rac|may giat|giat chung|gui xe|xe may|parking|phi quan ly|bao ve|camera|the thang may)\b/u.test(source);
+  return /(?:^|\s)(?:dich vu|dv|phi|mang|internet|wifi|ve sinh|rac|may giat|giat chung|gui xe|xe may|parking|phi quan ly|bao ve|camera|the thang may|dien nuoc)(?:\s|$)/u.test(source);
 }
 
 function extractAiObject(result) {
@@ -358,7 +367,7 @@ function extractAiObject(result) {
 function serviceItemInstructions() {
   return `Bạn là bộ trích xuất NGỮ NGHĨA các khoản dịch vụ trong tin phòng trọ/căn hộ tiếng Việt.
 
-Chỉ xử lý các dịch vụ NGOÀI tiền điện và tiền nước. Điện/nước đã có bộ trích xuất riêng, vì vậy không trả chúng thành items độc lập. Tuy nhiên "điện chung" hoặc "nước chung" có thể xuất hiện trong includes của một gói dịch vụ chung nếu nguồn viết như vậy.
+Chỉ xử lý các dịch vụ NGOÀI tiền điện và tiền nước độc lập. Điện/nước độc lập đã có bộ trích xuất riêng. Trường hợp một mức phí DUY NHẤT áp chung cho cả điện và nước (ví dụ "điện nước 100k/ng") phải trả một item kind="other", name="Điện + nước", value là mức phí chung; không được gán mức đó riêng cho electricity hoặc water.
 
 Trả đúng JSON:
 {
@@ -378,13 +387,14 @@ NGUYÊN TẮC:
 - value phải giữ nguyên cách nguồn viết, ví dụ 180k/ng, 100k/phòng, 100k/xe, 50k/tháng, miễn phí. Không tự đổi đơn vị.
 - evidence phải là một đoạn NGUYÊN VĂN, liên tục và ngắn từ nguồn, đủ để chứng minh đúng dịch vụ + đúng value + quan hệ gói nếu có. Không tự viết lại evidence.
 - Nếu không chắc value thuộc dịch vụ nào thì bỏ item đó.
+- Có thể hiểu cả dạng "nhãn -> giá" và "giá -> nhãn" khi quan hệ rõ, ví dụ "Mạng 100k/phòng" và "100k/phòng mạng".
 
 PHÂN BIỆT GÓI VÀ KHOẢN RIÊNG:
 - Nếu một mức phí bao trùm nhiều dịch vụ, trả MỘT item kind="common", name="Dịch vụ chung", value là mức phí của cả gói, includes là các thành phần.
 - Ví dụ: "DV chung 180k/ng (vệ sinh, rác, mạng, điện chung, máy giặt)" => một item common 180k/ng, includes gồm các thành phần. TUYỆT ĐỐI không gán 180k/ng riêng cho mạng/vệ sinh/máy giặt.
-- Cách viết "DV 180k/ng gồm ...", "phí chung ...", "phí dịch vụ chung ..." được hiểu theo cùng nguyên tắc nếu scope rõ.
-- Nếu từng dịch vụ có giá riêng, trả từng item riêng. Ví dụ "Mạng 100k/phòng; vệ sinh 30k/ng; máy giặt chung 50k/ng; xe 100k/xe" => bốn items riêng.
-- Nếu vừa có gói chung vừa có khoản riêng, giữ cả hai. Ví dụ "DV 180k/ng gồm vệ sinh, mạng, máy giặt. Xe máy 100k/xe" => common 180k/ng + parking 100k/xe.
+- Cách viết "DV 180k/ng gồm ...", "phí chung ...", "phí dịch vụ chung ...", hoặc "mạng + vệ sinh + máy giặt 180k/ng" được hiểu theo cùng nguyên tắc nếu scope rõ và chỉ có một mức phí cho cả nhóm.
+- Nếu từng dịch vụ có giá riêng, trả từng item riêng.
+- Nếu vừa có gói chung vừa có khoản riêng, giữ cả hai.
 - Nếu một thành phần trong gói còn có một mức phí riêng rõ ràng ở chỗ khác, mức riêng đó là item độc lập và không dùng mức phí gói cho nó.
 
 KIND:
@@ -393,13 +403,13 @@ KIND:
 - parking: gửi xe/xe máy có mức riêng.
 - cleaning: vệ sinh hoặc rác có mức riêng.
 - washing: máy giặt chung/giặt chung có mức riêng.
-- other: bất kỳ khoản dịch vụ có phí nào khác như phí quản lý, thẻ thang máy, bảo vệ... Không cần danh sách cố định.
+- other: bất kỳ khoản dịch vụ có phí nào khác như phí quản lý, thẻ thang máy, bảo vệ, hoặc phí điện+nước gộp.
 
 NAME:
-- Có thể chuẩn hóa tên quen thuộc thành "Dịch vụ chung", "Mạng", "Gửi xe", "Vệ sinh", "Rác", "Máy giặt chung".
+- Có thể chuẩn hóa tên quen thuộc thành "Dịch vụ chung", "Mạng", "Gửi xe", "Vệ sinh", "Rác", "Máy giặt chung", "Điện + nước".
 - Với kind=other, dùng tên ngắn gọn đúng ý nguồn; không phát minh dịch vụ mới.
 
-Nếu nguồn chỉ có điện/nước hoặc không có dịch vụ còn lại có phí rõ ràng, trả items=[].`;
+Nếu nguồn chỉ có điện/nước độc lập hoặc không có dịch vụ còn lại có phí rõ ràng, trả items=[].`;
 }
 
 export async function extractDynamicServiceItems(sourceValue, env, model) {
