@@ -29,8 +29,9 @@ const ROOM_SUMMARY_SCHEMA = {
       },
     },
     roomType: { type: "string" },
+    elevator: { type: "string" },
   },
-  required: ["address", "rooms", "roomType"],
+  required: ["address", "rooms", "roomType", "elevator"],
 };
 
 const EXPLICIT_UNAVAILABLE_PATTERNS = Object.freeze([
@@ -88,15 +89,17 @@ export async function handleSaleRoomSummaryAiRequest(request, env) {
 
     const rooms = normalizeDetectedRooms(source, detected.rooms);
     const roomType = normalizeDetectedRoomType(source, detected.roomType);
+    const elevator = normalizeDetectedElevator(source, detected.elevator);
 
     return json({
       ok: true,
-      found: Boolean(address || rooms.length || roomType),
+      found: Boolean(address || rooms.length || roomType || elevator),
       provider: "workers-ai",
       model,
       address,
       rooms,
       roomType,
+      elevator,
     });
   } catch (error) {
     console.warn("Joy Sale room-summary AI unavailable", error?.message || error);
@@ -161,6 +164,38 @@ export function normalizeDetectedRoomType(sourceValue, value) {
   const sourceTypes = roomTypesInSource(sourceValue);
   if (sourceTypes.size !== 1) return "";
   return sourceTypes.has(canonical) ? canonical : "";
+}
+
+export function canonicalElevator(value) {
+  const normalized = normalizeComparable(value);
+  if (!normalized) return "";
+  if (/^(?:co|yes|true|co thang may|thang may|elevator)$/u.test(normalized)) return "Có";
+  if (/^(?:khong|no|false|khong co|khong co thang may|khong thang may|thang bo)$/u.test(normalized)) return "Không";
+  return "";
+}
+
+export function elevatorStatusInSource(value) {
+  let hasElevator = false;
+  let noElevator = false;
+
+  for (const clause of sourceClauses(value)) {
+    const explicitNo = /\b(?:khong co thang may|khong thang may|thang may khong(?: co)?|no elevator|without elevator|thang bo)\b/u.test(clause);
+    if (explicitNo) {
+      noElevator = true;
+      continue;
+    }
+    if (/\b(?:thang may|elevator)\b/u.test(clause)) hasElevator = true;
+  }
+
+  if (hasElevator === noElevator) return "";
+  return hasElevator ? "Có" : "Không";
+}
+
+export function normalizeDetectedElevator(sourceValue, value) {
+  const candidate = canonicalElevator(value);
+  if (!candidate) return "";
+  const grounded = elevatorStatusInSource(sourceValue);
+  return grounded === candidate ? candidate : "";
 }
 
 export function addressIsGroundedInSource(sourceValue, addressValue) {
@@ -265,7 +300,7 @@ export function normalizeDetectedRooms(sourceValue, roomValues) {
 
 function roomSummaryInstructions() {
   return `Bạn là bộ trích xuất dữ liệu tin phòng trọ/căn hộ bằng tiếng Việt.
-Nhiệm vụ hiện tại chỉ gồm 3 phần: xác định địa chỉ; xác định các phòng/căn hiện đang cần cho thuê cùng giá và thời gian trống của từng phòng; và xác định dạng phòng chung của tin.
+Nhiệm vụ hiện tại chỉ gồm 4 phần: xác định địa chỉ; xác định các phòng/căn hiện đang cần cho thuê cùng giá và thời gian trống của từng phòng; xác định dạng phòng chung của tin; và xác định có thang máy hay không.
 
 Trả về đúng JSON theo schema:
 {
@@ -273,7 +308,8 @@ Trả về đúng JSON theo schema:
   "rooms": [
     { "room": "...", "price": "...", "availability": "..." }
   ],
-  "roomType": "..."
+  "roomType": "...",
+  "elevator": "..."
 }
 
 QUY TẮC CHUNG:
@@ -304,7 +340,14 @@ DẠNG PHÒNG:
 - Nếu nguồn viết nhầm phổ biến "stuido", hiểu là "Studio".
 - Không suy ra roomType từ diện tích, số người, số phòng, nội thất hoặc mô tả khác nếu nguồn không nêu dạng phòng.
 - Không nhận các dạng ngoài whitelist trên như duplex, penthouse, căn hộ dịch vụ, 1N2K...; khi đó để roomType rỗng.
-- Nếu nguồn chứa nhiều dạng phòng khác nhau và không có một dạng chung rõ ràng cho toàn bộ tin, để roomType rỗng.`;
+- Nếu nguồn chứa nhiều dạng phòng khác nhau và không có một dạng chung rõ ràng cho toàn bộ tin, để roomType rỗng.
+
+THANG MÁY:
+- elevator chỉ được trả đúng một trong hai giá trị: "Có" hoặc "Không". Nếu nguồn không nói rõ thì trả chuỗi rỗng.
+- Trả "Có" khi nguồn nói rõ có thang máy hoặc viết theo kiểu "Thang: MÁY", "thang máy", "có thang máy", "elevator".
+- Trả "Không" khi nguồn nói rõ không có thang máy hoặc viết theo kiểu "không có thang máy", "thang máy: không", "Thang: BỘ".
+- Không suy ra elevator từ số tầng, tầng của phòng, loại nhà, giá thuê hoặc bất kỳ dữ liệu gián tiếp nào.
+- Nếu nguồn chứa thông tin mâu thuẫn về thang máy, trả chuỗi rỗng.`;
 }
 
 function valueIsGroundedInSource(sourceValue, candidateValue) {
@@ -459,7 +502,7 @@ function normalizeComparable(value) {
 function extractAiObject(result) {
   const raw = result?.response ?? result?.result ?? result?.text ?? result;
   if (raw && typeof raw === "object" && !Array.isArray(raw)) {
-    if (Object.hasOwn(raw, "address") || Object.hasOwn(raw, "rooms") || Object.hasOwn(raw, "roomType")) return raw;
+    if (Object.hasOwn(raw, "address") || Object.hasOwn(raw, "rooms") || Object.hasOwn(raw, "roomType") || Object.hasOwn(raw, "elevator")) return raw;
     const nested = raw.response ?? raw.result ?? raw.text;
     if (nested && typeof nested === "object" && !Array.isArray(nested)) return nested;
   }
