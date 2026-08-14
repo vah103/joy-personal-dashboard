@@ -82,8 +82,7 @@ function lineHasRoomScope(line) {
   if (/\b(?:phong|room|trong|available|availability|con|sap|gia|price|rent)\b/u.test(normalized)) {
     return true;
   }
-  if (/\bp\s*[-:]?\s*\d{1,4}[a-z]?\b/iu.test(line)) return true;
-  return sourcePricePattern().test(line);
+  return /\bp\s*[-:]?\s*\d{1,4}[a-z]?\b/iu.test(line);
 }
 
 export function extractSourceRoomMentions(sourceValue) {
@@ -194,7 +193,7 @@ function mergeFact(current, incoming) {
   const right = String(incoming ?? "").trim();
   if (!left) return right;
   if (!right) return left;
-  return normalizeComparable(left) === normalizeComparable(right) ? left : left;
+  return left;
 }
 
 function uniqueAssociatedValue(sourceValue, room, roomValues, values, fieldKind) {
