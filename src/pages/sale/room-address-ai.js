@@ -53,7 +53,8 @@ function normalizeServiceRateForDisplay(value, serviceKind) {
   if (serviceKind === "electricity") {
     clean = clean
       .replace(/\/(?:1\s*)?(?:số|so)$/iu, "/số")
-      .replace(/\/kwh$/iu, "/số");
+      .replace(/\/kwh$/iu, "/số")
+      .replace(/^3[.,]99(?:0)?(?=\/|$)/u, "4k");
   }
 
   if (serviceKind === "water") {
@@ -268,21 +269,31 @@ function appendServices(details, services = {}) {
   const water = String(services.water || "").trim();
   if (!electricity && !water) return;
 
-  const row = document.createElement("p");
-  row.className = "room-share-detail-row";
+  const group = document.createElement("div");
+  group.className = "room-share-service-group";
+
+  const heading = document.createElement("p");
+  heading.className = "room-share-detail-row";
   const label = document.createElement("strong");
   label.append("Dịch", " vụ");
-  row.append(label, document.createTextNode(": "));
+  heading.append(label, document.createTextNode(":"));
+  group.append(heading);
 
   if (electricity) {
-    row.append("Đi", "ện ", editableValue(electricity));
-  }
-  if (water) {
-    if (electricity) row.append(", ");
-    row.append(electricity ? "n" : "N", "ước ", editableValue(water));
+    const electricityRow = document.createElement("p");
+    electricityRow.className = "room-share-detail-row";
+    electricityRow.append("Đi", "ện: ", editableValue(electricity));
+    group.append(electricityRow);
   }
 
-  details.append(row);
+  if (water) {
+    const waterRow = document.createElement("p");
+    waterRow.className = "room-share-detail-row";
+    waterRow.append("N", "ước: ", editableValue(water));
+    group.append(waterRow);
+  }
+
+  details.append(group);
 }
 
 function renderSummary(container, summary = {}) {
