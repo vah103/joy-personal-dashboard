@@ -1,5 +1,6 @@
 const ROOM_SUMMARY_AI_ENDPOINT = "/api/sales/room-summary/analyze";
 const ROOM_SUMMARY_MODULE = "/room-summary.js?v=joy-room-summary-v1";
+const ROOM_SUMMARY_AI_TIMEOUT_MS = 12_000;
 
 const SERVICE_LABEL_KEYS = Object.freeze({
   electricity: "cleanup.sale.serviceElectricity",
@@ -267,6 +268,25 @@ function setPreviewState(elements, key, engine, reason = "") {
   else delete elements.output.dataset.roomSummaryFallbackReason;
 }
 
+function renderFailure(elements, reason = "") {
+  currentSummary = null;
+  elements.capture.disabled = true;
+  elements.output.classList.add("is-empty");
+  elements.output.replaceChildren();
+
+  const empty = document.createElement("div");
+  empty.className = "room-share-empty";
+  const mark = document.createElement("span");
+  mark.textContent = "!";
+  const title = document.createElement("strong");
+  title.textContent = t("cleanup.sale.summaryFailed");
+  const detail = document.createElement("p");
+  detail.textContent = t("cleanup.sale.summaryFailedDetail");
+  empty.append(mark, title, detail);
+  elements.output.append(empty);
+  setPreviewState(elements, "cleanup.sale.summaryFailed", "error", reason);
+}
+
 async function renderSemantic(elements, extraction) {
   const module = await loadRoomSummaryModule();
   const summary = summaryFromExtraction(extraction);
@@ -288,26 +308,48 @@ async function renderFallback(elements, source, reason = "") {
   elements.output.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
+async function renderFallbackSafely(elements, source, reason = "") {
+  try {
+    await renderFallback(elements, source, reason);
+  } catch (error) {
+    console.error("Joy Room Summary fallback failed", error);
+    renderFailure(elements, `${reason || "fallback"}:${String(error?.message || "render-failed")}`);
+  }
+}
+
 async function analyze(elements, source, requestGeneration) {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), ROOM_SUMMARY_AI_TIMEOUT_MS);
+
   try {
     const response = await fetch(ROOM_SUMMARY_AI_ENDPOINT, {
       method: "POST",
       credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ source }),
+      signal: controller.signal,
     });
     const payload = await response.json().catch(() => ({}));
     if (requestGeneration !== generation) return;
     if (response.ok && payload?.applied === true && payload?.extraction) {
-      await renderSemantic(elements, payload.extraction);
+      try {
+        await renderSemantic(elements, payload.extraction);
+      } catch (error) {
+        console.error("Joy Room Summary semantic render failed", error);
+        await renderFallbackSafely(elements, source, `semantic-render:${String(error?.message || "failed")}`);
+      }
     } else {
-      await renderFallback(elements, source, String(payload?.reason || "ai-not-applied"));
+      await renderFallbackSafely(elements, source, String(payload?.reason || `http-${response.status}`));
     }
   } catch (error) {
     if (requestGeneration === generation) {
-      await renderFallback(elements, source, String(error?.message || "ai-request-failed"));
+      const reason = error?.name === "AbortError"
+        ? "ai-timeout"
+        : String(error?.message || "ai-request-failed");
+      await renderFallbackSafely(elements, source, reason);
     }
   } finally {
+    window.clearTimeout(timeoutId);
     if (requestGeneration === generation) elements.generate.removeAttribute("aria-busy");
   }
 }
@@ -316,10 +358,13 @@ function start(elements) {
   const source = String(elements.input.value || "").trim();
   const requestGeneration = ++generation;
   if (!source) {
-    void renderFallback(elements, "", "empty-source");
+    void renderFallbackSafely(elements, "", "empty-source");
     return;
   }
+  currentSummary = null;
+  elements.capture.disabled = true;
   elements.generate.setAttribute("aria-busy", "true");
+  setPreviewState(elements, "cleanup.sale.aiAnalyzing", "ai-loading");
   void analyze(elements, source, requestGeneration);
 }
 
@@ -348,9 +393,10 @@ document.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopImmediatePropagation();
     generation += 1;
+    currentSummary = null;
     elements.input.value = "";
     elements.generate.removeAttribute("aria-busy");
-    void renderFallback(elements, "", "empty-source");
+    void renderFallbackSafely(elements, "", "empty-source");
     elements.input.focus();
     return;
   }
@@ -375,5 +421,7 @@ document.addEventListener("input", (event) => {
   const elements = roomSummaryElements();
   if (!elements || event.target !== elements.input) return;
   generation += 1;
+  currentSummary = null;
+  elements.capture.disabled = true;
   elements.generate.removeAttribute("aria-busy");
 }, true);
