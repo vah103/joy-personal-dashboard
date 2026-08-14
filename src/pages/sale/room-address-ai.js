@@ -117,6 +117,16 @@ function appendElevator(details, elevator) {
   details.append(row);
 }
 
+function appendFurniture(details, furniture) {
+  if (!furniture) return;
+  const row = document.createElement("p");
+  row.className = "room-share-detail-row";
+  const label = document.createElement("strong");
+  label.append("Nội", " thất");
+  row.append(label, document.createTextNode(": "), editableValue(furniture));
+  details.append(row);
+}
+
 function renderSummary(container, summary = {}) {
   container.replaceChildren();
   container.classList.remove("is-empty");
@@ -127,6 +137,7 @@ function renderSummary(container, summary = {}) {
   appendRooms(details, Array.isArray(summary.rooms) ? summary.rooms : []);
   appendRoomType(details, summary.roomType);
   appendElevator(details, summary.elevator);
+  appendFurniture(details, summary.furniture);
   container.append(details);
 }
 
@@ -160,6 +171,7 @@ async function detectRoomSummary(source) {
     rooms,
     roomType: String(payload.roomType || "").trim(),
     elevator: String(payload.elevator || "").trim(),
+    furniture: String(payload.furniture || "").trim(),
   };
 }
 
@@ -191,7 +203,7 @@ function initializeRoomAddressAi() {
     generate.disabled = true;
     generate.textContent = "Đang kiểm tra…";
     capture.disabled = true;
-    renderSummary(output, { address: "…", rooms: [], roomType: "", elevator: "" });
+    renderSummary(output, { address: "…", rooms: [], roomType: "", elevator: "", furniture: "" });
 
     try {
       const summary = await detectRoomSummary(source);
@@ -201,13 +213,14 @@ function initializeRoomAddressAi() {
         rooms: summary.rooms,
         roomType: summary.roomType,
         elevator: summary.elevator,
+        furniture: summary.furniture,
       });
       capture.disabled = false;
       output.scrollIntoView({ behavior: "smooth", block: "nearest" });
     } catch (error) {
       if (version !== requestVersion) return;
       console.warn("Joy Sale room summary detection failed", error?.code || error?.message || error);
-      renderSummary(output, { address: "Không xác định", rooms: [], roomType: "", elevator: "" });
+      renderSummary(output, { address: "Không xác định", rooms: [], roomType: "", elevator: "", furniture: "" });
       capture.disabled = true;
     } finally {
       if (version === requestVersion) {
