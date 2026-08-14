@@ -82,12 +82,33 @@ function extractExplicitServiceRateForDisplay(sourceValue, serviceKind) {
   return match ? normalizeServiceRateForDisplay(match[1], serviceKind) : "";
 }
 
+function dynamicServiceItemsForDisplay(items) {
+  if (!Array.isArray(items)) return [];
+
+  const seen = new Set();
+  return items.map((item) => ({
+    kind: String(item?.kind || "").trim(),
+    name: String(item?.name || "").trim(),
+    value: String(item?.value || "").trim(),
+    includes: Array.isArray(item?.includes)
+      ? item.includes.map((value) => String(value || "").trim()).filter(Boolean)
+      : [],
+  })).filter((item) => {
+    if (!item.name || !item.value) return false;
+    const identity = `${item.kind}|${item.name.toLocaleLowerCase("vi")}|${item.value.toLocaleLowerCase("vi")}`;
+    if (seen.has(identity)) return false;
+    seen.add(identity);
+    return true;
+  });
+}
+
 function servicesForDisplay(sourceValue, services = {}) {
   const electricity = normalizeServiceRateForDisplay(services?.electricity, "electricity")
     || extractExplicitServiceRateForDisplay(sourceValue, "electricity");
   const water = normalizeServiceRateForDisplay(services?.water, "water")
     || extractExplicitServiceRateForDisplay(sourceValue, "water");
-  return { electricity, water };
+  const items = dynamicServiceItemsForDisplay(services?.items);
+  return { electricity, water, items };
 }
 
 function extractFloorForDisplay(sourceValue, rooms = []) {
@@ -264,10 +285,31 @@ function appendFurniture(details, furniture) {
   details.append(row);
 }
 
+function appendDynamicServiceItem(list, service) {
+  if (!service?.name || !service?.value) return;
+
+  const item = document.createElement("li");
+  const itemLabel = document.createElement("strong");
+  itemLabel.append(editableValue(service.name));
+  item.append(itemLabel, ": ", editableValue(service.value));
+
+  if (Array.isArray(service.includes) && service.includes.length) {
+    const includes = document.createElement("div");
+    includes.className = "room-share-service-includes";
+    const includesLabel = document.createElement("strong");
+    includesLabel.append("G", "ồm");
+    includes.append(includesLabel, ": ", editableValue(service.includes.join(", ")));
+    item.append(includes);
+  }
+
+  list.append(item);
+}
+
 function appendServices(details, services = {}) {
   const electricity = String(services.electricity || "").trim();
   const water = String(services.water || "").trim();
-  if (!electricity && !water) return;
+  const serviceItems = Array.isArray(services.items) ? services.items : [];
+  if (!electricity && !water && !serviceItems.length) return;
 
   const group = document.createElement("div");
   group.className = "room-share-service-group";
@@ -296,6 +338,8 @@ function appendServices(details, services = {}) {
     item.append(itemLabel, ": ", editableValue(water));
     list.append(item);
   }
+
+  serviceItems.forEach((service) => appendDynamicServiceItem(list, service));
 
   group.append(heading, list);
   details.append(group);
