@@ -17,7 +17,6 @@ const ROOM_SUMMARY_SCHEMA = {
     address: { type: "string" },
     rooms: {
       type: "array",
-      maxItems: MAX_ROOMS,
       items: {
         type: "object",
         additionalProperties: false,
@@ -32,6 +31,19 @@ const ROOM_SUMMARY_SCHEMA = {
   },
   required: ["address", "rooms"],
 };
+
+const EXPLICIT_UNAVAILABLE_PATTERNS = Object.freeze([
+  /\bda coc\b/u,
+  /\bcoc roi\b/u,
+  /\bda giu\b/u,
+  /\bgiu roi\b/u,
+  /\bgiu cho\b/u,
+  /\bda thue\b/u,
+  /\bthue roi\b/u,
+  /\bda chot\b/u,
+  /\bchot roi\b/u,
+  /\bhet phong\b/u,
+]);
 
 export function isSaleRoomSummaryAiRoute(pathname) {
   return pathname === SALE_ROOM_SUMMARY_AI_PATH || pathname === LEGACY_SALE_ROOM_ADDRESS_AI_PATH;
@@ -141,34 +153,80 @@ export function roomFieldIsGroundedInSource(sourceValue, fieldValue) {
   return valueIsGroundedInSource(sourceValue, fieldValue);
 }
 
+export function roomFieldIsAssociatedInSource(sourceValue, roomValue, fieldValue, roomValues = []) {
+  const field = normalizeComparable(fieldValue);
+  if (!field || !roomFieldIsGroundedInSource(sourceValue, fieldValue)) return false;
+
+  const room = normalizeComparable(roomValue);
+  if (!room) return true;
+
+  const rooms = [...new Set(roomValues.map(normalizeComparable).filter(Boolean))];
+  const clauses = sourceClauses(sourceValue);
+
+  for (const clause of clauses) {
+    if (!containsNormalizedPhrase(clause, field) || !containsNormalizedPhrase(clause, room)) continue;
+    if (fieldIsNearestToRoom(clause, room, field, rooms)) return true;
+  }
+
+  // A value written without any room code in its clause is listing-wide, e.g. "Giá: 4tr5".
+  return clauses.some((clause) => (
+    containsNormalizedPhrase(clause, field)
+    && !rooms.some((candidateRoom) => containsNormalizedPhrase(clause, candidateRoom))
+  ));
+}
+
+export function roomIsExplicitlyUnavailableInSource(sourceValue, roomValue) {
+  const room = normalizeComparable(roomValue);
+  if (!room) return false;
+
+  return sourceClauses(sourceValue).some((clause) => (
+    containsNormalizedPhrase(clause, room)
+    && EXPLICIT_UNAVAILABLE_PATTERNS.some((pattern) => pattern.test(clause))
+  ));
+}
+
 export function normalizeDetectedRooms(sourceValue, roomValues) {
   if (!Array.isArray(roomValues)) return [];
 
+  const candidates = roomValues.slice(0, MAX_ROOMS).map((raw) => ({
+    roomCandidate: normalizeDetectedRoomField(raw?.room),
+    priceCandidate: normalizeDetectedRoomField(raw?.price),
+    availabilityCandidate: normalizeDetectedRoomField(raw?.availability),
+  }));
+
+  const groundedRoomValues = candidates.map(({ roomCandidate }) => (
+    roomCandidate && roomFieldIsGroundedInSource(sourceValue, roomCandidate)
+      ? roomCandidate
+      : ""
+  ));
+  const allRooms = groundedRoomValues.filter(Boolean);
   const rooms = [];
   const seen = new Set();
 
-  for (const raw of roomValues.slice(0, MAX_ROOMS)) {
-    const roomCandidate = normalizeDetectedRoomField(raw?.room);
-    const priceCandidate = normalizeDetectedRoomField(raw?.price);
-    const availabilityCandidate = normalizeDetectedRoomField(raw?.availability);
+  candidates.forEach((candidate, index) => {
+    const { roomCandidate, priceCandidate, availabilityCandidate } = candidate;
+    const room = groundedRoomValues[index];
 
-    const room = roomCandidate && roomFieldIsGroundedInSource(sourceValue, roomCandidate)
-      ? roomCandidate
-      : "";
-    const price = priceCandidate && roomFieldIsGroundedInSource(sourceValue, priceCandidate)
+    // If AI invented or rewrote a room identifier, do not salvage unrelated values from that row.
+    if (roomCandidate && !room) return;
+    if (room && roomIsExplicitlyUnavailableInSource(sourceValue, room)) return;
+
+    const price = priceCandidate
+      && roomFieldIsAssociatedInSource(sourceValue, room, priceCandidate, allRooms)
       ? priceCandidate
       : "";
-    const availability = availabilityCandidate && roomFieldIsGroundedInSource(sourceValue, availabilityCandidate)
+    const availability = availabilityCandidate
+      && roomFieldIsAssociatedInSource(sourceValue, room, availabilityCandidate, allRooms)
       ? availabilityCandidate
       : "";
 
-    if (!room && !price && !availability) continue;
+    if (!room && !price && !availability) return;
 
     const key = [room, price, availability].map(normalizeComparable).join("|");
-    if (seen.has(key)) continue;
+    if (seen.has(key)) return;
     seen.add(key);
     rooms.push({ room, price, availability });
-  }
+  });
 
   return rooms;
 }
@@ -211,8 +269,55 @@ PHÒNG / GIÁ / THỜI GIAN TRỐNG:
 function valueIsGroundedInSource(sourceValue, candidateValue) {
   const source = normalizeComparable(sourceValue);
   const candidate = normalizeComparable(candidateValue);
+  return containsNormalizedPhrase(source, candidate);
+}
+
+function sourceClauses(value) {
+  return String(value ?? "")
+    .split(/[\n;,|•]+/u)
+    .map(normalizeComparable)
+    .filter(Boolean);
+}
+
+function containsNormalizedPhrase(source, candidate) {
   if (!source || !candidate) return false;
-  return source.includes(candidate);
+  return ` ${source} `.includes(` ${candidate} `);
+}
+
+function phrasePositions(source, candidate) {
+  if (!source || !candidate) return [];
+  const haystack = ` ${source} `;
+  const needle = ` ${candidate} `;
+  const positions = [];
+  let offset = 0;
+
+  while (offset < haystack.length) {
+    const found = haystack.indexOf(needle, offset);
+    if (found < 0) break;
+    positions.push(found + 1);
+    offset = found + needle.length - 1;
+  }
+
+  return positions;
+}
+
+function fieldIsNearestToRoom(clause, targetRoom, field, roomValues) {
+  const fieldPositions = phrasePositions(clause, field);
+  const targetPositions = phrasePositions(clause, targetRoom);
+  if (!fieldPositions.length || !targetPositions.length) return false;
+
+  const roomsInClause = roomValues.filter((room) => containsNormalizedPhrase(clause, room));
+  if (roomsInClause.length <= 1) return true;
+
+  return fieldPositions.some((fieldPosition) => {
+    const distances = roomsInClause.map((room) => {
+      const positions = phrasePositions(clause, room);
+      const distance = Math.min(...positions.map((roomPosition) => Math.abs(roomPosition - fieldPosition)));
+      return { room, distance };
+    });
+    const minimum = Math.min(...distances.map(({ distance }) => distance));
+    return distances.some(({ room, distance }) => room === targetRoom && distance === minimum);
+  });
 }
 
 function normalizeComparable(value) {
