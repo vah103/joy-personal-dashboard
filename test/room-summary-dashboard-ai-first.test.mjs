@@ -16,13 +16,15 @@ test("dashboard Sale Assistant sends the original listing to the semantic AI end
   assert.match(controller, /\/api\/sales\/room-summary\/analyze/);
   assert.match(controller, /JSON\.stringify\(\{ source \}\)/);
   assert.match(controller, /payload\?\.applied === true && payload\?\.extraction/);
-  assert.match(controller, /summaryFromExtraction\(payload\.extraction\)/);
+  assert.match(controller, /renderSemantic\(elements,\s*payload\.extraction\)/);
+  assert.match(controller, /summaryFromExtraction\(extraction\)/);
+  assert.match(controller, /module\.renderRoomSummary\(elements\.output,\s*summary\)/);
 });
 
 test("dashboard controller blocks the old parser click and keeps it only as fallback", () => {
   assert.match(controller, /event\.stopImmediatePropagation\(\)/);
-  assert.match(controller, /roomSummaryEngine = "ai-first"/);
-  assert.match(controller, /roomSummaryEngine = "parser-fallback"/);
+  assert.match(controller, /setPreviewState\(elements,\s*"cleanup\.sale\.aiAnalysisComplete",\s*"ai-first"\)/);
+  assert.match(controller, /setPreviewState\(elements,\s*"cleanup\.sale\.parserFallback",\s*"parser-fallback",\s*reason\)/);
   assert.match(controller, /summarizeRoomListing\(source\)/);
 });
 
