@@ -9,6 +9,40 @@ function normalizeRoomCodeForDisplay(value) {
   return match ? `P${match[1]}` : source;
 }
 
+function normalizeFurnitureForDisplay(value) {
+  const items = String(value ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => {
+      const key = item
+        .toLocaleLowerCase("vi")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/đ/g, "d")
+        .replace(/[^a-z0-9]+/g, "")
+        .trim();
+      if (key === "dh") return "điều hòa";
+      if (key === "nl") return "nóng lạnh";
+      return item.toLocaleLowerCase("vi");
+    });
+
+  if (!items.length) return "";
+  const joined = items.join(", ");
+  return joined.charAt(0).toLocaleUpperCase("vi") + joined.slice(1);
+}
+
+function extractFloorForDisplay(sourceValue, rooms = []) {
+  if (rooms.some((room) => room?.room)) return "";
+
+  const floors = new Set();
+  const source = String(sourceValue ?? "");
+  for (const match of source.matchAll(/(?:^|[\s,;:.(\[-])(?:phòng\s+)?tầng\s*[:#-]?\s*(\d{1,2})(?=$|[\s,;:.)\]-])/giu)) {
+    floors.add(String(Number(match[1])));
+  }
+  return floors.size === 1 ? [...floors][0] : "";
+}
+
 function editableValue(text) {
   const value = document.createElement("span");
   value.className = "room-share-detail-value";
@@ -43,17 +77,20 @@ function appendAddress(details, address) {
   details.append(row);
 }
 
-function appendRoomFacts(target, room) {
-  const roomValue = editableValue(room.room || "—");
-  roomValue.classList.add("room-share-price-value");
-  target.append(roomValue);
-
+function appendPriceAndAvailability(target, room) {
   if (room.price) {
     target.append(document.createTextNode(" · "), editableValue(room.price));
   }
   if (room.availability) {
     target.append(document.createTextNode(" · "), editableValue(room.availability));
   }
+}
+
+function appendRoomFacts(target, room) {
+  const roomValue = editableValue(room.room);
+  roomValue.classList.add("room-share-price-value");
+  target.append(roomValue);
+  appendPriceAndAvailability(target, room);
 }
 
 function appendSingleRoom(details, room) {
@@ -88,13 +125,55 @@ function appendMultipleRooms(details, rooms) {
   details.append(group);
 }
 
-function appendRooms(details, rooms) {
-  if (!rooms.length) return;
-  if (rooms.length === 1) {
-    appendSingleRoom(details, rooms[0]);
+function appendLabeledValue(details, labelParts, value) {
+  if (!value) return;
+  const row = document.createElement("p");
+  row.className = "room-share-detail-row";
+  const label = document.createElement("strong");
+  label.append(...labelParts);
+  row.append(label, document.createTextNode(": "), editableValue(value));
+  details.append(row);
+}
+
+function appendFloorFacts(details, floor, room = {}) {
+  if (!floor) return;
+  const row = document.createElement("p");
+  row.className = "room-share-detail-row";
+  const label = document.createElement("strong");
+  label.append("T", "ầng");
+  row.append(label, document.createTextNode(": "), editableValue(floor));
+  appendPriceAndAvailability(row, room);
+  details.append(row);
+}
+
+function uniqueFact(rooms, key) {
+  const values = [...new Set(rooms.map((room) => String(room?.[key] || "").trim()).filter(Boolean))];
+  return values.length === 1 ? values[0] : "";
+}
+
+function appendRooms(details, rooms, floor = "") {
+  const codedRooms = rooms.filter((room) => room.room);
+  if (codedRooms.length === 1) {
+    appendSingleRoom(details, codedRooms[0]);
     return;
   }
-  appendMultipleRooms(details, rooms);
+  if (codedRooms.length > 1) {
+    appendMultipleRooms(details, codedRooms);
+    return;
+  }
+
+  const roomlessFacts = {
+    price: uniqueFact(rooms, "price"),
+    availability: uniqueFact(rooms, "availability"),
+  };
+
+  if (floor) {
+    appendFloorFacts(details, floor, roomlessFacts);
+    return;
+  }
+
+  appendLabeledValue(details, ["G", "iá"], roomlessFacts.price);
+  appendLabeledValue(details, ["T", "rống"], roomlessFacts.availability);
 }
 
 function appendRoomType(details, roomType) {
@@ -134,7 +213,7 @@ function renderSummary(container, summary = {}) {
   const details = document.createElement("div");
   details.className = "room-share-details";
   appendAddress(details, summary.address);
-  appendRooms(details, Array.isArray(summary.rooms) ? summary.rooms : []);
+  appendRooms(details, Array.isArray(summary.rooms) ? summary.rooms : [], summary.floor);
   appendRoomType(details, summary.roomType);
   appendElevator(details, summary.elevator);
   appendFurniture(details, summary.furniture);
@@ -169,9 +248,10 @@ async function detectRoomSummary(source) {
   return {
     address: String(payload.address || "").trim(),
     rooms,
+    floor: extractFloorForDisplay(source, rooms),
     roomType: String(payload.roomType || "").trim(),
     elevator: String(payload.elevator || "").trim(),
-    furniture: String(payload.furniture || "").trim(),
+    furniture: normalizeFurnitureForDisplay(payload.furniture),
   };
 }
 
@@ -203,7 +283,7 @@ function initializeRoomAddressAi() {
     generate.disabled = true;
     generate.textContent = "Đang kiểm tra…";
     capture.disabled = true;
-    renderSummary(output, { address: "…", rooms: [], roomType: "", elevator: "", furniture: "" });
+    renderSummary(output, { address: "…", rooms: [], floor: "", roomType: "", elevator: "", furniture: "" });
 
     try {
       const summary = await detectRoomSummary(source);
@@ -211,6 +291,7 @@ function initializeRoomAddressAi() {
       renderSummary(output, {
         address: summary.address || "Không xác định",
         rooms: summary.rooms,
+        floor: summary.floor,
         roomType: summary.roomType,
         elevator: summary.elevator,
         furniture: summary.furniture,
@@ -220,7 +301,7 @@ function initializeRoomAddressAi() {
     } catch (error) {
       if (version !== requestVersion) return;
       console.warn("Joy Sale room summary detection failed", error?.code || error?.message || error);
-      renderSummary(output, { address: "Không xác định", rooms: [], roomType: "", elevator: "", furniture: "" });
+      renderSummary(output, { address: "Không xác định", rooms: [], floor: "", roomType: "", elevator: "", furniture: "" });
       capture.disabled = true;
     } finally {
       if (version === requestVersion) {
