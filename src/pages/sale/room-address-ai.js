@@ -218,6 +218,28 @@ function appendFurniture(details, furniture) {
   details.append(row);
 }
 
+function appendServices(details, services = {}) {
+  const electricity = String(services.electricity || "").trim();
+  const water = String(services.water || "").trim();
+  if (!electricity && !water) return;
+
+  const row = document.createElement("p");
+  row.className = "room-share-detail-row";
+  const label = document.createElement("strong");
+  label.append("Dịch", " vụ");
+  row.append(label, document.createTextNode(": "));
+
+  if (electricity) {
+    row.append(document.createTextNode("Đi"), document.createTextNode("ện "), editableValue(electricity));
+  }
+  if (water) {
+    if (electricity) row.append(document.createTextNode(", "));
+    row.append(document.createTextNode(electricity ? "n" : "N"), document.createTextNode("ước "), editableValue(water));
+  }
+
+  details.append(row);
+}
+
 function renderSummary(container, summary = {}) {
   container.replaceChildren();
   container.classList.remove("is-empty");
@@ -229,6 +251,7 @@ function renderSummary(container, summary = {}) {
   appendRoomType(details, summary.roomType);
   appendElevator(details, summary.elevator);
   appendFurniture(details, summary.furniture);
+  appendServices(details, summary.services);
   container.append(details);
 }
 
@@ -267,6 +290,10 @@ async function detectRoomSummary(source) {
     roomType: String(payload.roomType || "").trim(),
     elevator: String(payload.elevator || "").trim(),
     furniture: normalizeFurnitureForDisplay(payload.furniture),
+    services: {
+      electricity: String(payload.services?.electricity || "").trim(),
+      water: String(payload.services?.water || "").trim(),
+    },
   };
 }
 
@@ -298,7 +325,15 @@ function initializeRoomAddressAi() {
     generate.disabled = true;
     generate.textContent = "Đang kiểm tra…";
     capture.disabled = true;
-    renderSummary(output, { address: "…", rooms: [], floor: "", roomType: "", elevator: "", furniture: "" });
+    renderSummary(output, {
+      address: "…",
+      rooms: [],
+      floor: "",
+      roomType: "",
+      elevator: "",
+      furniture: "",
+      services: {},
+    });
 
     try {
       const summary = await detectRoomSummary(source);
@@ -310,13 +345,22 @@ function initializeRoomAddressAi() {
         roomType: summary.roomType,
         elevator: summary.elevator,
         furniture: summary.furniture,
+        services: summary.services,
       });
       capture.disabled = false;
       output.scrollIntoView({ behavior: "smooth", block: "nearest" });
     } catch (error) {
       if (version !== requestVersion) return;
       console.warn("Joy Sale room summary detection failed", error?.code || error?.message || error);
-      renderSummary(output, { address: "Không xác định", rooms: [], floor: "", roomType: "", elevator: "", furniture: "" });
+      renderSummary(output, {
+        address: "Không xác định",
+        rooms: [],
+        floor: "",
+        roomType: "",
+        elevator: "",
+        furniture: "",
+        services: {},
+      });
       capture.disabled = true;
     } finally {
       if (version === requestVersion) {
