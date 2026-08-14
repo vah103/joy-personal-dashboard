@@ -52,7 +52,7 @@ const EXPLICIT_UNAVAILABLE_PATTERNS = Object.freeze([
 const NON_FURNITURE_ITEM_PATTERNS = Object.freeze([
   /^(?:dien|nuoc|mang|internet|wifi|gui xe|phi gui xe|dich vu|phi dich vu)$/u,
   /^(?:thang may|thang bo|elevator)$/u,
-  /^(?:studio|stuido|gac xep|\d+\s*n\s*1\s*k)$/u,
+  /^(?:studio|stuido|don|gac xep|\d+\s*n\s*1\s*k)$/u,
   /^(?:ban cong|cua so|gac|tang|dien tich|camera|bao ve)$/u,
 ]);
 
@@ -167,6 +167,7 @@ export function canonicalRoomType(value) {
   if (!normalized) return "";
   if (normalized === "gac xep") return "Gác xép";
   if (normalized === "studio" || normalized === "stuido") return "Studio";
+  if (normalized === "don") return "Đơn";
 
   const bedroomMatch = normalized.match(/^([1-9]\d*)\s*n\s*1\s*k$/u);
   return bedroomMatch ? `${Number(bedroomMatch[1])}N1K` : "";
@@ -240,7 +241,7 @@ export function normalizeDetectedFurniture(sourceValue, itemValues, asImage = fa
     }
   }
 
-  return items.join(", ");
+  return formatFurnitureItems(items);
 }
 
 function normalizeFurnitureCandidate(value) {
@@ -253,34 +254,42 @@ function displayFurnitureItem(value) {
   const clean = String(value || "").trim();
   const comparable = normalizeComparable(clean);
   const canonical = new Map([
-    ["dieu hoa", "Điều hòa"],
-    ["nong lanh", "Nóng lạnh"],
-    ["binh nong lanh", "Nóng lạnh"],
-    ["giuong", "Giường"],
-    ["tu", "Tủ"],
-    ["tu ao", "Tủ quần áo"],
-    ["tu quan ao", "Tủ quần áo"],
-    ["tu lanh", "Tủ lạnh"],
-    ["may giat", "Máy giặt"],
-    ["bep tu", "Bếp từ"],
-    ["tu bep", "Tủ bếp"],
-    ["sofa", "Sofa"],
-    ["rem", "Rèm"],
-    ["ban", "Bàn"],
-    ["ghe", "Ghế"],
-    ["ban ghe", "Bàn ghế"],
-    ["ban an", "Bàn ăn"],
-    ["ban lam viec", "Bàn làm việc"],
-    ["ke", "Kệ"],
-    ["tivi", "Tivi"],
-    ["tv", "TV"],
-    ["may hut mui", "Máy hút mùi"],
-    ["lo vi song", "Lò vi sóng"],
-    ["dem", "Đệm"],
-    ["full do", "Full đồ"],
+    ["dieu hoa", "điều hòa"],
+    ["nong lanh", "nóng lạnh"],
+    ["binh nong lanh", "nóng lạnh"],
+    ["giuong", "giường"],
+    ["tu", "tủ"],
+    ["tu ao", "tủ quần áo"],
+    ["tu quan ao", "tủ quần áo"],
+    ["tu lanh", "tủ lạnh"],
+    ["may giat", "máy giặt"],
+    ["bep tu", "bếp từ"],
+    ["tu bep", "tủ bếp"],
+    ["sofa", "sofa"],
+    ["rem", "rèm"],
+    ["ban", "bàn"],
+    ["ghe", "ghế"],
+    ["ban ghe", "bàn ghế"],
+    ["ban an", "bàn ăn"],
+    ["ban lam viec", "bàn làm việc"],
+    ["ke", "kệ"],
+    ["tivi", "tivi"],
+    ["tv", "tv"],
+    ["may hut mui", "máy hút mùi"],
+    ["lo vi song", "lò vi sóng"],
+    ["dem", "đệm"],
+    ["full do", "full đồ"],
   ]).get(comparable);
-  if (canonical) return canonical;
-  return clean.charAt(0).toLocaleUpperCase("vi") + clean.slice(1);
+  return canonical || clean.toLocaleLowerCase("vi");
+}
+
+function formatFurnitureItems(items) {
+  const normalized = items
+    .map((item) => String(item || "").trim().toLocaleLowerCase("vi"))
+    .filter(Boolean);
+  if (!normalized.length) return "";
+  const joined = normalized.join(", ");
+  return joined.charAt(0).toLocaleUpperCase("vi") + joined.slice(1);
 }
 
 export function addressIsGroundedInSource(sourceValue, addressValue) {
@@ -320,6 +329,7 @@ export function roomFieldIsAssociatedInSource(sourceValue, roomValue, fieldValue
   if (room) {
     for (const clause of clauses) {
       if (!containsNormalizedPhrase(clause, field) || !containsNormalizedPhrase(clause, room)) continue;
+      if (fieldKind === "price" && groupedPriceClauseIsExplicit(clause, room, field, rooms)) return true;
       if (fieldIsNearestToRoom(clause, room, field, rooms)) return true;
     }
   }
@@ -417,12 +427,14 @@ PHÒNG / GIÁ / THỜI GIAN TRỐNG:
 - price giữ đúng cách nguồn viết, ví dụ 4tr5, 5.1tr, 5tr1/tháng. Không đổi đơn vị, không tính toán và không tự thêm "/tháng".
 - availability giữ đúng thông tin nguồn viết, ví dụ "vào luôn", "1/9", "trống 15/8", "cuối tháng". Không tự đổi cụm tương đối thành ngày cụ thể.
 - Nếu nhiều phòng có giá hoặc ngày trống khác nhau, phải ghép đúng giá và thời gian với đúng phòng.
+- Cú pháp nhóm như "Giá: 4tr3-p301-501" nghĩa là cùng giá 4tr3 áp dụng cho cả P301 và 501.
 - Nếu không chắc giá/thời gian thuộc phòng nào, để trường đó rỗng thay vì gán nhầm.
 
 DẠNG PHÒNG:
-- roomType chỉ được nhận một trong các dạng: "Gác xép", "Studio", hoặc mẫu "1N1K", "2N1K", "3N1K", "4N1K"... với số N có thể tiếp tục tăng.
-- Có thể chuẩn hóa chữ hoa/chữ thường, ví dụ "studio" → "Studio", "2n1k" → "2N1K".
+- roomType chỉ được nhận một trong các dạng: "Đơn", "Gác xép", "Studio", hoặc mẫu "1N1K", "2N1K", "3N1K", "4N1K"... với số N có thể tiếp tục tăng.
+- Có thể chuẩn hóa chữ hoa/chữ thường, ví dụ "đơn" → "Đơn", "studio" → "Studio", "2n1k" → "2N1K".
 - Nếu nguồn viết nhầm phổ biến "stuido", hiểu là "Studio".
+- Không tự đổi "Đơn" thành "Studio"; đây là hai option khác nhau.
 - Không suy ra roomType từ diện tích, số người, nội thất hoặc mô tả khác.
 - Nếu nguồn chứa nhiều dạng phòng khác nhau và không có một dạng chung rõ ràng, để roomType rỗng.
 
@@ -454,6 +466,7 @@ function roomTypesInSource(value) {
   const types = new Set();
   if (!source) return types;
 
+  if (/\bdon\b/u.test(source)) types.add("Đơn");
   if (/\bgac xep\b/u.test(source)) types.add("Gác xép");
   if (/\b(?:studio|stuido)\b/u.test(source)) types.add("Studio");
 
@@ -519,6 +532,27 @@ function fieldIsNearestToRoom(clause, targetRoom, field, roomValues) {
     const minimum = Math.min(...distances.map(({ distance }) => distance));
     return distances.some(({ room, distance }) => room === targetRoom && distance === minimum);
   });
+}
+
+function groupedPriceClauseIsExplicit(clause, targetRoom, field, roomValues) {
+  if (!/\b(?:gia|price|rent)\b/u.test(clause)) return false;
+
+  const roomsInClause = roomValues.filter((room) => containsNormalizedPhrase(clause, room));
+  if (roomsInClause.length < 2 || !roomsInClause.includes(targetRoom)) return false;
+
+  const fieldPositions = phrasePositions(clause, field);
+  if (fieldPositions.length !== 1) return false;
+
+  const roomPositions = roomsInClause.flatMap((room) => phrasePositions(clause, room));
+  if (!roomPositions.length) return false;
+
+  const fieldPosition = fieldPositions[0];
+  const priceSitsOutsideRoomGroup = fieldPosition < Math.min(...roomPositions)
+    || fieldPosition > Math.max(...roomPositions);
+  if (!priceSitsOutsideRoomGroup) return false;
+
+  const withoutField = removeNormalizedPhrase(clause, field);
+  return !/\b\d+(?:\s+\d+)?\s*(?:tr|trieu|m|k)\d*\b/u.test(withoutField);
 }
 
 function sharedFieldClauseIsExplicit(clause, field, fieldKind) {
