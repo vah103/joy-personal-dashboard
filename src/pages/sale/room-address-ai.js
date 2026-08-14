@@ -147,7 +147,7 @@ function initializeRoomAddressAi() {
       if (version !== requestVersion) return;
       console.warn("Joy Sale room summary detection failed", error?.code || error?.message || error);
       renderSummary(output, { address: "Không xác định", rooms: [] });
-      capture.disabled = false;
+      capture.disabled = true;
     } finally {
       if (version === requestVersion) {
         generate.disabled = false;
