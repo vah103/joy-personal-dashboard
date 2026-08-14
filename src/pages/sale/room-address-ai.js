@@ -275,11 +275,11 @@ function appendServices(details, services = {}) {
   row.append(label, document.createTextNode(": "));
 
   if (electricity) {
-    row.append(document.createTextNode("Đi"), document.createTextNode("ện "), editableValue(electricity));
+    row.append("Đi", "ện ", editableValue(electricity));
   }
   if (water) {
-    if (electricity) row.append(document.createTextNode(", "));
-    row.append(document.createTextNode(electricity ? "n" : "N"), document.createTextNode("ước "), editableValue(water));
+    if (electricity) row.append(", ");
+    row.append(electricity ? "n" : "N", "ước ", editableValue(water));
   }
 
   details.append(row);
