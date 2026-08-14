@@ -15,34 +15,38 @@ async function loadServiceDisplayHelpers() {
     },
   };
   vm.runInNewContext(
-    `${frontend}\nthis.__helpers = { extractExplicitServiceRateForDisplay, normalizeServiceRateForDisplay, servicesForDisplay };`,
+    `${frontend}\nthis.__helpers = { normalizeServiceRateForDisplay, servicesForDisplay };`,
     sandbox,
   );
-  return sandbox.__helpers;
+  return { helpers: sandbox.__helpers, frontend };
 }
 
-test("recovers explicit electricity and water when AI leaves service fields blank", async () => {
-  const { servicesForDisplay } = await loadServiceDisplayHelpers();
+test("frontend does not recover electricity or water directly from raw source", async () => {
+  const { helpers, frontend } = await loadServiceDisplayHelpers();
   const source = "Phí dịch vụ: Điện 4k, nước 135k/ng, dv chung 180k/ng.";
 
   assert.deepEqual(
-    JSON.parse(JSON.stringify(servicesForDisplay(source, {}))),
-    { electricity: "4k", water: "135k/người", items: [] },
+    JSON.parse(JSON.stringify(helpers.servicesForDisplay(source, {}))),
+    { electricity: "", water: "", items: [] },
   );
+  assert.doesNotMatch(frontend, /extractExplicitServiceRateForDisplay/u);
 });
 
-test("normalizes explicit per-number and per-cubic-meter units in fallback", async () => {
-  const { servicesForDisplay } = await loadServiceDisplayHelpers();
-  const source = "Điện: 4k/1 số; Nước: 35k/m3";
+test("normalizes backend-provided per-number and per-cubic-meter units for display", async () => {
+  const { helpers } = await loadServiceDisplayHelpers();
 
   assert.deepEqual(
-    JSON.parse(JSON.stringify(servicesForDisplay(source, {}))),
+    JSON.parse(JSON.stringify(helpers.servicesForDisplay("ignored raw source", {
+      electricity: "4k/1 số",
+      water: "35k/m3",
+    }))),
     { electricity: "4k/số", water: "35k/khối", items: [] },
   );
 });
 
-test("shows 3.99-style electricity as 4k without changing other service rates", async () => {
-  const { normalizeServiceRateForDisplay, servicesForDisplay } = await loadServiceDisplayHelpers();
+test("shows backend-provided 3.99-style electricity as 4k without changing other rates", async () => {
+  const { helpers } = await loadServiceDisplayHelpers();
+  const { normalizeServiceRateForDisplay, servicesForDisplay } = helpers;
 
   assert.equal(normalizeServiceRateForDisplay("3.99/số", "electricity"), "4k/số");
   assert.equal(normalizeServiceRateForDisplay("3.990/số", "electricity"), "4k/số");
@@ -50,17 +54,21 @@ test("shows 3.99-style electricity as 4k without changing other service rates", 
   assert.equal(normalizeServiceRateForDisplay("3.8/số", "electricity"), "3.8/số");
 
   assert.deepEqual(
-    JSON.parse(JSON.stringify(servicesForDisplay("Điện 3.990/số, nước 35k/khối", {}))),
+    JSON.parse(JSON.stringify(servicesForDisplay("ignored", {
+      electricity: "3.990/số",
+      water: "35k/khối",
+    }))),
     { electricity: "4k/số", water: "35k/khối", items: [] },
   );
 });
 
-test("keeps dynamic service items while applying electricity and water fallback", async () => {
-  const { servicesForDisplay } = await loadServiceDisplayHelpers();
-  const source = "Điện 4k/số, nước 35k/khối, mạng 100k/phòng.";
+test("keeps dynamic service items while formatting backend electricity and water", async () => {
+  const { helpers } = await loadServiceDisplayHelpers();
 
   assert.deepEqual(
-    JSON.parse(JSON.stringify(servicesForDisplay(source, {
+    JSON.parse(JSON.stringify(helpers.servicesForDisplay("ignored", {
+      electricity: "4k/số",
+      water: "35k/khối",
       items: [
         { kind: "internet", name: "Mạng", value: "100k/phòng", includes: [] },
       ],
@@ -89,12 +97,12 @@ test("renders electricity and water as bullet items under the service heading", 
   assert.doesNotMatch(frontend, /waterRow\.className = "room-share-detail-row"/u);
 });
 
-test("does not turn unrelated common fees into electricity or water", async () => {
-  const { servicesForDisplay } = await loadServiceDisplayHelpers();
+test("unrelated fees remain unrelated when backend leaves electricity and water blank", async () => {
+  const { helpers } = await loadServiceDisplayHelpers();
   const source = "Dịch vụ chung 180k/ng, mạng 100k, gửi xe 100k.";
 
   assert.deepEqual(
-    JSON.parse(JSON.stringify(servicesForDisplay(source, {}))),
+    JSON.parse(JSON.stringify(helpers.servicesForDisplay(source, { items: [] }))),
     { electricity: "", water: "", items: [] },
   );
 });
