@@ -205,6 +205,7 @@ function explicitServiceCandidates(segment) {
 }
 
 function memberBundleCandidates(segment) {
+  if (sharedUtilityCandidates(segment).length) return [];
   const rates = rateMatches(segment);
   if (rates.length !== 1) return [];
   const includes = packageIncludes(segment, 0);
@@ -237,10 +238,52 @@ function mergeIncludes(left, right) {
   return output;
 }
 
-function dedupeSourceItems(items) {
+function semanticIdentity(item) {
+  return `${String(item?.kind ?? "other").trim() || "other"}|${normalizeComparable(item?.name)}`;
+}
+
+function fullIdentity(item) {
+  return `${semanticIdentity(item)}|${normalizeRateIdentity(item?.value)}`;
+}
+
+function packageIncludesItemName(pkg, item) {
+  const itemName = normalizeComparable(item?.name);
+  return Boolean(itemName) && (pkg?.includes || []).some((value) => normalizeComparable(value) === itemName);
+}
+
+function packageContainsItemAtSameRate(pkg, item) {
+  return pkg.kind === "common"
+    && item.kind !== "common"
+    && packageIncludesItemName(pkg, item)
+    && normalizeRateIdentity(pkg.value) === normalizeRateIdentity(item.value);
+}
+
+function resolvePackageMembership(items) {
+  const independent = items.filter((item) => item.kind !== "common");
+  const withCleanIncludes = items.map((item) => {
+    if (item.kind !== "common") return item;
+    return {
+      ...item,
+      includes: (item.includes || []).filter((include) => {
+        const includeName = normalizeComparable(include);
+        return !independent.some((other) => (
+          normalizeComparable(other.name) === includeName
+          && normalizeRateIdentity(other.value) !== normalizeRateIdentity(item.value)
+        ));
+      }),
+    };
+  });
+
+  const packages = withCleanIncludes.filter((item) => item.kind === "common");
+  return withCleanIncludes.filter((item) => (
+    item.kind === "common" || !packages.some((pkg) => packageContainsItemAtSameRate(pkg, item))
+  ));
+}
+
+function dedupeItems(items) {
   const byIdentity = new Map();
   for (const item of items) {
-    const identity = `${item.kind}|${normalizeComparable(item.name)}|${normalizeRateIdentity(item.value)}`;
+    const identity = fullIdentity(item);
     const existing = byIdentity.get(identity);
     if (existing) {
       existing.includes = mergeIncludes(existing.includes, item.includes);
@@ -264,29 +307,13 @@ export function extractSourceDynamicServiceItems(sourceValue) {
     candidates.push(...explicitServiceCandidates(segment));
     candidates.push(...memberBundleCandidates(segment));
   }
-  return dedupeSourceItems(candidates).slice(0, MAX_SERVICE_ITEMS);
-}
-
-function semanticIdentity(item) {
-  return `${String(item?.kind ?? "other").trim() || "other"}|${normalizeComparable(item?.name)}`;
-}
-
-function fullIdentity(item) {
-  return `${semanticIdentity(item)}|${normalizeRateIdentity(item?.value)}`;
-}
-
-function packageContainsItem(pkg, item) {
-  if (pkg.kind !== "common" || item.kind === "common") return false;
-  const itemName = normalizeComparable(item.name);
-  if (!itemName) return false;
-  return normalizeRateIdentity(pkg.value) === normalizeRateIdentity(item.value)
-    && (pkg.includes || []).some((value) => normalizeComparable(value) === itemName);
+  return resolvePackageMembership(dedupeItems(candidates)).slice(0, MAX_SERVICE_ITEMS);
 }
 
 export function reconcileDynamicServiceItems(sourceValue, aiItems) {
   const sourceItems = extractSourceDynamicServiceItems(sourceValue);
   const sourceBySemantic = new Map(sourceItems.map((item) => [semanticIdentity(item), item]));
-  const byIdentity = new Map();
+  const merged = [];
 
   for (const item of Array.isArray(aiItems) ? aiItems : []) {
     const name = String(item?.name ?? "").trim();
@@ -299,22 +326,9 @@ export function reconcileDynamicServiceItems(sourceValue, aiItems) {
     if (sourceEquivalent && normalizeRateIdentity(sourceEquivalent.value) !== normalizeRateIdentity(value)) {
       continue;
     }
-    byIdentity.set(fullIdentity(normalizedItem), normalizedItem);
+    merged.push(normalizedItem);
   }
 
-  for (const item of sourceItems) {
-    const identity = fullIdentity(item);
-    const existing = byIdentity.get(identity);
-    if (existing) {
-      existing.includes = mergeIncludes(existing.includes, item.includes);
-    } else {
-      byIdentity.set(identity, { ...item, includes: mergeIncludes([], item.includes) });
-    }
-  }
-
-  const merged = [...byIdentity.values()];
-  const packages = merged.filter((item) => item.kind === "common");
-  return merged
-    .filter((item) => item.kind === "common" || !packages.some((pkg) => packageContainsItem(pkg, item)))
-    .slice(0, MAX_SERVICE_ITEMS);
+  merged.push(...sourceItems);
+  return resolvePackageMembership(dedupeItems(merged)).slice(0, MAX_SERVICE_ITEMS);
 }
