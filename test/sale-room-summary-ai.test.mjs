@@ -47,15 +47,28 @@ test("rejects an AI address that invents a location not present in the source", 
   assert.equal(addressIsGroundedInSource(source, "180 Phú Mỹ, Hà Nội"), false);
 });
 
-test("Sale page uses the address-only AI frontend and the build ships it", async () => {
-  const [html, build, router] = await Promise.all([
+test("every Room Summary entrypoint is address-only", async () => {
+  const [html, build, router, frontend, legacyBridge, assistant] = await Promise.all([
     readFile(new URL("../src/pages/sale/index.html", import.meta.url), "utf8"),
     readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8"),
     readFile(new URL("../worker/router.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/pages/sale/room-address-ai.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/pages/sale/room-summary.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/sales-assistant.js", import.meta.url), "utf8"),
   ]);
 
   assert.match(html, /room-address-ai\.js/);
   assert.doesNotMatch(html, /src="room-summary\.js/);
   assert.match(build, /room-address-ai\.js/);
+  assert.match(build, /room-summary\.js/);
   assert.match(router, /isSaleRoomSummaryAiRoute/);
+
+  assert.match(frontend, /ROOM_ADDRESS_AI_PATH = "\/api\/sales\/room-summary\/address"/);
+  assert.match(frontend, /label\.textContent = "Địa chỉ"/);
+  assert.doesNotMatch(frontend, /Phòng trống|Giá phòng|Dạng phòng|Nội thất|Dịch vụ|Lưu ý/);
+
+  assert.match(legacyBridge, /room-address-ai\.js/);
+  assert.doesNotMatch(legacyBridge, /summarizeRoomListing|SERVICE_DEFINITIONS|FURNITURE_KEYWORDS|NOTE_KEYWORDS/);
+
+  assert.match(assistant, /import\("\.\/room-summary\.js\?v=joy-room-summary-v1"\)/);
 });
