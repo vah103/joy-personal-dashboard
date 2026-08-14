@@ -10,6 +10,7 @@ const MAX_ADDRESS_LENGTH = 320;
 const MAX_ROOM_FIELD_LENGTH = 220;
 const MAX_ROOMS = 24;
 const MAX_FURNITURE_ITEMS = 24;
+const MAX_SERVICE_ITEMS = 16;
 
 const ROOM_SUMMARY_SCHEMA = {
   type: "object",
@@ -38,6 +39,28 @@ const ROOM_SUMMARY_SCHEMA = {
     },
     electricity: { type: "string" },
     water: { type: "string" },
+    serviceItems: {
+      type: "array",
+      maxItems: MAX_SERVICE_ITEMS,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          kind: {
+            type: "string",
+            enum: ["common", "internet", "parking", "cleaning", "washing", "other"],
+          },
+          name: { type: "string" },
+          value: { type: "string" },
+          includes: {
+            type: "array",
+            items: { type: "string" },
+          },
+          evidence: { type: "string" },
+        },
+        required: ["kind", "name", "value", "includes", "evidence"],
+      },
+    },
   },
   required: [
     "address",
@@ -48,6 +71,7 @@ const ROOM_SUMMARY_SCHEMA = {
     "furnitureItems",
     "electricity",
     "water",
+    "serviceItems",
   ],
 };
 
@@ -115,6 +139,9 @@ export async function handleSaleRoomSummaryAiRequest(request, env) {
     const elevator = normalizeDetectedElevator(source, detected.elevator);
     const furniture = normalizeDetectedFurniture(source, detected.furnitureItems, detected.furnitureAsImage);
     const services = normalizeDetectedServices(source, detected.electricity, detected.water);
+    const serviceItems = Array.isArray(detected.serviceItems)
+      ? detected.serviceItems.slice(0, MAX_SERVICE_ITEMS)
+      : [];
 
     return json({
       ok: true,
@@ -126,6 +153,7 @@ export async function handleSaleRoomSummaryAiRequest(request, env) {
         || furniture
         || services.electricity
         || services.water
+        || serviceItems.length
       ),
       provider: "workers-ai",
       model,
@@ -135,6 +163,7 @@ export async function handleSaleRoomSummaryAiRequest(request, env) {
       elevator,
       furniture,
       services,
+      serviceItems,
     });
   } catch (error) {
     console.warn("Joy Sale room-summary AI unavailable", error?.message || error);
@@ -479,7 +508,7 @@ export function normalizeDetectedRooms(sourceValue, roomValues) {
 
 function roomSummaryInstructions() {
   return `Bạn là bộ trích xuất dữ liệu tin phòng trọ/căn hộ bằng tiếng Việt.
-Nhiệm vụ hiện tại gồm 6 phần: địa chỉ; các phòng/căn đang cần cho thuê cùng giá và thời gian trống; dạng phòng chung; thang máy; nội thất; và dịch vụ điện/nước.
+Nhiệm vụ hiện tại gồm 7 phần: địa chỉ; các phòng/căn đang cần cho thuê cùng giá và thời gian trống; dạng phòng chung; thang máy; nội thất; điện/nước độc lập; và các khoản dịch vụ còn lại.
 
 Trả về đúng JSON theo schema:
 {
@@ -492,7 +521,16 @@ Trả về đúng JSON theo schema:
   "furnitureAsImage": false,
   "furnitureItems": ["..."],
   "electricity": "...",
-  "water": "..."
+  "water": "...",
+  "serviceItems": [
+    {
+      "kind": "common | internet | parking | cleaning | washing | other",
+      "name": "...",
+      "value": "...",
+      "includes": ["..."],
+      "evidence": "..."
+    }
+  ]
 }
 
 QUY TẮC CHUNG:
@@ -544,15 +582,22 @@ NỘI THẤT:
 - Nếu nguồn chỉ nói "full đồ" mà không liệt kê và không nói "như ảnh/như hình", có thể trả furnitureItems=["full đồ"].
 - Nếu không có thông tin nội thất rõ ràng, furnitureAsImage=false và furnitureItems=[].
 
-DỊCH VỤ — GIAI ĐOẠN HIỆN TẠI CHỈ LẤY ĐIỆN VÀ NƯỚC:
-- electricity chỉ chứa mức giá điện đúng như nguồn viết, không chứa chữ "Điện". Ví dụ: "4k/số", "4k/1 số", "4k".
-- water chỉ chứa mức giá nước đúng như nguồn viết, không chứa chữ "Nước". Ví dụ: "35k/khối", "135k/ng", "100k/người".
-- Điện thường tính theo số điện/kWh; nước thường tính theo khối hoặc theo người. Đây chỉ là ngữ cảnh để nhận diện, không được tự thêm đơn vị mà nguồn không ghi.
-- Nếu nguồn ghi "Điện 4k" thì electricity="4k", không tự biến thành "4k/số".
-- Nếu nguồn ghi "Nước 135k/ng" thì water="135k/ng"; backend có thể chuẩn hóa cách viết đơn vị sau khi đã xác minh nguồn.
+DỊCH VỤ:
+- electricity chỉ chứa mức giá điện ĐỘC LẬP đúng như nguồn viết, không chứa chữ "Điện". Ví dụ: "4k/số", "4k/1 số", "4k".
+- water chỉ chứa mức giá nước ĐỘC LẬP đúng như nguồn viết, không chứa chữ "Nước". Ví dụ: "35k/khối", "135k/ng", "100k/người".
+- Nếu một mức phí duy nhất áp chung cho cả điện và nước, ví dụ "Điện nước 100k/ng", KHÔNG gán mức đó riêng vào electricity hoặc water. Hãy trả một serviceItems item kind="other", name="Điện + nước".
+- serviceItems chỉ chứa các khoản dịch vụ ngoài điện/nước độc lập và phải có mức phí hoặc trạng thái miễn phí rõ ràng trong nguồn.
+- Mỗi serviceItems item phải có evidence là một đoạn NGUYÊN VĂN, liên tục và ngắn từ nguồn, đủ chứng minh đúng dịch vụ + đúng value + quan hệ gói nếu có. Không viết lại evidence.
+- value giữ nguyên cách nguồn viết, ví dụ 180k/ng, 100k/phòng, 80k/xe, 50k/tháng, miễn phí. Không tự đổi đơn vị.
+- Nếu một mức phí bao trùm nhiều dịch vụ, trả MỘT item kind="common", name="Dịch vụ chung", value là mức phí cả gói và includes là các thành phần.
+- Ví dụ "DV chung 180k/ng gồm vệ sinh, rác, mạng, điện chung, máy giặt" => một item common; tuyệt đối không gán 180k/ng riêng cho mạng/vệ sinh/máy giặt.
+- Các cách viết "DV 180k/ng gồm ...", "phí chung ...", "phí dịch vụ chung ...", hoặc "mạng + vệ sinh + máy giặt 180k/ng" được hiểu là gói nếu scope rõ và chỉ có một mức phí cho cả nhóm.
+- Nếu từng dịch vụ có giá riêng, trả từng item riêng: internet cho mạng/wifi, parking cho gửi xe, cleaning cho vệ sinh/rác, washing cho máy giặt chung, other cho dịch vụ có phí khác như phí quản lý, thẻ thang máy, bảo vệ, camera hoặc điện+nước gộp.
+- Nếu vừa có gói chung vừa có khoản riêng, giữ cả hai. Nếu một thành phần trong gói có mức phí riêng rõ ràng ở chỗ khác, mức riêng là item độc lập và không dùng phí gói cho nó.
+- Có thể hiểu cả "nhãn -> giá" và "giá -> nhãn" khi quan hệ rõ, ví dụ "Mạng 100k/phòng" và "100k/phòng mạng".
 - Không lấy mạng, wifi, gửi xe, phí vệ sinh, phí dịch vụ chung, máy giặt hoặc khoản khác vào electricity/water.
-- Nếu một dòng có cả điện và nước, phải ghép đúng mức giá với đúng dịch vụ; không tráo hai mức giá.
-- Nếu không có hoặc không chắc chắn, trả chuỗi rỗng.`;
+- Nếu một dòng có cả điện và nước độc lập, phải ghép đúng mức giá với đúng dịch vụ; không tráo hai mức giá.
+- Nếu không có dịch vụ động phù hợp, trả serviceItems=[]. Nếu electricity/water không có hoặc không chắc chắn, trả chuỗi rỗng.`;
 }
 
 function valueIsGroundedInSource(sourceValue, candidateValue) {
@@ -829,6 +874,7 @@ function extractAiObject(result) {
       || Object.hasOwn(raw, "furnitureItems")
       || Object.hasOwn(raw, "electricity")
       || Object.hasOwn(raw, "water")
+      || Object.hasOwn(raw, "serviceItems")
     ) return raw;
     const nested = raw.response ?? raw.result ?? raw.text;
     if (nested && typeof nested === "object" && !Array.isArray(nested)) return nested;
