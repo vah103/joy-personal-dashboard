@@ -27,4 +27,6 @@ export default Object.freeze({
   "cleanup.sale.serviceFridge": "Tủ lạnh",
   "cleanup.sale.serviceLaundry": "Giặt sấy",
   "cleanup.sale.serviceOther": "Khác",
+  "cleanup.sale.aiAnalysisComplete": "AI đã phân tích xong",
+  "cleanup.sale.parserFallback": "Đang dùng parser dự phòng",
 });
