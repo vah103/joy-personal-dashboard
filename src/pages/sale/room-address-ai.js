@@ -34,34 +34,58 @@ function appendAddress(details, address) {
   details.append(row);
 }
 
-function appendRoomList(details, rooms) {
-  if (!rooms.length) return;
+function appendRoomFacts(target, room) {
+  const roomValue = editableValue(room.room || "—");
+  roomValue.classList.add("room-share-price-value");
+  target.append(roomValue);
 
+  if (room.price) {
+    target.append(document.createTextNode(" · "), editableValue(room.price));
+  }
+  if (room.availability) {
+    target.append(document.createTextNode(" · "), editableValue(room.availability));
+  }
+}
+
+function appendSingleRoom(details, room) {
+  const row = document.createElement("p");
+  row.className = "room-share-detail-row";
+  const label = document.createElement("strong");
+  label.append("Phòng");
+  row.append(label, document.createTextNode(": "));
+  appendRoomFacts(row, room);
+  details.append(row);
+}
+
+function appendMultipleRooms(details, rooms) {
   const group = document.createElement("div");
   group.className = "room-share-room-pricing room-share-room-pricing-multi";
+
+  const heading = document.createElement("p");
+  heading.className = "room-share-detail-row";
+  const label = document.createElement("strong");
+  label.append("Phòng");
+  heading.append(label, document.createTextNode(":"));
+
   const list = document.createElement("ul");
   list.className = "room-share-price-list";
-
   rooms.forEach((room) => {
     const item = document.createElement("li");
-    const roomLabel = document.createElement("strong");
-    roomLabel.append("Phòng");
-    const roomValue = editableValue(room.room || "—");
-    roomValue.classList.add("room-share-price-value");
-    item.append(roomLabel, document.createTextNode(": "), roomValue);
-
-    if (room.price) {
-      item.append(document.createTextNode(" · "), editableValue(room.price));
-    }
-    if (room.availability) {
-      item.append(document.createTextNode(" · "), editableValue(room.availability));
-    }
-
+    appendRoomFacts(item, room);
     list.append(item);
   });
 
-  group.append(list);
+  group.append(heading, list);
   details.append(group);
+}
+
+function appendRooms(details, rooms) {
+  if (!rooms.length) return;
+  if (rooms.length === 1) {
+    appendSingleRoom(details, rooms[0]);
+    return;
+  }
+  appendMultipleRooms(details, rooms);
 }
 
 function renderSummary(container, summary = {}) {
@@ -71,7 +95,7 @@ function renderSummary(container, summary = {}) {
   const details = document.createElement("div");
   details.className = "room-share-details";
   appendAddress(details, summary.address);
-  appendRoomList(details, Array.isArray(summary.rooms) ? summary.rooms : []);
+  appendRooms(details, Array.isArray(summary.rooms) ? summary.rooms : []);
   container.append(details);
 }
 
