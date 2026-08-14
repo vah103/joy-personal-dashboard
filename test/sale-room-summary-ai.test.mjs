@@ -9,7 +9,9 @@ import {
   normalizeDetectedAddress,
   normalizeDetectedRooms,
   normalizeRoomSummarySource,
+  roomFieldIsAssociatedInSource,
   roomFieldIsGroundedInSource,
+  roomIsExplicitlyUnavailableInSource,
   SALE_ROOM_SUMMARY_AI_PATH,
 } from "../worker/sale-room-summary-ai.js";
 
@@ -52,16 +54,23 @@ test("rejects an AI address that invents a location not present in the source", 
   assert.equal(addressIsGroundedInSource(source, "180 Phú Mỹ, Hà Nội"), false);
 });
 
-test("keeps room, price and availability only when each value is grounded in the source", () => {
+test("room grounding requires the actual source token instead of a substring", () => {
+  const source = "Trống P201 giá 4tr5.";
+  assert.equal(roomFieldIsGroundedInSource(source, "P201"), true);
+  assert.equal(roomFieldIsGroundedInSource(source, "201"), false);
+});
+
+test("keeps room, price and availability only when each value belongs to that room", () => {
   const source = `
     Địa chỉ: 105 Doãn Kế Thiện
     Trống: P201 1/9, P202 vào luôn
     Giá: P201 4tr5; P202 4tr8
   `;
 
-  assert.equal(roomFieldIsGroundedInSource(source, "P201"), true);
-  assert.equal(roomFieldIsGroundedInSource(source, "4tr5"), true);
-  assert.equal(roomFieldIsGroundedInSource(source, "1/9"), true);
+  assert.equal(roomFieldIsAssociatedInSource(source, "P201", "4tr5", ["P201", "P202"]), true);
+  assert.equal(roomFieldIsAssociatedInSource(source, "P201", "4tr8", ["P201", "P202"]), false);
+  assert.equal(roomFieldIsAssociatedInSource(source, "P201", "1/9", ["P201", "P202"]), true);
+  assert.equal(roomFieldIsAssociatedInSource(source, "P201", "vào luôn", ["P201", "P202"]), false);
 
   assert.deepEqual(normalizeDetectedRooms(source, [
     { room: "P201", price: "4tr5", availability: "1/9" },
@@ -72,12 +81,59 @@ test("keeps room, price and availability only when each value is grounded in the
   ]);
 });
 
+test("drops cross-assigned prices and dates even when every individual value exists in the source", () => {
+  const source = `
+    Trống: P201 1/9, P202 vào luôn
+    Giá: P201 4tr5; P202 4tr8
+  `;
+
+  assert.deepEqual(normalizeDetectedRooms(source, [
+    { room: "P201", price: "4tr8", availability: "vào luôn" },
+    { room: "P202", price: "4tr5", availability: "1/9" },
+  ]), [
+    { room: "P201", price: "", availability: "" },
+    { room: "P202", price: "", availability: "" },
+  ]);
+});
+
+test("allows clearly listing-wide price and availability values for several rooms", () => {
+  const source = `
+    Trống: P201, P202
+    Giá: 4tr5
+    Ngày trống: 1/9
+  `;
+
+  assert.deepEqual(normalizeDetectedRooms(source, [
+    { room: "P201", price: "4tr5", availability: "1/9" },
+    { room: "P202", price: "4tr5", availability: "1/9" },
+  ]), [
+    { room: "P201", price: "4tr5", availability: "1/9" },
+    { room: "P202", price: "4tr5", availability: "1/9" },
+  ]);
+});
+
+test("filters rooms explicitly marked as already deposited, held or rented", () => {
+  const source = `
+    P201 đã cọc
+    P202 trống 1/9 giá 4tr8
+  `;
+
+  assert.equal(roomIsExplicitlyUnavailableInSource(source, "P201"), true);
+  assert.equal(roomIsExplicitlyUnavailableInSource(source, "P202"), false);
+  assert.deepEqual(normalizeDetectedRooms(source, [
+    { room: "P201", price: "", availability: "" },
+    { room: "P202", price: "4tr8", availability: "1/9" },
+  ]), [
+    { room: "P202", price: "4tr8", availability: "1/9" },
+  ]);
+});
+
 test("drops invented room details instead of displaying AI guesses", () => {
   const source = "Địa chỉ: 180 Phú Mỹ. Trống P201. Giá 4tr5.";
 
   assert.deepEqual(normalizeDetectedRooms(source, [
     { room: "P201", price: "5tr9", availability: "15/9" },
-    { room: "P999", price: "9tr", availability: "vào luôn" },
+    { room: "P999", price: "4tr5", availability: "" },
   ]), [
     { room: "P201", price: "", availability: "" },
   ]);
@@ -93,7 +149,7 @@ test("Room Summary exposes only address and current room rental facts", async ()
     readFile(new URL("../src/features/sales/sales-assistant.js", import.meta.url), "utf8"),
   ]);
 
-  assert.match(html, /room-address-ai\.js/);
+  assert.match(html, /room-address-ai\.js\?v=joy-room-address-ai-v2/);
   assert.doesNotMatch(html, /src="room-summary\.js/);
   assert.match(build, /room-address-ai\.js/);
   assert.match(build, /room-summary\.js/);
@@ -105,8 +161,9 @@ test("Room Summary exposes only address and current room rental facts", async ()
   assert.match(frontend, /room\.price/);
   assert.match(frontend, /room\.availability/);
   assert.doesNotMatch(frontend, /Dạng phòng|Nội thất|Dịch vụ|Lưu ý|SERVICE_DEFINITIONS|FURNITURE_KEYWORDS|NOTE_KEYWORDS/);
+  assert.doesNotMatch(frontend, /`#\$\{index \+ 1\}`/);
 
-  assert.match(legacyBridge, /room-address-ai\.js/);
+  assert.match(legacyBridge, /room-address-ai\.js\?v=joy-room-address-ai-v2/);
   assert.doesNotMatch(legacyBridge, /summarizeRoomListing|SERVICE_DEFINITIONS|FURNITURE_KEYWORDS|NOTE_KEYWORDS/);
 
   assert.match(assistant, /import\("\.\/room-summary\.js\?v=joy-room-summary-v1"\)/);
