@@ -244,8 +244,9 @@ test("Room Summary exposes the current staged AI fields without legacy parser ca
   assert.match(frontend, /summary\.elevator/);
   assert.match(frontend, /summary\.furniture/);
   assert.match(frontend, /summary\.services/);
-  assert.match(frontend, /payload\.services\?\.electricity/);
-  assert.match(frontend, /payload\.services\?\.water/);
+  assert.match(frontend, /servicesForDisplay\(source, payload\.services\)/);
+  assert.match(frontend, /services\?\.electricity/);
+  assert.match(frontend, /services\?\.water/);
   assert.match(frontend, /appendServices\(details, summary\.services\)/);
   assert.doesNotMatch(frontend, /Lưu ý|SERVICE_DEFINITIONS|FURNITURE_KEYWORDS|NOTE_KEYWORDS/);
   assert.doesNotMatch(frontend, /`#\$\{index \+ 1\}`/);
