@@ -530,7 +530,8 @@ function fieldIsNearestToRoom(clause, targetRoom, field, roomValues) {
       return { room, distance };
     });
     const minimum = Math.min(...distances.map(({ distance }) => distance));
-    return distances.some(({ room, distance }) => room === targetRoom && distance === minimum);
+    const nearestRooms = distances.filter(({ distance }) => distance === minimum);
+    return nearestRooms.length === 1 && nearestRooms[0].room === targetRoom;
   });
 }
 
