@@ -1,4 +1,5 @@
 const ROOM_SUMMARY_AI_PATH = "/api/sales/room-summary/extract";
+const ROOM_SUMMARY_REQUEST_TIMEOUT_MS = 20000;
 
 function normalizeRoomCodeForDisplay(value) {
   const source = String(value ?? "").trim();
@@ -342,7 +343,7 @@ function renderSummary(container, summary = {}) {
   container.append(details);
 }
 
-async function detectRoomSummary(source) {
+async function detectRoomSummary(source, signal) {
   const response = await fetch(ROOM_SUMMARY_AI_PATH, {
     method: "POST",
     credentials: "same-origin",
@@ -351,6 +352,7 @@ async function detectRoomSummary(source) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ source }),
+    signal,
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -392,6 +394,7 @@ function initializeRoomAddressAi() {
   if (!input || !output || !generate || !clear || !capture || !captureLayer || !captureCard) return;
 
   let requestVersion = 0;
+  let activeRequestController = null;
   renderEmpty(output);
   capture.disabled = true;
 
@@ -399,12 +402,18 @@ function initializeRoomAddressAi() {
     const source = input.value.trim();
     if (!source) {
       requestVersion += 1;
+      activeRequestController?.abort();
+      activeRequestController = null;
       renderEmpty(output);
       capture.disabled = true;
       input.focus();
       return;
     }
 
+    activeRequestController?.abort();
+    const controller = new AbortController();
+    activeRequestController = controller;
+    const timeoutId = window.setTimeout(() => controller.abort(), ROOM_SUMMARY_REQUEST_TIMEOUT_MS);
     const version = ++requestVersion;
     generate.disabled = true;
     generate.textContent = "Đang kiểm tra…";
@@ -420,7 +429,7 @@ function initializeRoomAddressAi() {
     });
 
     try {
-      const summary = await detectRoomSummary(source);
+      const summary = await detectRoomSummary(source, controller.signal);
       if (version !== requestVersion) return;
       renderSummary(output, {
         address: summary.address || "Không xác định",
@@ -447,6 +456,8 @@ function initializeRoomAddressAi() {
       });
       capture.disabled = true;
     } finally {
+      window.clearTimeout(timeoutId);
+      if (activeRequestController === controller) activeRequestController = null;
       if (version === requestVersion) {
         generate.disabled = false;
         generate.textContent = "Create summary";
@@ -461,6 +472,8 @@ function initializeRoomAddressAi() {
 
   clear.addEventListener("click", () => {
     requestVersion += 1;
+    activeRequestController?.abort();
+    activeRequestController = null;
     input.value = "";
     generate.disabled = false;
     generate.textContent = "Create summary";
