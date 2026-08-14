@@ -44,9 +44,11 @@ function appendRoomList(details, rooms) {
 
   rooms.forEach((room) => {
     const item = document.createElement("li");
+    const roomLabel = document.createElement("strong");
+    roomLabel.append("Phòng");
     const roomValue = editableValue(room.room || "—");
     roomValue.classList.add("room-share-price-value");
-    item.append(roomValue);
+    item.append(roomLabel, document.createTextNode(": "), roomValue);
 
     if (room.price) {
       item.append(document.createTextNode(" · "), editableValue(room.price));
