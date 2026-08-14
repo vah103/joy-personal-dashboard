@@ -1,5 +1,5 @@
-// Legacy entrypoint kept only so older Sale Assistant imports cannot activate the old parser.
-// The current Room Summary feature is intentionally address-only.
+// Legacy entrypoint kept so older Sale Assistant imports cannot activate the removed deterministic parser.
+// The current Room Summary feature extracts only address plus current rooms, prices and availability.
 if (typeof document !== "undefined") {
-  await import("./room-address-ai.js?v=joy-room-address-ai-v1");
+  await import("./room-address-ai.js?v=joy-room-address-ai-v2");
 }
