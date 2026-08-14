@@ -67,7 +67,7 @@ function sourcePercentPattern() {
 }
 
 function sourceNonRoomLabeledNumberPattern() {
-  return /\b(?:mã|ma|code|id|hh|hoa\s*hồng|hoa\s*hong|cọc|coc|deposit)\s*[:#=-]?\s*p?\s*\d{2,4}\b/giu;
+  return /\b(?:mã|ma|code|id|hh|hoa\s*hồng|hoa\s*hong|cọc|coc|deposit)\s*[:#=-]?\s*(?:p\s*[-:]?\s*\d{1,4}[a-z]?|[a-z]{1,3}\d{1,4}[a-z]?|\d{2,4})\b/giu;
 }
 
 function collectRanges(value, pattern) {
@@ -350,20 +350,23 @@ function sharedUtilityRateIdentities(serviceItems) {
     .filter(Boolean));
 }
 
-function responseWithReconciledData(response, payload, rooms, serviceItems) {
-  const headers = new Headers(response.headers);
-  headers.delete("content-length");
-
+export function reconcileUtilityServiceFields(serviceFields = {}, serviceItems = []) {
   const sharedRates = sharedUtilityRateIdentities(serviceItems);
-  const electricity = String(payload?.services?.electricity || "").trim();
-  const water = String(payload?.services?.water || "").trim();
-  const services = {
-    ...(payload?.services || {}),
+  const electricity = String(serviceFields?.electricity || "").trim();
+  const water = String(serviceFields?.water || "").trim();
+  return {
+    ...serviceFields,
     electricity: sharedRates.has(normalizeRateIdentity(electricity)) ? "" : electricity,
     water: sharedRates.has(normalizeRateIdentity(water)) ? "" : water,
     items: Array.isArray(serviceItems) ? serviceItems : [],
   };
+}
 
+function responseWithReconciledData(response, payload, rooms, serviceItems) {
+  const headers = new Headers(response.headers);
+  headers.delete("content-length");
+
+  const services = reconcileUtilityServiceFields(payload?.services, serviceItems);
   const nextPayload = {
     ...payload,
     rooms,
