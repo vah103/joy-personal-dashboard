@@ -132,10 +132,10 @@ function tailStartsWithUtilityCue(value) {
 function genericCommonScopeIsClear(label, rate, tail, includes) {
   const normalizedLabel = normalizeComparable(label);
   if (/\bchung\b/u.test(normalizedLabel) || normalizedLabel === "phi chung") return true;
+  if (utilitySpecificRate(rate) || tailStartsWithUtilityCue(tail)) return false;
   if (includes.length) return true;
   const normalizedTail = normalizeComparable(tail);
   if (/^(?:gom|bao gom|incl|including)\b/u.test(normalizedTail)) return true;
-  if (utilitySpecificRate(rate) || tailStartsWithUtilityCue(tail)) return false;
   return true;
 }
 
