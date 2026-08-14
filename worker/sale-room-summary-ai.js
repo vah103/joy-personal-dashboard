@@ -39,7 +39,6 @@ const EXPLICIT_UNAVAILABLE_PATTERNS = Object.freeze([
   /\bgiu roi\b/u,
   /\bda thue\b/u,
   /\bthue roi\b/u,
-  /\bhet phong\b/u,
 ]);
 
 export function isSaleRoomSummaryAiRoute(pathname) {
@@ -150,6 +149,24 @@ export function roomFieldIsGroundedInSource(sourceValue, fieldValue) {
   return valueIsGroundedInSource(sourceValue, fieldValue);
 }
 
+export function roomIdentifierIsGroundedInSource(sourceValue, roomValue) {
+  const room = normalizeComparable(roomValue);
+  if (!room || !roomFieldIsGroundedInSource(sourceValue, roomValue)) return false;
+
+  // Prefixed room IDs such as P201/A05 are already specific enough once the exact token is present.
+  if (!/^\d{1,4}$/u.test(room)) return true;
+
+  // A bare number could also be a house number. Require room/rental context and reject address-only clauses.
+  return sourceClauses(sourceValue).some((clause) => {
+    if (!containsNormalizedPhrase(clause, room)) return false;
+    const hasAddressLabel = /\b(?:dia chi|address)\b/u.test(clause);
+    const hasStrongRoomCue = /\b(?:phong|room|trong|con|available|availability|vao luon)\b/u.test(clause);
+    const hasPriceCue = /\b(?:gia|price|rent)\b/u.test(clause);
+    if (hasAddressLabel && !hasStrongRoomCue) return false;
+    return hasStrongRoomCue || hasPriceCue;
+  });
+}
+
 export function roomFieldIsAssociatedInSource(sourceValue, roomValue, fieldValue, roomValues = [], fieldKind = "") {
   const field = normalizeComparable(fieldValue);
   if (!field || !roomFieldIsGroundedInSource(sourceValue, fieldValue)) return false;
@@ -193,7 +210,7 @@ export function normalizeDetectedRooms(sourceValue, roomValues) {
   }));
 
   const groundedRoomValues = candidates.map(({ roomCandidate }) => (
-    roomCandidate && roomFieldIsGroundedInSource(sourceValue, roomCandidate)
+    roomCandidate && roomIdentifierIsGroundedInSource(sourceValue, roomCandidate)
       ? roomCandidate
       : ""
   ));
@@ -265,18 +282,21 @@ function valueIsGroundedInSource(sourceValue, candidateValue) {
   return containsNormalizedPhrase(source, candidate);
 }
 
-function sourceClauses(value) {
+function splitSourceClauses(value) {
   return String(value ?? "")
-    .split(/[\n;|•]+/u)
+    // Preserve decimal commas/dots by turning only digit-to-digit separators into spaces before splitting.
+    .replace(/(\d)[,.](?=\d)/g, "$1 ")
+    .split(/[\n;,|•.!?]+/u)
     .map(normalizeComparable)
     .filter(Boolean);
 }
 
+function sourceClauses(value) {
+  return splitSourceClauses(value);
+}
+
 function sourceStatusClauses(value) {
-  return String(value ?? "")
-    .split(/[\n;,|•]+/u)
-    .map(normalizeComparable)
-    .filter(Boolean);
+  return splitSourceClauses(value);
 }
 
 function containsNormalizedPhrase(source, candidate) {
@@ -339,7 +359,7 @@ function removeNormalizedPhrase(source, candidate) {
 
 function containsOtherRoomLikeToken(value) {
   const source = String(value || "");
-  return /\b(?:p\d+[a-z]?|[a-z]{1,3}\d{2,4})\b/u.test(source)
+  return /\b(?:p\d+[a-z]?|[a-z]{1,3}\d{1,4})\b/u.test(source)
     || /\b(?:phong|room)\s+\d{1,4}\b/u.test(source)
     || /\b\d{2,4}\b/u.test(source);
 }
