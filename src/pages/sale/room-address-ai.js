@@ -1,6 +1,6 @@
-const ROOM_ADDRESS_AI_PATH = "/api/sales/room-summary/address";
+const ROOM_SUMMARY_AI_PATH = "/api/sales/room-summary/extract";
 
-function editableAddress(text) {
+function editableValue(text) {
   const value = document.createElement("span");
   value.className = "room-share-detail-value";
   value.textContent = text;
@@ -25,23 +25,56 @@ function renderEmpty(container) {
   container.append(empty);
 }
 
-function renderAddress(container, address) {
+function appendAddress(details, address) {
+  const row = document.createElement("p");
+  row.className = "room-share-detail-row";
+  const label = document.createElement("strong");
+  label.textContent = "Địa chỉ";
+  row.append(label, document.createTextNode(": "), editableValue(address || "Không xác định"));
+  details.append(row);
+}
+
+function appendRoomList(details, rooms) {
+  if (!rooms.length) return;
+
+  const group = document.createElement("div");
+  group.className = "room-share-room-pricing room-share-room-pricing-multi";
+  const list = document.createElement("ul");
+  list.className = "room-share-price-list";
+
+  rooms.forEach((room, index) => {
+    const item = document.createElement("li");
+    const roomValue = editableValue(room.room || `#${index + 1}`);
+    roomValue.classList.add("room-share-price-value");
+    item.append(roomValue);
+
+    if (room.price) {
+      item.append(document.createTextNode(" · "), editableValue(room.price));
+    }
+    if (room.availability) {
+      item.append(document.createTextNode(" · "), editableValue(room.availability));
+    }
+
+    list.append(item);
+  });
+
+  group.append(list);
+  details.append(group);
+}
+
+function renderSummary(container, summary = {}) {
   container.replaceChildren();
   container.classList.remove("is-empty");
 
   const details = document.createElement("div");
   details.className = "room-share-details";
-  const row = document.createElement("p");
-  row.className = "room-share-detail-row";
-  const label = document.createElement("strong");
-  label.textContent = "Địa chỉ";
-  row.append(label, document.createTextNode(": "), editableAddress(address || "Không xác định"));
-  details.append(row);
+  appendAddress(details, summary.address);
+  appendRoomList(details, Array.isArray(summary.rooms) ? summary.rooms : []);
   container.append(details);
 }
 
-async function detectAddress(source) {
-  const response = await fetch(ROOM_ADDRESS_AI_PATH, {
+async function detectRoomSummary(source) {
+  const response = await fetch(ROOM_SUMMARY_AI_PATH, {
     method: "POST",
     credentials: "same-origin",
     headers: {
@@ -52,11 +85,23 @@ async function detectAddress(source) {
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw Object.assign(new Error(payload.error || "ROOM_ADDRESS_AI_FAILED"), {
-      code: payload.error || "ROOM_ADDRESS_AI_FAILED",
+    throw Object.assign(new Error(payload.error || "ROOM_SUMMARY_AI_FAILED"), {
+      code: payload.error || "ROOM_SUMMARY_AI_FAILED",
     });
   }
-  return String(payload.address || "").trim();
+
+  const rooms = Array.isArray(payload.rooms)
+    ? payload.rooms.map((room) => ({
+      room: String(room?.room || "").trim(),
+      price: String(room?.price || "").trim(),
+      availability: String(room?.availability || "").trim(),
+    })).filter((room) => room.room || room.price || room.availability)
+    : [];
+
+  return {
+    address: String(payload.address || "").trim(),
+    rooms,
+  };
 }
 
 function initializeRoomAddressAi() {
@@ -73,7 +118,7 @@ function initializeRoomAddressAi() {
   renderEmpty(output);
   capture.disabled = true;
 
-  const createAddress = async () => {
+  const createSummary = async () => {
     const source = input.value.trim();
     if (!source) {
       requestVersion += 1;
@@ -87,18 +132,21 @@ function initializeRoomAddressAi() {
     generate.disabled = true;
     generate.textContent = "Đang kiểm tra…";
     capture.disabled = true;
-    renderAddress(output, "…");
+    renderSummary(output, { address: "…", rooms: [] });
 
     try {
-      const address = await detectAddress(source);
+      const summary = await detectRoomSummary(source);
       if (version !== requestVersion) return;
-      renderAddress(output, address || "Không xác định");
+      renderSummary(output, {
+        address: summary.address || "Không xác định",
+        rooms: summary.rooms,
+      });
       capture.disabled = false;
       output.scrollIntoView({ behavior: "smooth", block: "nearest" });
     } catch (error) {
       if (version !== requestVersion) return;
-      console.warn("Joy Sale room address detection failed", error?.code || error?.message || error);
-      renderAddress(output, "Không xác định");
+      console.warn("Joy Sale room summary detection failed", error?.code || error?.message || error);
+      renderSummary(output, { address: "Không xác định", rooms: [] });
       capture.disabled = false;
     } finally {
       if (version === requestVersion) {
@@ -108,9 +156,9 @@ function initializeRoomAddressAi() {
     }
   };
 
-  generate.addEventListener("click", createAddress);
+  generate.addEventListener("click", createSummary);
   input.addEventListener("keydown", (event) => {
-    if ((event.ctrlKey || event.metaKey) && event.key === "Enter") createAddress();
+    if ((event.ctrlKey || event.metaKey) && event.key === "Enter") createSummary();
   });
 
   clear.addEventListener("click", () => {
