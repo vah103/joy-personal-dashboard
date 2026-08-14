@@ -7,6 +7,8 @@ import {
 } from "../worker/sale-room-summary-ai.js";
 
 test("room type uses only the agreed canonical options", () => {
+  assert.equal(canonicalRoomType("đơn"), "Đơn");
+  assert.equal(canonicalRoomType("ĐƠN"), "Đơn");
   assert.equal(canonicalRoomType("gác xép"), "Gác xép");
   assert.equal(canonicalRoomType("GÁC XÉP"), "Gác xép");
   assert.equal(canonicalRoomType("studio"), "Studio");
@@ -24,6 +26,10 @@ test("room type uses only the agreed canonical options", () => {
 
 test("room type must be supported by the pasted source", () => {
   assert.equal(
+    normalizeDetectedRoomType("Dạng phòng: đơn", "Đơn"),
+    "Đơn",
+  );
+  assert.equal(
     normalizeDetectedRoomType("Dạng phòng: 2n1k", "2N1K"),
     "2N1K",
   );
@@ -34,6 +40,10 @@ test("room type must be supported by the pasted source", () => {
   assert.equal(
     normalizeDetectedRoomType("Dạng phòng: gác xép", "Gác xép"),
     "Gác xép",
+  );
+  assert.equal(
+    normalizeDetectedRoomType("Dạng phòng: đơn", "Studio"),
+    "",
   );
   assert.equal(
     normalizeDetectedRoomType("Dạng phòng: 2N1K", "Studio"),
