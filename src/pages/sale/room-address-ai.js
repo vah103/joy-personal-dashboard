@@ -44,6 +44,51 @@ function normalizeFurnitureForDisplay(value) {
   return joined.charAt(0).toLocaleUpperCase("vi") + joined.slice(1);
 }
 
+function normalizeServiceRateForDisplay(value, serviceKind) {
+  let clean = String(value ?? "")
+    .trim()
+    .replace(/\s*\/\s*/g, "/")
+    .replace(/\bK\b/g, "k");
+
+  if (serviceKind === "electricity") {
+    clean = clean
+      .replace(/\/(?:1\s*)?(?:số|so)$/iu, "/số")
+      .replace(/\/kwh$/iu, "/số");
+  }
+
+  if (serviceKind === "water") {
+    clean = clean
+      .replace(/\/(?:ng|người|nguoi)$/iu, "/người")
+      .replace(/\/(?:m3|m³|khối|khoi)$/iu, "/khối");
+  }
+
+  return clean;
+}
+
+function extractExplicitServiceRateForDisplay(sourceValue, serviceKind) {
+  const source = String(sourceValue ?? "");
+  const label = serviceKind === "electricity"
+    ? "(?:điện|dien|electricity)"
+    : "(?:nước|nuoc|water)";
+  const unit = serviceKind === "electricity"
+    ? "(?:\\s*\\/\\s*(?:1\\s*)?(?:số|so|kwh))?"
+    : "(?:\\s*\\/\\s*(?:ng|người|nguoi|khối|khoi|m3|m³))?";
+  const pattern = new RegExp(
+    `${label}\\s*(?:[:：=-]\\s*)?(\\d+(?:[.,]\\d+)?\\s*(?:k|nghìn|nghin|đ|d|vnd)?${unit})`,
+    "iu",
+  );
+  const match = source.match(pattern);
+  return match ? normalizeServiceRateForDisplay(match[1], serviceKind) : "";
+}
+
+function servicesForDisplay(sourceValue, services = {}) {
+  const electricity = normalizeServiceRateForDisplay(services?.electricity, "electricity")
+    || extractExplicitServiceRateForDisplay(sourceValue, "electricity");
+  const water = normalizeServiceRateForDisplay(services?.water, "water")
+    || extractExplicitServiceRateForDisplay(sourceValue, "water");
+  return { electricity, water };
+}
+
 function extractFloorForDisplay(sourceValue, rooms = []) {
   if (rooms.some((room) => room?.room)) return "";
 
@@ -290,10 +335,7 @@ async function detectRoomSummary(source) {
     roomType: String(payload.roomType || "").trim(),
     elevator: String(payload.elevator || "").trim(),
     furniture: normalizeFurnitureForDisplay(payload.furniture),
-    services: {
-      electricity: String(payload.services?.electricity || "").trim(),
-      water: String(payload.services?.water || "").trim(),
-    },
+    services: servicesForDisplay(source, payload.services),
   };
 }
 
