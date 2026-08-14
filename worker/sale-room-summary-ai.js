@@ -70,7 +70,6 @@ export async function handleSaleRoomSummaryAiRequest(request, env) {
   const body = await readJson(request);
   const source = normalizeRoomSummarySource(body?.source);
   if (!source) return json({ error: "ROOM_SUMMARY_SOURCE_INVALID" }, 400);
-
   if (!env?.AI?.run) return json({ error: "AI_UNAVAILABLE" }, 503);
 
   const model = cleanText(env.SALE_ROOM_SUMMARY_AI_MODEL, 160)
@@ -176,7 +175,6 @@ export function canonicalRoomType(value) {
 export function normalizeDetectedRoomType(sourceValue, value) {
   const canonical = canonicalRoomType(value);
   if (!canonical) return "";
-
   const sourceTypes = roomTypesInSource(sourceValue);
   if (sourceTypes.size !== 1) return "";
   return sourceTypes.has(canonical) ? canonical : "";
@@ -303,11 +301,8 @@ export function roomFieldIsGroundedInSource(sourceValue, fieldValue) {
 export function roomIdentifierIsGroundedInSource(sourceValue, roomValue) {
   const room = normalizeComparable(roomValue);
   if (!room || !roomFieldIsGroundedInSource(sourceValue, roomValue)) return false;
-
-  // Prefixed room IDs such as P201/A05 are already specific enough once the exact token is present.
   if (!/^\d{1,4}$/u.test(room)) return true;
 
-  // A bare number could also be a house number. Require room/rental context and reject address-only clauses.
   return sourceClauses(sourceValue).some((clause) => {
     if (!containsNormalizedPhrase(clause, room)) return false;
     const hasAddressLabel = /\b(?:dia chi|address)\b/u.test(clause);
@@ -330,12 +325,11 @@ export function roomFieldIsAssociatedInSource(sourceValue, roomValue, fieldValue
     for (const clause of clauses) {
       if (!containsNormalizedPhrase(clause, field) || !containsNormalizedPhrase(clause, room)) continue;
       if (fieldKind === "price" && groupedPriceClauseIsExplicit(clause, room, field, rooms)) return true;
+      if (fieldKind === "price" && pairedPriceClauseIsExplicit(clause, room, field, rooms)) return true;
       if (fieldIsNearestToRoom(clause, room, field, rooms)) return true;
     }
   }
 
-  // Shared values are accepted only when the source itself marks the clause as a general price/vacancy fact
-  // and there is no other room-like token left after removing the candidate value.
   return clauses.some((clause) => (
     containsNormalizedPhrase(clause, field)
     && sharedFieldClauseIsExplicit(clause, field, fieldKind)
@@ -373,7 +367,6 @@ export function normalizeDetectedRooms(sourceValue, roomValues) {
     const { roomCandidate, priceCandidate, availabilityCandidate } = candidate;
     const room = groundedRoomValues[index];
 
-    // If AI invented or rewrote a room identifier, do not salvage unrelated values from that row.
     if (roomCandidate && !room) return;
     if (room && roomIsExplicitlyUnavailableInSource(sourceValue, room)) return;
 
@@ -478,7 +471,6 @@ function roomTypesInSource(value) {
 
 function splitSourceClauses(value) {
   return String(value ?? "")
-    // Preserve decimal commas/dots by turning only digit-to-digit separators into spaces before splitting.
     .replace(/(\d)[,.](?=\d)/g, "$1 ")
     .split(/[\n;,|•.!?]+/u)
     .map(normalizeComparable)
@@ -553,7 +545,35 @@ function groupedPriceClauseIsExplicit(clause, targetRoom, field, roomValues) {
   if (!priceSitsOutsideRoomGroup) return false;
 
   const withoutField = removeNormalizedPhrase(clause, field);
-  return !/\b\d+(?:\s+\d+)?\s*(?:tr|trieu|m|k)\d*\b/u.test(withoutField);
+  return !priceLikePattern().test(withoutField);
+}
+
+function pairedPriceClauseIsExplicit(clause, targetRoom, field, roomValues) {
+  const roomOccurrences = roomValues
+    .flatMap((room) => phrasePositions(clause, room).map((position) => ({ room, position })))
+    .sort((a, b) => a.position - b.position);
+  if (roomOccurrences.length < 2) return false;
+
+  const priceOccurrences = [...clause.matchAll(priceLikePattern("g"))]
+    .map((match) => ({ value: normalizeComparable(match[0]), position: match.index ?? -1 }))
+    .filter(({ position }) => position >= 0);
+  if (priceOccurrences.length < 2) return false;
+
+  const candidatePositions = phrasePositions(clause, field);
+  if (!candidatePositions.length) return false;
+
+  const roomFirst = roomOccurrences[0].position < priceOccurrences[0].position;
+  return candidatePositions.some((candidatePosition) => roomOccurrences.some((occurrence, index) => {
+    if (occurrence.room !== targetRoom) return false;
+
+    if (roomFirst) {
+      const nextRoom = roomOccurrences[index + 1]?.position ?? Number.POSITIVE_INFINITY;
+      return candidatePosition > occurrence.position && candidatePosition < nextRoom;
+    }
+
+    const previousRoom = roomOccurrences[index - 1]?.position ?? Number.NEGATIVE_INFINITY;
+    return candidatePosition < occurrence.position && candidatePosition > previousRoom;
+  }));
 }
 
 function fillExplicitGroupedPrices(sourceValue, rows) {
@@ -580,6 +600,10 @@ function sharedFieldClauseIsExplicit(clause, field, fieldKind) {
 
   const withoutField = removeNormalizedPhrase(clause, field);
   return !containsOtherRoomLikeToken(withoutField);
+}
+
+function priceLikePattern(flags = "u") {
+  return new RegExp("\\b\\d+(?:\\s+\\d+)?\\s*(?:tr|trieu|m|k)\\d*\\b", flags);
 }
 
 function removeNormalizedPhrase(source, candidate) {
