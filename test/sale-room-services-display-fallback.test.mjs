@@ -15,7 +15,7 @@ async function loadServiceDisplayHelpers() {
     },
   };
   vm.runInNewContext(
-    `${frontend}\nthis.__helpers = { extractExplicitServiceRateForDisplay, servicesForDisplay };`,
+    `${frontend}\nthis.__helpers = { extractExplicitServiceRateForDisplay, normalizeServiceRateForDisplay, servicesForDisplay };`,
     sandbox,
   );
   return sandbox.__helpers;
@@ -39,6 +39,32 @@ test("normalizes explicit per-number and per-cubic-meter units in fallback", asy
     JSON.parse(JSON.stringify(servicesForDisplay(source, {}))),
     { electricity: "4k/số", water: "35k/khối" },
   );
+});
+
+test("shows 3.99-style electricity as 4k without changing other service rates", async () => {
+  const { normalizeServiceRateForDisplay, servicesForDisplay } = await loadServiceDisplayHelpers();
+
+  assert.equal(normalizeServiceRateForDisplay("3.99/số", "electricity"), "4k/số");
+  assert.equal(normalizeServiceRateForDisplay("3.990/số", "electricity"), "4k/số");
+  assert.equal(normalizeServiceRateForDisplay("3,99/1 số", "electricity"), "4k/số");
+  assert.equal(normalizeServiceRateForDisplay("3.8/số", "electricity"), "3.8/số");
+
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(servicesForDisplay("Điện 3.990/số, nước 35k/khối", {}))),
+    { electricity: "4k/số", water: "35k/khối" },
+  );
+});
+
+test("renders electricity and water as separate customer-view rows", async () => {
+  const frontend = await readFile(
+    new URL("../src/pages/sale/room-address-ai.js", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(frontend, /className = "room-share-service-group"/u);
+  assert.match(frontend, /electricityRow\.className = "room-share-detail-row"/u);
+  assert.match(frontend, /waterRow\.className = "room-share-detail-row"/u);
+  assert.doesNotMatch(frontend, /if \(electricity\) row\.append\(", "\)/u);
 });
 
 test("does not turn unrelated common fees into electricity or water", async () => {
