@@ -105,7 +105,7 @@ test("keeps room, price and availability only when each value belongs to that ro
   ]);
 });
 
-test("drops cross-assigned prices and dates even when every individual value exists in the source", () => {
+test("source reconciliation repairs cross-assigned AI facts without leaking them between rooms", () => {
   const source = `
     Trống: P201 1/9, P202 vào luôn
     Giá: P201 4tr5; P202 4tr8
@@ -115,22 +115,23 @@ test("drops cross-assigned prices and dates even when every individual value exi
     { room: "P201", price: "4tr8", availability: "vào luôn" },
     { room: "P202", price: "4tr5", availability: "1/9" },
   ]), [
-    { room: "P201", price: "", availability: "" },
-    { room: "P202", price: "", availability: "" },
+    { room: "P201", price: "4tr5", availability: "1/9" },
+    { room: "P202", price: "4tr8", availability: "vào luôn" },
   ]);
 });
 
-test("does not leak facts across sentence boundaries when AI omits another room", () => {
+test("recovers an omitted source room without leaking its facts to a neighboring room", () => {
   const source = "Trống P201. P202 giá 4tr8.";
 
   assert.deepEqual(normalizeDetectedRooms(source, [
     { room: "P201", price: "4tr8", availability: "" },
   ]), [
     { room: "P201", price: "", availability: "" },
+    { room: "P202", price: "4tr8", availability: "" },
   ]);
 });
 
-test("does not treat another omitted room's fact as a listing-wide value", () => {
+test("keeps an omitted room's fact attached to that recovered room instead of making it listing-wide", () => {
   const source = `
     Trống: P201
     Giá: P202 4tr8
@@ -140,6 +141,7 @@ test("does not treat another omitted room's fact as a listing-wide value", () =>
     { room: "P201", price: "4tr8", availability: "" },
   ]), [
     { room: "P201", price: "", availability: "" },
+    { room: "P202", price: "4tr8", availability: "" },
   ]);
 });
 
@@ -205,14 +207,14 @@ test("merges duplicate AI rows for the same room and blanks conflicting facts", 
   ]);
 });
 
-test("drops invented room details instead of displaying AI guesses", () => {
+test("drops invented room details while recovering clear source facts for a real room", () => {
   const source = "Địa chỉ: 180 Phú Mỹ. Trống P201. Giá 4tr5.";
 
   assert.deepEqual(normalizeDetectedRooms(source, [
     { room: "P201", price: "5tr9", availability: "15/9" },
     { room: "P999", price: "4tr5", availability: "" },
   ]), [
-    { room: "P201", price: "", availability: "" },
+    { room: "P201", price: "4tr5", availability: "" },
   ]);
 });
 
