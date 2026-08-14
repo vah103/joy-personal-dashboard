@@ -96,6 +96,16 @@ test("drops cross-assigned prices and dates even when every individual value exi
   ]);
 });
 
+test("preserves decimal-comma prices while validating their room association", () => {
+  const source = "Trống P201 vào luôn, giá P201 3,8tr";
+  assert.equal(roomFieldIsAssociatedInSource(source, "P201", "3,8tr", ["P201"]), true);
+  assert.deepEqual(normalizeDetectedRooms(source, [
+    { room: "P201", price: "3,8tr", availability: "vào luôn" },
+  ]), [
+    { room: "P201", price: "3,8tr", availability: "vào luôn" },
+  ]);
+});
+
 test("allows clearly listing-wide price and availability values for several rooms", () => {
   const source = `
     Trống: P201, P202
@@ -112,11 +122,8 @@ test("allows clearly listing-wide price and availability values for several room
   ]);
 });
 
-test("filters rooms explicitly marked as already deposited, held or rented", () => {
-  const source = `
-    P201 đã cọc
-    P202 trống 1/9 giá 4tr8
-  `;
+test("filters only the room explicitly marked unavailable when statuses share one line", () => {
+  const source = "P201 đã cọc, P202 trống 1/9 giá 4tr8";
 
   assert.equal(roomIsExplicitlyUnavailableInSource(source, "P201"), true);
   assert.equal(roomIsExplicitlyUnavailableInSource(source, "P202"), false);
@@ -154,6 +161,8 @@ test("Room Summary exposes only address and current room rental facts", async ()
   assert.match(build, /room-address-ai\.js/);
   assert.match(build, /room-summary\.js/);
   assert.match(router, /isSaleRoomSummaryAiRoute/);
+  assert.match(router, /SALE_ROOM_AI_ASSETS/);
+  assert.match(router, /noStoreResponse\(await env\.ASSETS\.fetch\(request\)\)/);
 
   assert.match(frontend, /ROOM_SUMMARY_AI_PATH = "\/api\/sales\/room-summary\/extract"/);
   assert.match(frontend, /summary\.address/);
