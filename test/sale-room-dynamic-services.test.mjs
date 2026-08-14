@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  extractDynamicServiceItems,
   normalizeDynamicServiceItems,
   serviceEvidenceIsGroundedInSource,
   shouldExtractDynamicServices,
@@ -184,4 +185,60 @@ test("electricity and water are not duplicated into dynamic service items", () =
       evidence: "nước 35k/khối",
     },
   ]), []);
+});
+
+test("semantic service AI pass uses structured output and grounds the returned items", async () => {
+  const source = "Mạng 100k/phòng. Gửi xe 80k/xe.";
+  const calls = [];
+  const env = {
+    AI: {
+      run: async (model, options) => {
+        calls.push({ model, options });
+        return {
+          response: {
+            items: [
+              {
+                kind: "internet",
+                name: "Mạng",
+                value: "100k/phòng",
+                includes: [],
+                evidence: "Mạng 100k/phòng",
+              },
+              {
+                kind: "parking",
+                name: "Gửi xe",
+                value: "80k/xe",
+                includes: [],
+                evidence: "Gửi xe 80k/xe",
+              },
+            ],
+          },
+        };
+      },
+    },
+  };
+
+  assert.deepEqual(await extractDynamicServiceItems(source, env, "test-model"), [
+    { kind: "internet", name: "Mạng", value: "100k/phòng", includes: [] },
+    { kind: "parking", name: "Gửi xe", value: "80k/xe", includes: [] },
+  ]);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].model, "test-model");
+  assert.equal(calls[0].options.temperature, 0);
+  assert.equal(calls[0].options.response_format.type, "json_schema");
+});
+
+test("semantic service AI pass is skipped when the source has no service cues", async () => {
+  let called = false;
+  const env = {
+    AI: {
+      run: async () => {
+        called = true;
+        return { response: { items: [] } };
+      },
+    },
+  };
+
+  assert.deepEqual(await extractDynamicServiceItems("Phòng P201 giá 4tr5", env, "test-model"), []);
+  assert.equal(called, false);
 });
