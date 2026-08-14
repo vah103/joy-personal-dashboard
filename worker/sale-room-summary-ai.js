@@ -414,6 +414,7 @@ export function roomFieldIsAssociatedInSource(sourceValue, roomValue, fieldValue
       if (!containsNormalizedPhrase(clause, field) || !containsNormalizedPhrase(clause, room)) continue;
       if (fieldKind === "price" && groupedPriceClauseIsExplicit(clause, room, field, rooms)) return true;
       if (fieldKind === "price" && pairedPriceClauseIsExplicit(clause, room, field, rooms)) return true;
+      if (fieldKind === "availability" && groupedAvailabilityClauseIsExplicit(clause, room, field, rooms)) return true;
       if (fieldIsNearestToRoom(clause, room, field, rooms)) return true;
     }
   }
@@ -471,7 +472,9 @@ export function normalizeDetectedRooms(sourceValue, roomValues) {
     validated.push({ room, price, availability });
   });
 
-  return fillExplicitGroupedPrices(sourceValue, mergeRoomFacts(validated));
+  const merged = mergeRoomFacts(validated);
+  const withGroupedPrices = fillExplicitGroupedPrices(sourceValue, merged);
+  return fillExplicitGroupedAvailabilities(sourceValue, withGroupedPrices);
 }
 
 function roomSummaryInstructions() {
@@ -509,8 +512,12 @@ PHÒNG / GIÁ / THỜI GIAN TRỐNG:
 - Nếu tin chỉ nói về một phòng cho thuê nhưng không có mã/tên phòng, có thể để room rỗng và vẫn ghi price/availability nếu chúng rõ ràng.
 - price giữ đúng cách nguồn viết, ví dụ 4tr5, 5.1tr, 5tr1/tháng. Không đổi đơn vị, không tính toán và không tự thêm "/tháng".
 - availability giữ đúng thông tin nguồn viết, ví dụ "vào luôn", "1/9", "trống 15/8", "cuối tháng". Không tự đổi cụm tương đối thành ngày cụ thể.
+- Hãy xác định phạm vi (scope) của mỗi price/availability theo nhãn và cụm phòng, không ghép chỉ vì một giá trị đứng gần một mã phòng về mặt ký tự.
+- Khi một price/availability duy nhất đứng trước hoặc sau một danh sách phòng trong cùng một cụm có nhãn rõ ràng, giá trị đó áp dụng cho toàn bộ phòng trong cụm. Dấu gạch ngang, dấu phẩy, dấu gạch chéo hoặc khoảng trắng có thể chỉ là ký hiệu ngăn cách.
+- Ví dụ "Trống: 1/9-301-501-602" và "Trống: 301-501-602-1/9" đều nghĩa là 301, 501 và 602 cùng availability="1/9".
+- Tương tự, "Giá: 4tr3-p301-501" nghĩa là cùng price="4tr3" cho P301 và 501.
+- Ngược lại, nếu cùng một cụm chứa nhiều fact khác nhau như "P201 1/9, P202 vào luôn" thì phải giữ từng fact cho đúng phòng, tuyệt đối không phát tán một fact sang phòng khác.
 - Nếu nhiều phòng có giá hoặc ngày trống khác nhau, phải ghép đúng giá và thời gian với đúng phòng.
-- Cú pháp nhóm như "Giá: 4tr3-p301-501" nghĩa là cùng giá 4tr3 áp dụng cho cả P301 và 501.
 - Nếu không chắc giá/thời gian thuộc phòng nào, để trường đó rỗng thay vì gán nhầm.
 
 DẠNG PHÒNG:
@@ -648,6 +655,35 @@ function groupedPriceClauseIsExplicit(clause, targetRoom, field, roomValues) {
   return !priceLikePattern().test(withoutField);
 }
 
+function groupedAvailabilityClauseIsExplicit(clause, targetRoom, field, roomValues) {
+  const hasAvailabilityScope = /\b(?:trong|available|availability|con|sap)\b/u.test(clause)
+    || /\b(?:vao luon|cuoi thang|dau thang|giua thang)\b/u.test(field);
+  if (!hasAvailabilityScope) return false;
+
+  const roomsInClause = roomValues.filter((room) => containsNormalizedPhrase(clause, room));
+  if (roomsInClause.length < 2 || !roomsInClause.includes(targetRoom)) return false;
+
+  const fieldPositions = phrasePositions(clause, field);
+  if (fieldPositions.length !== 1) return false;
+
+  const roomPositions = roomsInClause.flatMap((room) => phrasePositions(clause, room));
+  if (!roomPositions.length) return false;
+
+  const fieldPosition = fieldPositions[0];
+  const fieldSitsOutsideRoomGroup = fieldPosition < Math.min(...roomPositions)
+    || fieldPosition > Math.max(...roomPositions);
+  if (!fieldSitsOutsideRoomGroup) return false;
+
+  let remainder = removeNormalizedPhrase(clause, field);
+  for (const room of roomsInClause) remainder = removeNormalizedPhrase(remainder, room);
+  remainder = remainder
+    .replace(/\b(?:phong|room|trong|available|availability|ngay|tu|cac|nhung|con|dang|sap)\b/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return !remainder;
+}
+
 function pairedPriceClauseIsExplicit(clause, targetRoom, field, roomValues) {
   const roomOccurrences = roomValues
     .flatMap((room) => phrasePositions(clause, room).map((position) => ({ room, position })))
@@ -687,6 +723,22 @@ function fillExplicitGroupedPrices(sourceValue, rows) {
       roomFieldIsAssociatedInSource(sourceValue, row.room, price, roomValues, "price")
     ));
     return matchingPrices.length === 1 ? { ...row, price: matchingPrices[0] } : row;
+  });
+}
+
+function fillExplicitGroupedAvailabilities(sourceValue, rows) {
+  const roomValues = rows.map((row) => row.room).filter(Boolean);
+  const knownAvailabilities = [...new Set(rows.map((row) => row.availability).filter(Boolean))];
+  if (roomValues.length < 2 || !knownAvailabilities.length) return rows;
+
+  return rows.map((row) => {
+    if (row.availability || !row.room) return row;
+    const matchingAvailabilities = knownAvailabilities.filter((availability) => (
+      roomFieldIsAssociatedInSource(sourceValue, row.room, availability, roomValues, "availability")
+    ));
+    return matchingAvailabilities.length === 1
+      ? { ...row, availability: matchingAvailabilities[0] }
+      : row;
   });
 }
 
