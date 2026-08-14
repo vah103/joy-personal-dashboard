@@ -31,6 +31,9 @@ export default Object.freeze({
   "cleanup.sale.serviceFridge": "Fridge",
   "cleanup.sale.serviceLaundry": "Laundry",
   "cleanup.sale.serviceOther": "Other",
+  "cleanup.sale.aiAnalyzing": "AI is analyzing…",
   "cleanup.sale.aiAnalysisComplete": "AI analysis complete",
   "cleanup.sale.parserFallback": "Parser fallback",
+  "cleanup.sale.summaryFailed": "Could not create summary",
+  "cleanup.sale.summaryFailedDetail": "Try again. If this keeps happening, refresh Joy and retry.",
 });
