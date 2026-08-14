@@ -38,3 +38,11 @@ test("grouped-price rule does not merge separate room prices", () => {
     { room: "P501", price: "", availability: "" },
   ]);
 });
+
+test("separate prices also pair correctly when price is written before each room", () => {
+  const source = "Giá: 4tr3-P301-4tr8-P501";
+
+  assert.equal(roomFieldIsAssociatedInSource(source, "P301", "4tr3", ["P301", "P501"], "price"), true);
+  assert.equal(roomFieldIsAssociatedInSource(source, "P501", "4tr8", ["P301", "P501"], "price"), true);
+  assert.equal(roomFieldIsAssociatedInSource(source, "P501", "4tr3", ["P301", "P501"], "price"), false);
+});
