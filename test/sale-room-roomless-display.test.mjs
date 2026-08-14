@@ -15,7 +15,7 @@ async function loadDisplayHelpers() {
     },
   };
   vm.runInNewContext(
-    `${frontend}\nthis.__helpers = { normalizeFurnitureForDisplay, extractFloorForDisplay };`,
+    `${frontend}\nthis.__helpers = { normalizeFurnitureForDisplay, extractFloorForDisplay, roomValueIsFloorOnly };`,
     sandbox,
   );
   return { frontend, ...sandbox.__helpers };
@@ -36,6 +36,14 @@ test("uses floor as the fallback identifier only when no room code exists", asyn
     extractFloorForDisplay("Có phòng tầng 3 và phòng tầng 4", [{ room: "", price: "", availability: "" }]),
     "",
   );
+});
+
+test("does not promote a floor number into a P-room code", async () => {
+  const { roomValueIsFloorOnly } = await loadDisplayHelpers();
+
+  assert.equal(roomValueIsFloorOnly("Phòng tầng 4\nGiá thuê: 3tr", "4"), true);
+  assert.equal(roomValueIsFloorOnly("Phòng 4 ở tầng 4\nGiá thuê: 3tr", "4"), false);
+  assert.equal(roomValueIsFloorOnly("Phòng P4 ở tầng 4\nGiá thuê: 3tr", "4"), false);
 });
 
 test("normalizes common furniture abbreviations for customer display", async () => {
