@@ -277,22 +277,27 @@ function appendServices(details, services = {}) {
   const label = document.createElement("strong");
   label.append("Dịch", " vụ");
   heading.append(label, document.createTextNode(":"));
-  group.append(heading);
+
+  const list = document.createElement("ul");
+  list.className = "room-share-services";
 
   if (electricity) {
-    const electricityRow = document.createElement("p");
-    electricityRow.className = "room-share-detail-row";
-    electricityRow.append("Đi", "ện: ", editableValue(electricity));
-    group.append(electricityRow);
+    const item = document.createElement("li");
+    const itemLabel = document.createElement("strong");
+    itemLabel.append("Đi", "ện");
+    item.append(itemLabel, ": ", editableValue(electricity));
+    list.append(item);
   }
 
   if (water) {
-    const waterRow = document.createElement("p");
-    waterRow.className = "room-share-detail-row";
-    waterRow.append("N", "ước: ", editableValue(water));
-    group.append(waterRow);
+    const item = document.createElement("li");
+    const itemLabel = document.createElement("strong");
+    itemLabel.append("N", "ước");
+    item.append(itemLabel, ": ", editableValue(water));
+    list.append(item);
   }
 
+  group.append(heading, list);
   details.append(group);
 }
 
