@@ -5,21 +5,26 @@ import {
   addressIsGroundedInSource,
   DEFAULT_SALE_ROOM_SUMMARY_AI_MODEL,
   isSaleRoomSummaryAiRoute,
+  LEGACY_SALE_ROOM_ADDRESS_AI_PATH,
   normalizeDetectedAddress,
-  normalizeRoomAddressSource,
+  normalizeDetectedRooms,
+  normalizeRoomSummarySource,
+  roomFieldIsGroundedInSource,
   SALE_ROOM_SUMMARY_AI_PATH,
 } from "../worker/sale-room-summary-ai.js";
 
-test("room-address AI route and model are explicit", () => {
-  assert.equal(SALE_ROOM_SUMMARY_AI_PATH, "/api/sales/room-summary/address");
+test("room-summary AI route and model are explicit", () => {
+  assert.equal(SALE_ROOM_SUMMARY_AI_PATH, "/api/sales/room-summary/extract");
+  assert.equal(LEGACY_SALE_ROOM_ADDRESS_AI_PATH, "/api/sales/room-summary/address");
+  assert.equal(isSaleRoomSummaryAiRoute("/api/sales/room-summary/extract"), true);
   assert.equal(isSaleRoomSummaryAiRoute("/api/sales/room-summary/address"), true);
   assert.equal(isSaleRoomSummaryAiRoute("/api/sales/room-summary/polish"), false);
   assert.equal(DEFAULT_SALE_ROOM_SUMMARY_AI_MODEL, "@cf/meta/llama-3.3-70b-instruct-fp8-fast");
 });
 
-test("normalizes pasted room source without flattening useful address lines", () => {
+test("normalizes pasted room source without flattening useful listing lines", () => {
   assert.equal(
-    normalizeRoomAddressSource("  🏢Địa chỉ : Ngõ 278/20/25 Kim Giang  \n - Quận: Hoàng mai \n\n Giá: 4tr4  "),
+    normalizeRoomSummarySource("  🏢Địa chỉ : Ngõ 278/20/25 Kim Giang  \n - Quận: Hoàng mai \n\n Giá: 4tr4  "),
     "🏢Địa chỉ : Ngõ 278/20/25 Kim Giang\n- Quận: Hoàng mai\n\nGiá: 4tr4",
   );
 });
@@ -47,7 +52,38 @@ test("rejects an AI address that invents a location not present in the source", 
   assert.equal(addressIsGroundedInSource(source, "180 Phú Mỹ, Hà Nội"), false);
 });
 
-test("every Room Summary entrypoint is address-only", async () => {
+test("keeps room, price and availability only when each value is grounded in the source", () => {
+  const source = `
+    Địa chỉ: 105 Doãn Kế Thiện
+    Trống: P201 1/9, P202 vào luôn
+    Giá: P201 4tr5; P202 4tr8
+  `;
+
+  assert.equal(roomFieldIsGroundedInSource(source, "P201"), true);
+  assert.equal(roomFieldIsGroundedInSource(source, "4tr5"), true);
+  assert.equal(roomFieldIsGroundedInSource(source, "1/9"), true);
+
+  assert.deepEqual(normalizeDetectedRooms(source, [
+    { room: "P201", price: "4tr5", availability: "1/9" },
+    { room: "P202", price: "4tr8", availability: "vào luôn" },
+  ]), [
+    { room: "P201", price: "4tr5", availability: "1/9" },
+    { room: "P202", price: "4tr8", availability: "vào luôn" },
+  ]);
+});
+
+test("drops invented room details instead of displaying AI guesses", () => {
+  const source = "Địa chỉ: 180 Phú Mỹ. Trống P201. Giá 4tr5.";
+
+  assert.deepEqual(normalizeDetectedRooms(source, [
+    { room: "P201", price: "5tr9", availability: "15/9" },
+    { room: "P999", price: "9tr", availability: "vào luôn" },
+  ]), [
+    { room: "P201", price: "", availability: "" },
+  ]);
+});
+
+test("Room Summary exposes only address and current room rental facts", async () => {
   const [html, build, router, frontend, legacyBridge, assistant] = await Promise.all([
     readFile(new URL("../src/pages/sale/index.html", import.meta.url), "utf8"),
     readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8"),
@@ -63,9 +99,12 @@ test("every Room Summary entrypoint is address-only", async () => {
   assert.match(build, /room-summary\.js/);
   assert.match(router, /isSaleRoomSummaryAiRoute/);
 
-  assert.match(frontend, /ROOM_ADDRESS_AI_PATH = "\/api\/sales\/room-summary\/address"/);
-  assert.match(frontend, /label\.textContent = "Địa chỉ"/);
-  assert.doesNotMatch(frontend, /Phòng trống|Giá phòng|Dạng phòng|Nội thất|Dịch vụ|Lưu ý/);
+  assert.match(frontend, /ROOM_SUMMARY_AI_PATH = "\/api\/sales\/room-summary\/extract"/);
+  assert.match(frontend, /summary\.address/);
+  assert.match(frontend, /room\.room/);
+  assert.match(frontend, /room\.price/);
+  assert.match(frontend, /room\.availability/);
+  assert.doesNotMatch(frontend, /Dạng phòng|Nội thất|Dịch vụ|Lưu ý|SERVICE_DEFINITIONS|FURNITURE_KEYWORDS|NOTE_KEYWORDS/);
 
   assert.match(legacyBridge, /room-address-ai\.js/);
   assert.doesNotMatch(legacyBridge, /summarizeRoomListing|SERVICE_DEFINITIONS|FURNITURE_KEYWORDS|NOTE_KEYWORDS/);
