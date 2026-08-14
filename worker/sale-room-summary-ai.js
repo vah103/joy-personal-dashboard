@@ -390,7 +390,7 @@ export function normalizeDetectedRooms(sourceValue, roomValues) {
     validated.push({ room, price, availability });
   });
 
-  return mergeRoomFacts(validated);
+  return fillExplicitGroupedPrices(sourceValue, mergeRoomFacts(validated));
 }
 
 function roomSummaryInstructions() {
@@ -553,6 +553,20 @@ function groupedPriceClauseIsExplicit(clause, targetRoom, field, roomValues) {
 
   const withoutField = removeNormalizedPhrase(clause, field);
   return !/\b\d+(?:\s+\d+)?\s*(?:tr|trieu|m|k)\d*\b/u.test(withoutField);
+}
+
+function fillExplicitGroupedPrices(sourceValue, rows) {
+  const roomValues = rows.map((row) => row.room).filter(Boolean);
+  const knownPrices = [...new Set(rows.map((row) => row.price).filter(Boolean))];
+  if (roomValues.length < 2 || !knownPrices.length) return rows;
+
+  return rows.map((row) => {
+    if (row.price || !row.room) return row;
+    const matchingPrices = knownPrices.filter((price) => (
+      roomFieldIsAssociatedInSource(sourceValue, row.room, price, roomValues, "price")
+    ));
+    return matchingPrices.length === 1 ? { ...row, price: matchingPrices[0] } : row;
+  });
 }
 
 function sharedFieldClauseIsExplicit(clause, field, fieldKind) {
