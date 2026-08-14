@@ -133,9 +133,13 @@ function genericCommonScopeIsClear(label, rate, tail, includes) {
   const normalizedLabel = normalizeComparable(label);
   if (/\bchung\b/u.test(normalizedLabel) || normalizedLabel === "phi chung") return true;
   if (utilitySpecificRate(rate) || tailStartsWithUtilityCue(tail)) return false;
-  if (includes.length) return true;
+
   const normalizedTail = normalizeComparable(tail);
-  if (/^(?:gom|bao gom|incl|including)\b/u.test(normalizedTail)) return true;
+  const hasBundleCue = /^(?:gom|bao gom|incl|including)\b/u.test(normalizedTail)
+    || /^[([{]/u.test(String(tail ?? "").trim());
+  if (hasBundleCue) return true;
+  if (includes.length >= 2) return true;
+  if (includes.length === 1) return false;
   return true;
 }
 
@@ -164,12 +168,22 @@ function commonCandidates(segment) {
 
 function sharedUtilityCandidates(segment) {
   const candidates = [];
-  const pattern = new RegExp(`(?<![\\p{L}\\p{N}_])(${SHARED_UTILITY_LABEL_SOURCE})(?![\\p{L}\\p{N}_])\\s*[:：=-]?\\s*(${RATE_SOURCE})`, "giu");
-  for (const match of segment.matchAll(pattern)) {
+  const forward = new RegExp(`(?<![\\p{L}\\p{N}_])(${SHARED_UTILITY_LABEL_SOURCE})(?![\\p{L}\\p{N}_])\\s*[:：=-]?\\s*(${RATE_SOURCE})`, "giu");
+  for (const match of segment.matchAll(forward)) {
     candidates.push({
       kind: "other",
       name: "Điện + nước",
       value: formatSourceServiceValue(match[2]),
+      includes: [],
+    });
+  }
+
+  const reverse = new RegExp(`(${RATE_SOURCE})\\s*[:：=-]?\\s*(?<![\\p{L}\\p{N}_])(${SHARED_UTILITY_LABEL_SOURCE})(?![\\p{L}\\p{N}_])`, "giu");
+  for (const match of segment.matchAll(reverse)) {
+    candidates.push({
+      kind: "other",
+      name: "Điện + nước",
+      value: formatSourceServiceValue(match[1]),
       includes: [],
     });
   }
@@ -215,7 +229,7 @@ function memberBundleCandidates(segment) {
   const hasBundleCue = /(?:^|\s)(?:gom|bao gom)(?:\s|$)/u.test(normalized)
     || /\s(?:va|voi)\s/u.test(normalized)
     || /[+&]/u.test(segment);
-  if (!hasBundleCue) return [];
+  if (!hasBundleCue && explicitServiceCandidates(segment).length) return [];
 
   return [{
     kind: "common",
