@@ -66,22 +66,6 @@ function normalizeServiceRateForDisplay(value, serviceKind) {
   return clean;
 }
 
-function extractExplicitServiceRateForDisplay(sourceValue, serviceKind) {
-  const source = String(sourceValue ?? "");
-  const label = serviceKind === "electricity"
-    ? "(?:điện|dien|electricity)"
-    : "(?:nước|nuoc|water)";
-  const unit = serviceKind === "electricity"
-    ? "(?:\\s*\\/\\s*(?:1\\s*)?(?:số|so|kwh))?"
-    : "(?:\\s*\\/\\s*(?:ng|người|nguoi|khối|khoi|m3|m³))?";
-  const pattern = new RegExp(
-    `${label}\\s*(?:[:：=-]\\s*)?(\\d+(?:[.,]\\d+)?\\s*(?:k|nghìn|nghin|đ|d|vnd)?${unit})`,
-    "iu",
-  );
-  const match = source.match(pattern);
-  return match ? normalizeServiceRateForDisplay(match[1], serviceKind) : "";
-}
-
 function dynamicServiceItemsForDisplay(items) {
   if (!Array.isArray(items)) return [];
 
@@ -102,11 +86,9 @@ function dynamicServiceItemsForDisplay(items) {
   });
 }
 
-function servicesForDisplay(sourceValue, services = {}) {
-  const electricity = normalizeServiceRateForDisplay(services?.electricity, "electricity")
-    || extractExplicitServiceRateForDisplay(sourceValue, "electricity");
-  const water = normalizeServiceRateForDisplay(services?.water, "water")
-    || extractExplicitServiceRateForDisplay(sourceValue, "water");
+function servicesForDisplay(_sourceValue, services = {}) {
+  const electricity = normalizeServiceRateForDisplay(services?.electricity, "electricity");
+  const water = normalizeServiceRateForDisplay(services?.water, "water");
   const items = dynamicServiceItemsForDisplay(services?.items);
   return { electricity, water, items };
 }
