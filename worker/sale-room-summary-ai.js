@@ -1,23 +1,40 @@
 import { isSameOrigin, json, readJson } from "./shared/http.js";
 import { getSession } from "./shared/session.js";
 
-export const SALE_ROOM_SUMMARY_AI_PATH = "/api/sales/room-summary/address";
+export const SALE_ROOM_SUMMARY_AI_PATH = "/api/sales/room-summary/extract";
+export const LEGACY_SALE_ROOM_ADDRESS_AI_PATH = "/api/sales/room-summary/address";
 export const DEFAULT_SALE_ROOM_SUMMARY_AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 
 const MAX_SOURCE_LENGTH = 12000;
 const MAX_ADDRESS_LENGTH = 320;
+const MAX_ROOM_FIELD_LENGTH = 220;
+const MAX_ROOMS = 24;
 
-const ADDRESS_SCHEMA = {
+const ROOM_SUMMARY_SCHEMA = {
   type: "object",
   additionalProperties: false,
   properties: {
     address: { type: "string" },
+    rooms: {
+      type: "array",
+      maxItems: MAX_ROOMS,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          room: { type: "string" },
+          price: { type: "string" },
+          availability: { type: "string" },
+        },
+        required: ["room", "price", "availability"],
+      },
+    },
   },
-  required: ["address"],
+  required: ["address", "rooms"],
 };
 
 export function isSaleRoomSummaryAiRoute(pathname) {
-  return pathname === SALE_ROOM_SUMMARY_AI_PATH;
+  return pathname === SALE_ROOM_SUMMARY_AI_PATH || pathname === LEGACY_SALE_ROOM_ADDRESS_AI_PATH;
 }
 
 export async function handleSaleRoomSummaryAiRequest(request, env) {
@@ -28,8 +45,8 @@ export async function handleSaleRoomSummaryAiRequest(request, env) {
   if (!session) return json({ error: "AUTH_REQUIRED" }, 401);
 
   const body = await readJson(request);
-  const source = normalizeRoomAddressSource(body?.source);
-  if (!source) return json({ error: "ROOM_ADDRESS_SOURCE_INVALID" }, 400);
+  const source = normalizeRoomSummarySource(body?.source);
+  if (!source) return json({ error: "ROOM_SUMMARY_SOURCE_INVALID" }, 400);
 
   if (!env?.AI?.run) return json({ error: "AI_UNAVAILABLE" }, 503);
 
@@ -39,41 +56,44 @@ export async function handleSaleRoomSummaryAiRequest(request, env) {
   try {
     const result = await env.AI.run(model, {
       messages: [
-        { role: "system", content: roomAddressInstructions() },
+        { role: "system", content: roomSummaryInstructions() },
         { role: "user", content: source },
       ],
       response_format: {
         type: "json_schema",
-        json_schema: ADDRESS_SCHEMA,
+        json_schema: ROOM_SUMMARY_SCHEMA,
       },
       temperature: 0,
-      max_tokens: 160,
+      max_tokens: 900,
     });
 
-    const candidate = normalizeDetectedAddress(extractAiObject(result)?.address);
-    if (!candidate) {
-      return json({ ok: true, found: false, address: "", model });
+    const detected = extractAiObject(result) || {};
+    const addressCandidate = normalizeDetectedAddress(detected.address);
+    const address = addressCandidate && addressIsGroundedInSource(source, addressCandidate)
+      ? addressCandidate
+      : "";
+
+    if (addressCandidate && !address) {
+      console.warn("Joy Sale room-summary AI rejected an ungrounded address", addressCandidate);
     }
 
-    if (!addressIsGroundedInSource(source, candidate)) {
-      console.warn("Joy Sale room-address AI rejected an ungrounded address", candidate);
-      return json({ ok: true, found: false, address: "", reason: "ungrounded-address", model });
-    }
+    const rooms = normalizeDetectedRooms(source, detected.rooms);
 
     return json({
       ok: true,
-      found: true,
+      found: Boolean(address || rooms.length),
       provider: "workers-ai",
       model,
-      address: candidate,
+      address,
+      rooms,
     });
   } catch (error) {
-    console.warn("Joy Sale room-address AI unavailable", error?.message || error);
+    console.warn("Joy Sale room-summary AI unavailable", error?.message || error);
     return json({ error: "AI_FAILED" }, 503);
   }
 }
 
-export function normalizeRoomAddressSource(value) {
+export function normalizeRoomSummarySource(value) {
   return String(value ?? "")
     .replace(/\r\n?/g, "\n")
     .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, " ")
@@ -83,6 +103,8 @@ export function normalizeRoomAddressSource(value) {
     .trim()
     .slice(0, MAX_SOURCE_LENGTH);
 }
+
+export const normalizeRoomAddressSource = normalizeRoomSummarySource;
 
 export function normalizeDetectedAddress(value) {
   return String(value ?? "")
@@ -99,29 +121,98 @@ export function normalizeDetectedAddress(value) {
     .slice(0, MAX_ADDRESS_LENGTH);
 }
 
-export function addressIsGroundedInSource(sourceValue, addressValue) {
-  const source = normalizeComparable(sourceValue);
-  const address = normalizeComparable(addressValue);
-  if (!source || !address) return false;
-  return source.includes(address);
+export function normalizeDetectedRoomField(value) {
+  return String(value ?? "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(/^[\s"'“”‘’•·*☘🌷🏢⌛⭐🏆-]+/u, "")
+    .replace(/^["'“”‘’]+|["'“”‘’]+$/g, "")
+    .replace(/\s+/g, " ")
+    .replace(/[.!?]+$/g, "")
+    .trim()
+    .slice(0, MAX_ROOM_FIELD_LENGTH);
 }
 
-function roomAddressInstructions() {
-  return `Bạn là bộ trích xuất địa chỉ cho tin phòng trọ/căn hộ bằng tiếng Việt.
-Nhiệm vụ duy nhất: tìm địa chỉ của căn/phòng đang được đăng trong nội dung người dùng gửi.
+export function addressIsGroundedInSource(sourceValue, addressValue) {
+  return valueIsGroundedInSource(sourceValue, addressValue);
+}
 
-Trả về đúng JSON theo schema với duy nhất trường address.
+export function roomFieldIsGroundedInSource(sourceValue, fieldValue) {
+  return valueIsGroundedInSource(sourceValue, fieldValue);
+}
 
-Quy tắc:
-- Chỉ lấy địa chỉ có thật trong nội dung nguồn; tuyệt đối không suy đoán hoặc bổ sung địa danh còn thiếu.
-- Không tự thêm Hà Nội, quận, phường, ngõ, số nhà hoặc bất kỳ chi tiết nào nếu nguồn không viết.
-- Có thể bỏ nhãn như "Địa chỉ:", emoji và ký hiệu trang trí.
-- Giữ nguyên nội dung địa chỉ, chỉ được dọn khoảng trắng và dấu câu thừa.
-- Nếu địa chỉ nằm trên nhiều dòng liên tiếp, có thể ghép các dòng thuộc cùng một địa chỉ, ví dụ dòng sau là "Quận: Hoàng Mai".
-- Không lấy số phòng, giá phòng, ngày trống, số điện thoại, hoa hồng, mã nguồn hoặc địa chỉ của một địa điểm chỉ được nhắc trong ghi chú làm địa chỉ căn phòng.
-- Nếu có nhiều địa chỉ và không xác định chắc địa chỉ của căn/phòng đang đăng, trả address là chuỗi rỗng.
-- Nếu không tìm thấy địa chỉ, trả address là chuỗi rỗng.
-- Không thêm tiền tố "Địa chỉ:" vào giá trị address.`;
+export function normalizeDetectedRooms(sourceValue, roomValues) {
+  if (!Array.isArray(roomValues)) return [];
+
+  const rooms = [];
+  const seen = new Set();
+
+  for (const raw of roomValues.slice(0, MAX_ROOMS)) {
+    const roomCandidate = normalizeDetectedRoomField(raw?.room);
+    const priceCandidate = normalizeDetectedRoomField(raw?.price);
+    const availabilityCandidate = normalizeDetectedRoomField(raw?.availability);
+
+    const room = roomCandidate && roomFieldIsGroundedInSource(sourceValue, roomCandidate)
+      ? roomCandidate
+      : "";
+    const price = priceCandidate && roomFieldIsGroundedInSource(sourceValue, priceCandidate)
+      ? priceCandidate
+      : "";
+    const availability = availabilityCandidate && roomFieldIsGroundedInSource(sourceValue, availabilityCandidate)
+      ? availabilityCandidate
+      : "";
+
+    if (!room && !price && !availability) continue;
+
+    const key = [room, price, availability].map(normalizeComparable).join("|");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    rooms.push({ room, price, availability });
+  }
+
+  return rooms;
+}
+
+function roomSummaryInstructions() {
+  return `Bạn là bộ trích xuất dữ liệu tin phòng trọ/căn hộ bằng tiếng Việt.
+Nhiệm vụ hiện tại chỉ gồm 2 phần: xác định địa chỉ và xác định các phòng/căn hiện đang cần cho thuê cùng giá và thời gian trống của từng phòng.
+
+Trả về đúng JSON theo schema:
+{
+  "address": "...",
+  "rooms": [
+    { "room": "...", "price": "...", "availability": "..." }
+  ]
+}
+
+QUY TẮC CHUNG:
+- Chỉ dùng thông tin có thật trong nội dung nguồn. Tuyệt đối không suy đoán, bổ sung hoặc tự chuẩn hóa thành dữ liệu mới.
+- Không lấy số điện thoại, hoa hồng, tên nguồn, link, mã nguồn, nội thất, dịch vụ hoặc ghi chú khác vào các trường này.
+- Nếu một trường không có hoặc không chắc chắn, trả chuỗi rỗng cho trường đó.
+
+ĐỊA CHỈ:
+- Giữ nguyên cách trích xuất địa chỉ: chỉ lấy địa chỉ của căn/phòng đang đăng.
+- Không tự thêm Hà Nội, quận, phường, ngõ, số nhà hoặc bất kỳ địa danh nào nguồn không viết.
+- Có thể bỏ nhãn "Địa chỉ:", emoji và ký hiệu trang trí; chỉ dọn khoảng trắng và dấu câu thừa.
+- Nếu có nhiều địa chỉ và không chắc địa chỉ nào thuộc căn/phòng đang đăng, để address rỗng.
+
+PHÒNG / GIÁ / THỜI GIAN TRỐNG:
+- rooms chỉ gồm các phòng/căn đang được đăng cho thuê hoặc được ghi là còn/trống/sắp trống. Không đưa phòng đã thuê, đã cọc, đã giữ hoặc chỉ xuất hiện trong ghi chú/lịch sử.
+- room là đúng mã/tên phòng nguồn viết, ví dụ P201, 302, A05. Không tự đổi P201 thành "Phòng 201" và không tự tạo số phòng.
+- Nếu tin chỉ nói về một phòng cho thuê nhưng không có mã/tên phòng, có thể để room rỗng và vẫn ghi price/availability nếu chúng rõ ràng.
+- price giữ đúng cách nguồn viết, ví dụ 4tr5, 5.1tr, 5tr1/tháng. Không đổi đơn vị, không tính toán và không tự thêm "/tháng".
+- availability giữ đúng thông tin nguồn viết, ví dụ "vào luôn", "1/9", "trống 15/8", "cuối tháng". Không tự đổi cụm tương đối thành ngày cụ thể.
+- Nếu nhiều phòng có giá hoặc ngày trống khác nhau, phải ghép đúng giá và thời gian với đúng phòng.
+- Nếu một giá hoặc thời gian được ghi chung cho nhiều phòng, chỉ áp dụng cho tất cả khi quan hệ đó thật sự rõ từ nguồn.
+- Nếu không chắc giá/thời gian thuộc phòng nào, để trường đó rỗng thay vì gán nhầm.
+- Không gộp nhiều phòng vào một phần tử rooms; mỗi phòng/căn là một phần tử riêng.`;
+}
+
+function valueIsGroundedInSource(sourceValue, candidateValue) {
+  const source = normalizeComparable(sourceValue);
+  const candidate = normalizeComparable(candidateValue);
+  if (!source || !candidate) return false;
+  return source.includes(candidate);
 }
 
 function normalizeComparable(value) {
@@ -138,9 +229,9 @@ function normalizeComparable(value) {
 function extractAiObject(result) {
   const raw = result?.response ?? result?.result ?? result?.text ?? result;
   if (raw && typeof raw === "object" && !Array.isArray(raw)) {
-    if (Object.hasOwn(raw, "address")) return raw;
+    if (Object.hasOwn(raw, "address") || Object.hasOwn(raw, "rooms")) return raw;
     const nested = raw.response ?? raw.result ?? raw.text;
-    if (nested && typeof nested === "object" && Object.hasOwn(nested, "address")) return nested;
+    if (nested && typeof nested === "object" && !Array.isArray(nested)) return nested;
   }
 
   const text = String(raw || "")
