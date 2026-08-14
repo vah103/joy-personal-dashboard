@@ -20,15 +20,15 @@ test("AI can semantically separate grounded furniture items from compact source 
   const source = "Nội thất: giường tủ điều hòa nóng lạnh";
   assert.equal(
     normalizeDetectedFurniture(source, ["giường", "tủ", "điều hòa", "nóng lạnh"], false),
-    "Giường, Tủ, Điều hòa, Nóng lạnh",
+    "Giường, tủ, điều hòa, nóng lạnh",
   );
 });
 
-test("normalizes common furniture wording while keeping it grounded", () => {
+test("normalizes common furniture wording while keeping sentence case", () => {
   const source = "Có tủ áo, bình nóng lạnh, bếp từ, máy giặt";
   assert.equal(
     normalizeDetectedFurniture(source, ["tủ áo", "bình nóng lạnh", "bếp từ", "máy giặt"], false),
-    "Tủ quần áo, Nóng lạnh, Bếp từ, Máy giặt",
+    "Tủ quần áo, nóng lạnh, bếp từ, máy giặt",
   );
 });
 
@@ -36,7 +36,7 @@ test("drops hallucinated or non-furniture items", () => {
   const source = "Nội thất: giường, điều hòa. Dịch vụ: điện, nước, mạng.";
   assert.equal(
     normalizeDetectedFurniture(source, ["giường", "điều hòa", "tủ lạnh", "điện", "nước", "mạng"], false),
-    "Giường, Điều hòa",
+    "Giường, điều hòa",
   );
 });
 
