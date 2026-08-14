@@ -1,5 +1,3 @@
-import { normalizeDynamicServiceItems } from "./sale-room-service-items-ai.js";
-
 const MAX_SERVICE_ITEMS = 16;
 
 const RATE_SOURCE = String.raw`(?:\d+(?:[.,]\d+)?\s*(?:tr(?:iệu|ieu)?|m|k|nghìn|nghin|đ|d|vnd)\s*\d*(?:\s*\/\s*(?:1\s*)?(?:ng|người|nguoi|phòng|phong|xe|tháng|thang|m3|m³|khối|khoi|số|so|kwh))?|\d+(?:[.,]\d+)?\s*\/\s*(?:1\s*)?(?:ng|người|nguoi|phòng|phong|xe|tháng|thang|m3|m³|khối|khoi|số|so|kwh)|(?:miễn\s+phí|mien\s+phi|free))`;
@@ -7,15 +5,15 @@ const RATE_SOURCE = String.raw`(?:\d+(?:[.,]\d+)?\s*(?:tr(?:iệu|ieu)?|m|k|ngh�
 const COMMON_LABEL_SOURCE = String.raw`(?:phí\s+(?:dịch\s+vụ|dv)\s+chung|dịch\s+vụ\s+chung|dv\s+chung|phí\s+chung|phí\s+(?:dịch\s+vụ|dv)|dịch\s+vụ|dv)`;
 
 const PACKAGE_MEMBER_PATTERNS = Object.freeze([
-  { value: "mạng", pattern: /\b(?:mạng|internet|wifi)\b/iu },
-  { value: "vệ sinh", pattern: /\b(?:vệ\s+sinh|vs)\b/iu },
-  { value: "rác", pattern: /\b(?:rác|rác\s+thải)\b/iu },
-  { value: "máy giặt", pattern: /\b(?:máy\s+giặt(?:\s+chung)?|giặt\s+chung)\b/iu },
-  { value: "gửi xe", pattern: /\b(?:gửi\s+xe|xe\s+máy|parking|phí\s+xe)\b/iu },
-  { value: "điện chung", pattern: /\b(?:điện\s+chung|điện\s+hành\s+lang)\b/iu },
-  { value: "nước chung", pattern: /\bnước\s+chung\b/iu },
-  { value: "camera", pattern: /\bcamera\b/iu },
-  { value: "bảo vệ", pattern: /\bbảo\s+vệ\b/iu },
+  { value: "Mạng", pattern: /(?:^|[^\p{L}\p{N}_])(?:mạng|internet|wifi)(?=$|[^\p{L}\p{N}_])/iu },
+  { value: "Vệ sinh", pattern: /(?:^|[^\p{L}\p{N}_])(?:vệ\s+sinh|vs)(?=$|[^\p{L}\p{N}_])/iu },
+  { value: "Rác", pattern: /(?:^|[^\p{L}\p{N}_])(?:rác|rác\s+thải)(?=$|[^\p{L}\p{N}_])/iu },
+  { value: "Máy giặt chung", pattern: /(?:^|[^\p{L}\p{N}_])(?:máy\s+giặt(?:\s+chung)?|giặt\s+chung)(?=$|[^\p{L}\p{N}_])/iu },
+  { value: "Gửi xe", pattern: /(?:^|[^\p{L}\p{N}_])(?:gửi\s+xe|xe\s+máy|parking|phí\s+xe)(?=$|[^\p{L}\p{N}_])/iu },
+  { value: "Điện chung", pattern: /(?:^|[^\p{L}\p{N}_])(?:điện\s+chung|điện\s+hành\s+lang)(?=$|[^\p{L}\p{N}_])/iu },
+  { value: "Nước chung", pattern: /(?:^|[^\p{L}\p{N}_])nước\s+chung(?=$|[^\p{L}\p{N}_])/iu },
+  { value: "Camera", pattern: /(?:^|[^\p{L}\p{N}_])camera(?=$|[^\p{L}\p{N}_])/iu },
+  { value: "Bảo vệ", pattern: /(?:^|[^\p{L}\p{N}_])bảo\s+vệ(?=$|[^\p{L}\p{N}_])/iu },
 ]);
 
 const EXPLICIT_SERVICE_DEFINITIONS = Object.freeze([
@@ -54,6 +52,18 @@ function normalizeRateIdentity(value) {
     .replace(/\/(?:1)?xe$/u, "/xe")
     .replace(/\/(?:1)?thang$/u, "/thang")
     .trim();
+}
+
+function formatSourceServiceValue(value) {
+  return String(value ?? "")
+    .trim()
+    .replace(/\s*\/\s*/g, "/")
+    .replace(/\bK\b/g, "k")
+    .replace(/\/(?:1\s*)?(?:ng|người|nguoi)$/iu, "/người")
+    .replace(/\/(?:1\s*)?(?:m3|m³|khối|khoi)$/iu, "/khối")
+    .replace(/\/(?:1\s*)?(?:phòng|phong)$/iu, "/phòng")
+    .replace(/\/(?:1\s*)?xe$/iu, "/xe")
+    .replace(/\/(?:1\s*)?(?:tháng|thang)$/iu, "/tháng");
 }
 
 function hasRate(value) {
@@ -109,9 +119,8 @@ function commonCandidates(segment) {
     candidates.push({
       kind: "common",
       name: "Dịch vụ chung",
-      value: rate,
+      value: formatSourceServiceValue(rate),
       includes: packageIncludes(segment, rateEnd),
-      evidence: segment,
     });
   }
 
@@ -122,19 +131,37 @@ function explicitServiceCandidates(segment) {
   const candidates = [];
 
   for (const definition of EXPLICIT_SERVICE_DEFINITIONS) {
-    const pattern = new RegExp(`\\b(${definition.label})\\b\\s*[:：=-]?\\s*(${RATE_SOURCE})`, "giu");
+    const pattern = new RegExp(`(?:^|[^\\p{L}\\p{N}_])(${definition.label})(?=$|[^\\p{L}\\p{N}_])\\s*[:：=-]?\\s*(${RATE_SOURCE})`, "giu");
     for (const match of segment.matchAll(pattern)) {
       candidates.push({
         kind: definition.kind,
         name: definition.name,
-        value: match[2],
+        value: formatSourceServiceValue(match[2]),
         includes: [],
-        evidence: segment,
       });
     }
   }
 
   return candidates;
+}
+
+function dedupeSourceItems(items) {
+  const byIdentity = new Map();
+  for (const item of items) {
+    const identity = `${item.kind}|${normalizeComparable(item.name)}|${normalizeRateIdentity(item.value)}`;
+    const existing = byIdentity.get(identity);
+    if (existing) {
+      existing.includes = mergeIncludes(existing.includes, item.includes);
+      continue;
+    }
+    byIdentity.set(identity, {
+      kind: item.kind,
+      name: item.name,
+      value: item.value,
+      includes: mergeIncludes([], item.includes),
+    });
+  }
+  return [...byIdentity.values()];
 }
 
 export function extractSourceDynamicServiceItems(sourceValue) {
@@ -143,7 +170,7 @@ export function extractSourceDynamicServiceItems(sourceValue) {
     candidates.push(...commonCandidates(segment));
     candidates.push(...explicitServiceCandidates(segment));
   }
-  return normalizeDynamicServiceItems(sourceValue, candidates);
+  return dedupeSourceItems(candidates).slice(0, MAX_SERVICE_ITEMS);
 }
 
 function mergeIncludes(left, right) {
