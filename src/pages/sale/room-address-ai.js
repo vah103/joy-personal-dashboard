@@ -18,9 +18,9 @@ function renderEmpty(container) {
   const mark = document.createElement("span");
   mark.textContent = "⌂";
   const title = document.createElement("strong");
-  title.textContent = "Địa chỉ phòng sẽ hiện ở đây";
+  title.textContent = "Bản tóm tắt phòng sẽ hiện ở đây";
   const detail = document.createElement("p");
-  detail.textContent = "Dán tin phòng rồi để AI xác định địa chỉ.";
+  detail.textContent = "Dán tin phòng rồi tạo một bản gọn để gửi khách.";
   empty.append(mark, title, detail);
   container.append(empty);
 }
@@ -34,8 +34,8 @@ function renderAddress(container, address) {
   const row = document.createElement("p");
   row.className = "room-share-detail-row";
   const label = document.createElement("strong");
-  label.textContent = "Địa chỉ:";
-  row.append(label, document.createTextNode(" "), editableAddress(address || "Không xác định"));
+  label.textContent = "Địa chỉ";
+  row.append(label, document.createTextNode(": "), editableAddress(address || "Không xác định"));
   details.append(row);
   container.append(details);
 }
@@ -85,9 +85,9 @@ function initializeRoomAddressAi() {
 
     const version = ++requestVersion;
     generate.disabled = true;
-    generate.textContent = "Detecting…";
+    generate.textContent = "Đang kiểm tra…";
     capture.disabled = true;
-    renderAddress(output, "Đang xác định…");
+    renderAddress(output, "…");
 
     try {
       const address = await detectAddress(source);
