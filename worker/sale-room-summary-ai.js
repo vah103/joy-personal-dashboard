@@ -9,6 +9,7 @@ const MAX_SOURCE_LENGTH = 12000;
 const MAX_ADDRESS_LENGTH = 320;
 const MAX_ROOM_FIELD_LENGTH = 220;
 const MAX_ROOMS = 24;
+const MAX_FURNITURE_ITEMS = 24;
 
 const ROOM_SUMMARY_SCHEMA = {
   type: "object",
@@ -30,8 +31,13 @@ const ROOM_SUMMARY_SCHEMA = {
     },
     roomType: { type: "string" },
     elevator: { type: "string" },
+    furnitureAsImage: { type: "boolean" },
+    furnitureItems: {
+      type: "array",
+      items: { type: "string" },
+    },
   },
-  required: ["address", "rooms", "roomType", "elevator"],
+  required: ["address", "rooms", "roomType", "elevator", "furnitureAsImage", "furnitureItems"],
 };
 
 const EXPLICIT_UNAVAILABLE_PATTERNS = Object.freeze([
@@ -41,6 +47,13 @@ const EXPLICIT_UNAVAILABLE_PATTERNS = Object.freeze([
   /\bgiu roi\b/u,
   /\bda thue\b/u,
   /\bthue roi\b/u,
+]);
+
+const NON_FURNITURE_ITEM_PATTERNS = Object.freeze([
+  /^(?:dien|nuoc|mang|internet|wifi|gui xe|phi gui xe|dich vu|phi dich vu)$/u,
+  /^(?:thang may|thang bo|elevator)$/u,
+  /^(?:studio|stuido|gac xep|\d+\s*n\s*1\s*k)$/u,
+  /^(?:ban cong|cua so|gac|tang|dien tich|camera|bao ve)$/u,
 ]);
 
 export function isSaleRoomSummaryAiRoute(pathname) {
@@ -74,7 +87,7 @@ export async function handleSaleRoomSummaryAiRequest(request, env) {
         json_schema: ROOM_SUMMARY_SCHEMA,
       },
       temperature: 0,
-      max_tokens: 900,
+      max_tokens: 1100,
     });
 
     const detected = extractAiObject(result) || {};
@@ -90,16 +103,18 @@ export async function handleSaleRoomSummaryAiRequest(request, env) {
     const rooms = normalizeDetectedRooms(source, detected.rooms);
     const roomType = normalizeDetectedRoomType(source, detected.roomType);
     const elevator = normalizeDetectedElevator(source, detected.elevator);
+    const furniture = normalizeDetectedFurniture(source, detected.furnitureItems, detected.furnitureAsImage);
 
     return json({
       ok: true,
-      found: Boolean(address || rooms.length || roomType || elevator),
+      found: Boolean(address || rooms.length || roomType || elevator || furniture),
       provider: "workers-ai",
       model,
       address,
       rooms,
       roomType,
       elevator,
+      furniture,
     });
   } catch (error) {
     console.warn("Joy Sale room-summary AI unavailable", error?.message || error);
@@ -196,6 +211,76 @@ export function normalizeDetectedElevator(sourceValue, value) {
   if (!candidate) return "";
   const grounded = elevatorStatusInSource(sourceValue);
   return grounded === candidate ? candidate : "";
+}
+
+export function furnitureReferencesImage(sourceValue) {
+  const source = normalizeComparable(sourceValue);
+  if (!source) return false;
+  return /\b(?:noi that|full do|do dac|trang bi)(?:\s+[a-z0-9]+){0,8}\s+(?:nhu anh|nhu hinh)\b/u.test(source)
+    || /\b(?:nhu anh|nhu hinh)(?:\s+[a-z0-9]+){0,8}\s+(?:noi that|full do|do dac|trang bi)\b/u.test(source);
+}
+
+export function normalizeDetectedFurniture(sourceValue, itemValues, asImage = false) {
+  if (furnitureReferencesImage(sourceValue)) return "Như hình";
+  if (asImage === true) return "";
+  if (!Array.isArray(itemValues)) return "";
+
+  const items = [];
+  const seen = new Set();
+  for (const raw of itemValues.slice(0, MAX_FURNITURE_ITEMS)) {
+    const chunks = String(raw ?? "").split(/[,;+/]+/u);
+    for (const chunk of chunks) {
+      const candidate = normalizeFurnitureCandidate(chunk);
+      if (!candidate || !valueIsGroundedInSource(sourceValue, candidate)) continue;
+      const comparable = normalizeComparable(candidate);
+      if (!comparable || NON_FURNITURE_ITEM_PATTERNS.some((pattern) => pattern.test(comparable))) continue;
+      if (!/\p{L}/u.test(candidate) || seen.has(comparable)) continue;
+      seen.add(comparable);
+      items.push(displayFurnitureItem(candidate));
+    }
+  }
+
+  return items.join(", ");
+}
+
+function normalizeFurnitureCandidate(value) {
+  return normalizeDetectedRoomField(value)
+    .replace(/^(?:nội\s*thất|noi\s*that|furniture|đồ\s*đạc|do\s*dac|trang\s*bị|trang\s*bi)\s*[:：-]?\s*/iu, "")
+    .trim();
+}
+
+function displayFurnitureItem(value) {
+  const clean = String(value || "").trim();
+  const comparable = normalizeComparable(clean);
+  const canonical = new Map([
+    ["dieu hoa", "Điều hòa"],
+    ["nong lanh", "Nóng lạnh"],
+    ["binh nong lanh", "Nóng lạnh"],
+    ["giuong", "Giường"],
+    ["tu", "Tủ"],
+    ["tu ao", "Tủ quần áo"],
+    ["tu quan ao", "Tủ quần áo"],
+    ["tu lanh", "Tủ lạnh"],
+    ["may giat", "Máy giặt"],
+    ["bep tu", "Bếp từ"],
+    ["tu bep", "Tủ bếp"],
+    ["sofa", "Sofa"],
+    ["rem", "Rèm"],
+    ["ban", "Bàn"],
+    ["ghe", "Ghế"],
+    ["ban ghe", "Bàn ghế"],
+    ["ban an", "Bàn ăn"],
+    ["ban lam viec", "Bàn làm việc"],
+    ["ke", "Kệ"],
+    ["tivi", "Tivi"],
+    ["tv", "TV"],
+    ["may hut mui", "Máy hút mùi"],
+    ["lo vi song", "Lò vi sóng"],
+    ["dem", "Đệm"],
+    ["full do", "Full đồ"],
+  ]).get(comparable);
+  if (canonical) return canonical;
+  return clean.charAt(0).toLocaleUpperCase("vi") + clean.slice(1);
 }
 
 export function addressIsGroundedInSource(sourceValue, addressValue) {
@@ -300,7 +385,7 @@ export function normalizeDetectedRooms(sourceValue, roomValues) {
 
 function roomSummaryInstructions() {
   return `Bạn là bộ trích xuất dữ liệu tin phòng trọ/căn hộ bằng tiếng Việt.
-Nhiệm vụ hiện tại chỉ gồm 4 phần: xác định địa chỉ; xác định các phòng/căn hiện đang cần cho thuê cùng giá và thời gian trống của từng phòng; xác định dạng phòng chung của tin; và xác định có thang máy hay không.
+Nhiệm vụ hiện tại gồm 5 phần: địa chỉ; các phòng/căn đang cần cho thuê cùng giá và thời gian trống; dạng phòng chung; thang máy; và nội thất của phòng.
 
 Trả về đúng JSON theo schema:
 {
@@ -309,13 +394,15 @@ Trả về đúng JSON theo schema:
     { "room": "...", "price": "...", "availability": "..." }
   ],
   "roomType": "...",
-  "elevator": "..."
+  "elevator": "...",
+  "furnitureAsImage": false,
+  "furnitureItems": ["..."]
 }
 
 QUY TẮC CHUNG:
 - Chỉ dùng thông tin có thật trong nội dung nguồn. Tuyệt đối không suy đoán hoặc bổ sung dữ liệu mới.
-- Không lấy số điện thoại, hoa hồng, tên nguồn, link, mã nguồn, nội thất, dịch vụ hoặc ghi chú khác vào các trường này.
-- Nếu một trường không có hoặc không chắc chắn, trả chuỗi rỗng cho trường đó.
+- Không lấy số điện thoại, hoa hồng, tên nguồn, link hoặc mã nguồn vào các trường này.
+- Nếu một trường không có hoặc không chắc chắn, để trống trường đó hoặc dùng mảng rỗng.
 
 ĐỊA CHỈ:
 - Chỉ lấy địa chỉ của căn/phòng đang đăng.
@@ -325,29 +412,35 @@ QUY TẮC CHUNG:
 
 PHÒNG / GIÁ / THỜI GIAN TRỐNG:
 - rooms chỉ gồm các phòng/căn đang được đăng cho thuê hoặc được ghi là còn/trống/sắp trống. Không đưa phòng đã thuê, đã cọc, đã giữ hoặc chỉ xuất hiện trong ghi chú/lịch sử.
-- room là đúng mã/tên phòng nguồn viết, ví dụ P201, 302, A05. Không tự đổi P201 thành "Phòng 201" và không tự tạo số phòng.
+- room là đúng mã/tên phòng nguồn viết, ví dụ P201, 302, A05. Không tự tạo số phòng.
 - Nếu tin chỉ nói về một phòng cho thuê nhưng không có mã/tên phòng, có thể để room rỗng và vẫn ghi price/availability nếu chúng rõ ràng.
 - price giữ đúng cách nguồn viết, ví dụ 4tr5, 5.1tr, 5tr1/tháng. Không đổi đơn vị, không tính toán và không tự thêm "/tháng".
 - availability giữ đúng thông tin nguồn viết, ví dụ "vào luôn", "1/9", "trống 15/8", "cuối tháng". Không tự đổi cụm tương đối thành ngày cụ thể.
 - Nếu nhiều phòng có giá hoặc ngày trống khác nhau, phải ghép đúng giá và thời gian với đúng phòng.
-- Nếu một giá hoặc thời gian được ghi chung cho nhiều phòng, chỉ áp dụng cho tất cả khi quan hệ đó thật sự rõ từ nguồn.
 - Nếu không chắc giá/thời gian thuộc phòng nào, để trường đó rỗng thay vì gán nhầm.
-- Không gộp nhiều phòng vào một phần tử rooms; mỗi phòng/căn là một phần tử riêng.
 
 DẠNG PHÒNG:
-- roomType chỉ được nhận một trong các dạng: "Gác xép", "Studio", hoặc mẫu số-phòng-ngủ dạng "1N1K", "2N1K", "3N1K", "4N1K"... với số N có thể tiếp tục tăng.
-- Có thể chuẩn hóa chữ hoa/chữ thường về dạng chuẩn, ví dụ "studio" → "Studio", "2n1k" → "2N1K".
+- roomType chỉ được nhận một trong các dạng: "Gác xép", "Studio", hoặc mẫu "1N1K", "2N1K", "3N1K", "4N1K"... với số N có thể tiếp tục tăng.
+- Có thể chuẩn hóa chữ hoa/chữ thường, ví dụ "studio" → "Studio", "2n1k" → "2N1K".
 - Nếu nguồn viết nhầm phổ biến "stuido", hiểu là "Studio".
-- Không suy ra roomType từ diện tích, số người, số phòng, nội thất hoặc mô tả khác nếu nguồn không nêu dạng phòng.
-- Không nhận các dạng ngoài whitelist trên như duplex, penthouse, căn hộ dịch vụ, 1N2K...; khi đó để roomType rỗng.
-- Nếu nguồn chứa nhiều dạng phòng khác nhau và không có một dạng chung rõ ràng cho toàn bộ tin, để roomType rỗng.
+- Không suy ra roomType từ diện tích, số người, nội thất hoặc mô tả khác.
+- Nếu nguồn chứa nhiều dạng phòng khác nhau và không có một dạng chung rõ ràng, để roomType rỗng.
 
 THANG MÁY:
-- elevator chỉ được trả đúng một trong hai giá trị: "Có" hoặc "Không". Nếu nguồn không nói rõ thì trả chuỗi rỗng.
-- Trả "Có" khi nguồn nói rõ có thang máy hoặc viết theo kiểu "Thang: MÁY", "thang máy", "có thang máy", "elevator".
-- Trả "Không" khi nguồn nói rõ không có thang máy hoặc viết theo kiểu "không có thang máy", "thang máy: không", "Thang: BỘ".
-- Không suy ra elevator từ số tầng, tầng của phòng, loại nhà, giá thuê hoặc bất kỳ dữ liệu gián tiếp nào.
-- Nếu nguồn chứa thông tin mâu thuẫn về thang máy, trả chuỗi rỗng.`;
+- elevator chỉ được trả "Có" hoặc "Không". Nếu nguồn không nói rõ thì trả chuỗi rỗng.
+- "Thang: MÁY", "thang máy", "có thang máy", "elevator" → "Có".
+- "không có thang máy", "thang máy: không", "Thang: BỘ" → "Không".
+- Không suy ra elevator từ số tầng, tầng phòng hoặc loại nhà.
+
+NỘI THẤT:
+- Hãy hiểu theo ngữ nghĩa đâu là đồ nội thất hoặc thiết bị đi cùng phòng, không chỉ dựa vào việc có nhãn "Nội thất".
+- Ví dụ hợp lệ gồm: giường, đệm, tủ/tủ quần áo, điều hòa, nóng lạnh/bình nóng lạnh, bàn, ghế, bàn ghế, bàn ăn, bàn làm việc, sofa, rèm, kệ, tủ bếp, bếp từ, tủ lạnh, máy giặt, tivi/TV, máy hút mùi, lò vi sóng và các đồ/thiết bị tương tự đi cùng căn phòng.
+- Không coi tiền điện, tiền nước, mạng/internet, phí dịch vụ, gửi xe, thang máy, loại phòng, diện tích, ban công, cửa sổ, camera hoặc bảo vệ là nội thất.
+- furnitureItems phải là từng món riêng lẻ và nên giữ đúng từ/cụm từ nguồn đã viết. Không tự thêm món mà nguồn không có.
+- Nếu nguồn ghi rõ nội thất/full đồ/đồ đạc "như ảnh" hoặc "như hình", đặt furnitureAsImage=true và furnitureItems=[]; không cố suy ra danh sách đồ từ câu đó.
+- Nếu nguồn liệt kê đồ cụ thể thì furnitureAsImage=false và đưa từng món vào furnitureItems.
+- Nếu nguồn chỉ nói "full đồ" mà không liệt kê và không nói "như ảnh/như hình", có thể trả furnitureItems=["full đồ"].
+- Nếu không có thông tin nội thất rõ ràng, furnitureAsImage=false và furnitureItems=[].`;
 }
 
 function valueIsGroundedInSource(sourceValue, candidateValue) {
@@ -502,7 +595,14 @@ function normalizeComparable(value) {
 function extractAiObject(result) {
   const raw = result?.response ?? result?.result ?? result?.text ?? result;
   if (raw && typeof raw === "object" && !Array.isArray(raw)) {
-    if (Object.hasOwn(raw, "address") || Object.hasOwn(raw, "rooms") || Object.hasOwn(raw, "roomType") || Object.hasOwn(raw, "elevator")) return raw;
+    if (
+      Object.hasOwn(raw, "address")
+      || Object.hasOwn(raw, "rooms")
+      || Object.hasOwn(raw, "roomType")
+      || Object.hasOwn(raw, "elevator")
+      || Object.hasOwn(raw, "furnitureAsImage")
+      || Object.hasOwn(raw, "furnitureItems")
+    ) return raw;
     const nested = raw.response ?? raw.result ?? raw.text;
     if (nested && typeof nested === "object" && !Array.isArray(nested)) return nested;
   }
