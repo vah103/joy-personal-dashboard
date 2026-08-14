@@ -179,7 +179,7 @@ export function roomIsExplicitlyUnavailableInSource(sourceValue, roomValue) {
   const room = normalizeComparable(roomValue);
   if (!room) return false;
 
-  return sourceClauses(sourceValue).some((clause) => (
+  return sourceStatusClauses(sourceValue).some((clause) => (
     containsNormalizedPhrase(clause, room)
     && EXPLICIT_UNAVAILABLE_PATTERNS.some((pattern) => pattern.test(clause))
   ));
@@ -273,6 +273,13 @@ function valueIsGroundedInSource(sourceValue, candidateValue) {
 }
 
 function sourceClauses(value) {
+  return String(value ?? "")
+    .split(/[\n;|•]+/u)
+    .map(normalizeComparable)
+    .filter(Boolean);
+}
+
+function sourceStatusClauses(value) {
   return String(value ?? "")
     .split(/[\n;,|•]+/u)
     .map(normalizeComparable)
