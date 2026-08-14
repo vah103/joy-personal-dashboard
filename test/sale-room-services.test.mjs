@@ -52,7 +52,8 @@ test("Room Summary renders only electricity and water in the current service sta
   );
 
   assert.match(frontend, /appendServices\(details, summary\.services\)/u);
-  assert.match(frontend, /payload\.services\?\.electricity/u);
-  assert.match(frontend, /payload\.services\?\.water/u);
+  assert.match(frontend, /servicesForDisplay\(source, payload\.services\)/u);
+  assert.match(frontend, /services\?\.electricity/u);
+  assert.match(frontend, /services\?\.water/u);
   assert.doesNotMatch(frontend, /payload\.services\?\.(?:internet|parking|commonFee|cleaning)/u);
 });
