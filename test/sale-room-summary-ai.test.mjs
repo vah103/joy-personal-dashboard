@@ -11,6 +11,7 @@ import {
   normalizeRoomSummarySource,
   roomFieldIsAssociatedInSource,
   roomFieldIsGroundedInSource,
+  roomIdentifierIsGroundedInSource,
   roomIsExplicitlyUnavailableInSource,
   SALE_ROOM_SUMMARY_AI_PATH,
 } from "../worker/sale-room-summary-ai.js";
@@ -60,6 +61,29 @@ test("room grounding requires the actual source token instead of a substring", (
   assert.equal(roomFieldIsGroundedInSource(source, "201"), false);
 });
 
+test("does not mistake a bare numeric house number for a room", () => {
+  const source = "Địa chỉ: 302 Mỹ Đình. Trống P201 giá 4tr5.";
+  assert.equal(roomIdentifierIsGroundedInSource(source, "302"), false);
+  assert.equal(roomIdentifierIsGroundedInSource(source, "P201"), true);
+
+  assert.deepEqual(normalizeDetectedRooms(source, [
+    { room: "302", price: "", availability: "" },
+    { room: "P201", price: "4tr5", availability: "" },
+  ]), [
+    { room: "P201", price: "4tr5", availability: "" },
+  ]);
+});
+
+test("accepts a bare numeric room when the source gives it rental context", () => {
+  const source = "Phòng 302 trống 1/9, giá 4tr5.";
+  assert.equal(roomIdentifierIsGroundedInSource(source, "302"), true);
+  assert.deepEqual(normalizeDetectedRooms(source, [
+    { room: "302", price: "4tr5", availability: "1/9" },
+  ]), [
+    { room: "302", price: "4tr5", availability: "1/9" },
+  ]);
+});
+
 test("keeps room, price and availability only when each value belongs to that room", () => {
   const source = `
     Địa chỉ: 105 Doãn Kế Thiện
@@ -96,6 +120,16 @@ test("drops cross-assigned prices and dates even when every individual value exi
   ]);
 });
 
+test("does not leak facts across sentence boundaries when AI omits another room", () => {
+  const source = "Trống P201. P202 giá 4tr8.";
+
+  assert.deepEqual(normalizeDetectedRooms(source, [
+    { room: "P201", price: "4tr8", availability: "" },
+  ]), [
+    { room: "P201", price: "", availability: "" },
+  ]);
+});
+
 test("does not treat another omitted room's fact as a listing-wide value", () => {
   const source = `
     Trống: P201
@@ -109,13 +143,20 @@ test("does not treat another omitted room's fact as a listing-wide value", () =>
   ]);
 });
 
-test("preserves decimal-comma prices while validating their room association", () => {
-  const source = "Trống P201 vào luôn, giá P201 3,8tr";
-  assert.equal(roomFieldIsAssociatedInSource(source, "P201", "3,8tr", ["P201"]), true);
-  assert.deepEqual(normalizeDetectedRooms(source, [
+test("preserves decimal-comma and decimal-dot prices while validating association", () => {
+  const commaSource = "Trống P201 vào luôn, giá P201 3,8tr";
+  assert.equal(roomFieldIsAssociatedInSource(commaSource, "P201", "3,8tr", ["P201"]), true);
+  assert.deepEqual(normalizeDetectedRooms(commaSource, [
     { room: "P201", price: "3,8tr", availability: "vào luôn" },
   ]), [
     { room: "P201", price: "3,8tr", availability: "vào luôn" },
+  ]);
+
+  const dotSource = "Trống P202 vào luôn. Giá P202 5.1tr.";
+  assert.deepEqual(normalizeDetectedRooms(dotSource, [
+    { room: "P202", price: "5.1tr", availability: "vào luôn" },
+  ]), [
+    { room: "P202", price: "5.1tr", availability: "vào luôn" },
   ]);
 });
 
