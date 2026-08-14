@@ -96,6 +96,19 @@ test("drops cross-assigned prices and dates even when every individual value exi
   ]);
 });
 
+test("does not treat another omitted room's fact as a listing-wide value", () => {
+  const source = `
+    Trống: P201
+    Giá: P202 4tr8
+  `;
+
+  assert.deepEqual(normalizeDetectedRooms(source, [
+    { room: "P201", price: "4tr8", availability: "" },
+  ]), [
+    { room: "P201", price: "", availability: "" },
+  ]);
+});
+
 test("preserves decimal-comma prices while validating their room association", () => {
   const source = "Trống P201 vào luôn, giá P201 3,8tr";
   assert.equal(roomFieldIsAssociatedInSource(source, "P201", "3,8tr", ["P201"]), true);
@@ -132,6 +145,22 @@ test("filters only the room explicitly marked unavailable when statuses share on
     { room: "P202", price: "4tr8", availability: "1/9" },
   ]), [
     { room: "P202", price: "4tr8", availability: "1/9" },
+  ]);
+});
+
+test("merges duplicate AI rows for the same room and blanks conflicting facts", () => {
+  const source = `
+    P201 trống 1/9
+    Giá P201 4tr5
+    Giá cũ P201 4tr3
+  `;
+
+  assert.deepEqual(normalizeDetectedRooms(source, [
+    { room: "P201", price: "4tr5", availability: "" },
+    { room: "P201", price: "", availability: "1/9" },
+    { room: "P201", price: "4tr3", availability: "" },
+  ]), [
+    { room: "P201", price: "", availability: "1/9" },
   ]);
 });
 
