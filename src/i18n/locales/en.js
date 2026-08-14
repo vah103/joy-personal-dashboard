@@ -31,4 +31,6 @@ export default Object.freeze({
   "cleanup.sale.serviceFridge": "Fridge",
   "cleanup.sale.serviceLaundry": "Laundry",
   "cleanup.sale.serviceOther": "Other",
+  "cleanup.sale.aiAnalysisComplete": "AI analysis complete",
+  "cleanup.sale.parserFallback": "Parser fallback",
 });
