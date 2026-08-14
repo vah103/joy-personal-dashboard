@@ -37,11 +37,8 @@ const EXPLICIT_UNAVAILABLE_PATTERNS = Object.freeze([
   /\bcoc roi\b/u,
   /\bda giu\b/u,
   /\bgiu roi\b/u,
-  /\bgiu cho\b/u,
   /\bda thue\b/u,
   /\bthue roi\b/u,
-  /\bda chot\b/u,
-  /\bchot roi\b/u,
   /\bhet phong\b/u,
 ]);
 
@@ -153,25 +150,26 @@ export function roomFieldIsGroundedInSource(sourceValue, fieldValue) {
   return valueIsGroundedInSource(sourceValue, fieldValue);
 }
 
-export function roomFieldIsAssociatedInSource(sourceValue, roomValue, fieldValue, roomValues = []) {
+export function roomFieldIsAssociatedInSource(sourceValue, roomValue, fieldValue, roomValues = [], fieldKind = "") {
   const field = normalizeComparable(fieldValue);
   if (!field || !roomFieldIsGroundedInSource(sourceValue, fieldValue)) return false;
 
   const room = normalizeComparable(roomValue);
-  if (!room) return true;
-
   const rooms = [...new Set(roomValues.map(normalizeComparable).filter(Boolean))];
   const clauses = sourceClauses(sourceValue);
 
-  for (const clause of clauses) {
-    if (!containsNormalizedPhrase(clause, field) || !containsNormalizedPhrase(clause, room)) continue;
-    if (fieldIsNearestToRoom(clause, room, field, rooms)) return true;
+  if (room) {
+    for (const clause of clauses) {
+      if (!containsNormalizedPhrase(clause, field) || !containsNormalizedPhrase(clause, room)) continue;
+      if (fieldIsNearestToRoom(clause, room, field, rooms)) return true;
+    }
   }
 
-  // A value written without any room code in its clause is listing-wide, e.g. "Giá: 4tr5".
+  // Shared values are accepted only when the source itself marks the clause as a general price/vacancy fact
+  // and there is no other room-like token left after removing the candidate value.
   return clauses.some((clause) => (
     containsNormalizedPhrase(clause, field)
-    && !rooms.some((candidateRoom) => containsNormalizedPhrase(clause, candidateRoom))
+    && sharedFieldClauseIsExplicit(clause, field, fieldKind)
   ));
 }
 
@@ -200,8 +198,7 @@ export function normalizeDetectedRooms(sourceValue, roomValues) {
       : ""
   ));
   const allRooms = groundedRoomValues.filter(Boolean);
-  const rooms = [];
-  const seen = new Set();
+  const validated = [];
 
   candidates.forEach((candidate, index) => {
     const { roomCandidate, priceCandidate, availabilityCandidate } = candidate;
@@ -212,23 +209,19 @@ export function normalizeDetectedRooms(sourceValue, roomValues) {
     if (room && roomIsExplicitlyUnavailableInSource(sourceValue, room)) return;
 
     const price = priceCandidate
-      && roomFieldIsAssociatedInSource(sourceValue, room, priceCandidate, allRooms)
+      && roomFieldIsAssociatedInSource(sourceValue, room, priceCandidate, allRooms, "price")
       ? priceCandidate
       : "";
     const availability = availabilityCandidate
-      && roomFieldIsAssociatedInSource(sourceValue, room, availabilityCandidate, allRooms)
+      && roomFieldIsAssociatedInSource(sourceValue, room, availabilityCandidate, allRooms, "availability")
       ? availabilityCandidate
       : "";
 
     if (!room && !price && !availability) return;
-
-    const key = [room, price, availability].map(normalizeComparable).join("|");
-    if (seen.has(key)) return;
-    seen.add(key);
-    rooms.push({ room, price, availability });
+    validated.push({ room, price, availability });
   });
 
-  return rooms;
+  return mergeRoomFacts(validated);
 }
 
 function roomSummaryInstructions() {
@@ -325,6 +318,66 @@ function fieldIsNearestToRoom(clause, targetRoom, field, roomValues) {
     const minimum = Math.min(...distances.map(({ distance }) => distance));
     return distances.some(({ room, distance }) => room === targetRoom && distance === minimum);
   });
+}
+
+function sharedFieldClauseIsExplicit(clause, field, fieldKind) {
+  const kindMatches = fieldKind === "price"
+    ? /\b(?:gia|price|rent)\b/u.test(clause)
+    : fieldKind === "availability"
+      ? /\b(?:trong|available|availability|vao luon)\b/u.test(clause)
+      : false;
+  if (!kindMatches) return false;
+
+  const withoutField = removeNormalizedPhrase(clause, field);
+  return !containsOtherRoomLikeToken(withoutField);
+}
+
+function removeNormalizedPhrase(source, candidate) {
+  if (!source || !candidate) return source;
+  return (` ${source} `).split(` ${candidate} `).join(" ").replace(/\s+/g, " ").trim();
+}
+
+function containsOtherRoomLikeToken(value) {
+  const source = String(value || "");
+  return /\b(?:p\d+[a-z]?|[a-z]{1,3}\d{2,4})\b/u.test(source)
+    || /\b(?:phong|room)\s+\d{1,4}\b/u.test(source)
+    || /\b\d{2,4}\b/u.test(source);
+}
+
+function mergeRoomFacts(rows) {
+  const merged = [];
+  const byRoom = new Map();
+  const emptyRows = new Set();
+
+  for (const row of rows) {
+    const roomKey = normalizeComparable(row.room);
+    if (!roomKey) {
+      const key = [row.price, row.availability].map(normalizeComparable).join("|");
+      if (emptyRows.has(key)) continue;
+      emptyRows.add(key);
+      merged.push({ ...row });
+      continue;
+    }
+
+    const existing = byRoom.get(roomKey);
+    if (!existing) {
+      const copy = { ...row };
+      byRoom.set(roomKey, copy);
+      merged.push(copy);
+      continue;
+    }
+
+    existing.price = mergeSingleFact(existing.price, row.price);
+    existing.availability = mergeSingleFact(existing.availability, row.availability);
+  }
+
+  return merged;
+}
+
+function mergeSingleFact(current, incoming) {
+  if (!current) return incoming || "";
+  if (!incoming) return current;
+  return normalizeComparable(current) === normalizeComparable(incoming) ? current : "";
 }
 
 function normalizeComparable(value) {
