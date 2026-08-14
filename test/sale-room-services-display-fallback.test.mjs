@@ -27,7 +27,7 @@ test("recovers explicit electricity and water when AI leaves service fields blan
 
   assert.deepEqual(
     JSON.parse(JSON.stringify(servicesForDisplay(source, {}))),
-    { electricity: "4k", water: "135k/người" },
+    { electricity: "4k", water: "135k/người", items: [] },
   );
 });
 
@@ -37,7 +37,7 @@ test("normalizes explicit per-number and per-cubic-meter units in fallback", asy
 
   assert.deepEqual(
     JSON.parse(JSON.stringify(servicesForDisplay(source, {}))),
-    { electricity: "4k/số", water: "35k/khối" },
+    { electricity: "4k/số", water: "35k/khối", items: [] },
   );
 });
 
@@ -51,7 +51,27 @@ test("shows 3.99-style electricity as 4k without changing other service rates", 
 
   assert.deepEqual(
     JSON.parse(JSON.stringify(servicesForDisplay("Điện 3.990/số, nước 35k/khối", {}))),
-    { electricity: "4k/số", water: "35k/khối" },
+    { electricity: "4k/số", water: "35k/khối", items: [] },
+  );
+});
+
+test("keeps dynamic service items while applying electricity and water fallback", async () => {
+  const { servicesForDisplay } = await loadServiceDisplayHelpers();
+  const source = "Điện 4k/số, nước 35k/khối, mạng 100k/phòng.";
+
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(servicesForDisplay(source, {
+      items: [
+        { kind: "internet", name: "Mạng", value: "100k/phòng", includes: [] },
+      ],
+    }))),
+    {
+      electricity: "4k/số",
+      water: "35k/khối",
+      items: [
+        { kind: "internet", name: "Mạng", value: "100k/phòng", includes: [] },
+      ],
+    },
   );
 });
 
@@ -75,6 +95,6 @@ test("does not turn unrelated common fees into electricity or water", async () =
 
   assert.deepEqual(
     JSON.parse(JSON.stringify(servicesForDisplay(source, {}))),
-    { electricity: "", water: "" },
+    { electricity: "", water: "", items: [] },
   );
 });
