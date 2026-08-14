@@ -19,6 +19,22 @@ function normalizeComparable(value) {
     .trim();
 }
 
+function normalizeRateIdentity(value) {
+  return String(value ?? "")
+    .toLocaleLowerCase("vi")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/\s+/g, "")
+    .replace(/\/(?:1)?(?:ng|nguoi)$/u, "/ng")
+    .replace(/\/(?:1)?(?:m3|m³|khoi)$/u, "/khoi")
+    .replace(/\/(?:1)?phong$/u, "/phong")
+    .replace(/\/(?:1)?xe$/u, "/xe")
+    .replace(/\/(?:1)?thang$/u, "/thang")
+    .replace(/\/(?:1)?(?:so|kwh)$/u, "/so")
+    .trim();
+}
+
 function roomIdentity(value) {
   const normalized = normalizeComparable(value)
     .replace(/^(?:phong|room)\s+/u, "")
@@ -44,6 +60,14 @@ function sourceAvailabilityPhrasePattern() {
 
 function sourceAreaPattern() {
   return /\b\d+(?:[.,]\d+)?\s*m\s*(?:2|²)\b/giu;
+}
+
+function sourcePercentPattern() {
+  return /\b\d+(?:[.,]\d+)?\s*%/gu;
+}
+
+function sourceNonRoomLabeledNumberPattern() {
+  return /\b(?:mã|ma|code|id|hh|hoa\s*hồng|hoa\s*hong|cọc|coc|deposit)\s*[:#=-]?\s*p?\s*\d{2,4}\b/giu;
 }
 
 function collectRanges(value, pattern) {
@@ -83,9 +107,30 @@ function sourceSegments(value) {
 
 function lineHasRoomScope(line) {
   const normalized = normalizeComparable(line);
-  if (/\b(?:phong|room|trong|available|availability|con|sap|gia|price|rent)\b/u.test(normalized)) {
+  if (/(?:^|\s)(?:phong|room|trong|available|availability|con|sap|gia|price|rent)(?:\s|$)/u.test(normalized)) {
     return true;
   }
+  return /\bp\s*[-:]?\s*\d{1,4}[a-z]?\b/iu.test(line);
+}
+
+function separatorOnly(value) {
+  return !String(value ?? "").replace(/[\s,.:;|()[\]{}\-–—/]+/gu, "").trim();
+}
+
+function candidateIsAdjacentToPrice(line, candidateRange, priceRanges) {
+  return priceRanges.some((priceRange) => {
+    if (priceRange.end <= candidateRange.start) {
+      return separatorOnly(line.slice(priceRange.end, candidateRange.start));
+    }
+    if (candidateRange.end <= priceRange.start) {
+      return separatorOnly(line.slice(candidateRange.end, priceRange.start));
+    }
+    return false;
+  });
+}
+
+function lineHasStrongBareRoomScope(line, normalizedLine) {
+  if (/(?:^|\s)(?:phong|room|trong|available|availability|con|sap)(?:\s|$)/u.test(normalizedLine)) return true;
   return /\bp\s*[-:]?\s*\d{1,4}[a-z]?\b/iu.test(line);
 }
 
@@ -100,11 +145,14 @@ export function extractSourceRoomMentions(sourceValue) {
     }
 
     const normalizedLine = normalizeComparable(line);
-    const hasAddressCue = /\b(?:dia chi|address|dc)\b/u.test(normalizedLine);
+    const hasAddressCue = /(?:^|\s)(?:dia chi|address|dc)(?:\s|$)/u.test(normalizedLine);
+    const priceRanges = collectRanges(line, sourcePricePattern());
     const excludedRanges = [
-      ...collectRanges(line, sourcePricePattern()),
+      ...priceRanges,
       ...collectRanges(line, sourceAvailabilityDatePattern()),
       ...collectRanges(line, sourceAreaPattern()),
+      ...collectRanges(line, sourcePercentPattern()),
+      ...collectRanges(line, sourceNonRoomLabeledNumberPattern()),
     ];
     const candidates = [];
 
@@ -130,8 +178,11 @@ export function extractSourceRoomMentions(sourceValue) {
     }
 
     if (!hasAddressCue) {
+      const strongBareScope = lineHasStrongBareRoomScope(line, normalizedLine);
       for (const match of line.matchAll(/\b\d{2,4}\b/gu)) {
-        addRoomCandidate(candidates, match[0], match.index ?? 0, match[0].length, 1, excludedRanges);
+        const range = { start: match.index ?? 0, end: (match.index ?? 0) + match[0].length };
+        if (!strongBareScope && !candidateIsAdjacentToPrice(line, range, priceRanges)) continue;
+        addRoomCandidate(candidates, match[0], range.start, match[0].length, 1, excludedRanges);
       }
     }
 
@@ -183,7 +234,7 @@ function sourceAvailabilityValues(sourceValue) {
   const values = [];
   for (const line of sourceSegments(sourceValue)) {
     const normalized = normalizeComparable(line);
-    const hasAvailabilityCue = /\b(?:trong|available|availability|con|sap|vao luon)\b/u.test(normalized);
+    const hasAvailabilityCue = /(?:^|\s)(?:trong|available|availability|con|sap|vao luon)(?:\s|$)/u.test(normalized);
     if (!hasAvailabilityCue) continue;
 
     values.push(...[...line.matchAll(sourceAvailabilityDatePattern())].map((match) => match[0]));
@@ -292,12 +343,24 @@ export function normalizeDetectedRooms(sourceValue, roomValues) {
   return rows;
 }
 
+function sharedUtilityRateIdentities(serviceItems) {
+  return new Set((Array.isArray(serviceItems) ? serviceItems : [])
+    .filter((item) => normalizeComparable(item?.name) === "dien nuoc")
+    .map((item) => normalizeRateIdentity(item?.value))
+    .filter(Boolean));
+}
+
 function responseWithReconciledData(response, payload, rooms, serviceItems) {
   const headers = new Headers(response.headers);
   headers.delete("content-length");
 
+  const sharedRates = sharedUtilityRateIdentities(serviceItems);
+  const electricity = String(payload?.services?.electricity || "").trim();
+  const water = String(payload?.services?.water || "").trim();
   const services = {
     ...(payload?.services || {}),
+    electricity: sharedRates.has(normalizeRateIdentity(electricity)) ? "" : electricity,
+    water: sharedRates.has(normalizeRateIdentity(water)) ? "" : water,
     items: Array.isArray(serviceItems) ? serviceItems : [],
   };
 
