@@ -9,6 +9,7 @@
   }
   if (typeof document?.createElement === "function") {
     void import("/i18n/index.js?v=joy-i18n-v1");
+    void import("/project-data/sales/room-summary-ai-first-dashboard.js?v=joy-room-summary-ai-first-v1");
   }
 })();
 
