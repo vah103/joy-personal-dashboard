@@ -5,6 +5,7 @@ import {
   extractSourceRoomMentions,
   normalizeDynamicServiceItems,
   reconcileDynamicServiceItems,
+  reconcileUtilityServiceFields,
 } from "../worker/sale-room-summary-ai.js";
 
 test("service corpus: generic fee plus an explicit member list is one common package", () => {
@@ -49,10 +50,26 @@ test("service corpus: a generic service heading cannot steal a utility-specific 
   assert.equal(items.some((item) => item.kind === "common"), false);
 });
 
-test("service corpus: one shared electricity-water rate stays one semantic item", () => {
-  assert.deepEqual(extractSourceDynamicServiceItems("Điện nước 100k/ng"), [
+test("service corpus: one shared electricity-water rate stays one semantic item in either order", () => {
+  const expected = [
     { kind: "other", name: "Điện + nước", value: "100k/người", includes: [] },
-  ]);
+  ];
+  assert.deepEqual(extractSourceDynamicServiceItems("Điện nước 100k/ng"), expected);
+  assert.deepEqual(extractSourceDynamicServiceItems("100k/ng điện nước"), expected);
+});
+
+test("service corpus: a shared utility item removes the same rate from standalone fields", () => {
+  const items = [
+    { kind: "other", name: "Điện + nước", value: "100k/người", includes: [] },
+  ];
+  assert.deepEqual(reconcileUtilityServiceFields({
+    electricity: "4k/số",
+    water: "100k/người",
+  }, items), {
+    electricity: "4k/số",
+    water: "",
+    items,
+  });
 });
 
 test("service corpus: Vietnamese AI evidence keeps full units and free status", () => {
@@ -91,9 +108,9 @@ test("service corpus: source-grounded fee wins over a conflicting AI fee for the
   ]);
 });
 
-test("room corpus: percentage, commission, deposit and source code never become rooms", () => {
+test("room corpus: percentage, commission, deposit and source codes never become rooms", () => {
   assert.deepEqual(extractSourceRoomMentions(
-    "Giá 4tr5, HH 30%, Mã 042, cọc 1000",
+    "Giá 4tr5, HH 30%, Mã 042, Code A123, cọc 1000",
   ), []);
 });
 
