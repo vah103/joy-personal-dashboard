@@ -103,6 +103,7 @@ import {
 } from "./vocabulary.js";
 
 const PROTECTED_ASSETS = new Set(["/", "/index.html", "/sale-manager.html"]);
+const SALE_ROOM_AI_ASSETS = new Set(["/sales-assistant.js", "/room-summary.js", "/room-address-ai.js"]);
 const DASHBOARD_HEADING_STYLESHEET = "dashboard-openai-headings.css?v=joy-openai-headings-v3";
 
 function scheduleIndependentJob(ctx, label, job) {
@@ -153,6 +154,9 @@ export default {
 
     try {
       if (pathname === "/dashboard-openai-headings.css" && request.method === "GET") {
+        return noStoreResponse(await env.ASSETS.fetch(request));
+      }
+      if (SALE_ROOM_AI_ASSETS.has(pathname) && request.method === "GET") {
         return noStoreResponse(await env.ASSETS.fetch(request));
       }
       if (isJoyMcpRoute(pathname)) {
