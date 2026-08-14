@@ -1,52 +1,24 @@
 import { isSameOrigin, json, readJson } from "./shared/http.js";
 import { getSession } from "./shared/session.js";
 
-export const SALE_ROOM_SUMMARY_AI_PATH = "/api/sales/room-summary/polish";
+export const SALE_ROOM_SUMMARY_AI_PATH = "/api/sales/room-summary/address";
 export const DEFAULT_SALE_ROOM_SUMMARY_AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 
-const MAX_FURNITURE_LENGTH = 1200;
-const MAX_SERVICE_VALUE_LENGTH = 900;
-const MAX_NOTE_LENGTH = 900;
-const MAX_SERVICES = 12;
-const MAX_NOTES = 12;
+const MAX_SOURCE_LENGTH = 12000;
+const MAX_ADDRESS_LENGTH = 320;
 
-const SERVICE_LABELS = Object.freeze({
-  electricity: "Điện",
-  water: "Nước",
-  internet: "Mạng",
-  common: "Dịch vụ chung",
-  parking: "Gửi xe",
-  fridge: "Tủ lạnh",
-  laundry: "Giặt sấy",
-  other: "Khác",
-});
-
-const POLISH_SCHEMA = {
+const ADDRESS_SCHEMA = {
   type: "object",
   additionalProperties: false,
   properties: {
-    furniture: { type: "string" },
-    services: {
-      type: "array",
-      maxItems: MAX_SERVICES,
-      items: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          key: { type: "string", enum: Object.keys(SERVICE_LABELS) },
-          value: { type: "string" },
-        },
-        required: ["key", "value"],
-      },
-    },
-    notes: {
-      type: "array",
-      maxItems: MAX_NOTES,
-      items: { type: "string" },
-    },
+    address: { type: "string" },
   },
-  required: ["furniture", "services", "notes"],
+  required: ["address"],
 };
+
+export function isSaleRoomSummaryAiRoute(pathname) {
+  return pathname === SALE_ROOM_SUMMARY_AI_PATH;
+}
 
 export async function handleSaleRoomSummaryAiRequest(request, env) {
   if (request.method !== "POST") return json({ error: "METHOD_NOT_ALLOWED" }, 405, { Allow: "POST" });
@@ -56,12 +28,10 @@ export async function handleSaleRoomSummaryAiRequest(request, env) {
   if (!session) return json({ error: "AUTH_REQUIRED" }, 401);
 
   const body = await readJson(request);
-  const source = normalizeRoomSummaryPolishInput(body?.summary);
-  if (!source) return json({ error: "ROOM_SUMMARY_POLISH_INPUT_INVALID" }, 400);
+  const source = normalizeRoomAddressSource(body?.source);
+  if (!source) return json({ error: "ROOM_ADDRESS_SOURCE_INVALID" }, 400);
 
-  if (!env?.AI?.run) {
-    return json({ ok: true, applied: false, reason: "ai-unavailable" });
-  }
+  if (!env?.AI?.run) return json({ error: "AI_UNAVAILABLE" }, 503);
 
   const model = cleanText(env.SALE_ROOM_SUMMARY_AI_MODEL, 160)
     || DEFAULT_SALE_ROOM_SUMMARY_AI_MODEL;
@@ -69,210 +39,108 @@ export async function handleSaleRoomSummaryAiRequest(request, env) {
   try {
     const result = await env.AI.run(model, {
       messages: [
-        { role: "system", content: roomSummaryPolishInstructions() },
-        { role: "user", content: JSON.stringify(source) },
+        { role: "system", content: roomAddressInstructions() },
+        { role: "user", content: source },
       ],
       response_format: {
         type: "json_schema",
-        json_schema: POLISH_SCHEMA,
+        json_schema: ADDRESS_SCHEMA,
       },
       temperature: 0,
-      max_tokens: 900,
+      max_tokens: 160,
     });
 
-    const candidate = sanitizeAiPolish(extractAiObject(result));
+    const candidate = normalizeDetectedAddress(extractAiObject(result)?.address);
     if (!candidate) {
-      return json({ ok: true, applied: false, reason: "invalid-ai-output", model });
+      return json({ ok: true, found: false, address: "", model });
     }
 
-    const validation = validateRoomSummaryAiPolish(source, candidate);
-    if (!validation.valid) {
-      console.warn("Joy Sale room-summary AI polish rejected", validation.reason);
-      return json({ ok: true, applied: false, reason: validation.reason, model });
+    if (!addressIsGroundedInSource(source, candidate)) {
+      console.warn("Joy Sale room-address AI rejected an ungrounded address", candidate);
+      return json({ ok: true, found: false, address: "", reason: "ungrounded-address", model });
     }
 
     return json({
       ok: true,
-      applied: true,
+      found: true,
       provider: "workers-ai",
       model,
-      polish: candidate,
+      address: candidate,
     });
   } catch (error) {
-    console.warn("Joy Sale room-summary AI polish unavailable", error?.message || error);
-    return json({ ok: true, applied: false, reason: "ai-failed", model });
+    console.warn("Joy Sale room-address AI unavailable", error?.message || error);
+    return json({ error: "AI_FAILED" }, 503);
   }
 }
 
-export function normalizeRoomSummaryPolishInput(value) {
-  if (!value || typeof value !== "object") return null;
-
-  const furniture = cleanText(value.furniture, MAX_FURNITURE_LENGTH);
-  const services = normalizeServices(value.services);
-  const notes = normalizeNotes(value.notes);
-  if (!furniture && !services.length && !notes.length) return null;
-
-  return { furniture, services, notes };
+export function normalizeRoomAddressSource(value) {
+  return String(value ?? "")
+    .replace(/\r\n?/g, "\n")
+    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, " ")
+    .replace(/[\t\u00a0]+/g, " ")
+    .replace(/[ ]{2,}/g, " ")
+    .replace(/ *\n */g, "\n")
+    .trim()
+    .slice(0, MAX_SOURCE_LENGTH);
 }
 
-export function validateRoomSummaryAiPolish(sourceValue, candidateValue) {
-  const source = normalizeRoomSummaryPolishInput(sourceValue);
-  const candidate = sanitizeAiPolish(candidateValue);
-  if (!source || !candidate) return { valid: false, reason: "invalid-shape" };
-
-  const sourceText = serializePolishable(source);
-  const candidateText = serializePolishable(candidate);
-
-  const sourceMoney = tokenSet(sourceText, MONEY_TOKEN_PATTERN, normalizeMoneyToken);
-  const candidateMoney = tokenSet(candidateText, MONEY_TOKEN_PATTERN, normalizeMoneyToken);
-  if (!sameSets(sourceMoney, candidateMoney)) {
-    return { valid: false, reason: "money-facts-changed" };
-  }
-
-  const sourceNumbers = meaningfulNumberSet(sourceText);
-  const candidateNumbers = meaningfulNumberSet(candidateText);
-  if (!sameSets(sourceNumbers, candidateNumbers)) {
-    return { valid: false, reason: "numeric-facts-changed" };
-  }
-
-  return { valid: true, reason: "ok" };
+export function normalizeDetectedAddress(value) {
+  return String(value ?? "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(/^[\s"'“”‘’•·*☘🌷🏢⌛⭐🏆-]+/u, "")
+    .replace(/^(?:địa\s*chỉ|dia\s*chi|đc|dc|address)\s*[:：-]?\s*/iu, "")
+    .replace(/^["'“”‘’]+|["'“”‘’]+$/g, "")
+    .replace(/\s*-\s*/g, " - ")
+    .replace(/\s*:\s*/g, ": ")
+    .replace(/\s+/g, " ")
+    .replace(/[.!?]+$/g, "")
+    .trim()
+    .slice(0, MAX_ADDRESS_LENGTH);
 }
 
-function roomSummaryPolishInstructions() {
-  return `Bạn là bước biên tập cuối cho một bản tóm tắt phòng trọ bằng tiếng Việt.
-Chỉ sửa câu chữ trong ba phần được cung cấp: furniture, services, notes. Trả về đúng JSON theo schema.
-
-Mục tiêu:
-- Sửa chính tả, viết hoa, khoảng trắng và dấu câu.
-- Mở rộng viết tắt rõ ràng: "Dv chung" -> "Dịch vụ chung", "Wifi/Wiffi" -> "Wi-Fi", "30p" -> "30 phút".
-- Nếu một giá trị dịch vụ đang dính nhiều loại phí, hãy tách đúng sang các key tương ứng.
-- Có thể đổi từ tiếng Anh phổ biến sang tiếng Việt tự nhiên, ví dụ "free" -> "miễn phí".
-- Bỏ dấu ngoặc kép thừa và gộp/bỏ ghi chú trùng nghĩa.
-- Viết câu ngắn, rõ, phù hợp để gửi khách; không thêm markdown.
-
-Ràng buộc tuyệt đối:
-- Không được sáng tác hoặc suy đoán thông tin mới.
-- Giữ nguyên mọi số tiền, mức phí, số người, số xe, khoảng cách, thời lượng và con số khác.
-- Không tự đoán đơn vị bị mơ hồ. Ví dụ "Nước 35k/m" phải giữ là "35k/m", KHÔNG đổi thành m³ hay /khối nếu nguồn không nói rõ.
-- Không thay đổi ý nghĩa điều kiện thuê.
-- Không thêm địa chỉ, giá phòng, mã phòng hoặc ngày trống; các trường đó không thuộc nhiệm vụ này.
-- Nếu không chắc cách sửa một cụm, giữ nguyên nội dung và chỉ sửa khoảng trắng/dấu câu.
-
-Service key hợp lệ:
-- electricity = Điện
-- water = Nước
-- internet = Mạng
-- common = Dịch vụ chung
-- parking = Gửi xe
-- fridge = Tủ lạnh
-- laundry = Giặt sấy
-- other = Khác`;
+export function addressIsGroundedInSource(sourceValue, addressValue) {
+  const source = normalizeComparable(sourceValue);
+  const address = normalizeComparable(addressValue);
+  if (!source || !address) return false;
+  return source.includes(address);
 }
 
-function normalizeServices(value) {
-  const items = Array.isArray(value) ? value : [];
-  const result = [];
-  for (const item of items.slice(0, MAX_SERVICES)) {
-    if (!item || typeof item !== "object") continue;
-    const key = normalizeServiceKey(item.key || item.label);
-    const serviceValue = cleanText(item.value, MAX_SERVICE_VALUE_LENGTH);
-    if (!key || !serviceValue) continue;
-    result.push({ key, label: SERVICE_LABELS[key], value: serviceValue });
-  }
-  return result;
+function roomAddressInstructions() {
+  return `Bạn là bộ trích xuất địa chỉ cho tin phòng trọ/căn hộ bằng tiếng Việt.
+Nhiệm vụ duy nhất: tìm địa chỉ của căn/phòng đang được đăng trong nội dung người dùng gửi.
+
+Trả về đúng JSON theo schema với duy nhất trường address.
+
+Quy tắc:
+- Chỉ lấy địa chỉ có thật trong nội dung nguồn; tuyệt đối không suy đoán hoặc bổ sung địa danh còn thiếu.
+- Không tự thêm Hà Nội, quận, phường, ngõ, số nhà hoặc bất kỳ chi tiết nào nếu nguồn không viết.
+- Có thể bỏ nhãn như "Địa chỉ:", emoji và ký hiệu trang trí.
+- Giữ nguyên nội dung địa chỉ, chỉ được dọn khoảng trắng và dấu câu thừa.
+- Nếu địa chỉ nằm trên nhiều dòng liên tiếp, có thể ghép các dòng thuộc cùng một địa chỉ, ví dụ dòng sau là "Quận: Hoàng Mai".
+- Không lấy số phòng, giá phòng, ngày trống, số điện thoại, hoa hồng, mã nguồn hoặc địa chỉ của một địa điểm chỉ được nhắc trong ghi chú làm địa chỉ căn phòng.
+- Nếu có nhiều địa chỉ và không xác định chắc địa chỉ của căn/phòng đang đăng, trả address là chuỗi rỗng.
+- Nếu không tìm thấy địa chỉ, trả address là chuỗi rỗng.
+- Không thêm tiền tố "Địa chỉ:" vào giá trị address.`;
 }
 
-function normalizeNotes(value) {
-  const items = Array.isArray(value) ? value : [];
-  const result = [];
-  for (const item of items.slice(0, MAX_NOTES)) {
-    const note = cleanText(item, MAX_NOTE_LENGTH).replace(/^["'“”]+|["'“”]+$/g, "").trim();
-    if (!note) continue;
-    const key = note.toLocaleLowerCase("vi");
-    if (!result.some((existing) => existing.toLocaleLowerCase("vi") === key)) result.push(note);
-  }
-  return result;
-}
-
-function sanitizeAiPolish(value) {
-  if (!value || typeof value !== "object") return null;
-  const furniture = cleanText(value.furniture, MAX_FURNITURE_LENGTH);
-  const services = normalizeServices(value.services);
-  const notes = normalizeNotes(value.notes);
-  return { furniture, services, notes };
-}
-
-function normalizeServiceKey(value) {
-  const raw = cleanText(value, 80).toLocaleLowerCase("vi");
-  if (Object.hasOwn(SERVICE_LABELS, raw)) return raw;
-  const normalized = raw
+function normalizeComparable(value) {
+  return String(value ?? "")
+    .toLocaleLowerCase("vi")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d");
-  const aliases = {
-    dien: "electricity",
-    nuoc: "water",
-    mang: "internet",
-    internet: "internet",
-    wifi: "internet",
-    "wi-fi": "internet",
-    "dich vu chung": "common",
-    "phi dich vu": "common",
-    "gui xe": "parking",
-    xe: "parking",
-    "tu lanh": "fridge",
-    "giat say": "laundry",
-    khac: "other",
-  };
-  return aliases[normalized] || "";
-}
-
-const MONEY_TOKEN_PATTERN = /\b\d+(?:[.,]\d+)?(?:tr\d*|k\d*|nghìn|nghin|triệu|trieu|vnđ|vnd|đ)\b/giu;
-const NUMBER_PATTERN = /\d+(?:[.,]\d+)?/gu;
-
-function meaningfulNumberSet(value) {
-  const tokens = new Set();
-  for (const match of String(value || "").matchAll(NUMBER_PATTERN)) {
-    const normalized = String(match[0]).replace(",", ".").replace(/^0+(?=\d)/, "");
-    if (!normalized || normalized === "1") continue;
-    tokens.add(normalized);
-  }
-  return tokens;
-}
-
-function normalizeMoneyToken(value) {
-  return String(value || "")
-    .toLocaleLowerCase("vi")
-    .replace(/\s+/g, "")
-    .replace(",", ".")
-    .replace(/nghìn|nghin/g, "k")
-    .replace(/triệu|trieu/g, "tr");
-}
-
-function tokenSet(value, pattern, normalize) {
-  return new Set([...String(value || "").matchAll(pattern)].map((match) => normalize(match[0])));
-}
-
-function sameSets(left, right) {
-  if (left.size !== right.size) return false;
-  for (const value of left) if (!right.has(value)) return false;
-  return true;
-}
-
-function serializePolishable(value) {
-  return [
-    value.furniture,
-    ...(value.services || []).map((service) => `${service.key}:${service.value}`),
-    ...(value.notes || []),
-  ].join("\n");
+    .replace(/đ/g, "d")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function extractAiObject(result) {
   const raw = result?.response ?? result?.result ?? result?.text ?? result;
   if (raw && typeof raw === "object" && !Array.isArray(raw)) {
-    if (Object.hasOwn(raw, "furniture") && Array.isArray(raw.services) && Array.isArray(raw.notes)) return raw;
+    if (Object.hasOwn(raw, "address")) return raw;
     const nested = raw.response ?? raw.result ?? raw.text;
-    if (nested && typeof nested === "object") return nested;
+    if (nested && typeof nested === "object" && Object.hasOwn(nested, "address")) return nested;
   }
 
   const text = String(raw || "")
