@@ -1,5 +1,14 @@
 const ROOM_SUMMARY_AI_PATH = "/api/sales/room-summary/extract";
 
+function normalizeRoomCodeForDisplay(value) {
+  const source = String(value ?? "").trim();
+  if (!source) return "";
+
+  const withoutLabel = source.replace(/^(?:phòng|phong|room)\s*[:#-]?\s*/iu, "");
+  const match = withoutLabel.match(/^p?\s*[-:]?\s*(\d{1,4})$/iu);
+  return match ? `P${match[1]}` : source;
+}
+
 function editableValue(text) {
   const value = document.createElement("span");
   value.className = "room-share-detail-value";
@@ -118,7 +127,7 @@ async function detectRoomSummary(source) {
 
   const rooms = Array.isArray(payload.rooms)
     ? payload.rooms.map((room) => ({
-      room: String(room?.room || "").trim(),
+      room: normalizeRoomCodeForDisplay(room?.room),
       price: String(room?.price || "").trim(),
       availability: String(room?.availability || "").trim(),
     })).filter((room) => room.room || room.price || room.availability)
