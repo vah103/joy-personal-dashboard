@@ -55,16 +55,18 @@ test("shows 3.99-style electricity as 4k without changing other service rates", 
   );
 });
 
-test("renders electricity and water as separate customer-view rows", async () => {
+test("renders electricity and water as bullet items under the service heading", async () => {
   const frontend = await readFile(
     new URL("../src/pages/sale/room-address-ai.js", import.meta.url),
     "utf8",
   );
 
   assert.match(frontend, /className = "room-share-service-group"/u);
-  assert.match(frontend, /electricityRow\.className = "room-share-detail-row"/u);
-  assert.match(frontend, /waterRow\.className = "room-share-detail-row"/u);
-  assert.doesNotMatch(frontend, /if \(electricity\) row\.append\(", "\)/u);
+  assert.match(frontend, /const list = document\.createElement\("ul"\)/u);
+  assert.match(frontend, /list\.className = "room-share-services"/u);
+  assert.match(frontend, /const item = document\.createElement\("li"\)/u);
+  assert.doesNotMatch(frontend, /electricityRow\.className = "room-share-detail-row"/u);
+  assert.doesNotMatch(frontend, /waterRow\.className = "room-share-detail-row"/u);
 });
 
 test("does not turn unrelated common fees into electricity or water", async () => {
