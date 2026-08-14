@@ -28,8 +28,9 @@ const ROOM_SUMMARY_SCHEMA = {
         required: ["room", "price", "availability"],
       },
     },
+    roomType: { type: "string" },
   },
-  required: ["address", "rooms"],
+  required: ["address", "rooms", "roomType"],
 };
 
 const EXPLICIT_UNAVAILABLE_PATTERNS = Object.freeze([
@@ -86,14 +87,16 @@ export async function handleSaleRoomSummaryAiRequest(request, env) {
     }
 
     const rooms = normalizeDetectedRooms(source, detected.rooms);
+    const roomType = normalizeDetectedRoomType(source, detected.roomType);
 
     return json({
       ok: true,
-      found: Boolean(address || rooms.length),
+      found: Boolean(address || rooms.length || roomType),
       provider: "workers-ai",
       model,
       address,
       rooms,
+      roomType,
     });
   } catch (error) {
     console.warn("Joy Sale room-summary AI unavailable", error?.message || error);
@@ -139,6 +142,25 @@ export function normalizeDetectedRoomField(value) {
     .replace(/[.!?]+$/g, "")
     .trim()
     .slice(0, MAX_ROOM_FIELD_LENGTH);
+}
+
+export function canonicalRoomType(value) {
+  const normalized = normalizeComparable(value);
+  if (!normalized) return "";
+  if (normalized === "gac xep") return "Gác xép";
+  if (normalized === "studio" || normalized === "stuido") return "Studio";
+
+  const bedroomMatch = normalized.match(/^([1-9]\d*)\s*n\s*1\s*k$/u);
+  return bedroomMatch ? `${Number(bedroomMatch[1])}N1K` : "";
+}
+
+export function normalizeDetectedRoomType(sourceValue, value) {
+  const canonical = canonicalRoomType(value);
+  if (!canonical) return "";
+
+  const sourceTypes = roomTypesInSource(sourceValue);
+  if (sourceTypes.size !== 1) return "";
+  return sourceTypes.has(canonical) ? canonical : "";
 }
 
 export function addressIsGroundedInSource(sourceValue, addressValue) {
@@ -243,23 +265,24 @@ export function normalizeDetectedRooms(sourceValue, roomValues) {
 
 function roomSummaryInstructions() {
   return `Bạn là bộ trích xuất dữ liệu tin phòng trọ/căn hộ bằng tiếng Việt.
-Nhiệm vụ hiện tại chỉ gồm 2 phần: xác định địa chỉ và xác định các phòng/căn hiện đang cần cho thuê cùng giá và thời gian trống của từng phòng.
+Nhiệm vụ hiện tại chỉ gồm 3 phần: xác định địa chỉ; xác định các phòng/căn hiện đang cần cho thuê cùng giá và thời gian trống của từng phòng; và xác định dạng phòng chung của tin.
 
 Trả về đúng JSON theo schema:
 {
   "address": "...",
   "rooms": [
     { "room": "...", "price": "...", "availability": "..." }
-  ]
+  ],
+  "roomType": "..."
 }
 
 QUY TẮC CHUNG:
-- Chỉ dùng thông tin có thật trong nội dung nguồn. Tuyệt đối không suy đoán, bổ sung hoặc tự chuẩn hóa thành dữ liệu mới.
+- Chỉ dùng thông tin có thật trong nội dung nguồn. Tuyệt đối không suy đoán hoặc bổ sung dữ liệu mới.
 - Không lấy số điện thoại, hoa hồng, tên nguồn, link, mã nguồn, nội thất, dịch vụ hoặc ghi chú khác vào các trường này.
 - Nếu một trường không có hoặc không chắc chắn, trả chuỗi rỗng cho trường đó.
 
 ĐỊA CHỈ:
-- Giữ nguyên cách trích xuất địa chỉ: chỉ lấy địa chỉ của căn/phòng đang đăng.
+- Chỉ lấy địa chỉ của căn/phòng đang đăng.
 - Không tự thêm Hà Nội, quận, phường, ngõ, số nhà hoặc bất kỳ địa danh nào nguồn không viết.
 - Có thể bỏ nhãn "Địa chỉ:", emoji và ký hiệu trang trí; chỉ dọn khoảng trắng và dấu câu thừa.
 - Nếu có nhiều địa chỉ và không chắc địa chỉ nào thuộc căn/phòng đang đăng, để address rỗng.
@@ -273,13 +296,35 @@ PHÒNG / GIÁ / THỜI GIAN TRỐNG:
 - Nếu nhiều phòng có giá hoặc ngày trống khác nhau, phải ghép đúng giá và thời gian với đúng phòng.
 - Nếu một giá hoặc thời gian được ghi chung cho nhiều phòng, chỉ áp dụng cho tất cả khi quan hệ đó thật sự rõ từ nguồn.
 - Nếu không chắc giá/thời gian thuộc phòng nào, để trường đó rỗng thay vì gán nhầm.
-- Không gộp nhiều phòng vào một phần tử rooms; mỗi phòng/căn là một phần tử riêng.`;
+- Không gộp nhiều phòng vào một phần tử rooms; mỗi phòng/căn là một phần tử riêng.
+
+DẠNG PHÒNG:
+- roomType chỉ được nhận một trong các dạng: "Gác xép", "Studio", hoặc mẫu số-phòng-ngủ dạng "1N1K", "2N1K", "3N1K", "4N1K"... với số N có thể tiếp tục tăng.
+- Có thể chuẩn hóa chữ hoa/chữ thường về dạng chuẩn, ví dụ "studio" → "Studio", "2n1k" → "2N1K".
+- Nếu nguồn viết nhầm phổ biến "stuido", hiểu là "Studio".
+- Không suy ra roomType từ diện tích, số người, số phòng, nội thất hoặc mô tả khác nếu nguồn không nêu dạng phòng.
+- Không nhận các dạng ngoài whitelist trên như duplex, penthouse, căn hộ dịch vụ, 1N2K...; khi đó để roomType rỗng.
+- Nếu nguồn chứa nhiều dạng phòng khác nhau và không có một dạng chung rõ ràng cho toàn bộ tin, để roomType rỗng.`;
 }
 
 function valueIsGroundedInSource(sourceValue, candidateValue) {
   const source = normalizeComparable(sourceValue);
   const candidate = normalizeComparable(candidateValue);
   return containsNormalizedPhrase(source, candidate);
+}
+
+function roomTypesInSource(value) {
+  const source = normalizeComparable(value);
+  const types = new Set();
+  if (!source) return types;
+
+  if (/\bgac xep\b/u.test(source)) types.add("Gác xép");
+  if (/\b(?:studio|stuido)\b/u.test(source)) types.add("Studio");
+
+  for (const match of source.matchAll(/\b([1-9]\d*)\s*n\s*1\s*k\b/gu)) {
+    types.add(`${Number(match[1])}N1K`);
+  }
+  return types;
 }
 
 function splitSourceClauses(value) {
@@ -414,7 +459,7 @@ function normalizeComparable(value) {
 function extractAiObject(result) {
   const raw = result?.response ?? result?.result ?? result?.text ?? result;
   if (raw && typeof raw === "object" && !Array.isArray(raw)) {
-    if (Object.hasOwn(raw, "address") || Object.hasOwn(raw, "rooms")) return raw;
+    if (Object.hasOwn(raw, "address") || Object.hasOwn(raw, "rooms") || Object.hasOwn(raw, "roomType")) return raw;
     const nested = raw.response ?? raw.result ?? raw.text;
     if (nested && typeof nested === "object" && !Array.isArray(nested)) return nested;
   }
