@@ -1,8 +1,10 @@
 import * as core from "./sale-room-summary-ai-core.js";
 import { extractDynamicServiceItems } from "./sale-room-service-items-ai.js";
+import { reconcileDynamicServiceItems } from "./sale-room-service-source-reconciliation.js";
 
 export * from "./sale-room-summary-ai-core.js";
 export * from "./sale-room-service-items-ai.js";
+export * from "./sale-room-service-source-reconciliation.js";
 
 const MAX_RECONCILED_ROOMS = 24;
 
@@ -337,11 +339,12 @@ export async function handleSaleRoomSummaryAiRequest(request, env) {
   if (!source) return response;
 
   const rooms = normalizeDetectedRooms(source, payload.rooms);
-  const serviceItems = await extractDynamicServiceItems(
+  const detectedServiceItems = await extractDynamicServiceItems(
     source,
     env,
     payload.model || core.DEFAULT_SALE_ROOM_SUMMARY_AI_MODEL,
   );
+  const serviceItems = reconcileDynamicServiceItems(source, detectedServiceItems);
 
   return responseWithReconciledData(response, payload, rooms, serviceItems);
 }
