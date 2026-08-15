@@ -48,7 +48,8 @@ function splitTopLevelService(lineValue) {
     if (ch === "(" || ch === "[" || ch === "{") depth += 1;
     if (ch === ")" || ch === "]" || ch === "}") depth = Math.max(0, depth - 1);
     const decimalComma = ch === "," && /\d/u.test(line[i - 1] || "") && /\d/u.test(line[i + 1] || "");
-    if (depth === 0 && !decimalComma && (ch === "," || ch === ";" || ch === "|" || ch === "•")) {
+    const decimalDot = ch === "." && /\d/u.test(line[i - 1] || "") && /\d/u.test(line[i + 1] || "");
+    if (depth === 0 && !decimalComma && !decimalDot && (ch === "," || ch === ";" || ch === "|" || ch === "•" || ch === ".")) {
       const part = line.slice(start, i).trim();
       if (part) out.push(part);
       start = i + 1;
@@ -108,8 +109,8 @@ function hasCommonLabel(clauseValue) {
   return /(?:^|\s)(?:dich vu chung|dvc|dv chung|dv|phi chung|phi dich vu|phi dv|dich vu)(?:\s|$)/u.test(` ${fold(clauseValue)} `);
 }
 
-function hasElectricityLabel(value) { return /(?:^|\s)(?:dien|electricity)(?:\s|$)/u.test(` ${fold(value)} `); }
-function hasWaterLabel(value) { return /(?:^|\s)(?:nuoc|water)(?:\s|$)/u.test(` ${fold(value)} `); }
+function hasElectricityLabel(value) { return /(?:^|\s)(?:electricity|dien(?!\s+(?:chung|hanh lang)))(?:\s|$)/u.test(` ${fold(value)} `); }
+function hasWaterLabel(value) { return /(?:^|\s)(?:water|nuoc(?!\s+chung))(?:\s|$)/u.test(` ${fold(value)} `); }
 function isSharedUtility(value) {
   const text = fold(value);
   return /(?:^|\s)dien\s*(?:va\s*)?nuoc(?:\s|$)/u.test(text) || /(?:^|\s)nuoc\s*(?:va\s*)?dien(?:\s|$)/u.test(text);
@@ -121,8 +122,8 @@ function rateUnit(value) {
 
 function utilityLabelRanges(clauseValue, kind) {
   const pattern = kind === "electricity"
-    ? /(?<![\p{L}\p{N}_])(?:điện|dien|electricity)(?![\p{L}\p{N}_])/giu
-    : /(?<![\p{L}\p{N}_])(?:nước|nuoc|water)(?![\p{L}\p{N}_])/giu;
+    ? /(?<![\p{L}\p{N}_])(?:electricity|điện(?!\s+(?:chung|hành\s+lang))|dien(?!\s+(?:chung|hanh\s+lang)))(?![\p{L}\p{N}_])/giu
+    : /(?<![\p{L}\p{N}_])(?:water|nước(?!\s+chung)|nuoc(?!\s+chung))(?![\p{L}\p{N}_])/giu;
   return [...String(clauseValue ?? "").matchAll(pattern)].map((match) => ({
     start: match.index ?? 0,
     end: (match.index ?? 0) + match[0].length,
