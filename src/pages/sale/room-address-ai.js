@@ -94,12 +94,17 @@ function servicesForDisplay(_sourceValue, services = {}) {
 }
 
 function extractFloorForDisplay(sourceValue, rooms = []) {
-  if (rooms.some((room) => room?.room)) return "";
+  if (rooms.some((room) => String(room?.room || "").trim())) return "";
 
   const floors = new Set();
-  const source = String(sourceValue ?? "");
-  for (const match of source.matchAll(/(?:^|[\s,;:.(\[-])(?:phòng\s+)?tầng\s*[:#-]?\s*(\d{1,2})(?=$|[\s,;:.)\]-])/giu)) {
-    floors.add(String(Number(match[1])));
+  const lines = String(sourceValue ?? "").split(/\r?\n/u);
+  for (const rawLine of lines) {
+    const line = String(rawLine || "").trim();
+    if (!line) continue;
+    if (/^(?:[^\p{L}\p{N}]+)?(?:địa\s*chỉ|dia\s*chi|address|đc|dc)\s*[:：=-]/iu.test(line)) continue;
+    for (const match of line.matchAll(/(?:phòng\s+)?tầng\s*[:#-]?\s*(\d{1,2})(?!\d)/giu)) {
+      floors.add(String(Number(match[1])));
+    }
   }
   return floors.size === 1 ? [...floors][0] : "";
 }
