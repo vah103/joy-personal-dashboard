@@ -1,6 +1,168 @@
 const ROOM_SUMMARY_AI_PATH = "/api/sales/room-summary/extract";
 const ROOM_SUMMARY_REQUEST_TIMEOUT_MS = 20000;
 
+function stripBullet(value) {
+  return String(value ?? "").trim().replace(/^[-•*]\s*/u, "").trim();
+}
+
+function headerMatch(lineValue) {
+  const line = String(lineValue ?? "").trim();
+  const match = line.match(/^(Địa\s*chỉ|Phòng|Dạng\s*phòng|Thang\s*máy|Nội\s*thất|Dịch\s*vụ|Lưu\s*ý)\s*:\s*(.*)$/iu);
+  if (!match) return null;
+  const normalized = match[1]
+    .toLocaleLowerCase("vi")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/\s+/g, "");
+  const keys = {
+    diachi: "address",
+    phong: "rooms",
+    dangphong: "roomType",
+    thangmay: "elevator",
+    noithat: "furniture",
+    dichvu: "services",
+    luuy: "notes",
+  };
+  return { key: keys[normalized] || "", value: match[2].trim() };
+}
+
+function serviceKindFromName(nameValue) {
+  const key = String(nameValue ?? "")
+    .toLocaleLowerCase("vi")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+  if (/^(?:mang|internet|wifi|net)$/u.test(key)) return "internet";
+  if (/^(?:gui xe|de xe|xe may|parking)$/u.test(key)) return "parking";
+  if (/^(?:ve sinh|ve sinh chung)$/u.test(key)) return "cleaning";
+  if (/^(?:may giat|giat|giat say)$/u.test(key)) return "washing";
+  if (/^(?:dich vu|dich vu chung|phi dich vu)$/u.test(key)) return "common";
+  return "other";
+}
+
+function parsePreparedRoomLine(lineValue) {
+  const line = stripBullet(lineValue);
+  if (!line) return null;
+  const parts = line.split("|").map((part) => part.trim());
+  if (!parts[0]) return null;
+  const label = parts[0];
+  const price = parts[1] || "";
+  const availability = parts[2] || "";
+  const floor = label.match(/^tầng\s+(\d{1,2})$/iu);
+  if (floor) {
+    return {
+      type: "floor",
+      floor: String(Number(floor[1])),
+      room: { room: "", price, availability },
+    };
+  }
+  return {
+    type: "room",
+    floor: "",
+    room: { room: label, price, availability },
+  };
+}
+
+function parsePreparedServiceLine(lineValue) {
+  const line = stripBullet(lineValue);
+  if (!line) return null;
+  const [main, ...tails] = line.split("|").map((part) => part.trim());
+  const colon = main.indexOf(":");
+  if (colon <= 0) return null;
+  const name = main.slice(0, colon).trim();
+  const value = main.slice(colon + 1).trim();
+  if (!name || !value) return null;
+  const includes = [];
+  for (const tail of tails) {
+    const includeMatch = tail.match(/^gồm\s*:\s*(.+)$/iu);
+    if (!includeMatch) continue;
+    includes.push(...includeMatch[1].split(",").map((item) => item.trim()).filter(Boolean));
+  }
+  return { name, value, includes };
+}
+
+export function parseJoyRoomText(sourceValue) {
+  const lines = String(sourceValue ?? "").replace(/\r/g, "").split("\n");
+  const sections = {
+    address: [], rooms: [], roomType: [], elevator: [], furniture: [], services: [], notes: [],
+  };
+  const seen = new Set();
+  let current = "";
+
+  for (const rawLine of lines) {
+    const line = String(rawLine ?? "").trim();
+    if (!line) continue;
+    const header = headerMatch(line);
+    if (header?.key) {
+      current = header.key;
+      seen.add(current);
+      if (header.value) sections[current].push(header.value);
+      continue;
+    }
+    if (current) sections[current].push(line);
+  }
+
+  const required = ["address", "rooms", "roomType", "elevator", "furniture", "services"];
+  if (!required.every((key) => seen.has(key))) return null;
+
+  const roomRows = [];
+  let floor = "";
+  for (const line of sections.rooms) {
+    const parsed = parsePreparedRoomLine(line);
+    if (!parsed) continue;
+    if (parsed.type === "floor") {
+      if (floor && floor !== parsed.floor) return null;
+      floor = parsed.floor;
+      roomRows.push(parsed.room);
+    } else {
+      roomRows.push(parsed.room);
+    }
+  }
+  if (!roomRows.length) return null;
+
+  const services = { electricity: "", water: "", items: [] };
+  for (const line of sections.services) {
+    const parsed = parsePreparedServiceLine(line);
+    if (!parsed) continue;
+    const normalizedName = parsed.name
+      .toLocaleLowerCase("vi")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d")
+      .trim();
+    if (normalizedName === "dien") {
+      services.electricity = parsed.value;
+      continue;
+    }
+    if (normalizedName === "nuoc") {
+      services.water = parsed.value;
+      continue;
+    }
+    services.items.push({
+      kind: serviceKindFromName(parsed.name),
+      name: parsed.name,
+      value: parsed.value,
+      includes: parsed.includes,
+    });
+  }
+
+  const notes = sections.notes.map(stripBullet).filter(Boolean);
+  return {
+    prepared: true,
+    address: sections.address.join(" ").trim(),
+    rooms: roomRows,
+    floor,
+    roomType: sections.roomType.join(" ").trim(),
+    elevator: sections.elevator.join(" ").trim(),
+    furniture: sections.furniture.map(stripBullet).filter(Boolean).join(", "),
+    services,
+    notes,
+  };
+}
+
 function normalizeRoomCodeForDisplay(value) {
   const source = String(value ?? "").trim();
   if (!source) return "";
@@ -129,7 +291,7 @@ function renderEmpty(container) {
   const title = document.createElement("strong");
   title.textContent = "Bản tóm tắt phòng sẽ hiện ở đây";
   const detail = document.createElement("p");
-  detail.textContent = "Dán tin phòng rồi tạo một bản gọn để gửi khách.";
+  detail.textContent = "Dán Joy Room Text từ ChatGPT hoặc dán nguồn thô để Joy xử lý.";
   empty.append(mark, title, detail);
   container.append(empty);
 }
@@ -332,6 +494,27 @@ function appendServices(details, services = {}) {
   details.append(group);
 }
 
+function appendNotes(details, notes = []) {
+  const values = Array.isArray(notes) ? notes.map((note) => String(note || "").trim()).filter(Boolean) : [];
+  if (!values.length) return;
+  const group = document.createElement("div");
+  group.className = "room-share-service-group room-share-notes-group";
+  const heading = document.createElement("p");
+  heading.className = "room-share-detail-row";
+  const label = document.createElement("strong");
+  label.append("Lưu", " ý");
+  heading.append(label, document.createTextNode(":"));
+  const list = document.createElement("ul");
+  list.className = "room-share-services room-share-notes";
+  values.forEach((note) => {
+    const item = document.createElement("li");
+    item.append(editableValue(note));
+    list.append(item);
+  });
+  group.append(heading, list);
+  details.append(group);
+}
+
 function renderSummary(container, summary = {}) {
   container.replaceChildren();
   container.classList.remove("is-empty");
@@ -344,10 +527,14 @@ function renderSummary(container, summary = {}) {
   appendElevator(details, summary.elevator);
   appendFurniture(details, summary.furniture);
   appendServices(details, summary.services);
+  appendNotes(details, summary.notes);
   container.append(details);
 }
 
 async function detectRoomSummary(source, signal) {
+  const prepared = parseJoyRoomText(source);
+  if (prepared) return prepared;
+
   const response = await fetch(ROOM_SUMMARY_AI_PATH, {
     method: "POST",
     credentials: "same-origin",
@@ -377,6 +564,7 @@ async function detectRoomSummary(source, signal) {
     : [];
 
   return {
+    prepared: false,
     address: String(payload.address || "").trim(),
     rooms,
     floor: extractFloorForDisplay(source, rooms),
@@ -384,6 +572,7 @@ async function detectRoomSummary(source, signal) {
     elevator: String(payload.elevator || "").trim(),
     furniture: normalizeFurnitureForDisplay(payload.furniture),
     services: servicesForDisplay(source, payload.services),
+    notes: [],
   };
 }
 
@@ -430,6 +619,7 @@ function initializeRoomAddressAi() {
       elevator: "",
       furniture: "",
       services: {},
+      notes: [],
     });
 
     try {
@@ -443,6 +633,7 @@ function initializeRoomAddressAi() {
         elevator: summary.elevator,
         furniture: summary.furniture,
         services: summary.services,
+        notes: summary.notes,
       });
       capture.disabled = false;
       output.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -457,6 +648,7 @@ function initializeRoomAddressAi() {
         elevator: "",
         furniture: "",
         services: {},
+        notes: [],
       });
       capture.disabled = true;
     } finally {
@@ -508,8 +700,10 @@ function initializeRoomAddressAi() {
   });
 }
 
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initializeRoomAddressAi, { once: true });
-} else {
-  initializeRoomAddressAi();
+if (typeof document !== "undefined") {
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initializeRoomAddressAi, { once: true });
+  } else {
+    initializeRoomAddressAi();
+  }
 }
