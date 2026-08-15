@@ -30,6 +30,11 @@ function renderText(container, text) {
   body.textContent = text;
   body.contentEditable = "true";
   body.spellcheck = false;
+  body.style.whiteSpace = "pre-wrap";
+  body.style.overflowWrap = "anywhere";
+  body.style.font = "inherit";
+  body.style.fontSize = "16px";
+  body.style.lineHeight = "1.65";
   container.append(body);
 }
 
