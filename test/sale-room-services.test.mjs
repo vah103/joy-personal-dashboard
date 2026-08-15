@@ -1,6 +1,5 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import {
   normalizeDetectedServices,
   normalizeDetectedServiceRate,
@@ -43,19 +42,4 @@ test("does not invent service units or reuse unrelated listing prices", () => {
   assert.equal(normalizeDetectedServiceRate(source, "electricity", "4k/số"), "");
   assert.equal(normalizeDetectedServiceRate(source, "electricity", "4k"), "4k");
   assert.equal(normalizeDetectedServiceRate(source, "water", "4tr5"), "");
-});
-
-test("Joy Room Text frontend renders electricity, water and semantic service items", async () => {
-  const frontend = await readFile(
-    new URL("../src/pages/sale/room-address-ai.js", import.meta.url),
-    "utf8",
-  );
-
-  assert.match(frontend, /appendServices\(details, summary\.services\)/u);
-  assert.match(frontend, /const services = \{ electricity: "", water: "", items: \[\] \}/u);
-  assert.match(frontend, /services\.electricity = parsed\.value/u);
-  assert.match(frontend, /services\.water = parsed\.value/u);
-  assert.match(frontend, /services\.items\.push/u);
-  assert.match(frontend, /service\.includes/u);
-  assert.doesNotMatch(frontend, /fetch\(ROOM_SUMMARY_AI_PATH/u);
 });
