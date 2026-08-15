@@ -258,6 +258,17 @@ function canonicalInclude(value) {
   return cleanValue ? cleanValue.charAt(0).toLocaleUpperCase("vi") + cleanValue.slice(1) : "";
 }
 
+function canonicalGroundedInclude(value, evidenceValue) {
+  const key = fold(value);
+  const evidence = ` ${fold(evidenceValue)} `;
+  for (const [name, pattern] of MEMBER_ALIASES) {
+    if (!pattern.test(` ${key} `)) continue;
+    return pattern.test(evidence) ? name : "";
+  }
+  const candidate = canonicalInclude(value);
+  return candidate && phraseGrounded(evidenceValue, value) ? candidate : "";
+}
+
 export function serviceEvidenceIsGroundedInSource(sourceValue, evidenceValue) {
   return phraseGrounded(sourceValue, evidenceValue);
 }
@@ -272,6 +283,24 @@ function canonicalAiService(kindValue, nameValue) {
   if (/(?:^|\s)(?:rac|rac thai)(?:\s|$)/u.test(` ${nameKey} `)) return ["cleaning", "Rác"];
   if (/^(?:dien nuoc|nuoc dien)$/u.test(nameKey)) return ["other", "Điện + nước"];
   return ["other", clean(nameValue, 90)];
+}
+
+function knownServiceNameGrounded(evidenceValue, kind, name) {
+  const text = ` ${fold(evidenceValue)} `;
+  if (kind === "internet") return /(?:^|\s)(?:mang|internet|wifi)(?:\s|$)/u.test(text);
+  if (kind === "parking") return /(?:^|\s)(?:gui xe|de xe|xe may|parking|phi xe)(?:\s|$)/u.test(text);
+  if (kind === "washing") return /(?:^|\s)(?:may giat chung|may giat|giat chung)(?:\s|$)/u.test(text);
+  if (kind === "cleaning" && fold(name) === "rac") return /(?:^|\s)(?:rac|rac thai)(?:\s|$)/u.test(text);
+  if (kind === "cleaning") return /(?:^|\s)(?:ve sinh|vs)(?:\s|$)/u.test(text);
+  return phraseGrounded(evidenceValue, name);
+}
+
+function deterministicServiceMatch(evidenceValue, kind, name, value) {
+  return extractSourceDynamicServiceItems(evidenceValue).some((item) => (
+    item.kind === kind
+    && fold(item.name) === fold(name)
+    && rateIdentity(item.value) === rateIdentity(value)
+  ));
 }
 
 export function normalizeDynamicServiceItems(sourceValue, itemValues) {
@@ -292,19 +321,21 @@ export function normalizeDynamicServiceItems(sourceValue, itemValues) {
 
     const includes = kind === "common"
       ? [...new Set((Array.isArray(raw?.includes) ? raw.includes : [])
-        .map(canonicalInclude)
-        .filter((value) => value && phraseGrounded(evidence, value)))]
+        .map((value) => canonicalGroundedInclude(value, evidence))
+        .filter(Boolean))]
       : [];
 
     if (kind === "common") {
       if (!hasCommonLabel(evidence) && includes.length < 2) continue;
     } else if (kind !== "other") {
-      if (!phraseGrounded(evidence, raw?.name) && !phraseGrounded(evidence, name)) continue;
+      if (!knownServiceNameGrounded(evidence, kind, name)) continue;
     } else if (name === "Điện + nước") {
       if (!isSharedUtility(evidence)) continue;
     } else if (!phraseGrounded(evidence, name)) {
       continue;
     }
+
+    if (evidenceRates.length > 1 && !deterministicServiceMatch(evidence, kind, name, groundedRate.raw)) continue;
 
     out.push({ kind, name, value: canonicalRate(groundedRate.raw), includes });
   }
