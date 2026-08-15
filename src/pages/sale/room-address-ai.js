@@ -13,7 +13,7 @@ function ensureRoomSummaryFormatStyle(doc = globalThis.document) {
     .room-share-rich-text {
       color: #172126;
       font-size: 16px;
-      line-height: 1.62;
+      line-height: 1.66;
       outline: 0;
       overflow-wrap: anywhere;
     }
@@ -24,43 +24,45 @@ function ensureRoomSummaryFormatStyle(doc = globalThis.document) {
     }
     .room-share-format-field {
       font-size: 16px;
-      line-height: 1.58;
+      line-height: 1.62;
     }
-    .room-share-format-field + .room-share-format-field { margin-top: 7px; }
-    .room-share-format-field.is-spaced { margin-top: 21px; }
-    .room-share-format-field + .room-share-format-field.is-spaced { margin-top: 7px; }
+    .room-share-format-field + .room-share-format-field { margin-top: 10px; }
+    .room-share-format-field.is-spaced { margin-top: 24px; }
+    .room-share-format-field + .room-share-format-field.is-spaced { margin-top: 10px; }
     .room-share-format-section {
-      margin-top: 25px;
+      margin-top: 29px;
       color: #1d3c46;
       font-size: 17px;
       font-weight: 850;
-      line-height: 1.35;
+      line-height: 1.38;
     }
     .room-share-rich-text > .room-share-format-section:first-child { margin-top: 0; }
     .room-share-format-list {
-      margin-top: 9px;
+      margin-top: 11px;
       padding-left: 22px;
       color: #172126;
     }
-    .room-share-format-list.is-spaced { margin-top: 10px; }
+    .room-share-format-list.is-spaced { margin-top: 12px; }
     .room-share-format-list li {
-      margin: 7px 0;
+      margin: 8px 0;
       padding-left: 3px;
-      line-height: 1.55;
-    }
-    .room-share-format-paragraph {
-      margin-top: 8px;
       line-height: 1.58;
     }
-    .room-share-format-paragraph.is-spaced { margin-top: 20px; }
+    .room-share-format-paragraph {
+      margin-top: 10px;
+      line-height: 1.62;
+    }
+    .room-share-format-paragraph.is-spaced { margin-top: 23px; }
     .room-share-rich-text[contenteditable="true"]:focus { outline: 0; }
     @media (max-width: 700px) {
-      .room-share-rich-text { font-size: 15px; line-height: 1.58; }
+      .room-share-rich-text { font-size: 15px; line-height: 1.62; }
       .room-share-format-field { font-size: 15px; }
-      .room-share-format-section { margin-top: 22px; font-size: 16px; }
-      .room-share-format-field.is-spaced { margin-top: 18px; }
+      .room-share-format-field + .room-share-format-field { margin-top: 9px; }
+      .room-share-format-field.is-spaced { margin-top: 21px; }
+      .room-share-format-field + .room-share-format-field.is-spaced { margin-top: 9px; }
+      .room-share-format-section { margin-top: 25px; font-size: 16px; }
       .room-share-format-list { padding-left: 20px; }
-      .room-share-format-list li { margin: 6px 0; }
+      .room-share-format-list li { margin: 7px 0; }
     }
   `;
   doc.head.append(style);
