@@ -10,6 +10,7 @@ test("Room Summary uses one Workers AI pass and reconciles dynamic services from
   ]);
 
   assert.equal((core.match(/env\.AI\.run/gu) || []).length, 1);
+  assert.match(core, /max_tokens:\s*2000/u);
   assert.match(core, /serviceItems:\s*\{/u);
   assert.match(core, /"serviceItems"/u);
   assert.match(core, /serviceItems,\s*\n\s*\}\);/u);
