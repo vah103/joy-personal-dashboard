@@ -121,7 +121,7 @@ export async function handleSaleRoomSummaryAiRequest(request, env) {
         json_schema: ROOM_SUMMARY_SCHEMA,
       },
       temperature: 0,
-      max_tokens: 1250,
+      max_tokens: 2000,
     });
 
     const detected = extractAiObject(result) || {};
