@@ -149,6 +149,10 @@ function closeForm() {
   state.editingDeal = null;
 }
 
+function percentInputToRate(value) {
+  return Number(value || 0) / 100;
+}
+
 async function saveDeal(event) {
   event.preventDefault();
   const wasEditing = Boolean(state.editingDeal);
@@ -161,7 +165,7 @@ async function saveDeal(event) {
     address: String(form.get("address") || ""),
     host: String(form.get("host") || ""),
     rent: Number(form.get("rent") || 0),
-    rate: Number(form.get("rate") || 0),
+    rate: percentInputToRate(form.get("rate")),
   };
 
   elements.save.disabled = true;
@@ -193,7 +197,7 @@ async function saveDeal(event) {
 
 function updateCommissionPreview() {
   const rent = Number(elements.form.elements.rent.value || 0);
-  const rate = Number(elements.form.elements.rate.value || 0) / 100;
+  const rate = percentInputToRate(elements.form.elements.rate.value);
   elements.commissionPreview.textContent = formatVnd(Math.round(rent * rate));
 }
 
