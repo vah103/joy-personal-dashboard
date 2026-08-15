@@ -28,6 +28,7 @@ function ensureRoomSummaryFormatStyle(doc = globalThis.document) {
     }
     .room-share-format-field + .room-share-format-field { margin-top: 7px; }
     .room-share-format-field.is-spaced { margin-top: 21px; }
+    .room-share-format-field + .room-share-format-field.is-spaced { margin-top: 7px; }
     .room-share-format-section {
       margin-top: 25px;
       color: #1d3c46;
