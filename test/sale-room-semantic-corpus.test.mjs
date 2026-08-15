@@ -114,6 +114,15 @@ test("room corpus: percentage, commission, deposit and source codes never become
   ), []);
 });
 
+test("room corpus: area, floor and month-year facts never become rooms", () => {
+  assert.deepEqual(extractSourceRoomMentions(
+    "Phòng studio 25m², tầng 10, trống 8/2026, giá 4tr5",
+  ), []);
+  assert.deepEqual(extractSourceRoomMentions(
+    "Phòng studio 25m2, floor 12, trống 2026-08-15, giá 4tr5",
+  ), []);
+});
+
 test("room corpus: price-room pairs recover numeric and P-prefixed room aliases", () => {
   assert.deepEqual(extractSourceRoomMentions(
     "Giá: 5tr3-203, 4tr9-p302",
