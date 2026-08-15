@@ -18,7 +18,7 @@ Dịch vụ:
 Lưu ý:
 - ...`;
 let i18nPromise = null;
-let roomComposerObserver = null;
+let roomComposerClickBound = false;
 
 function sharedI18n() {
   return globalThis.window?.JoyI18n || globalThis.JoyI18n || null;
@@ -62,23 +62,32 @@ function roomText(key, fallback) {
   return sharedI18n()?.t?.(key) || fallback;
 }
 
+function setTextIfChanged(element, value) {
+  if (element && element.textContent !== value) element.textContent = value;
+}
+
+function setPlaceholderIfChanged(input, value) {
+  if (input && input.placeholder !== value) input.placeholder = value;
+}
+
 function syncRoomSummaryComposer(doc = globalThis.document) {
   const composer = doc?.querySelector?.('[data-assistant-panel="summary"] .sale-room-composer');
   const input = composer?.querySelector?.("#room-summary-input");
   if (!composer || !input) return false;
 
   const label = composer.querySelector('label[for="room-summary-input"]');
-  if (label) label.textContent = roomText("dynamic.sale.roomTextLabel", "Joy Room Text");
+  setTextIfChanged(label, roomText("dynamic.sale.roomTextLabel", "Joy Room Text"));
 
-  input.placeholder = roomText("dynamic.sale.roomTextPlaceholder", JOY_ROOM_TEXT_PLACEHOLDER);
+  setPlaceholderIfChanged(input, roomText("dynamic.sale.roomTextPlaceholder", JOY_ROOM_TEXT_PLACEHOLDER));
 
   const help = input.nextElementSibling?.tagName === "P" ? input.nextElementSibling : null;
-  if (help) {
-    help.textContent = roomText(
+  setTextIfChanged(
+    help,
+    roomText(
       "dynamic.sale.roomTextHelp",
       "Paste only Joy Room Text prepared in ChatGPT. Raw listings are not accepted.",
-    );
-  }
+    ),
+  );
 
   let button = composer.querySelector("#room-summary-chatgpt");
   if (!button) {
@@ -94,7 +103,7 @@ function syncRoomSummaryComposer(doc = globalThis.document) {
     input.before(button);
   }
 
-  button.textContent = roomText("dynamic.sale.roomChatGPT", "Soạn với ChatGPT ↗");
+  setTextIfChanged(button, roomText("dynamic.sale.roomChatGPT", "Soạn với ChatGPT ↗"));
   return true;
 }
 
@@ -102,9 +111,13 @@ function installRoomSummaryComposer(doc = globalThis.document) {
   if (!doc?.body) return;
   syncRoomSummaryComposer(doc);
 
-  if (!roomComposerObserver && typeof MutationObserver !== "undefined") {
-    roomComposerObserver = new MutationObserver(() => syncRoomSummaryComposer(doc));
-    roomComposerObserver.observe(doc.body, { childList: true, subtree: true });
+  if (!roomComposerClickBound) {
+    roomComposerClickBound = true;
+    doc.addEventListener("click", (event) => {
+      const target = event.target?.closest?.('[data-action="open-sales-assistant"], [data-assistant-mode="summary"]');
+      if (!target) return;
+      globalThis.window?.requestAnimationFrame?.(() => syncRoomSummaryComposer(doc));
+    });
   }
 
   const sync = () => syncRoomSummaryComposer(doc);
