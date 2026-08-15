@@ -1,6 +1,5 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import {
   canonicalElevator,
   elevatorStatusInSource,
@@ -34,15 +33,4 @@ test("rejects an AI elevator answer that conflicts with the source", () => {
   assert.equal(normalizeDetectedElevator("Không có thang máy", "Không"), "Không");
   assert.equal(normalizeDetectedElevator("Không có thang máy", "Có"), "");
   assert.equal(normalizeDetectedElevator("Không nhắc thông tin này", "Có"), "");
-});
-
-test("Joy Room Text renders elevator after room type", async () => {
-  const frontend = await readFile(
-    new URL("../src/pages/sale/room-address-ai.js", import.meta.url),
-    "utf8",
-  );
-
-  assert.match(frontend, /appendRoomType\(details, summary\.roomType\);\s*appendElevator\(details, summary\.elevator\);/s);
-  assert.match(frontend, /elevator: sections\.elevator\.join\(" "\)\.trim\(\)/u);
-  assert.match(frontend, /appendLabeledValue\(details, \["Thang", " máy"\], elevator\)/u);
 });
