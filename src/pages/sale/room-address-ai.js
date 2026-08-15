@@ -4,6 +4,67 @@ export function prepareRoomDisplayText(value) {
     .trim();
 }
 
+function ensureRoomSummaryFormatStyle(doc = globalThis.document) {
+  if (!doc?.head || doc.querySelector("#room-summary-format-style")) return;
+
+  const style = doc.createElement("style");
+  style.id = "room-summary-format-style";
+  style.textContent = `
+    .room-share-rich-text {
+      color: #172126;
+      font-size: 16px;
+      line-height: 1.62;
+      outline: 0;
+      overflow-wrap: anywhere;
+    }
+    .room-share-rich-text > * { margin: 0; }
+    .room-share-format-label {
+      color: #142b34;
+      font-weight: 800;
+    }
+    .room-share-format-field {
+      font-size: 16px;
+      line-height: 1.58;
+    }
+    .room-share-format-field + .room-share-format-field { margin-top: 7px; }
+    .room-share-format-field.is-spaced { margin-top: 21px; }
+    .room-share-format-section {
+      margin-top: 25px;
+      color: #1d3c46;
+      font-size: 17px;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    .room-share-rich-text > .room-share-format-section:first-child { margin-top: 0; }
+    .room-share-format-list {
+      margin-top: 9px;
+      padding-left: 22px;
+      color: #172126;
+    }
+    .room-share-format-list.is-spaced { margin-top: 10px; }
+    .room-share-format-list li {
+      margin: 7px 0;
+      padding-left: 3px;
+      line-height: 1.55;
+    }
+    .room-share-format-paragraph {
+      margin-top: 8px;
+      line-height: 1.58;
+    }
+    .room-share-format-paragraph.is-spaced { margin-top: 20px; }
+    .room-share-rich-text[contenteditable="true"]:focus { outline: 0; }
+    @media (max-width: 700px) {
+      .room-share-rich-text { font-size: 15px; line-height: 1.58; }
+      .room-share-format-field { font-size: 15px; }
+      .room-share-format-section { margin-top: 22px; font-size: 16px; }
+      .room-share-format-field.is-spaced { margin-top: 18px; }
+      .room-share-format-list { padding-left: 20px; }
+      .room-share-format-list li { margin: 6px 0; }
+    }
+  `;
+  doc.head.append(style);
+}
+
 function splitLabeledLine(value) {
   const line = String(value ?? "").trim();
   const colon = line.indexOf(":");
@@ -167,6 +228,7 @@ function renderText(container, text) {
 
 function initializeRoomComposer() {
   document.querySelector("#room-summary-chatgpt")?.remove();
+  ensureRoomSummaryFormatStyle(document);
 
   const input = document.querySelector("#room-summary-input");
   const output = document.querySelector("#room-summary-card");
