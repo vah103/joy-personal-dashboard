@@ -45,18 +45,17 @@ test("does not invent service units or reuse unrelated listing prices", () => {
   assert.equal(normalizeDetectedServiceRate(source, "water", "4tr5"), "");
 });
 
-test("Room Summary renders electricity, water and semantic dynamic service items", async () => {
+test("Joy Room Text frontend renders electricity, water and semantic service items", async () => {
   const frontend = await readFile(
     new URL("../src/pages/sale/room-address-ai.js", import.meta.url),
     "utf8",
   );
 
   assert.match(frontend, /appendServices\(details, summary\.services\)/u);
-  assert.match(frontend, /servicesForDisplay\(source, payload\.services\)/u);
-  assert.match(frontend, /services\?\.electricity/u);
-  assert.match(frontend, /services\?\.water/u);
-  assert.match(frontend, /services\?\.items/u);
-  assert.match(frontend, /dynamicServiceItemsForDisplay/u);
+  assert.match(frontend, /const services = \{ electricity: "", water: "", items: \[\] \}/u);
+  assert.match(frontend, /services\.electricity = parsed\.value/u);
+  assert.match(frontend, /services\.water = parsed\.value/u);
+  assert.match(frontend, /services\.items\.push/u);
   assert.match(frontend, /service\.includes/u);
-  assert.doesNotMatch(frontend, /payload\.services\?\.(?:internet|parking|commonFee|cleaning)/u);
+  assert.doesNotMatch(frontend, /fetch\(ROOM_SUMMARY_AI_PATH/u);
 });
