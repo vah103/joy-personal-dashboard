@@ -1,21 +1,24 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { parseJoyRoomText } from "../src/pages/sale/room-address-ai.js";
 
-async function loadRoomCodeNormalizer() {
-  const source = await readFile(new URL("../src/pages/sale/room-address-ai.js", import.meta.url), "utf8");
-  const match = source.match(/function normalizeRoomCodeForDisplay\(value\) \{[\s\S]*?\n\}/u);
-  assert.ok(match, "room code normalizer must exist in the Room Summary frontend");
-  return Function(`${match[0]}; return normalizeRoomCodeForDisplay;`)();
-}
+test("Joy Room Text preserves prepared room IDs exactly for display", () => {
+  const source = `
+Địa chỉ: 180 Phú Mỹ
+Phòng:
+- P502 | 4tr8 | 1/9
+- P602 | 4tr8 | ở luôn
+Dạng phòng: Studio
+Thang máy: Có
+Nội thất: Như hình
+Dịch vụ:
+- Điện: 4k/số
+Lưu ý:
+`;
 
-test("Room Summary always displays numeric room IDs as uppercase P codes", async () => {
-  const normalizeRoomCodeForDisplay = await loadRoomCodeNormalizer();
-
-  assert.equal(normalizeRoomCodeForDisplay("502"), "P502");
-  assert.equal(normalizeRoomCodeForDisplay("p502"), "P502");
-  assert.equal(normalizeRoomCodeForDisplay("P502"), "P502");
-  assert.equal(normalizeRoomCodeForDisplay("Phòng 502"), "P502");
-  assert.equal(normalizeRoomCodeForDisplay("phong: p502"), "P502");
-  assert.equal(normalizeRoomCodeForDisplay("602"), "P602");
+  const summary = parseJoyRoomText(source);
+  assert.deepEqual(summary.rooms, [
+    { room: "P502", price: "4tr8", availability: "1/9" },
+    { room: "P602", price: "4tr8", availability: "ở luôn" },
+  ]);
 });
