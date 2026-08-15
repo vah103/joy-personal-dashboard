@@ -1,3 +1,5 @@
+import "./sale-room-chatgpt-link.js";
+
 const SALE_SCOPE_SELECTOR = "#sales, #sales-modal, #sales-assistant-modal, #room-summary-card, .sale-page";
 const I18N_MODULE_URL = "/i18n/index.js?v=joy-i18n-v1";
 const I18N_STYLE_URL = "/i18n/i18n.css?v=joy-i18n-v1";
