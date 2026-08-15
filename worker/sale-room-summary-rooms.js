@@ -5,7 +5,6 @@ import {
   normalizeRoomSummarySource,
   phraseGrounded,
   sourceLines,
-  splitClauses,
 } from "./sale-room-summary-foundation.js";
 
 function roomIdentity(value) {
@@ -36,6 +35,20 @@ const PERCENT_RE = /(?<![\p{L}\p{N}_])\d+(?:[.,]\d+)?\s*%(?![\p{L}\p{N}_])/gu;
 const NON_ROOM_NUMBER_RE = /(?<![\p{L}\p{N}_])(?:mã|ma|code|id|hh|hoa\s*hồng|hoa\s*hong|cọc|coc|deposit)\s*[:#=-]?\s*(?:p\s*[-:]?\s*\d{1,4}[a-z]?|[a-z]{1,3}\d{1,4}[a-z]?|\d{2,4})(?![\p{L}\p{N}_])/giu;
 const ROOMTYPE_RE = /(?<![\p{L}\p{N}_])(?:studio|stuido|gác\s*xép|gac\s*xep|đơn|don|[1-9]\d*\s*n\s*1\s*k)(?![\p{L}\p{N}_])/giu;
 const RENT_RE = /(?<![\p{L}\p{N}_])\d+(?:[.,]\d+)?\s*(?:tr(?:iệu|ieu)?|m|k)\s*\d*(?:\s*\/\s*(?:tháng|thang))?(?![\p{L}\p{N}_])/giu;
+const AVAILABILITY_TEXT_RE = /(?<![\p{L}\p{N}_])(?:vào\s+luôn|vao\s+luon|trống\s+ngay|trong\s+ngay|cuối\s+tháng|cuoi\s+thang|đầu\s+tháng|dau\s+thang|giữa\s+tháng|giua\s+thang)(?![\p{L}\p{N}_])/giu;
+
+function roomClauses(value) {
+  const protectedText = String(value ?? "")
+    .replace(/(\d)\.(\d)/g, "$1§DOT§$2")
+    .replace(/(\d),(\d)/g, "$1§COMMA§$2");
+  return protectedText
+    .split(/[\n;,|•.!?]+/u)
+    .map((part) => part
+      .replace(/§DOT§/g, ".")
+      .replace(/§COMMA§/g, ",")
+      .trim())
+    .filter(Boolean);
+}
 
 function roomSourceSegments(value) {
   return sourceLines(value).flatMap((line) => line
@@ -130,7 +143,7 @@ const UNAVAILABLE_RE = /(?:^|\s)(?:da coc|coc roi|da giu|giu roi|da thue|thue ro
 export function roomIsExplicitlyUnavailableInSource(sourceValue, roomValue) {
   const identity = roomIdentity(roomValue);
   if (!identity) return false;
-  return splitClauses(sourceValue).some((clause) => {
+  return roomClauses(sourceValue).some((clause) => {
     const mention = extractSourceRoomMentions(clause).some((item) => item.identity === identity);
     return mention && UNAVAILABLE_RE.test(` ${fold(clause)} `);
   });
@@ -151,9 +164,7 @@ function availabilityValues(sourceValue) {
     const normalized = fold(line);
     if (!/(?:^|\s)(?:trong|available|availability|con|sap|vao luon)(?:\s|$)/u.test(normalized)) continue;
     for (const match of line.matchAll(DATE_RE)) values.push(match[0].trim());
-    for (const match of line.matchAll(/(?<![\p{L}\p{N}_])(?:vào\s+luôn|vao\s+luon|trống\s+ngay|trong\s+ngay|cuối\s+tháng|cuoi\s+thang|đầu\s+tháng|dau\s+thang|giữa\s+tháng|giua\s+thang)(?![\p{L}\p{N}_])/giu)) {
-      values.push(match[0].trim());
-    }
+    for (const match of line.matchAll(AVAILABILITY_TEXT_RE)) values.push(match[0].trim());
   }
   return [...new Set(values)];
 }
@@ -181,6 +192,55 @@ function positions(haystackValue, needleValue) {
   return out;
 }
 
+function fieldPositions(clause, kind) {
+  const matches = kind === "price"
+    ? [...clause.matchAll(new RegExp(RENT_RE.source, "giu"))]
+    : kind === "availability"
+      ? [
+        ...clause.matchAll(new RegExp(DATE_RE.source, "gu")),
+        ...clause.matchAll(new RegExp(AVAILABILITY_TEXT_RE.source, "giu")),
+      ]
+      : [];
+  return matches
+    .map((match) => ({ value: match[0].trim(), p: match.index ?? 0 }))
+    .sort((a, b) => a.p - b.p);
+}
+
+function roomPositions(clause) {
+  return extractSourceRoomMentions(clause)
+    .flatMap((mention) => positions(clause, mention.room).map((p) => ({
+      identity: mention.identity,
+      value: mention.room,
+      p,
+    })))
+    .sort((a, b) => a.p - b.p);
+}
+
+function pairedFieldBelongsToRoom(clause, targetIdentity, field, kind) {
+  const rooms = roomPositions(clause);
+  const fields = fieldPositions(clause, kind);
+  if (rooms.length < 2 || fields.length !== rooms.length) return null;
+
+  let valid = false;
+  if (rooms[0].p < fields[0].p) {
+    valid = rooms.every((room, index) => (
+      room.p < fields[index].p
+      && (index === rooms.length - 1 || fields[index].p < rooms[index + 1].p)
+    ));
+  } else if (fields[0].p < rooms[0].p) {
+    valid = fields.every((candidate, index) => (
+      candidate.p < rooms[index].p
+      && (index === fields.length - 1 || rooms[index].p < fields[index + 1].p)
+    ));
+  }
+  if (!valid) return null;
+
+  const wanted = fold(field);
+  return rooms.some((room, index) => (
+    room.identity === targetIdentity && fold(fields[index].value) === wanted
+  ));
+}
+
 function uniqueAssociated(sourceValue, roomValue, candidates, kind) {
   const rooms = extractSourceRoomMentions(sourceValue);
   const valid = [];
@@ -198,7 +258,7 @@ export function roomFieldIsAssociatedInSource(sourceValue, roomValue, fieldValue
   const room = clean(roomValue, 40);
   const roomIds = roomValues.map((value) => ({ value, identity: roomIdentity(value) })).filter((item) => item.identity);
 
-  for (const clause of splitClauses(sourceValue)) {
+  for (const clause of roomClauses(sourceValue)) {
     if (!phraseGrounded(clause, field)) continue;
     const clauseMentions = extractSourceRoomMentions(clause);
     const clauseIds = new Set(clauseMentions.map((item) => item.identity));
@@ -208,17 +268,17 @@ export function roomFieldIsAssociatedInSource(sourceValue, roomValue, fieldValue
       const target = clauseRooms.find((item) => item.identity === targetIdentity);
       if (target) {
         if (clauseRooms.length <= 1) return true;
+
+        const paired = pairedFieldBelongsToRoom(clause, targetIdentity, field, kind);
+        if (paired !== null) return paired;
+
         const fp = positions(clause, field);
-        const rp = clauseRooms.flatMap((item) => positions(clause, item.value).map((p) => ({ identity: item.identity, p })));
+        const rp = roomPositions(clause);
         if (fp.length === 1 && rp.length) {
           const minR = Math.min(...rp.map((x) => x.p));
           const maxR = Math.max(...rp.map((x) => x.p));
           if (fp[0] < minR || fp[0] > maxR) {
-            const numberOfSameKind = kind === "price"
-              ? [...clause.matchAll(new RegExp(RENT_RE.source, "giu"))].length
-              : kind === "availability"
-                ? [...clause.matchAll(new RegExp(DATE_RE.source, "gu"))].length
-                : 1;
+            const numberOfSameKind = fieldPositions(clause, kind).length || 1;
             if (numberOfSameKind === 1) return true;
           }
           const distances = rp.map((x) => ({ ...x, d: Math.abs(x.p - fp[0]) }));
@@ -238,7 +298,7 @@ export function roomFieldIsAssociatedInSource(sourceValue, roomValue, fieldValue
     const targetIdentity = roomIdentity(room);
     const allRooms = extractSourceRoomMentions(sourceValue);
     if (allRooms.length >= 1) {
-      for (const clause of splitClauses(sourceValue)) {
+      for (const clause of roomClauses(sourceValue)) {
         if (!phraseGrounded(clause, field) || extractSourceRoomMentions(clause).length) continue;
         const normalized = fold(clause);
         if (kind === "price" && /(?:^|\s)(?:gia|price|rent)(?:\s|$)/u.test(normalized)) return Boolean(targetIdentity);
