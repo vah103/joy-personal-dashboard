@@ -51,7 +51,7 @@ function sourcePricePattern() {
 }
 
 function sourceAvailabilityDatePattern() {
-  return /\b\d{1,2}\s*\/\s*\d{1,2}(?:\s*\/\s*\d{2,4})?\b/gu;
+  return /(?<![\p{L}\p{N}_])(?:\d{1,2}\s*\/\s*(?:\d{1,2}(?:\s*\/\s*\d{2,4})?|\d{4})|\d{4}\s*-\s*\d{1,2}\s*-\s*\d{1,2})(?![\p{L}\p{N}_])/gu;
 }
 
 function sourceAvailabilityPhrasePattern() {
@@ -59,7 +59,11 @@ function sourceAvailabilityPhrasePattern() {
 }
 
 function sourceAreaPattern() {
-  return /\b\d+(?:[.,]\d+)?\s*m\s*(?:2|²)\b/giu;
+  return /(?<![\p{L}\p{N}_])\d+(?:[.,]\d+)?\s*m\s*(?:2|²)(?![\p{L}\p{N}_])/giu;
+}
+
+function sourceFloorPattern() {
+  return /(?<![\p{L}\p{N}_])(?:tầng|tang|floor)\s*[:#-]?\s*\d{1,2}(?![\p{L}\p{N}_])/giu;
 }
 
 function sourcePercentPattern() {
@@ -151,6 +155,7 @@ export function extractSourceRoomMentions(sourceValue) {
       ...priceRanges,
       ...collectRanges(line, sourceAvailabilityDatePattern()),
       ...collectRanges(line, sourceAreaPattern()),
+      ...collectRanges(line, sourceFloorPattern()),
       ...collectRanges(line, sourcePercentPattern()),
       ...collectRanges(line, sourceNonRoomLabeledNumberPattern()),
     ];
