@@ -1,24 +1,7 @@
 const SALE_SCOPE_SELECTOR = "#sales, #sales-modal, #sales-assistant-modal, #room-summary-card, .sale-page";
 const I18N_MODULE_URL = "/i18n/index.js?v=joy-i18n-v1";
 const I18N_STYLE_URL = "/i18n/i18n.css?v=joy-i18n-v1";
-const JOY_ROOM_CHATGPT_URL = "https://chatgpt.com/";
-const JOY_ROOM_TEXT_PLACEHOLDER = `Địa chỉ: ...
-
-Phòng:
-- P203 | 6tr8 | 6/9
-
-Dạng phòng: 1N1K
-Thang máy: Có
-Nội thất: Như hình
-
-Dịch vụ:
-- Điện: 4k/số
-- Nước: 35k/khối
-
-Lưu ý:
-- ...`;
 let i18nPromise = null;
-let roomComposerClickBound = false;
 
 function sharedI18n() {
   return globalThis.window?.JoyI18n || globalThis.JoyI18n || null;
@@ -58,83 +41,12 @@ export function translateSaleUiRoot(root) {
   scopes.forEach((scope) => i18n.translateRoot(scope));
 }
 
-function roomText(key, fallback) {
-  return sharedI18n()?.t?.(key) || fallback;
-}
-
-function setTextIfChanged(element, value) {
-  if (element && element.textContent !== value) element.textContent = value;
-}
-
-function setPlaceholderIfChanged(input, value) {
-  if (input && input.placeholder !== value) input.placeholder = value;
-}
-
-function syncRoomSummaryComposer(doc = globalThis.document) {
-  const composer = doc?.querySelector?.('[data-assistant-panel="summary"] .sale-room-composer');
-  const input = composer?.querySelector?.("#room-summary-input");
-  if (!composer || !input) return false;
-
-  const label = composer.querySelector('label[for="room-summary-input"]');
-  setTextIfChanged(label, roomText("dynamic.sale.roomTextLabel", "Joy Room Text"));
-
-  setPlaceholderIfChanged(input, roomText("dynamic.sale.roomTextPlaceholder", JOY_ROOM_TEXT_PLACEHOLDER));
-
-  const help = input.nextElementSibling?.tagName === "P" ? input.nextElementSibling : null;
-  setTextIfChanged(
-    help,
-    roomText(
-      "dynamic.sale.roomTextHelp",
-      "Paste only Joy Room Text prepared in ChatGPT. Raw listings are not accepted.",
-    ),
-  );
-
-  let button = composer.querySelector("#room-summary-chatgpt");
-  if (!button) {
-    button = doc.createElement("button");
-    button.type = "button";
-    button.id = "room-summary-chatgpt";
-    button.className = "secondary-button";
-    button.style.width = "100%";
-    button.style.marginBottom = "12px";
-    button.addEventListener("click", () => {
-      globalThis.window?.open?.(JOY_ROOM_CHATGPT_URL, "_blank", "noopener,noreferrer");
-    });
-    input.before(button);
-  }
-
-  setTextIfChanged(button, roomText("dynamic.sale.roomChatGPT", "Soạn với ChatGPT ↗"));
-  return true;
-}
-
-function installRoomSummaryComposer(doc = globalThis.document) {
-  if (!doc?.body) return;
-  syncRoomSummaryComposer(doc);
-
-  if (!roomComposerClickBound) {
-    roomComposerClickBound = true;
-    doc.addEventListener("click", (event) => {
-      const target = event.target?.closest?.('[data-action="open-sales-assistant"], [data-assistant-mode="summary"]');
-      if (!target) return;
-      globalThis.window?.requestAnimationFrame?.(() => syncRoomSummaryComposer(doc));
-    });
-  }
-
-  const sync = () => syncRoomSummaryComposer(doc);
-  globalThis.window?.addEventListener?.("joy:i18n-ready", sync);
-  globalThis.window?.addEventListener?.("joy:locale-changed", sync);
-}
-
 export async function installSaleEnglishUi(doc = globalThis.document) {
   if (!doc?.body || doc.body.dataset.saleLanguageAdapter === "true") return;
   doc.body.dataset.saleLanguageAdapter = "true";
   ensureI18nStyle(doc);
-  installRoomSummaryComposer(doc);
 
-  const sync = () => {
-    syncRoomSummaryComposer(doc);
-    translateSaleUiRoot(doc.body);
-  };
+  const sync = () => translateSaleUiRoot(doc.body);
   globalThis.window?.addEventListener?.("joy:i18n-ready", sync);
   globalThis.window?.addEventListener?.("joy:locale-changed", sync);
   await ensureSharedI18n(doc);
@@ -148,5 +60,3 @@ if (typeof document !== "undefined") {
     void installSaleEnglishUi(document);
   }
 }
-
-export { JOY_ROOM_CHATGPT_URL, JOY_ROOM_TEXT_PLACEHOLDER, syncRoomSummaryComposer };
