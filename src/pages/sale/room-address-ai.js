@@ -222,7 +222,13 @@ function renderText(container, text) {
   body.contentEditable = "true";
   body.spellcheck = false;
 
-  parseRoomDisplayBlocks(text).forEach((block) => renderBlock(body, block));
+  const blocks = parseRoomDisplayBlocks(text);
+  if (!blocks.length) {
+    body.textContent = text;
+    body.style.whiteSpace = "pre-wrap";
+  } else {
+    blocks.forEach((block) => renderBlock(body, block));
+  }
   container.append(body);
 }
 
