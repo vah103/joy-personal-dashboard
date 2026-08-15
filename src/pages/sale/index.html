@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="sale-manager.css?v=joy-room-summary-v1">
     <link rel="stylesheet" href="room-summary.css?v=joy-room-summary-v1">
     <script src="sale-manager.js?v=joy-sale-nunito-v3" defer></script>
-    <script type="module" src="room-address-ai.js?v=joy-room-address-ai-text-v1"></script>
+    <script type="module" src="room-address-ai.js?v=joy-room-text-only-v1"></script>
     <script type="module" src="sale-english-ui.js?v=joy-sale-english-ui-v1"></script>
   </head>
   <body class="sale-page">
@@ -57,16 +57,17 @@
             <div>
               <p>Sale assistant</p>
               <h2 id="room-summary-title">Room summary</h2>
-              <span>Paste Joy Room Text from ChatGPT for instant rendering, or paste a raw listing as fallback.</span>
+              <span>Prepare the listing in ChatGPT, then paste Joy Room Text here for instant rendering.</span>
             </div>
             <small>Temporary · never saved</small>
           </div>
           <div class="sale-room-workspace">
             <div class="sale-room-composer">
-              <label for="room-summary-input">Joy Room Text / source information</label>
+              <label for="room-summary-input">Joy Room Text</label>
               <textarea id="room-summary-input" maxlength="12000" spellcheck="false" placeholder="Địa chỉ: ...&#10;&#10;Phòng:&#10;- P203 | 6tr8 | 6/9&#10;&#10;Dạng phòng: 1N1K&#10;Thang máy: Có&#10;Nội thất: Như hình&#10;&#10;Dịch vụ:&#10;- Điện: 4k/số&#10;- Nước: 35k/khối&#10;&#10;Lưu ý:&#10;- Đóng 1 cọc 1"></textarea>
-              <p>Joy Room Text được render ngay không gọi AI; nguồn thô vẫn dùng bộ xử lý dự phòng.</p>
+              <p>Joy chỉ nhận Joy Room Text v1. Tin nguồn thô cần được soạn trong ChatGPT trước.</p>
               <div class="sale-room-actions">
+                <a class="sale-secondary-button" id="room-summary-chatgpt" href="https://chatgpt.com/" target="_blank" rel="noreferrer">Soạn với ChatGPT ↗</a>
                 <button class="sale-secondary-button" id="room-summary-clear" type="button">Clear</button>
                 <button class="sale-primary-button" id="room-summary-generate" type="button">Create summary</button>
               </div>
