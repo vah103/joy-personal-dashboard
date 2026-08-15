@@ -59,15 +59,14 @@ test("Room Summary backend still has one optional semantic AI call for legacy AP
   assert.match(backend, /max_tokens:\s*2000/u);
 });
 
-test("Joy Room Text frontend performs no network or AI request", async () => {
+test("room composer performs no network, parser or AI request", async () => {
   const frontend = await readFile(
     new URL("../src/pages/sale/room-address-ai.js", import.meta.url),
     "utf8",
   );
 
-  assert.match(frontend, /parseJoyRoomText/u);
-  assert.doesNotMatch(frontend, /ROOM_SUMMARY_REQUEST_TIMEOUT_MS/u);
-  assert.doesNotMatch(frontend, /new AbortController\(\)/u);
-  assert.doesNotMatch(frontend, /fetch\(/u);
-  assert.doesNotMatch(frontend, /\/api\/sales\/room-summary\/extract/u);
+  assert.match(frontend, /prepareRoomDisplayText/u);
+  assert.match(frontend, /body\.textContent = text/u);
+  assert.doesNotMatch(frontend, /parseJoyRoomText|ROOM_SUMMARY_REQUEST_TIMEOUT_MS|new AbortController/u);
+  assert.doesNotMatch(frontend, /fetch\(|\/api\/sales\/room-summary\/extract/u);
 });
