@@ -10,7 +10,7 @@ test("Sale Assistant room summary exposes the ChatGPT launcher and Joy Room Text
   ]);
 
   assert.match(ui, /JOY_ROOM_CHATGPT_URL = "https:\/\/chatgpt\.com\/"/u);
-  assert.match(ui, /id = "room-summary-chatgpt"/u);
+  assert.match(ui, /button\.id = "room-summary-chatgpt"/u);
   assert.match(ui, /input\.before\(button\)/u);
   assert.match(ui, /dynamic\.sale\.roomTextLabel/u);
   assert.match(ui, /dynamic\.sale\.roomTextHelp/u);
