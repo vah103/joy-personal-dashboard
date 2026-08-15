@@ -4,12 +4,14 @@ import core from "./en-core.js";
 import hardening from "./en-hardening.js";
 import cleanup from "./en-cleanup.js";
 import dynamicUi from "./en-dynamic-ui.js";
+import saleRoom from "./en-sale-room.js";
 
 export default Object.freeze({
   ...core,
   ...hardening,
   ...cleanup,
   ...dynamicUi,
+  ...saleRoom,
   "p1008.water": "Household water",
   "p1008.parking": "Parking fee",
   "dynamic.sale.joyRoomEmptyHelp": "Prepare Joy Room Text in ChatGPT, then paste the full result here.",
