@@ -39,6 +39,8 @@ function renderText(container, text) {
 }
 
 function initializeRoomComposer() {
+  document.querySelector("#room-summary-chatgpt")?.remove();
+
   const input = document.querySelector("#room-summary-input");
   const output = document.querySelector("#room-summary-card");
   const generate = document.querySelector("#room-summary-generate");
