@@ -54,8 +54,7 @@ function normalizeServiceRateForDisplay(value, serviceKind) {
   if (serviceKind === "electricity") {
     clean = clean
       .replace(/\/(?:1\s*)?(?:số|so)$/iu, "/số")
-      .replace(/\/kwh$/iu, "/số")
-      .replace(/^3[.,]99(?:0)?(?=\/|$)/u, "4k");
+      .replace(/\/kwh$/iu, "/số");
   }
 
   if (serviceKind === "water") {
