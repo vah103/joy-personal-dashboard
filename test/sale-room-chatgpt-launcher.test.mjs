@@ -20,3 +20,17 @@ test("Sale Assistant room summary exposes the ChatGPT launcher and Joy Room Text
   assert.match(vi, /"dynamic\.sale\.roomChatGPT": "Soạn với ChatGPT ↗"/u);
   assert.match(vi, /Joy không nhận tin nguồn thô/u);
 });
+
+test("Room ChatGPT launcher does not observe the whole document for DOM mutations", async () => {
+  const ui = await readFile(
+    new URL("../src/features/sales/sale-english-ui.js", import.meta.url),
+    "utf8",
+  );
+
+  assert.doesNotMatch(ui, /new MutationObserver/u);
+  assert.doesNotMatch(ui, /observe\(doc\.body/u);
+  assert.match(ui, /data-action=\"open-sales-assistant\"/u);
+  assert.match(ui, /data-assistant-mode=\"summary\"/u);
+  assert.match(ui, /setTextIfChanged/u);
+  assert.match(ui, /setPlaceholderIfChanged/u);
+});
