@@ -7,6 +7,17 @@ const FOLLOWUP_DELAY_MS = 2 * 60 * 60 * 1000;
 const MAX_LATE_MS = 24 * 60 * 60 * 1000;
 const RETRY_AFTER_MS = 2 * 60 * 1000;
 
+const NOTIFICATION_COLUMNS = Object.freeze({
+  reminder: Object.freeze({
+    notified: "reminder_notified_at",
+    claimed: "reminder_claimed_at",
+  }),
+  followup: Object.freeze({
+    notified: "followup_notified_at",
+    claimed: "followup_claimed_at",
+  }),
+});
+
 export function isSaleViewingRoute(pathname) {
   return pathname === "/api/sales/viewings";
 }
@@ -69,9 +80,10 @@ async function createViewing(request, email, env) {
   await env.DB.prepare(`
     INSERT INTO sale_viewings (
       id, user_email, customer_name, phone, viewing_address, viewing_at,
-      reminder_at, reminder_notified_at, followup_at, followup_notified_at,
+      reminder_at, reminder_notified_at, reminder_claimed_at,
+      followup_at, followup_notified_at, followup_claimed_at,
       cancelled_at, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, NULL, NULL, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, NULL, NULL, NULL, ?, ?)
   `).bind(
     id,
     email,
@@ -114,7 +126,8 @@ async function updateViewing(request, email, env) {
 
   const existing = await env.DB.prepare(`
     SELECT id, customer_name, phone, viewing_address, viewing_at,
-           reminder_at, reminder_notified_at, followup_at, followup_notified_at,
+           reminder_at, reminder_notified_at, reminder_claimed_at,
+           followup_at, followup_notified_at, followup_claimed_at,
            cancelled_at, created_at, updated_at
     FROM sale_viewings
     WHERE id = ? AND user_email = ?
@@ -131,25 +144,29 @@ async function updateViewing(request, email, env) {
 
   let reminderAt = nullableNumber(existing.reminder_at);
   let reminderNotifiedAt = nullableNumber(existing.reminder_notified_at);
+  let reminderClaimedAt = nullableNumber(existing.reminder_claimed_at);
   let followupAt = nullableNumber(existing.followup_at);
   let followupNotifiedAt = nullableNumber(existing.followup_notified_at);
+  let followupClaimedAt = nullableNumber(existing.followup_claimed_at);
 
   if (timeChanged) {
     reminderAt = viewing.viewingAt - now >= REMINDER_LEAD_MS
       ? viewing.viewingAt - REMINDER_LEAD_MS
       : null;
     reminderNotifiedAt = null;
+    reminderClaimedAt = null;
     followupAt = viewing.viewingAt > now
       ? viewing.viewingAt + FOLLOWUP_DELAY_MS
       : null;
     followupNotifiedAt = null;
+    followupClaimedAt = null;
   }
 
   const result = await env.DB.prepare(`
     UPDATE sale_viewings
     SET customer_name = ?, phone = ?, viewing_address = ?, viewing_at = ?,
-        reminder_at = ?, reminder_notified_at = ?,
-        followup_at = ?, followup_notified_at = ?, updated_at = ?
+        reminder_at = ?, reminder_notified_at = ?, reminder_claimed_at = ?,
+        followup_at = ?, followup_notified_at = ?, followup_claimed_at = ?, updated_at = ?
     WHERE id = ? AND user_email = ?
   `).bind(
     viewing.customerName,
@@ -158,8 +175,10 @@ async function updateViewing(request, email, env) {
     viewing.viewingAt,
     reminderAt,
     reminderNotifiedAt,
+    reminderClaimedAt,
     followupAt,
     followupNotifiedAt,
+    followupClaimedAt,
     now,
     id,
     email,
@@ -244,15 +263,16 @@ async function processReminderPushes(env) {
     WHERE cancelled_at IS NULL
       AND reminder_at IS NOT NULL
       AND reminder_notified_at IS NULL
+      AND (reminder_claimed_at IS NULL OR reminder_claimed_at <= ?)
       AND reminder_at <= ?
       AND reminder_at >= ?
     ORDER BY reminder_at ASC
     LIMIT 30
-  `).bind(now, now - MAX_LATE_MS).all();
+  `).bind(now - RETRY_AFTER_MS, now, now - MAX_LATE_MS).all();
 
   for (const row of rows.results || []) {
     const attemptAt = Date.now();
-    const claimed = await claimNotification(row.id, "reminder_notified_at", attemptAt, env);
+    const claimed = await claimNotification(row.id, "reminder", attemptAt, env);
     if (!claimed) continue;
     const accepted = await sendPushToUser(row.user_email, {
       title: "Lịch xem phòng sắp tới",
@@ -263,7 +283,8 @@ async function processReminderPushes(env) {
       renotify: true,
       data: { url: "/#sales", kind: "sale-viewing-reminder", viewingId: row.id },
     }, env, { ttl: 60 * 60, urgency: "high" });
-    if (!accepted) await releaseNotification(row.id, "reminder_notified_at", attemptAt, env);
+    if (accepted) await finishNotification(row.id, "reminder", attemptAt, env);
+    else await releaseNotification(row.id, "reminder", attemptAt, env);
   }
 }
 
@@ -275,15 +296,16 @@ async function processFollowupPushes(env) {
     WHERE cancelled_at IS NULL
       AND followup_at IS NOT NULL
       AND followup_notified_at IS NULL
+      AND (followup_claimed_at IS NULL OR followup_claimed_at <= ?)
       AND followup_at <= ?
       AND followup_at >= ?
     ORDER BY followup_at ASC
     LIMIT 30
-  `).bind(now, now - MAX_LATE_MS).all();
+  `).bind(now - RETRY_AFTER_MS, now, now - MAX_LATE_MS).all();
 
   for (const row of rows.results || []) {
     const attemptAt = Date.now();
-    const claimed = await claimNotification(row.id, "followup_notified_at", attemptAt, env);
+    const claimed = await claimNotification(row.id, "followup", attemptAt, env);
     if (!claimed) continue;
     const accepted = await sendPushToUser(row.user_email, {
       title: "Theo dõi khách xem phòng",
@@ -294,27 +316,45 @@ async function processFollowupPushes(env) {
       renotify: true,
       data: { url: "/#sales", kind: "sale-viewing-followup", viewingId: row.id },
     }, env, { ttl: 6 * 60 * 60, urgency: "normal" });
-    if (!accepted) await releaseNotification(row.id, "followup_notified_at", attemptAt, env);
+    if (accepted) await finishNotification(row.id, "followup", attemptAt, env);
+    else await releaseNotification(row.id, "followup", attemptAt, env);
   }
 }
 
-async function claimNotification(id, column, attemptAt, env) {
-  if (!new Set(["reminder_notified_at", "followup_notified_at"]).has(column)) return false;
+function notificationColumns(kind) {
+  return NOTIFICATION_COLUMNS[kind] || null;
+}
+
+async function claimNotification(id, kind, attemptAt, env) {
+  const columns = notificationColumns(kind);
+  if (!columns) return false;
   const result = await env.DB.prepare(`
     UPDATE sale_viewings
-    SET ${column} = ?, updated_at = ?
+    SET ${columns.claimed} = ?, updated_at = ?
     WHERE id = ? AND cancelled_at IS NULL
-      AND (${column} IS NULL OR ${column} <= ?)
+      AND ${columns.notified} IS NULL
+      AND (${columns.claimed} IS NULL OR ${columns.claimed} <= ?)
   `).bind(attemptAt, attemptAt, id, attemptAt - RETRY_AFTER_MS).run();
   return Number(result.meta?.changes || 0) > 0;
 }
 
-async function releaseNotification(id, column, attemptAt, env) {
-  if (!new Set(["reminder_notified_at", "followup_notified_at"]).has(column)) return;
+async function finishNotification(id, kind, attemptAt, env) {
+  const columns = notificationColumns(kind);
+  if (!columns) return;
   await env.DB.prepare(`
     UPDATE sale_viewings
-    SET ${column} = NULL, updated_at = ?
-    WHERE id = ? AND ${column} = ?
+    SET ${columns.notified} = ?, ${columns.claimed} = NULL, updated_at = ?
+    WHERE id = ? AND ${columns.notified} IS NULL AND ${columns.claimed} = ?
+  `).bind(attemptAt, Date.now(), id, attemptAt).run();
+}
+
+async function releaseNotification(id, kind, attemptAt, env) {
+  const columns = notificationColumns(kind);
+  if (!columns) return;
+  await env.DB.prepare(`
+    UPDATE sale_viewings
+    SET ${columns.claimed} = NULL, updated_at = ?
+    WHERE id = ? AND ${columns.notified} IS NULL AND ${columns.claimed} = ?
   `).bind(Date.now(), id, attemptAt).run();
 }
 
