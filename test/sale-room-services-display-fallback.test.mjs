@@ -44,21 +44,22 @@ test("normalizes backend-provided per-number and per-cubic-meter units for displ
   );
 });
 
-test("shows backend-provided 3.99-style electricity as 4k without changing other rates", async () => {
+test("preserves backend-provided numeric amounts instead of rounding or adding money units", async () => {
   const { helpers } = await loadServiceDisplayHelpers();
   const { normalizeServiceRateForDisplay, servicesForDisplay } = helpers;
 
-  assert.equal(normalizeServiceRateForDisplay("3.99/số", "electricity"), "4k/số");
-  assert.equal(normalizeServiceRateForDisplay("3.990/số", "electricity"), "4k/số");
-  assert.equal(normalizeServiceRateForDisplay("3,99/1 số", "electricity"), "4k/số");
+  assert.equal(normalizeServiceRateForDisplay("3.99/số", "electricity"), "3.99/số");
+  assert.equal(normalizeServiceRateForDisplay("3.990/số", "electricity"), "3.990/số");
+  assert.equal(normalizeServiceRateForDisplay("3,99/1 số", "electricity"), "3,99/số");
   assert.equal(normalizeServiceRateForDisplay("3.8/số", "electricity"), "3.8/số");
+  assert.equal(normalizeServiceRateForDisplay("35/khối", "water"), "35/khối");
 
   assert.deepEqual(
     JSON.parse(JSON.stringify(servicesForDisplay("ignored", {
       electricity: "3.990/số",
-      water: "35k/khối",
+      water: "35/khối",
     }))),
-    { electricity: "4k/số", water: "35k/khối", items: [] },
+    { electricity: "3.990/số", water: "35/khối", items: [] },
   );
 });
 
