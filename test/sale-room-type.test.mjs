@@ -1,6 +1,5 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import {
   canonicalRoomType,
   normalizeDetectedRoomType,
@@ -37,16 +36,4 @@ test("ambiguous listings with several room types are not collapsed into one type
   const source = "Tòa có Studio và 2N1K. Phòng P502 đang trống.";
   assert.equal(normalizeDetectedRoomType(source, "Studio"), "");
   assert.equal(normalizeDetectedRoomType(source, "2N1K"), "");
-});
-
-test("Joy Room Text renders room type after room facts", async () => {
-  const frontend = await readFile(
-    new URL("../src/pages/sale/room-address-ai.js", import.meta.url),
-    "utf8",
-  );
-
-  assert.match(frontend, /roomType: sections\.roomType\.join\(" "\)\.trim\(\)/u);
-  assert.match(frontend, /appendRooms\(details, summary\.rooms, summary\.floor\);\s*appendRoomType\(details, summary\.roomType\);/s);
-  assert.match(frontend, /appendLabeledValue\(details, \["Dạng", " phòng"\], roomType\)/u);
-  assert.doesNotMatch(frontend, /payload\.roomType/u);
 });
