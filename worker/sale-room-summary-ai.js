@@ -7,6 +7,7 @@ import {
   normalizeDetectedAddress, normalizeDetectedFurniture, normalizeRoomSummarySource,
 } from "./sale-room-summary-foundation.js";
 import { extractSourceRoomMentions, normalizeDetectedRooms } from "./sale-room-summary-rooms.js";
+import { reconcileParenthesizedRoomAvailability } from "./sale-room-summary-room-availability.js";
 import {
   extractSourceDynamicServiceItems, extractSourceUtilityServices,
   normalizeDetectedServices, normalizeDynamicServiceItems,
@@ -15,6 +16,7 @@ import {
 
 export * from "./sale-room-summary-foundation.js";
 export * from "./sale-room-summary-rooms.js";
+export * from "./sale-room-summary-room-availability.js";
 export * from "./sale-room-summary-services.js";
 
 export const SALE_ROOM_SUMMARY_AI_PATH = "/api/sales/room-summary/extract";
@@ -37,9 +39,10 @@ function summaryFound(summary) {
 export function extractDeterministicRoomSummary(sourceValue) {
   const source = normalizeRoomSummarySource(sourceValue);
   const serviceItems = extractSourceDynamicServiceItems(source);
+  const rooms = reconcileParenthesizedRoomAvailability(source, normalizeDetectedRooms(source, []));
   const summary = {
     address: extractSourceAddress(source),
-    rooms: normalizeDetectedRooms(source, []),
+    rooms,
     roomType: extractSourceRoomType(source),
     elevator: elevatorStatusInSource(source),
     furniture: extractSourceFurniture(source),
@@ -167,7 +170,9 @@ function mergeSemantic(source, deterministic, detected, fields) {
     const candidate = normalizeDetectedAddress(detected?.address);
     if (candidate && addressIsGroundedInSource(source, candidate)) summary.address = candidate;
   }
-  if (fields.includes("rooms")) summary.rooms = normalizeDetectedRooms(source, detected?.rooms);
+  if (fields.includes("rooms")) {
+    summary.rooms = reconcileParenthesizedRoomAvailability(source, normalizeDetectedRooms(source, detected?.rooms));
+  }
   if (fields.includes("furniture") && !summary.furniture) {
     summary.furniture = normalizeDetectedFurniture(source, detected?.furnitureItems, detected?.furnitureAsImage);
   }
