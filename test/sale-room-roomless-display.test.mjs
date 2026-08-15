@@ -1,66 +1,59 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import vm from "node:vm";
 import { readFile } from "node:fs/promises";
+import { parseJoyRoomText } from "../src/pages/sale/room-address-ai.js";
 
-async function loadDisplayHelpers() {
-  const frontend = await readFile(
-    new URL("../src/pages/sale/room-address-ai.js", import.meta.url),
-    "utf8",
-  );
-  const sandbox = {
-    document: {
-      readyState: "loading",
-      addEventListener() {},
-    },
-  };
-  vm.runInNewContext(
-    `${frontend}\nthis.__helpers = { normalizeFurnitureForDisplay, extractFloorForDisplay, roomValueIsFloorOnly };`,
-    sandbox,
-  );
-  return { frontend, ...sandbox.__helpers };
-}
-
-test("uses floor as the fallback identifier only when no room code exists", async () => {
-  const { extractFloorForDisplay } = await loadDisplayHelpers();
-
-  assert.equal(
-    extractFloorForDisplay("Phòng tầng 4\nGiá thuê: 3tr", [{ room: "", price: "3tr", availability: "" }]),
-    "4",
-  );
-  assert.equal(
-    extractFloorForDisplay("Phòng P401 tầng 4\nGiá thuê: 3tr", [{ room: "P401", price: "3tr", availability: "" }]),
-    "",
-  );
-  assert.equal(
-    extractFloorForDisplay("Có phòng tầng 3 và phòng tầng 4", [{ room: "", price: "", availability: "" }]),
-    "",
-  );
+test("floor-only Joy Room Text uses floor as the display identifier", () => {
+  const source = `
+Địa chỉ: 12 phố A
+Phòng:
+- Tầng 4 | 3tr | ở luôn
+Dạng phòng: Studio
+Thang máy: Không
+Nội thất: Như hình
+Dịch vụ:
+- Điện: 4k/số
+Lưu ý:
+`;
+  const summary = parseJoyRoomText(source);
+  assert.equal(summary.floor, "4");
+  assert.deepEqual(summary.rooms, [{ room: "", price: "3tr", availability: "ở luôn" }]);
 });
 
-test("does not promote a floor number into a P-room code", async () => {
-  const { roomValueIsFloorOnly } = await loadDisplayHelpers();
-
-  assert.equal(roomValueIsFloorOnly("Phòng tầng 4\nGiá thuê: 3tr", "4"), true);
-  assert.equal(roomValueIsFloorOnly("Phòng 4 ở tầng 4\nGiá thuê: 3tr", "4"), false);
-  assert.equal(roomValueIsFloorOnly("Phòng P4 ở tầng 4\nGiá thuê: 3tr", "4"), false);
+test("explicit Joy Room Text room IDs are never promoted from a floor", () => {
+  const source = `
+Địa chỉ: 12 phố A
+Phòng:
+- P401 | 3tr | 1/9
+Dạng phòng: Studio
+Thang máy: Có
+Nội thất: Như hình
+Dịch vụ:
+- Điện: 4k/số
+Lưu ý:
+`;
+  const summary = parseJoyRoomText(source);
+  assert.equal(summary.floor, "");
+  assert.equal(summary.rooms[0].room, "P401");
 });
 
-test("normalizes common furniture abbreviations for customer display", async () => {
-  const { normalizeFurnitureForDisplay } = await loadDisplayHelpers();
-
-  assert.equal(
-    normalizeFurnitureForDisplay("Đh, NL, giường, tủ"),
-    "Điều hòa, nóng lạnh, giường, tủ",
-  );
-  assert.equal(normalizeFurnitureForDisplay("Như hình"), "Như hình");
+test("Joy Room Text keeps prepared furniture copy instead of re-normalizing it", () => {
+  const source = `
+Địa chỉ: 12 phố A
+Phòng:
+- P401 | 3tr
+Dạng phòng: Studio
+Thang máy: Có
+Nội thất: Điều hòa, nóng lạnh, giường, tủ
+Dịch vụ:
+- Điện: 4k/số
+Lưu ý:
+`;
+  assert.equal(parseJoyRoomText(source).furniture, "Điều hòa, nóng lạnh, giường, tủ");
 });
 
-test("roomless listings no longer render a placeholder room dash", async () => {
-  const { frontend } = await loadDisplayHelpers();
-
+test("floor-only rendering never creates a placeholder room dash", async () => {
+  const frontend = await readFile(new URL("../src/pages/sale/room-address-ai.js", import.meta.url), "utf8");
   assert.doesNotMatch(frontend, /room\.room\s*\|\|\s*["']—["']/u);
   assert.match(frontend, /appendFloorFacts\(details, floor, roomlessFacts\)/u);
-  assert.match(frontend, /appendLabeledValue\(details, \["G", "iá"\], roomlessFacts\.price\)/u);
-  assert.match(frontend, /appendLabeledValue\(details, \["T", "rống"\], roomlessFacts\.availability\)/u);
 });
