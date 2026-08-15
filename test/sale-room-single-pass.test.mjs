@@ -46,7 +46,7 @@ test("Room Summary asks semantic AI only for unresolved groups", () => {
   assert.deepEqual(semanticAssistFields(source), ["services"]);
 });
 
-test("Room Summary backend has one optional semantic AI call and no legacy split modules", async () => {
+test("Room Summary backend still has one optional semantic AI call for legacy API consumers", async () => {
   const backend = await readFile(
     new URL("../worker/sale-room-summary-ai.js", import.meta.url),
     "utf8",
@@ -57,20 +57,17 @@ test("Room Summary backend has one optional semantic AI call and no legacy split
   assert.match(backend, /semanticAssistFields/u);
   assert.match(backend, /runSemanticAssist/u);
   assert.match(backend, /max_tokens:\s*2000/u);
-  assert.doesNotMatch(backend, /sale-room-summary-ai-core/u);
-  assert.doesNotMatch(backend, /sale-room-service-items-ai/u);
-  assert.doesNotMatch(backend, /sale-room-service-source-reconciliation/u);
 });
 
-test("Room Summary frontend bounds request latency and cancels obsolete requests", async () => {
+test("Joy Room Text frontend performs no network or AI request", async () => {
   const frontend = await readFile(
     new URL("../src/pages/sale/room-address-ai.js", import.meta.url),
     "utf8",
   );
 
-  assert.match(frontend, /ROOM_SUMMARY_REQUEST_TIMEOUT_MS = 20000/u);
-  assert.match(frontend, /new AbortController\(\)/u);
-  assert.match(frontend, /signal,/u);
-  assert.match(frontend, /activeRequestController\?\.abort\(\)/u);
-  assert.match(frontend, /window\.setTimeout\(\(\) => controller\.abort\(\), ROOM_SUMMARY_REQUEST_TIMEOUT_MS\)/u);
+  assert.match(frontend, /parseJoyRoomText/u);
+  assert.doesNotMatch(frontend, /ROOM_SUMMARY_REQUEST_TIMEOUT_MS/u);
+  assert.doesNotMatch(frontend, /new AbortController\(\)/u);
+  assert.doesNotMatch(frontend, /fetch\(/u);
+  assert.doesNotMatch(frontend, /\/api\/sales\/room-summary\/extract/u);
 });
