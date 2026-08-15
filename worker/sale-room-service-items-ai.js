@@ -75,7 +75,7 @@ function rateMatches(value) {
 function formatDynamicServiceValue(value) {
   return cleanField(value, MAX_SERVICE_VALUE_LENGTH)
     .replace(/\s*\/\s*/g, "/")
-    .replace(/\bK\b/g, "k")
+    .replace(/K/g, "k")
     .replace(/\/(?:1\s*)?(?:ng|người|nguoi)$/iu, "/người")
     .replace(/\/(?:1\s*)?(?:m3|m³|khối|khoi)$/iu, "/khối")
     .replace(/\/(?:1\s*)?(?:phòng|phong)$/iu, "/phòng")
@@ -243,6 +243,20 @@ function includedServiceIsGroundedInEvidence(evidenceValue, includeValue) {
   return candidates.some((candidate) => (` ${evidence} `).includes(` ${candidate} `));
 }
 
+function commonBundleIsGrounded(evidence, includes, value) {
+  if (!Array.isArray(includes) || includes.length < 2) return false;
+  const rates = rateMatches(evidence);
+  const signature = normalizeRateSignature(value);
+  if (rates.length !== 1 || !signature || rates[0].signature !== signature) return false;
+
+  const includeNames = new Set(includes.map(normalizeComparable).filter(Boolean));
+  if (includeNames.size === 2 && includeNames.has("dien") && includeNames.has("nuoc")) return false;
+
+  const normalizedEvidence = normalizeComparable(evidence);
+  return /[+&,]/u.test(String(evidence ?? ""))
+    || /(?:^|\s)(?:va|voi|gom|bao gom)(?:\s|$)/u.test(normalizedEvidence);
+}
+
 function itemIsStandaloneElectricityOrWater(kind, name) {
   if (["common", "internet", "parking", "cleaning", "washing"].includes(kind)) return false;
   const comparable = normalizeComparable(name);
@@ -284,8 +298,6 @@ export function normalizeDynamicServiceItems(sourceValue, itemValues) {
     if (!name || !value || !evidence) continue;
     if (!serviceEvidenceIsGroundedInSource(sourceValue, evidence)) continue;
     if (!rateMatches(evidence).some((rate) => rate.signature === normalizeRateSignature(rawValue))) continue;
-    if (!rateIsAssociatedWithService(evidence, kind, rawName || name, rawValue)) continue;
-    if (itemIsStandaloneElectricityOrWater(kind, name)) continue;
 
     const includes = kind === "common"
       ? [...new Set((Array.isArray(raw?.includes) ? raw.includes : [])
@@ -293,6 +305,10 @@ export function normalizeDynamicServiceItems(sourceValue, itemValues) {
         .map(canonicalIncludedService)
         .filter((include) => include && includedServiceIsGroundedInEvidence(evidence, include)))]
       : [];
+    const rateIsGrounded = rateIsAssociatedWithService(evidence, kind, rawName || name, rawValue)
+      || (kind === "common" && commonBundleIsGrounded(evidence, includes, rawValue));
+    if (!rateIsGrounded) continue;
+    if (itemIsStandaloneElectricityOrWater(kind, name)) continue;
 
     const identity = `${kind}|${normalizeComparable(name)}|${normalizeRateSignature(value)}`;
     if (seen.has(identity)) continue;
