@@ -229,7 +229,7 @@ test("Room Summary exposes the current staged AI fields without legacy parser ca
     readFile(new URL("../src/pages/dashboard/app-bootstrap.js", import.meta.url), "utf8"),
   ]);
 
-  assert.match(html, /room-address-ai\.js\?v=joy-room-address-ai-v2/);
+  assert.match(html, /room-address-ai\.js\?v=joy-room-address-ai-floor-v1/);
   assert.doesNotMatch(html, /src="room-summary\.js/);
   assert.match(build, /room-address-ai\.js/);
   assert.match(build, /room-summary\.js/);
@@ -253,7 +253,7 @@ test("Room Summary exposes the current staged AI fields without legacy parser ca
   assert.doesNotMatch(frontend, /Lưu ý|SERVICE_DEFINITIONS|FURNITURE_KEYWORDS|NOTE_KEYWORDS/);
   assert.doesNotMatch(frontend, /`#\$\{index \+ 1\}`/);
 
-  assert.match(legacyBridge, /room-address-ai\.js\?v=joy-room-address-ai-v2/);
+  assert.match(legacyBridge, /room-address-ai\.js\?v=joy-room-address-ai-floor-v1/);
   assert.doesNotMatch(legacyBridge, /summarizeRoomListing|SERVICE_DEFINITIONS|FURNITURE_KEYWORDS|NOTE_KEYWORDS/);
 
   assert.match(assistant, /import\("\.\/room-summary\.js\?v=joy-room-summary-v1"\)/);
