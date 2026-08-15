@@ -70,7 +70,7 @@ function syncRoomSummaryComposer(doc = globalThis.document) {
   const label = composer.querySelector('label[for="room-summary-input"]');
   if (label) label.textContent = roomText("dynamic.sale.roomTextLabel", "Joy Room Text");
 
-  input.placeholder = JOY_ROOM_TEXT_PLACEHOLDER;
+  input.placeholder = roomText("dynamic.sale.roomTextPlaceholder", JOY_ROOM_TEXT_PLACEHOLDER);
 
   const help = input.nextElementSibling?.tagName === "P" ? input.nextElementSibling : null;
   if (help) {
