@@ -36,13 +36,13 @@ test("rejects an AI elevator answer that conflicts with the source", () => {
   assert.equal(normalizeDetectedElevator("Không nhắc thông tin này", "Có"), "");
 });
 
-test("Sale room summary renders elevator after room type", async () => {
+test("Joy Room Text renders elevator after room type", async () => {
   const frontend = await readFile(
     new URL("../src/pages/sale/room-address-ai.js", import.meta.url),
     "utf8",
   );
 
   assert.match(frontend, /appendRoomType\(details, summary\.roomType\);\s*appendElevator\(details, summary\.elevator\);/s);
-  assert.match(frontend, /elevator: String\(payload\.elevator \|\| ""\)\.trim\(\)/);
-  assert.match(frontend, /label\.append\("Thang", " máy"\)/);
+  assert.match(frontend, /elevator: sections\.elevator\.join\(" "\)\.trim\(\)/u);
+  assert.match(frontend, /appendLabeledValue\(details, \["Thang", " máy"\], elevator\)/u);
 });
