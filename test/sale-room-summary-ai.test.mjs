@@ -218,22 +218,16 @@ test("drops invented room details while recovering clear source facts for a real
   ]);
 });
 
-test("Room Summary frontend accepts only prepared Joy Room Text", async () => {
-  const [html, build, router, frontend, legacyBridge, assistant, dashboardBootstrap] = await Promise.all([
-    readFile(new URL("../src/pages/sale/index.html", import.meta.url), "utf8"),
+test("Room Summary frontend is a basic local text composer", async () => {
+  const [build, router, frontend, legacyBridge, assistant, saleUi, dashboardBootstrap] = await Promise.all([
     readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8"),
     readFile(new URL("../worker/router.js", import.meta.url), "utf8"),
     readFile(new URL("../src/pages/sale/room-address-ai.js", import.meta.url), "utf8"),
     readFile(new URL("../src/pages/sale/room-summary.js", import.meta.url), "utf8"),
     readFile(new URL("../src/features/sales/sales-assistant.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/sale-english-ui.js", import.meta.url), "utf8"),
     readFile(new URL("../src/pages/dashboard/app-bootstrap.js", import.meta.url), "utf8"),
   ]);
-
-  assert.match(html, /room-address-ai\.js\?v=joy-room-text-only-v1/);
-  assert.match(html, /id="room-summary-chatgpt"/);
-  assert.match(html, /href="https:\/\/chatgpt\.com\/"/);
-  assert.match(html, /Joy chỉ nhận Joy Room Text v1/);
-  assert.doesNotMatch(html, /src="room-summary\.js/);
 
   assert.match(build, /room-address-ai\.js/);
   assert.match(build, /room-summary\.js/);
@@ -241,22 +235,17 @@ test("Room Summary frontend accepts only prepared Joy Room Text", async () => {
   assert.match(router, /SALE_ROOM_AI_ASSETS/);
   assert.match(router, /noStoreResponse\(await env\.ASSETS\.fetch\(request\)\)/);
 
-  assert.match(frontend, /export function parseJoyRoomText/);
-  assert.match(frontend, /summary\.address/);
-  assert.match(frontend, /summary\.rooms/);
-  assert.match(frontend, /summary\.roomType/);
-  assert.match(frontend, /summary\.elevator/);
-  assert.match(frontend, /summary\.furniture/);
-  assert.match(frontend, /summary\.services/);
-  assert.match(frontend, /summary\.notes/);
-  assert.match(frontend, /appendNotes\(details, summary\.notes\)/);
-  assert.match(frontend, /Joy Room Text chưa đúng format/);
-  assert.doesNotMatch(frontend, /ROOM_SUMMARY_AI_PATH|\/api\/sales\/room-summary\/extract|fetch\(/);
-  assert.doesNotMatch(frontend, /SERVICE_DEFINITIONS|FURNITURE_KEYWORDS|NOTE_KEYWORDS/);
+  assert.match(frontend, /export function prepareRoomDisplayText/);
+  assert.match(frontend, /body\.textContent = text/u);
+  assert.match(frontend, /body\.contentEditable = "true"/u);
+  assert.match(frontend, /body\.style\.whiteSpace = "pre-wrap"/u);
+  assert.doesNotMatch(frontend, /parseJoyRoomText|headerMatch|parseRoomLine|parseServiceLine/u);
+  assert.doesNotMatch(frontend, /Joy Room Text chưa đúng format|ROOM_SUMMARY_AI_PATH|\/api\/sales\/room-summary\/extract|fetch\(/u);
 
-  assert.match(legacyBridge, /room-address-ai\.js\?v=joy-room-text-only-v1/);
+  assert.match(legacyBridge, /room-address-ai\.js\?v=joy-room-basic-v1/);
   assert.doesNotMatch(legacyBridge, /summarizeRoomListing|SERVICE_DEFINITIONS|FURNITURE_KEYWORDS|NOTE_KEYWORDS/);
 
   assert.match(assistant, /import\("\.\/room-summary\.js\?v=joy-room-summary-v1"\)/);
+  assert.doesNotMatch(saleUi, /JOY_ROOM_CHATGPT_URL|room-summary-chatgpt|MutationObserver/u);
   assert.doesNotMatch(dashboardBootstrap, /room-summary\/polish|SALE_ROOM_SUMMARY_AI_ENDPOINT|SALE_ROOM_SERVICE_KEYS|runSaleRoomAiPolish/);
 });
