@@ -34,6 +34,26 @@ test("service corpus: member-first bundle with one rate is one package", () => {
   ]);
 });
 
+test("service corpus: AI can ground a member-first bundle containing a future service name", () => {
+  const source = "Mạng + dọn phòng 150k/phòng";
+  assert.deepEqual(normalizeDynamicServiceItems(source, [
+    {
+      kind: "common",
+      name: "Dịch vụ chung",
+      value: "150k/phòng",
+      includes: ["Mạng", "dọn phòng"],
+      evidence: source,
+    },
+  ]), [
+    {
+      kind: "common",
+      name: "Dịch vụ chung",
+      value: "150k/phòng",
+      includes: ["Mạng", "Dọn phòng"],
+    },
+  ]);
+});
+
 test("service corpus: reverse rate-label ordering remains independently scoped", () => {
   assert.deepEqual(extractSourceDynamicServiceItems(
     "100k/phòng mạng; 80k/xe gửi xe",
