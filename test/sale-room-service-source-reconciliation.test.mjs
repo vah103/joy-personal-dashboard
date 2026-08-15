@@ -61,7 +61,7 @@ test("AI and source candidates merge without duplicating the same common package
       kind: "common",
       name: "Dịch vụ chung",
       value: "180k/người",
-      includes: ["Vệ sinh", "Mạng", "Máy giặt chung"],
+      includes: ["Mạng", "Vệ sinh", "Máy giặt chung"],
     },
   ]);
 });
