@@ -30,7 +30,7 @@
     "@fontsource/instrument-sans": "^5.2.8",
     "@fontsource/newsreader": "^5.2.8",
     "@fontsource/quicksand": "^5.2.8",
-    "wrangler": "^4.115.0"
+    "wrangler": "^4.123.0"
   },
   "overrides": {
     "miniflare": {
