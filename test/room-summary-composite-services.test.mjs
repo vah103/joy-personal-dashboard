@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { summarizeRoomListing } from "../src/pages/sale/room-summary.js";
+import { summarizeRoomListing } from "../src/features/sales/room-summary/room-summary.js";
 
 test("parses decimal electricity, composite common fees and parking details", () => {
   const summary = summarizeRoomListing(`
