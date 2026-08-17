@@ -207,7 +207,9 @@ function requestHistoryLoad({ force = false } = {}) {
 function refreshVisibleHistoryState() {
   const modal = document.querySelector("#sales-assistant-modal");
   const panel = document.querySelector('[data-assistant-panel="history"]');
-  if (modal?.hidden === false && panel?.hidden === false) requestHistoryLoad();
+  if (modal?.hidden !== false || panel?.hidden !== false) return;
+  if (document.querySelector(".sales-history-edit-row")) return;
+  requestHistoryLoad();
 }
 
 function openAssistant() {
