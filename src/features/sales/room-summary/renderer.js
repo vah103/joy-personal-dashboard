@@ -1,4 +1,19 @@
-import { saleText, translateSaleUiRoot } from "../shared/i18n.js";
+import { saleText } from "../shared/i18n.js";
+
+const SERVICE_I18N_KEYS = Object.freeze({
+  electricity: "saleAssistant.electricity",
+  water: "saleAssistant.water",
+  internet: "saleAssistant.internet",
+  common: "saleAssistant.commonServices",
+  parking: "saleAssistant.parking",
+  fridge: "saleAssistant.fridge",
+  laundry: "saleAssistant.laundry",
+});
+
+function serviceLabel(service) {
+  const key = SERVICE_I18N_KEYS[service?.key];
+  return key ? saleText(key, service.label || "") : service?.label || "";
+}
 
 function editableText(tagName, className, text) {
   const node = document.createElement(tagName);
@@ -100,7 +115,6 @@ export function renderRoomSummary(container, summary, { editable = true } = {}) 
     detail.textContent = saleText("saleAssistant.roomSummaryEmptyDetail", "Paste a room listing, then create a clean customer view.");
     empty.append(mark, title, detail);
     container.append(empty);
-    translateSaleUiRoot(container);
     return;
   }
 
@@ -132,7 +146,7 @@ export function renderRoomSummary(container, summary, { editable = true } = {}) 
     editable,
     (item, service, canEdit) => {
       const label = document.createElement("strong");
-      label.textContent = `${service.label}:`;
+      label.textContent = `${serviceLabel(service)}:`;
       const value = editableText("span", "room-share-service-value", service.value);
       value.contentEditable = String(canEdit);
       item.append(label, document.createTextNode(" "), value);
@@ -151,5 +165,4 @@ export function renderRoomSummary(container, summary, { editable = true } = {}) 
       item.append(value);
     },
   );
-  translateSaleUiRoot(container);
 }
