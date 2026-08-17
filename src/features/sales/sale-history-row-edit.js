@@ -2,10 +2,11 @@ const HISTORY_CONTENT_SELECTOR = "#sales-history-content";
 const DISPLAY_ROW_SELECTOR = ".sales-history-table tbody tr:not(.sales-history-edit-row)";
 const EDIT_CONTROL_SELECTOR = '[data-action="edit-sale-viewing"]';
 const CANCEL_CONTROL_SELECTOR = '[data-action="cancel-sale-viewing-edit"]';
-const COMMISSION_ENDPOINT = "/api/sales/viewings/commission";
+const DEALS_ENDPOINT = "/api/sales/deals";
+const VIEWINGS_ENDPOINT = "/api/sales/viewings";
 
-let commissionStates = new Map();
-let commissionSyncPromise = null;
+let dealSavedIds = new Set();
+let dealStateSyncPromise = null;
 
 function isCoarsePointer() {
   return window.matchMedia?.("(pointer: coarse)")?.matches === true;
@@ -33,45 +34,57 @@ function viewingIdForRow(row) {
   ).trim();
 }
 
-function commissionStateForRow(row) {
-  return commissionStates.get(viewingIdForRow(row)) || "none";
+function rowDealSaved(row) {
+  return dealSavedIds.has(viewingIdForRow(row));
 }
 
-function applyCommissionState(row) {
-  const state = commissionStateForRow(row);
-  row.dataset.commissionState = state;
+function translateRoot(root) {
+  if (root) window.JoyI18n?.translateRoot?.(root);
+}
+
+function applyDealState(row) {
+  const saved = rowDealSaved(row);
+  row.dataset.dealSaved = saved ? "true" : "false";
+
+  if (saved) {
+    const cells = [...row.children];
+    if (cells[4]) cells[4].textContent = "Closed";
+  }
+
   const button = row.querySelector(".sales-history-close-button");
-  if (!button) return;
-  button.dataset.commissionState = state;
-  button.disabled = state === "received";
-  button.title = state === "pending"
-    ? "Closed, commission not received yet. Press again when payment is received."
-    : state === "received"
-      ? "Commission received."
-      : "Close this deal.";
+  if (!button) {
+    if (saved) translateRoot(row);
+    return;
+  }
+
+  button.disabled = saved;
+  button.dataset.dealSaved = saved ? "true" : "false";
+  button.textContent = saved ? "Deal saved" : "Close deal";
+  button.title = saved ? "Deal saved to Sale Manager." : "Close this deal.";
+  translateRoot(row);
 }
 
-async function syncCommissionStates() {
-  if (commissionSyncPromise) return commissionSyncPromise;
-  commissionSyncPromise = (async () => {
+async function syncDealStates() {
+  if (dealStateSyncPromise) return dealStateSyncPromise;
+  dealStateSyncPromise = (async () => {
     try {
-      const response = await fetch(COMMISSION_ENDPOINT, { credentials: "same-origin" });
+      const response = await fetch(VIEWINGS_ENDPOINT, { credentials: "same-origin" });
       const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.error || "VIEWING_COMMISSION_LOAD_FAILED");
-      commissionStates = new Map(
-        (Array.isArray(payload.states) ? payload.states : [])
-          .filter((item) => item?.viewingId && ["pending", "received"].includes(item.state))
-          .map((item) => [String(item.viewingId), item.state]),
+      if (!response.ok) throw new Error(payload.error || "VIEWING_HISTORY_FAILED");
+      dealSavedIds = new Set(
+        (Array.isArray(payload.history) ? payload.history : [])
+          .filter((viewing) => viewing?.id && viewing.dealSaved)
+          .map((viewing) => String(viewing.id)),
       );
       const content = document.querySelector(HISTORY_CONTENT_SELECTOR);
       if (content) decorateRows(content);
     } catch {
-      // Commission color is helpful metadata; history remains usable if it cannot load.
+      // History stays usable even if the saved-deal marker cannot refresh.
     } finally {
-      commissionSyncPromise = null;
+      dealStateSyncPromise = null;
     }
   })();
-  return commissionSyncPromise;
+  return dealStateSyncPromise;
 }
 
 function matchesLabel(value, ...labels) {
@@ -117,7 +130,7 @@ function mergeReminderColumns(content) {
 function decorateDisplayRows(content) {
   content.querySelectorAll(DISPLAY_ROW_SELECTOR).forEach((row) => {
     if (!row.querySelector(EDIT_CONTROL_SELECTOR)) return;
-    applyCommissionState(row);
+    applyDealState(row);
     row.dataset.historyEditable = "true";
     row.tabIndex = 0;
     row.setAttribute(
@@ -137,11 +150,12 @@ function cancelEditing(content) {
   editRow(content)?.querySelector(CANCEL_CONTROL_SELECTOR)?.click();
 }
 
-function setDeleteMessage(row, text) {
-  const message = row.querySelector(".sales-history-edit-message");
+function setEditMessage(row, text) {
+  const message = row?.querySelector(".sales-history-edit-message");
   if (!message) return;
   message.textContent = text;
   message.hidden = !text;
+  translateRoot(row);
 }
 
 async function deleteViewing(row, button) {
@@ -152,7 +166,7 @@ async function deleteViewing(row, button) {
   if (!window.confirm(`Delete the appointment for ${customer}?`)) return;
 
   row.querySelectorAll("button").forEach((control) => { control.disabled = true; });
-  setDeleteMessage(row, "Deleting…");
+  setEditMessage(row, "Deleting…");
 
   try {
     const response = await fetch("/api/sales/viewings/delete", {
@@ -163,52 +177,192 @@ async function deleteViewing(row, button) {
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || "VIEWING_DELETE_FAILED");
-    commissionStates.delete(id);
+    dealSavedIds.delete(id);
     refreshHistory();
   } catch {
     row.querySelectorAll("button").forEach((control) => { control.disabled = false; });
     button.disabled = false;
-    setDeleteMessage(row, "Could not delete the appointment. Please try again.");
+    setEditMessage(row, "Could not delete the appointment. Please try again.");
   }
 }
 
-async function advanceCommissionState(row, button) {
-  const id = viewingIdForRow(row);
-  if (!id || commissionStateForRow(row) === "received") return;
+function vietnamMonthKey(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(date);
+  const part = (type) => parts.find((item) => item.type === type)?.value || "";
+  return `${part("year")}-${part("month")}`;
+}
 
-  button.disabled = true;
-  setDeleteMessage(row, "Updating deal status…");
+function formatVnd(value) {
+  return `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(Number(value || 0))} ₫`;
+}
+
+function ensureCloseDealModal() {
+  let modal = document.querySelector("#sale-close-deal-modal");
+  if (modal) return modal;
+
+  modal = document.createElement("div");
+  modal.className = "modal-backdrop sale-close-deal-backdrop";
+  modal.id = "sale-close-deal-modal";
+  modal.hidden = true;
+  modal.innerHTML = `
+    <section class="sale-close-deal-modal" role="dialog" aria-modal="true" aria-labelledby="sale-close-deal-title">
+      <div class="sale-close-deal-heading">
+        <div><small>Sale Manager</small><h2 id="sale-close-deal-title">Close deal</h2></div>
+        <button type="button" aria-label="Close form" data-action="close-deal-form">×</button>
+      </div>
+      <form id="sale-close-deal-form">
+        <input name="viewingId" type="hidden">
+        <div class="sale-close-deal-grid">
+          <label>Customer<input name="customer" type="text" maxlength="120" required></label>
+          <label>Phone<input name="phone" type="tel" maxlength="30" inputmode="tel"></label>
+          <label class="wide">Address<input name="address" type="text" maxlength="180" required></label>
+          <label>Host<input name="host" type="text" maxlength="120"></label>
+          <label>Room price<input name="rent" type="number" min="1" max="1000000000" step="1" inputmode="numeric" required></label>
+          <label>Commission rate (%)<input name="rate" type="number" min="0.01" max="100" step="0.01" inputmode="decimal" required></label>
+        </div>
+        <div class="sale-close-deal-preview"><span>Calculated commission</span><strong>0 ₫</strong></div>
+        <p class="sale-close-deal-status" hidden></p>
+        <div class="sale-close-deal-actions">
+          <button class="secondary-button" type="button" data-action="close-deal-form">Cancel</button>
+          <button class="primary-button" type="submit">Save deal</button>
+        </div>
+      </form>
+    </section>
+  `;
+  document.body.append(modal);
+
+  const form = modal.querySelector("#sale-close-deal-form");
+  form?.elements.rent.addEventListener("input", updateCloseDealPreview);
+  form?.elements.rate.addEventListener("input", updateCloseDealPreview);
+  form?.addEventListener("submit", saveClosedDeal);
+  modal.addEventListener("mousedown", (event) => {
+    if (event.target === modal) closeDealForm();
+  });
+  translateRoot(modal);
+  return modal;
+}
+
+function updateCloseDealPreview() {
+  const form = document.querySelector("#sale-close-deal-form");
+  const preview = document.querySelector(".sale-close-deal-preview strong");
+  if (!form || !preview) return;
+  const rent = Number(form.elements.rent.value || 0);
+  const rate = Number(form.elements.rate.value || 0) / 100;
+  preview.textContent = formatVnd(Math.round(rent * rate));
+}
+
+function openCloseDealForm(row) {
+  const id = viewingIdForRow(row);
+  if (!id || rowDealSaved(row)) return;
+  const modal = ensureCloseDealModal();
+  const form = modal.querySelector("#sale-close-deal-form");
+  if (!form) return;
+
+  const field = (name) => row.querySelector(`[data-history-field="${name}"]`)?.value.trim() || "";
+  form.reset();
+  form.elements.viewingId.value = id;
+  form.elements.customer.value = field("customerName");
+  form.elements.phone.value = field("phone");
+  form.elements.address.value = field("viewingAddress");
+  const status = modal.querySelector(".sale-close-deal-status");
+  if (status) {
+    status.textContent = "";
+    status.hidden = true;
+  }
+  updateCloseDealPreview();
+  modal.hidden = false;
+  document.body.classList.add("modal-open");
+  window.setTimeout(() => form.elements.rent.focus(), 0);
+}
+
+function closeDealForm() {
+  const modal = document.querySelector("#sale-close-deal-modal");
+  if (!modal) return;
+  modal.hidden = true;
+  const assistantVisible = document.querySelector("#sales-assistant-modal")?.hidden === false;
+  if (!assistantVisible) document.body.classList.remove("modal-open");
+}
+
+async function markViewingDealSaved(id) {
+  const response = await fetch(VIEWINGS_ENDPOINT, {
+    method: "PATCH",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, dealSaved: true }),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || "VIEWING_DEAL_STATE_FAILED");
+}
+
+async function saveClosedDeal(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  if (!form.reportValidity()) return;
+
+  const modal = document.querySelector("#sale-close-deal-modal");
+  const status = modal?.querySelector(".sale-close-deal-status");
+  const save = form.querySelector('button[type="submit"]');
+  const data = new FormData(form);
+  const viewingId = String(data.get("viewingId") || "").trim();
+  const payload = {
+    month: vietnamMonthKey(),
+    customer: String(data.get("customer") || "").trim(),
+    phone: String(data.get("phone") || "").trim(),
+    address: String(data.get("address") || "").trim(),
+    host: String(data.get("host") || "").trim(),
+    rent: Number(data.get("rent") || 0),
+    rate: Number(data.get("rate") || 0),
+  };
+
+  save.disabled = true;
+  save.textContent = "Saving deal…";
+  if (status) status.hidden = true;
+  translateRoot(modal);
 
   try {
-    const response = await fetch(COMMISSION_ENDPOINT, {
-      method: "PATCH",
+    const response = await fetch(DEALS_ENDPOINT, {
+      method: "POST",
       credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
+      body: JSON.stringify(payload),
     });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(payload.error || "VIEWING_COMMISSION_UPDATE_FAILED");
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || "SALE_DEAL_CREATE_FAILED");
 
-    const state = ["pending", "received"].includes(payload.state) ? payload.state : "none";
-    if (state === "none") throw new Error("VIEWING_COMMISSION_STATE_INVALID");
-    commissionStates.set(id, state);
-    applyCommissionState(row);
-    setDeleteMessage(
-      row,
-      state === "pending"
-        ? "Closed · commission pending."
-        : "Commission received.",
-    );
+    dealSavedIds.add(viewingId);
+    try {
+      await markViewingDealSaved(viewingId);
+    } catch {
+      // The deal is already safely stored in Sale Manager; keep the local marker for this session.
+    }
+
+    closeDealForm();
+    const content = document.querySelector(HISTORY_CONTENT_SELECTOR);
+    if (content) cancelEditing(content);
+    refreshHistory();
+    window.dispatchEvent(new CustomEvent("joy:sale-deal-saved"));
+    window.setTimeout(() => void syncDealStates(), 0);
   } catch {
-    button.disabled = false;
-    setDeleteMessage(row, "Could not update the deal status. Please try again.");
+    if (status) {
+      status.textContent = "Could not save the deal. Please try again.";
+      status.hidden = false;
+      translateRoot(modal);
+    }
+  } finally {
+    save.disabled = false;
+    save.textContent = "Save deal";
+    translateRoot(modal);
   }
 }
 
 function decorateEditRow(content) {
   const row = editRow(content);
   if (!row) return;
-  applyCommissionState(row);
+  applyDealState(row);
   if (row.dataset.deleteReady === "true") return;
   row.dataset.deleteReady = "true";
 
@@ -230,15 +384,14 @@ function decorateEditRow(content) {
   const close = document.createElement("button");
   close.type = "button";
   close.className = "sales-history-close-button";
-  close.textContent = "Close deal";
   close.addEventListener("click", (event) => {
     event.stopPropagation();
-    advanceCommissionState(row, close);
+    openCloseDealForm(row);
   });
 
   controls.insertBefore(remove, save);
   controls.insertBefore(close, save);
-  applyCommissionState(row);
+  applyDealState(row);
 }
 
 function decorateRows(content) {
@@ -256,14 +409,97 @@ function ensureEditHint() {
     ? "Tap a row to edit it"
     : "Double-click a row to edit it";
   headingCopy.append(hint);
+  translateRoot(headingCopy);
+}
+
+function decorateDashboardSaleCard() {
+  const salesPanel = document.querySelector("#sales");
+  const heading = salesPanel?.querySelector(".panel-heading");
+  const salesBody = salesPanel?.querySelector(".sales-body");
+  const upcoming = salesBody?.querySelector(".sales-summary");
+  if (!salesPanel || !heading || !salesBody || !upcoming) return;
+
+  const titleButton = heading.querySelector(".panel-title-button");
+  if (titleButton) {
+    const wrapper = document.createElement("div");
+    const title = titleButton.querySelector("h2");
+    if (title) wrapper.append(title);
+    titleButton.replaceWith(wrapper);
+  }
+
+  let actions = heading.querySelector(".sales-heading-actions");
+  if (!actions) {
+    actions = document.createElement("div");
+    actions.className = "sales-heading-actions";
+    heading.append(actions);
+  }
+
+  let assistant = actions.querySelector('[data-action="open-sales-assistant"]');
+  if (!assistant) {
+    assistant = document.createElement("button");
+    assistant.type = "button";
+    assistant.className = "quiet-link sales-assistant-heading-button";
+    assistant.dataset.action = "open-sales-assistant";
+    actions.prepend(assistant);
+  }
+  assistant.textContent = "Sale Assistant";
+
+  const managerButtons = [...heading.querySelectorAll('[data-action="open-sale-manager"]')];
+  const manager = managerButtons.at(-1);
+  managerButtons.slice(0, -1).forEach((button) => button.remove());
+  if (manager) {
+    manager.textContent = "Sale Manager";
+    actions.append(manager);
+  }
+
+  if (!salesBody.querySelector(".sales-dashboard-overview")) {
+    const overview = document.createElement("div");
+    overview.className = "sales-dashboard-overview";
+    upcoming.before(overview);
+    overview.append(upcoming);
+
+    const commission = document.createElement("div");
+    commission.className = "sales-summary sales-dashboard-commission";
+    const label = document.createElement("p");
+    label.className = "subheading";
+    label.textContent = "Commission";
+    const value = document.createElement("strong");
+    value.id = "sales-commission";
+    value.textContent = "—";
+    commission.append(label, value);
+    overview.append(commission);
+  }
+
+  salesBody.querySelectorAll(".sales-assistant-launch").forEach((launch) => { launch.hidden = true; });
+  translateRoot(salesPanel);
+}
+
+async function loadDashboardCommission() {
+  const target = document.querySelector("#sales-commission");
+  if (!target) return;
+  try {
+    const response = await fetch(DEALS_ENDPOINT, { credentials: "same-origin" });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || "SALE_DEALS_LOAD_FAILED");
+    const month = (Array.isArray(payload.months) ? payload.months : [])
+      .find((item) => item?.key === vietnamMonthKey());
+    target.textContent = formatVnd(month?.total || 0);
+  } catch {
+    target.textContent = "—";
+  }
 }
 
 function installHistoryRowEditing() {
+  decorateDashboardSaleCard();
+  void loadDashboardCommission();
+  ensureCloseDealModal();
+
   const content = document.querySelector(HISTORY_CONTENT_SELECTOR);
   if (!content || content.dataset.rowEditReady === "true") return;
   content.dataset.rowEditReady = "true";
   ensureEditHint();
   decorateRows(content);
+  void syncDealStates();
 
   const observer = new MutationObserver(() => decorateRows(content));
   observer.observe(content, { childList: true, subtree: true });
@@ -293,11 +529,17 @@ function installHistoryRowEditing() {
   });
 
   document.addEventListener("click", (event) => {
+    const closeDealControl = event.target.closest?.('[data-action="close-deal-form"]');
+    if (closeDealControl) {
+      closeDealForm();
+      return;
+    }
+
     const historyTab = event.target.closest?.('[data-assistant-mode="history"]');
     if (historyTab) {
       window.setTimeout(() => {
         refreshHistory();
-        syncCommissionStates();
+        void syncDealStates();
       }, 0);
     }
 
@@ -307,18 +549,36 @@ function installHistoryRowEditing() {
         const historyPanel = document.querySelector('[data-assistant-panel="history"]');
         if (historyPanel && !historyPanel.hidden) {
           refreshHistory();
-          syncCommissionStates();
+          void syncDealStates();
         }
       }, 0);
     }
 
-    // startRowEdit() triggers the hidden Edit button programmatically. That click
-    // bubbles after Sales Assistant has already replaced the display row with the
-    // edit row, so treating it as an outside click would immediately cancel edit.
     if (event.target.closest?.(EDIT_CONTROL_SELECTOR)) return;
+    if (event.target.closest?.("#sale-close-deal-modal")) return;
     const row = editRow(content);
     if (!row || row.contains(event.target)) return;
     cancelEditing(content);
+  });
+
+  window.addEventListener("joy:sale-deal-saved", () => void loadDashboardCommission());
+  window.addEventListener("joy:i18n-ready", () => {
+    decorateDashboardSaleCard();
+    translateRoot(document.querySelector("#sale-close-deal-modal"));
+  });
+  window.addEventListener("joy:locale-changed", () => {
+    decorateDashboardSaleCard();
+    translateRoot(document.querySelector("#sale-close-deal-modal"));
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") void loadDashboardCommission();
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && document.querySelector("#sale-close-deal-modal")?.hidden === false) {
+      closeDealForm();
+    }
   });
 }
 
