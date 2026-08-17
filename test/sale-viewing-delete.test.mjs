@@ -15,6 +15,10 @@ test("Sale history locks closed viewings and keeps close-deal state consistent",
     interaction.indexOf("function renderHistoryEditRow"),
     interaction.indexOf("function renderViewingHistory"),
   );
+  const deleteOwner = endpoint.slice(
+    endpoint.indexOf("async function handleSaleViewingDelete(request, env)"),
+    endpoint.indexOf("async function handleSaleViewingCloseDeal(request, env)"),
+  );
 
   assert.match(interaction, /if \(editable\) \{\s*actionCell\.append\(makeActionButton\("Edit"/s);
   assert.match(interaction, /viewing\.dealSaved \? "Deal saved" : "Close deal"/);
@@ -41,9 +45,11 @@ test("Sale history locks closed viewings and keeps close-deal state consistent",
   assert.match(styles, /\.sale-close-deal-modal/);
   assert.match(styles, /min-width:\s*1080px/);
 
-  assert.match(endpoint, /VIEWING_ALREADY_CLOSED/);
-  assert.match(endpoint, /DELETE FROM sale_viewings/);
-  assert.doesNotMatch(endpoint, /DELETE FROM sale_viewing_commissions\s*\n\s*WHERE viewing_id/);
+  assert.match(deleteOwner, /VIEWING_ALREADY_CLOSED/);
+  assert.match(deleteOwner, /DELETE FROM sale_viewings/);
+  assert.doesNotMatch(deleteOwner, /DELETE FROM sale_viewing_commissions/);
+  assert.match(endpoint, /async function releaseCloseDealReservation/);
+  assert.match(endpoint, /DELETE FROM sale_viewing_commissions/);
   assert.match(worker, /VIEWING_ALREADY_CLOSED/);
   assert.match(worker, /isViewingClosed/);
   assert.match(worker, /NOT EXISTS \([\s\S]*sale_viewing_commissions/s);
