@@ -57,7 +57,7 @@ function modalHtml() {
         </div>
       </form>
       <section class="sale-close-deal-review" id="sale-close-deal-review" hidden>
-        <p>${saleText("saleAssistant.reviewExplanation", "Joy could not confirm whether Google Sheets saved this deal. Check Sale Manager, then choose the matching result below.")}</p>
+        <p class="sale-close-deal-review-copy">${saleText("saleAssistant.reviewExplanation", "Joy could not confirm whether Google Sheets saved this deal. Check Sale Manager, then choose the matching result below.")}</p>
         <p class="sale-close-deal-review-customer"></p>
         <p class="sale-close-deal-review-status" hidden></p>
         <div class="sale-close-deal-actions">
@@ -85,6 +85,10 @@ export function createCloseDealController({
     saveSeq: 0,
     reviewSaving: false,
     reviewSeq: 0,
+    reviewResolution: "",
+    formErrorCode: "",
+    reviewErrorCode: "",
+    formMessageKey: "",
     installed: false,
   };
 
@@ -99,6 +103,79 @@ export function createCloseDealController({
     document.body.append(modal);
     translateSaleUiRoot(modal);
     return modal;
+  };
+
+  const refreshCopy = () => {
+    const modal = ensureModal();
+    const form = modal.querySelector("#sale-close-deal-form");
+    const review = modal.querySelector("#sale-close-deal-review");
+    const set = (selector, key, fallback) => {
+      const node = modal.querySelector(selector);
+      if (node) node.textContent = saleText(key, fallback);
+    };
+    set(".sale-close-deal-heading small", "sales.managerAction", "Sale Manager");
+    const title = modal.querySelector("#sale-close-deal-title");
+    if (title) {
+      title.textContent = review?.hidden === false
+        ? saleText("saleAssistant.reviewDealSave", "Review deal save")
+        : saleText("saleAssistant.closeDealTitle", "Close deal");
+    }
+    const closeButton = modal.querySelector('.sale-close-deal-heading [data-history-action="close-deal-form"]');
+    closeButton?.setAttribute("aria-label", saleText("saleAssistant.closeDealFormAria", "Close form"));
+    set('#sale-close-deal-form [name="customer"] ~ *', "saleAssistant.customer", "Customer");
+    const fieldBindings = [
+      ["customer", "saleAssistant.customer", "Customer"],
+      ["phone", "saleAssistant.phone", "Phone"],
+      ["address", "saleAssistant.address", "Address"],
+      ["host", "saleAssistant.host", "Host"],
+      ["rent", "saleAssistant.roomPrice", "Room price"],
+      ["rate", "saleAssistant.commissionRate", "Commission rate (%)"],
+    ];
+    for (const [name, key, fallback] of fieldBindings) {
+      const label = form?.elements[name]?.closest("label")?.querySelector("span");
+      if (label) label.textContent = saleText(key, fallback);
+    }
+    const previewLabel = modal.querySelector(".sale-close-deal-preview span");
+    if (previewLabel) previewLabel.textContent = saleText("saleAssistant.calculatedCommission", "Calculated commission");
+    const cancelButton = form?.querySelector('[data-history-action="close-deal-form"]');
+    if (cancelButton) cancelButton.textContent = saleText("saleAssistant.cancel", "Cancel");
+    const saveButton = form?.querySelector('button[type="submit"]');
+    if (saveButton) {
+      saveButton.textContent = state.saving
+        ? saleText("saleAssistant.savingDeal", "Saving deal…")
+        : saleText("saleAssistant.saveDeal", "Save deal");
+    }
+    const formStatus = modal.querySelector(".sale-close-deal-status");
+    if (formStatus && !formStatus.hidden) {
+      if (state.formErrorCode) formStatus.textContent = closeDealErrorMessage(state.formErrorCode);
+      else if (state.formMessageKey === "retryReady") {
+        formStatus.textContent = saleText("saleAssistant.retryReady", "Review cleared. Enter the deal details and save again.");
+      }
+    }
+    const reviewCopy = modal.querySelector(".sale-close-deal-review-copy");
+    if (reviewCopy) reviewCopy.textContent = saleText(
+      "saleAssistant.reviewExplanation",
+      "Joy could not confirm whether Google Sheets saved this deal. Check Sale Manager, then choose the matching result below.",
+    );
+    const reviewCustomer = modal.querySelector(".sale-close-deal-review-customer");
+    if (reviewCustomer && review) {
+      const customerName = review.dataset.customerName || "";
+      const address = review.dataset.address || "";
+      reviewCustomer.textContent = `${customerName || saleText("saleAssistant.customer", "Customer")} · ${address || "—"}`;
+    }
+    set("#sale-close-deal-review a.secondary-button", "saleAssistant.openManager", "Open Sale Manager");
+    set('[data-history-action="review-deal-retry"]', "saleAssistant.retryMissingDeal", "Deal missing · Retry");
+    set('[data-history-action="review-deal-saved"]', "saleAssistant.markExistingDeal", "Deal exists · Mark saved");
+    const reviewStatus = modal.querySelector(".sale-close-deal-review-status");
+    if (reviewStatus && !reviewStatus.hidden) {
+      if (state.reviewErrorCode) reviewStatus.textContent = reviewErrorMessage(state.reviewErrorCode);
+      else if (state.reviewSaving) {
+        reviewStatus.textContent = state.reviewResolution === "saved"
+          ? saleText("saleAssistant.confirmingSavedDeal", "Confirming saved deal…")
+          : saleText("saleAssistant.preparingRetry", "Preparing a safe retry…");
+      }
+    }
+    translateSaleUiRoot(modal);
   };
 
   const updatePreview = () => {
@@ -133,6 +210,10 @@ export function createCloseDealController({
     if (!force && form?.hidden === false && state.dirty
       && !window.confirm(saleText("saleAssistant.discardDealChanges", "Discard unsaved deal changes?"))) return false;
     state.dirty = false;
+    state.formErrorCode = "";
+    state.reviewErrorCode = "";
+    state.formMessageKey = "";
+    state.reviewResolution = "";
     modal.hidden = true;
     const assistantVisible = document.querySelector("#sales-assistant-modal")?.hidden === false;
     if (!assistantVisible) document.body.classList.remove("modal-open");
@@ -155,16 +236,17 @@ export function createCloseDealController({
     form.elements.phone.value = viewing.phone || "";
     form.elements.address.value = viewing.viewingAddress || "";
     state.dirty = false;
+    state.formErrorCode = "";
+    state.formMessageKey = message ? "retryReady" : "";
     const status = modal.querySelector(".sale-close-deal-status");
     if (status) {
       status.textContent = message;
       status.hidden = !message;
     }
-    const title = modal.querySelector("#sale-close-deal-title");
-    if (title) title.textContent = saleText("saleAssistant.closeDealTitle", "Close deal");
     updatePreview();
     modal.hidden = false;
     document.body.classList.add("modal-open");
+    refreshCopy();
     window.setTimeout(() => form.elements.rent.focus(), 0);
   };
 
@@ -177,19 +259,18 @@ export function createCloseDealController({
     const review = modal.querySelector("#sale-close-deal-review");
     if (!form || !review) return;
     state.dirty = false;
+    state.reviewErrorCode = "";
     form.hidden = true;
     review.hidden = false;
     review.dataset.viewingId = viewing.id;
-    const customer = review.querySelector(".sale-close-deal-review-customer");
-    if (customer) customer.textContent = `${viewing.customerName || saleText("saleAssistant.customer", "Customer")} · ${viewing.viewingAddress || "—"}`;
+    review.dataset.customerName = viewing.customerName || "";
+    review.dataset.address = viewing.viewingAddress || "";
     const status = review.querySelector(".sale-close-deal-review-status");
     if (status) { status.textContent = ""; status.hidden = true; }
-    const title = modal.querySelector("#sale-close-deal-title");
-    if (title) title.textContent = saleText("saleAssistant.reviewDealSave", "Review deal save");
     modal.hidden = false;
     document.body.classList.add("modal-open");
+    refreshCopy();
     window.setTimeout(() => review.querySelector('[data-history-action="review-deal-saved"]')?.focus(), 0);
-    translateSaleUiRoot(modal);
   };
 
   const save = async (event) => {
@@ -220,6 +301,8 @@ export function createCloseDealController({
     };
     const operationId = ++state.saveSeq;
     state.saving = true;
+    state.formErrorCode = "";
+    state.formMessageKey = "";
     setSaveBusy(true);
     if (saveButton) saveButton.textContent = saleText("saleAssistant.savingDeal", "Saving deal…");
     if (status) status.hidden = true;
@@ -252,10 +335,10 @@ export function createCloseDealController({
         close({ force: true });
         return;
       }
+      state.formErrorCode = error.code || "";
       if (status) {
         status.textContent = closeDealErrorMessage(error.code);
         status.hidden = false;
-        translateSaleUiRoot(modal);
       }
     } finally {
       if (operationId === state.saveSeq && state.saving) {
@@ -276,6 +359,8 @@ export function createCloseDealController({
     const status = review.querySelector(".sale-close-deal-review-status");
     const operationId = ++state.reviewSeq;
     state.reviewSaving = true;
+    state.reviewResolution = resolution;
+    state.reviewErrorCode = "";
     setReviewBusy(true);
     if (status) {
       status.textContent = resolution === "saved"
@@ -289,6 +374,7 @@ export function createCloseDealController({
       if (operationId !== state.reviewSeq) return;
       applyReviewResolution(viewingId, resolution);
       state.reviewSaving = false;
+      state.reviewResolution = "";
       setReviewBusy(false);
       close({ force: true });
       void refreshHistory();
@@ -301,14 +387,15 @@ export function createCloseDealController({
       }
     } catch (error) {
       if (operationId !== state.reviewSeq) return;
+      state.reviewErrorCode = error.code || "";
       if (status) {
         status.textContent = reviewErrorMessage(error.code);
         status.hidden = false;
-        translateSaleUiRoot(modal);
       }
     } finally {
       if (operationId === state.reviewSeq && state.reviewSaving) {
         state.reviewSaving = false;
+        state.reviewResolution = "";
         setReviewBusy(false);
       }
     }
@@ -337,9 +424,8 @@ export function createCloseDealController({
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && modal.hidden === false) close();
     });
-    const translate = () => translateSaleUiRoot(modal);
-    window.addEventListener("joy:i18n-ready", translate);
-    window.addEventListener("joy:locale-changed", translate);
+    window.addEventListener("joy:i18n-ready", refreshCopy);
+    window.addEventListener("joy:locale-changed", refreshCopy);
   };
 
   return { install, open, openReview, close };
