@@ -7,7 +7,7 @@ test("Sale viewings no longer depend on Google Sheets at runtime", async () => {
   const [router, worker, assistant] = await Promise.all([
     readFile(new URL("../worker/router.js", import.meta.url), "utf8"),
     readFile(new URL("../worker/sale-viewings.js", import.meta.url), "utf8"),
-    readFile(new URL("../src/features/sales/sales-assistant.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/assistant/sales-assistant.js", import.meta.url), "utf8"),
   ]);
 
   assert.match(router, /isSaleViewingRoute/);
@@ -21,8 +21,8 @@ test("Sale viewings no longer depend on Google Sheets at runtime", async () => {
 test("Sale history supports account-scoped inline edits", async () => {
   const [worker, assistant, styles] = await Promise.all([
     readFile(new URL("../worker/sale-viewings.js", import.meta.url), "utf8"),
-    readFile(new URL("../src/features/sales/sales-assistant.js", import.meta.url), "utf8"),
-    readFile(new URL("../src/features/sales/sales-assistant.css", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/assistant/sales-assistant.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/assistant/sales-assistant.css", import.meta.url), "utf8"),
   ]);
 
   assert.match(worker, /request\.method === "PATCH"/);
