@@ -75,7 +75,7 @@ for (const file of files) {
   const name = basename(file).toLowerCase();
   const legacyAdapter = relative(root, file).replaceAll("\\", "/");
   const allowedLegacy = new Set([
-    "src/features/sales/sale-english-ui.js",
+    "src/features/sales/shared/i18n.js",
     "src/features/project-details/turtlebot-roadmap-language.js",
     "src/features/tasks/task-english.js",
   ]);
@@ -91,7 +91,7 @@ const auditedSurfaceCopy = [
   ["project-data/speaking/speaking.js", ["How do I say this?", "Make it English", "Try another"]],
   ["src/features/finance/finance.js", ["Actual balance", "Monthly finance", "Save transaction"]],
   ["src/features/project-hub/project-hub-render.js", ["Overall progress", "Completion gate", "Recommended next action"]],
-  ["src/pages/sale/sale-manager.js", ["No matching deals in this month.", "Edit closed room", "Saving…"]],
+  ["src/features/sales/manager/sale-manager.js", ["No matching deals in this month.", "Edit closed room", "Saving…"]],
 ];
 const translatedValues = new Set(Object.values(en).concat(Object.values(vi)));
 for (const [file, expectedCopy] of auditedSurfaceCopy) {
@@ -111,7 +111,7 @@ if (!/\/i18n\/i18n\.css/u.test(dashboardBootstrap)) {
 }
 
 const languageAdapterRules = [
-  ["src/features/sales/sale-english-ui.js", /JoyI18n/u],
+  ["src/features/sales/shared/i18n.js", /JoyI18n/u],
   ["src/features/project-details/turtlebot-roadmap-language.js", /JoyI18n/u],
 ];
 for (const [file, required] of languageAdapterRules) {
