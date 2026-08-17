@@ -333,7 +333,7 @@ async function saveAppointment(event) {
     if (!response.ok) throw Object.assign(new Error(result.error || "VIEWING_CREATE_FAILED"), { code: result.error });
     showAppointmentStatus(`${result.message} ${result.viewing.customerName} · ${formatVietnamViewingTime(result.viewing.viewingAt)}.`, "success");
     window.dispatchEvent(new CustomEvent("joy:sales-changed", { detail: { kind: "viewing-created" } }));
-    window.setTimeout(() => window.location.reload(), 1200);
+    window.setTimeout(resetAppointment, 1200);
   } catch (error) {
     showAppointmentStatus(appointmentErrorMessage(error.code), "error");
     save.disabled = false;
@@ -368,8 +368,9 @@ async function initializeSalesAssistant() {
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
     if (document.querySelector("#sale-close-deal-modal")?.hidden === false) return;
+    if (document.querySelector(".sales-history-edit-row")) return;
     if (!document.querySelector("#sales-assistant-modal")?.hidden) closeAssistant();
-  });
+  }, { capture: true });
 
   window.addEventListener("joy:sale-deal-saved", () => void loadDashboardCommission());
   window.addEventListener("joy:sales-changed", refreshDashboardViewings);
