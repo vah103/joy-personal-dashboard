@@ -13,7 +13,7 @@ test("Sale Manager is the only tool rendered on the standalone sale page", async
 
 test("closing a viewing creates a real Sale Manager deal and persists the saved marker", async () => {
   const [ui, worker] = await Promise.all([
-    readFile(new URL("../src/features/sales/sale-history-row-edit.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/appointments/history.js", import.meta.url), "utf8"),
     readFile(new URL("../worker/sale-viewings.js", import.meta.url), "utf8"),
   ]);
 
