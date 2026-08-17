@@ -11,6 +11,11 @@ import {
 
 const DEALS_ENDPOINT = "/api/sales/deals";
 const HISTORY_STATE_REFRESH_MS = 15 * 1000;
+const APPOINTMENT_RESET_DELAY_MS = 1200;
+
+let dashboardCommissionLoadSeq = 0;
+let appointmentResetTimer = 0;
+let appointmentInputVersion = 0;
 
 const ASSISTANT_HTML = `
   <div class="modal-backdrop sales-assistant-backdrop" id="sales-assistant-modal" role="presentation" hidden>
@@ -172,15 +177,17 @@ function decorateDashboardSaleCard() {
 async function loadDashboardCommission() {
   const target = document.querySelector("#sales-commission");
   if (!target) return;
+  const requestSeq = ++dashboardCommissionLoadSeq;
   try {
     const response = await fetch(DEALS_ENDPOINT, { credentials: "same-origin" });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || "SALE_DEALS_LOAD_FAILED");
+    if (requestSeq !== dashboardCommissionLoadSeq) return;
     const month = (Array.isArray(payload.months) ? payload.months : [])
       .find((item) => item?.key === vietnamMonthKey());
     target.textContent = formatVnd(month?.total || 0);
   } catch {
-    target.textContent = "—";
+    if (requestSeq === dashboardCommissionLoadSeq) target.textContent = "—";
   }
 }
 
@@ -272,7 +279,16 @@ function updateAppointmentTimeLabel() {
   if (label) label.textContent = payload?.viewingAt ? formatVietnamViewingTime(payload.viewingAt) : "Chưa rõ thời gian";
 }
 
+function markAppointmentInteraction() {
+  appointmentInputVersion += 1;
+  if (appointmentResetTimer) {
+    window.clearTimeout(appointmentResetTimer);
+    appointmentResetTimer = 0;
+  }
+}
+
 function parseAppointment() {
+  markAppointmentInteraction();
   const input = document.querySelector("#sale-appointment-input");
   const form = document.querySelector("#sale-appointment-form");
   if (!input || !form) return;
@@ -282,6 +298,7 @@ function parseAppointment() {
   form.elements.phone.value = parsed.phone;
   form.elements.viewingAddress.value = parsed.viewingAddress;
   form.elements.viewingTime.value = vietnamDatetimeLocal(parsed.viewingAt);
+  document.querySelector("#sale-appointment-save")?.removeAttribute("disabled");
   updateAppointmentTimeLabel();
 
   if (parsed.valid) {
@@ -298,15 +315,31 @@ function parseAppointment() {
 }
 
 function resetAppointment() {
+  if (appointmentResetTimer) {
+    window.clearTimeout(appointmentResetTimer);
+    appointmentResetTimer = 0;
+  }
   const input = document.querySelector("#sale-appointment-input");
   const form = document.querySelector("#sale-appointment-form");
+  const save = document.querySelector("#sale-appointment-save");
   if (input) input.value = "";
   if (form) {
     form.reset();
     form.hidden = true;
   }
+  if (save) save.disabled = false;
   showAppointmentStatus("");
   input?.focus();
+}
+
+function scheduleAppointmentReset() {
+  const scheduledVersion = appointmentInputVersion;
+  if (appointmentResetTimer) window.clearTimeout(appointmentResetTimer);
+  appointmentResetTimer = window.setTimeout(() => {
+    appointmentResetTimer = 0;
+    if (scheduledVersion !== appointmentInputVersion) return;
+    resetAppointment();
+  }, APPOINTMENT_RESET_DELAY_MS);
 }
 
 function appointmentErrorMessage(code) {
@@ -327,7 +360,7 @@ async function saveAppointment(event) {
   const form = event.currentTarget;
   const save = document.querySelector("#sale-appointment-save");
   const payload = appointmentFormPayload();
-  if (!payload || !form.reportValidity()) return;
+  if (!payload || !form.reportValidity() || !save) return;
   save.disabled = true;
   showAppointmentStatus("Đang lưu lịch vào Joy…", "loading");
 
@@ -341,8 +374,9 @@ async function saveAppointment(event) {
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw Object.assign(new Error(result.error || "VIEWING_CREATE_FAILED"), { code: result.error });
     showAppointmentStatus(`${result.message} ${result.viewing.customerName} · ${formatVietnamViewingTime(result.viewing.viewingAt)}.`, "success");
+    save.disabled = false;
     window.dispatchEvent(new CustomEvent("joy:sales-changed", { detail: { kind: "viewing-created" } }));
-    window.setTimeout(resetAppointment, 1200);
+    scheduleAppointmentReset();
   } catch (error) {
     showAppointmentStatus(appointmentErrorMessage(error.code), "error");
     save.disabled = false;
@@ -369,7 +403,11 @@ async function initializeSalesAssistant() {
   document.querySelector("#sale-appointment-parse")?.addEventListener("click", parseAppointment);
   document.querySelector("#sale-appointment-reset")?.addEventListener("click", resetAppointment);
   document.querySelector("#sale-appointment-form")?.addEventListener("submit", saveAppointment);
-  document.querySelector("#sale-appointment-form")?.addEventListener("input", updateAppointmentTimeLabel);
+  document.querySelector("#sale-appointment-form")?.addEventListener("input", () => {
+    markAppointmentInteraction();
+    updateAppointmentTimeLabel();
+  });
+  document.querySelector("#sale-appointment-input")?.addEventListener("input", markAppointmentInteraction);
   document.querySelector("#sale-appointment-input")?.addEventListener("keydown", (event) => {
     if ((event.ctrlKey || event.metaKey) && event.key === "Enter") parseAppointment();
   });
@@ -377,6 +415,7 @@ async function initializeSalesAssistant() {
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
     if (document.querySelector("#sale-close-deal-modal")?.hidden === false) return;
+    if (document.querySelector("#room-summary-capture")?.hidden === false) return;
     if (document.querySelector(".sales-history-edit-row")) return;
     if (!document.querySelector("#sales-assistant-modal")?.hidden) closeAssistant();
   }, { capture: true });
