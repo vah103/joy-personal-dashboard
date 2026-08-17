@@ -76,14 +76,16 @@ async function handleSafeUpdate(request, env) {
 
   const current = await loadCurrentDeals(request, env);
   if (current.error) return json(current.payload, current.status);
-  const existing = current.deals.find((deal) => Number(deal.sourceRow) === validation.value.sourceRow);
-  if (!existing) return json({ error: "SALE_DEAL_NOT_FOUND" }, 404);
+  const matches = current.deals.filter((deal) => String(deal.revision || "") === expectedRevision);
+  if (!matches.length) return json({ error: "SALE_DEAL_STALE" }, 409);
+  if (matches.length > 1) return json({ error: "SALE_DEAL_AMBIGUOUS" }, 409);
+  const existing = matches[0];
   if (existing.month !== validation.value.month) return json({ error: "SALE_DEAL_STALE" }, 409);
-  if (String(existing.revision || "") !== expectedRevision) {
-    return json({ error: "SALE_DEAL_STALE" }, 409);
-  }
 
-  const response = await forwardDealRequest(request, env, "PATCH", validation.value);
+  const response = await forwardDealRequest(request, env, "PATCH", {
+    ...validation.value,
+    sourceRow: Number(existing.sourceRow || 0),
+  });
   const payload = await response.json().catch(() => ({}));
   return json(payload, response.status);
 }
