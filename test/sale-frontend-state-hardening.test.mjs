@@ -99,6 +99,8 @@ test("Sale Manager uses safe add/update endpoints and explicit uncertain-write r
   assert.match(manager, /function resolveAddReview/);
   assert.match(manager, /SALE_DEAL_STALE/);
   assert.match(manager, /SALE_DEAL_SAVE_REVIEW_REQUIRED/);
+  assert.match(manager, /data\.i18n = "sales\.checkSaved"/);
+  assert.match(manager, /data\.i18n = "sales\.checkAllowRetry"/);
 });
 
 test("Sale Manager protects dirty forms and Dashboard ignores stale Sale requests", async () => {
@@ -140,20 +142,37 @@ test("sale deal revisions are stable and change with deal identity", () => {
   assert.notEqual(saleDealRevision(base), saleDealRevision({ ...base, customer: "Mai" }));
 });
 
-test("guarded sale writes prevent stale updates and duplicate add retries", async () => {
+test("guarded sale writes resolve moved rows by revision and prevent duplicate add retries", async () => {
   const guard = await readFile(new URL("../worker/sale-deal-guard.js", import.meta.url), "utf8");
   const migration = await readFile(new URL("../migrations/20260817_sale_deal_write_requests.sql", import.meta.url), "utf8");
 
   assert.match(guard, /SAFE_ADD_PATH\s*=\s*"\/api\/sales\/deals\/idempotent"/);
   assert.match(guard, /SAFE_UPDATE_PATH\s*=\s*"\/api\/sales\/deals\/safe-update"/);
   assert.match(guard, /expectedRevision/);
+  assert.match(guard, /current\.deals\.filter\(\(deal\) => String\(deal\.revision \|\| ""\) === expectedRevision\)/);
+  assert.match(guard, /sourceRow: Number\(existing\.sourceRow \|\| 0\)/);
   assert.match(guard, /SALE_DEAL_STALE/);
+  assert.match(guard, /SALE_DEAL_AMBIGUOUS/);
   assert.match(guard, /claimWriteRequest/);
   assert.match(guard, /state === "committed"/);
   assert.match(guard, /SALE_DEAL_SAVE_REVIEW_REQUIRED/);
   assert.match(guard, /SALE_DEAL_REVIEW_DEAL_PRESENT/);
   assert.match(migration, /CREATE TABLE IF NOT EXISTS sale_deal_write_requests/);
   assert.match(migration, /PRIMARY KEY \(user_email, request_id\)/);
+});
+
+test("new Sale deal insertion is one atomic Sheets batch", async () => {
+  const worker = await readFile(new URL("../worker/index.js", import.meta.url), "utf8");
+  const add = worker.match(/async function addSaleDeal[\s\S]*?\n}\n\nasync function updateSaleDeal/)?.[0] || "";
+
+  assert.match(add, /requests = \[/);
+  assert.match(add, /insertRowsRequest/);
+  assert.match(add, /saleDealCellRequests/);
+  assert.match(add, /updateCellsRequest/);
+  assert.match(add, /await sheetsBatchUpdate\(accessToken, spreadsheetId, requests\)/);
+  assert.doesNotMatch(add, /await insertRows\(/);
+  assert.doesNotMatch(add, /await writeSaleDeal\(/);
+  assert.doesNotMatch(add, /await writeMonthTotalFormula\(/);
 });
 
 test("deal review recovery is explicit and never blindly retries an uncertain write", async () => {
@@ -192,6 +211,8 @@ test("deal saving and review copy is localized in both Sale flow dictionaries", 
   ]);
 
   [
+    "sales.checkSaved",
+    "sales.checkAllowRetry",
     "saleAssistant.savingDealState",
     "saleAssistant.reviewDealSave",
     "saleAssistant.reviewSave",
