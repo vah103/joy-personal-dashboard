@@ -65,6 +65,10 @@ import {
   runReliableReminderSchedule,
 } from "./reminder-delivery.js";
 import {
+  handleSaleDealGuardRequest,
+  isSaleDealGuardRoute,
+} from "./sale-deal-guard.js";
+import {
   handleSaleViewingDeleteRequest,
   isSaleViewingDeleteRoute,
 } from "./sale-viewing-delete.js";
@@ -228,6 +232,9 @@ export default {
       }
       if (isSaleViewingRoute(pathname)) {
         return handleSaleViewingRequest(request, env);
+      }
+      if (isSaleDealGuardRoute(pathname)) {
+        return handleSaleDealGuardRequest(request, env);
       }
 
       const integration = integrationForApiPath(pathname);
