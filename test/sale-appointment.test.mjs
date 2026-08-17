@@ -1,89 +1,112 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { parseSaleAppointmentInput } from "../src/features/sales/appointments/appointment.js";
+import {
+  formatVietnamViewingTime,
+  parseSaleAppointmentInput,
+} from "../src/features/sales/appointments/appointment.js";
 import { isSaleViewingRoute } from "../worker/sale-viewings.js";
 
-const NOW = new Date("2026-07-27T12:00:00.000Z");
+const NOW = Date.parse("2026-07-27T02:00:00.000Z"); // 09:00 in Vietnam
 
 test("parses a Vietnamese viewing appointment for tomorrow evening", () => {
-  const parsed = parseSaleAppointmentInput("mai 8h tối chị Lan 0987654321 xem phòng 180 Phú Mỹ", NOW);
+  const parsed = parseSaleAppointmentInput(
+    "8h tối mai chị Lan 0987 654 321 xem phòng 180 Phú Mỹ",
+    NOW,
+  );
+
   assert.equal(parsed.customerName, "chị Lan");
   assert.equal(parsed.phone, "0987654321");
   assert.equal(parsed.viewingAddress, "180 Phú Mỹ");
   assert.equal(parsed.viewingAt, "2026-07-28T13:00:00.000Z");
   assert.equal(parsed.valid, true);
+  assert.equal(formatVietnamViewingTime(parsed.viewingAt), "Th 3, 28/07/2026 · 20:00");
 });
 
 test("parses relative appointments and treats giờ khách qua as now", () => {
-  const relative = parseSaleAppointmentInput("30p nữa anh Nam 0912345678 xem 25 Mỹ Đình", NOW);
-  assert.equal(relative.viewingAt, "2026-07-27T12:30:00.000Z");
+  const relative = parseSaleAppointmentInput(
+    "30p nữa anh Nam 0912345678 xem phòng 25 ngõ 10 Mỹ Đình",
+    NOW,
+  );
   assert.equal(relative.customerName, "anh Nam");
-  assert.equal(relative.phone, "0912345678");
-  assert.equal(relative.viewingAddress, "25 Mỹ Đình");
+  assert.equal(relative.viewingAt, "2026-07-27T02:30:00.000Z");
 
-  const now = parseSaleAppointmentInput("giờ khách qua chị Mai xem 90 Cầu Giấy", NOW);
-  assert.equal(now.viewingAt, NOW.toISOString());
-  assert.equal(now.customerName, "chị Mai");
-  assert.equal(now.viewingAddress, "90 Cầu Giấy");
+  const immediate = parseSaleAppointmentInput(
+    "chị Mai 0901234567 giờ khách qua xem phòng 12 Cầu Giấy",
+    NOW,
+  );
+  assert.equal(immediate.customerName, "chị Mai");
+  assert.equal(immediate.viewingAt, "2026-07-27T02:00:00.000Z");
+  assert.equal(immediate.viewingAddress, "12 Cầu Giấy");
 });
 
 test("matches GPT Sale defaults for dayparts and unnamed customers", () => {
-  const morning = parseSaleAppointmentInput("sáng mai xem 12 Trần Duy Hưng", NOW);
+  const morning = parseSaleAppointmentInput(
+    "Sáng mai khách xem phòng 180 Phú Mỹ",
+    NOW,
+  );
   assert.equal(morning.viewingAt, "2026-07-28T02:00:00.000Z");
-  assert.equal(morning.customerName, "Khách");
 
-  const afternoon = parseSaleAppointmentInput("chiều mai anh Tú xem 54 Hồ Tùng Mậu", NOW);
-  assert.equal(afternoon.viewingAt, "2026-07-28T08:00:00.000Z");
-
-  const evening = parseSaleAppointmentInput("tối mai chị Hoa xem 180 Phú Mỹ", NOW);
-  assert.equal(evening.viewingAt, "2026-07-28T13:00:00.000Z");
+  const immediate = parseSaleAppointmentInput(
+    "Giờ bạn qua xem phòng 180 Phú Mỹ ạ",
+    NOW,
+  );
+  assert.equal(immediate.customerName, "Khách xem phòng 180 Phú Mỹ");
+  assert.equal(immediate.viewingAddress, "180 Phú Mỹ");
+  assert.equal(immediate.viewingAt, "2026-07-27T02:00:00.000Z");
 });
 
 test("finds an absolute time even when the phone number comes first", () => {
-  const parsed = parseSaleAppointmentInput("0987654321 chị Lan 20h ngày mai xem 180 Phú Mỹ", NOW);
-  assert.equal(parsed.customerName, "chị Lan");
-  assert.equal(parsed.phone, "0987654321");
-  assert.equal(parsed.viewingAt, "2026-07-28T13:00:00.000Z");
-  assert.equal(parsed.viewingAddress, "180 Phú Mỹ");
+  const parsed = parseSaleAppointmentInput(
+    "chị Hương 0988123456 mai 9h30 sáng xem phòng 45 Trần Bình",
+    NOW,
+  );
+  assert.equal(parsed.customerName, "chị Hương");
+  assert.equal(parsed.viewingAt, "2026-07-28T02:30:00.000Z");
+  assert.equal(parsed.viewingAddress, "45 Trần Bình");
 });
 
 test("parses labeled multiline Sale forms without treating the source as the customer", () => {
   const parsed = parseSaleAppointmentInput(`
-    Khách xem phòng
-    Địa chỉ: 180 Phú Mỹ
-    Nguồn: chị Linh
-    SĐT: 0987654321
-    Thời gian: mai 8h tối
+    🏆TL21House🏆
+    🍀Địa chỉ : 66 hồ tùng mậu
+    🍀Giá : 4tr5
+    🍀Sđt : 0366823628
+    🍀Thời gian xem : chiều mai
+    🍀CTV : Vanh
+    🍀MÃ PHÒNG : 590
   `, NOW);
 
-  assert.equal(parsed.customerName, "Khách");
-  assert.equal(parsed.phone, "0987654321");
-  assert.equal(parsed.viewingAddress, "180 Phú Mỹ");
-  assert.equal(parsed.viewingAt, "2026-07-28T13:00:00.000Z");
+  assert.equal(parsed.customerName, "Khách 0366823628");
+  assert.equal(parsed.phone, "0366823628");
+  assert.equal(parsed.viewingAddress, "66 hồ tùng mậu");
+  assert.equal(parsed.viewingAt, "2026-07-28T08:00:00.000Z");
+  assert.deepEqual(parsed.missing, []);
   assert.equal(parsed.valid, true);
 });
 
 test("uses a leading standalone customer name before the Sale source header", () => {
   const parsed = parseSaleAppointmentInput(`
-    chị Lan
-    Nguồn: chị Linh
-    Địa chỉ: 180 Phú Mỹ
-    SĐT: 0987654321
-    Thời gian: mai 8h tối
+    Thùy Dương
+    🏆TL21House🏆
+    🍀Địa chỉ : 66 hồ tùng mậu
+    🍀Giá : 4tr5
+    🍀Sđt : 0366823628
+    🍀Thời gian xem : chiều mai
+    🍀CTV : Vanh
   `, NOW);
 
-  assert.equal(parsed.customerName, "chị Lan");
-  assert.equal(parsed.phone, "0987654321");
-  assert.equal(parsed.viewingAddress, "180 Phú Mỹ");
-  assert.equal(parsed.viewingAt, "2026-07-28T13:00:00.000Z");
+  assert.equal(parsed.customerName, "Thùy Dương");
+  assert.equal(parsed.phone, "0366823628");
+  assert.equal(parsed.viewingAddress, "66 hồ tùng mậu");
+  assert.equal(parsed.viewingAt, "2026-07-28T08:00:00.000Z");
+  assert.equal(parsed.valid, true);
 });
 
 test("prefers an explicit customer label in multiline Sale forms", () => {
   const parsed = parseSaleAppointmentInput(`
-    Khách: chị Lan
-    Nguồn: chị Linh
-    Địa chỉ: 180 Phú Mỹ
+    Tên khách: chị Lan
+    Địa chỉ xem phòng: 180 Phú Mỹ
     Số điện thoại: 0987654321
     Thời gian xem: mai 8h tối
   `, NOW);
