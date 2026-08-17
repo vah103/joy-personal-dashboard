@@ -9,6 +9,7 @@ import {
 const DELETE_PATH = "/api/sales/viewings/delete";
 const COMMISSION_PATH = "/api/sales/viewings/commission";
 const CLOSE_DEAL_PATH = "/api/sales/viewings/close-deal";
+const CLOSE_DEAL_REVIEW_PATH = "/api/sales/viewings/close-deal/review";
 const CLOSED_STATES = new Set(["pending", "received"]);
 const DEAL_LOCK_REVIEW_MS = 2 * 60 * 1000;
 
@@ -16,6 +17,7 @@ export function isSaleViewingDeleteRoute(pathname) {
   return pathname === DELETE_PATH
     || pathname === COMMISSION_PATH
     || pathname === CLOSE_DEAL_PATH
+    || pathname === CLOSE_DEAL_REVIEW_PATH
     || pathname === SALE_ROOM_SUMMARY_AI_PATH;
 }
 
@@ -26,6 +28,9 @@ export async function handleSaleViewingDeleteRequest(request, env) {
   }
   if (pathname === COMMISSION_PATH) {
     return handleSaleViewingCommissionRequest(request, env);
+  }
+  if (pathname === CLOSE_DEAL_REVIEW_PATH) {
+    return handleSaleViewingCloseDealReview(request, env);
   }
   if (pathname === CLOSE_DEAL_PATH) {
     return handleSaleViewingCloseDeal(request, env);
@@ -183,7 +188,7 @@ async function handleSaleViewingCloseDeal(request, env) {
   const payload = await dealResponse.json().catch(() => ({}));
   if (!dealResponse.ok) {
     if (payload.error === "SALE_WRITE_FAILED") {
-      return json({ error: "SALE_DEAL_SAVE_REVIEW_REQUIRED" }, 409);
+      return json({ error: "SALE_DEAL_SAVE_REVIEW_REQUIRED", reviewNow: true }, 409);
     }
     await releaseCloseDealLock(viewingId, session.user_email, env);
     return json(payload, dealResponse.status);
@@ -191,10 +196,50 @@ async function handleSaleViewingCloseDeal(request, env) {
 
   const marked = await markViewingClosed(viewingId, session.user_email, env);
   if (!marked) {
-    return json({ error: "SALE_DEAL_SAVE_REVIEW_REQUIRED" }, 409);
+    return json({ error: "SALE_DEAL_SAVE_REVIEW_REQUIRED", reviewNow: true }, 409);
   }
   await releaseCloseDealLock(viewingId, session.user_email, env);
   return json({ ...payload, dealSaved: true }, dealResponse.status);
+}
+
+async function handleSaleViewingCloseDealReview(request, env) {
+  if (request.method !== "PATCH") return json({ error: "METHOD_NOT_ALLOWED" }, 405);
+  if (!isSameOrigin(request)) return json({ error: "INVALID_ORIGIN" }, 403);
+
+  const session = await getSession(request, env);
+  if (!session) return json({ error: "AUTH_REQUIRED" }, 401);
+
+  const input = await readJson(request);
+  const viewingId = cleanViewingId(input?.viewingId);
+  const resolution = String(input?.resolution || "").trim();
+  if (!viewingId) return json({ error: "VIEWING_ID_REQUIRED" }, 400);
+  if (!["saved", "retry"].includes(resolution)) return json({ error: "SALE_DEAL_REVIEW_RESOLUTION_REQUIRED" }, 400);
+
+  const viewing = await env.DB.prepare(`
+    SELECT id
+    FROM sale_viewings
+    WHERE id = ? AND user_email = ?
+    LIMIT 1
+  `).bind(viewingId, session.user_email).first();
+  if (!viewing) return json({ error: "VIEWING_NOT_FOUND" }, 404);
+
+  if (isClosedMarker(await viewingDealMarker(viewingId, session.user_email, env))) {
+    await releaseCloseDealLock(viewingId, session.user_email, env);
+    return json({ ok: true, dealSaved: true, alreadySaved: true });
+  }
+
+  const lock = await viewingDealLock(viewingId, session.user_email, env);
+  if (!lock) return json({ error: "SALE_DEAL_REVIEW_NOT_REQUIRED" }, 409);
+
+  if (resolution === "saved") {
+    const marked = await markViewingClosed(viewingId, session.user_email, env);
+    if (!marked) return json({ error: "VIEWING_NOT_FOUND" }, 404);
+    await releaseCloseDealLock(viewingId, session.user_email, env);
+    return json({ ok: true, dealSaved: true });
+  }
+
+  await releaseCloseDealLock(viewingId, session.user_email, env);
+  return json({ ok: true, dealSaved: false, retryAllowed: true });
 }
 
 async function handleSaleViewingCommissionRequest(request, env) {
