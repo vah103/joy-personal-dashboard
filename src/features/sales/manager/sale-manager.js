@@ -7,6 +7,7 @@ const state = {
   query: "",
   loadSeq: 0,
   formSaving: false,
+  formDirty: false,
   formOperationSeq: 0,
 };
 
@@ -154,17 +155,24 @@ function openForm(deal = null) {
   elements.form.elements.host.value = deal?.host || "";
   elements.form.elements.rent.value = deal?.rent || "";
   elements.form.elements.rate.value = deal ? Number(deal.rate || 0) * 100 : "";
+  state.formDirty = false;
   updateCommissionPreview();
   elements.modal.hidden = false;
   document.body.classList.add("sale-modal-open");
   window.setTimeout(() => elements.form.elements.customer.focus(), 0);
 }
 
+function confirmDiscardForm() {
+  return !state.formDirty || window.confirm("Discard unsaved deal changes?");
+}
+
 function closeForm({ force = false } = {}) {
   if (state.formSaving && !force) return false;
+  if (!force && !confirmDiscardForm()) return false;
   elements.modal.hidden = true;
   document.body.classList.remove("sale-modal-open");
   state.editingDeal = null;
+  state.formDirty = false;
   return true;
 }
 
@@ -197,6 +205,7 @@ async function saveDeal(event) {
     });
     if (operationId !== state.formOperationSeq) return;
     state.selectedMonth = payload.month;
+    state.formDirty = false;
     setFormBusy(false);
     closeForm({ force: true });
     showToast(wasEditing ? "Deal updated in Google Sheets" : "Deal added to Google Sheets");
@@ -304,6 +313,8 @@ document.addEventListener("click", (event) => {
 
 elements.search.addEventListener("input", () => { state.query = elements.search.value; render(); });
 elements.form.addEventListener("submit", saveDeal);
+elements.form.addEventListener("input", () => { if (!state.formSaving) state.formDirty = true; });
+elements.form.addEventListener("change", () => { if (!state.formSaving) state.formDirty = true; });
 elements.form.elements.rent.addEventListener("input", updateCommissionPreview);
 elements.form.elements.rate.addEventListener("input", updateCommissionPreview);
 elements.modal.addEventListener("mousedown", (event) => { if (event.target === elements.modal) closeForm(); });
