@@ -17,6 +17,7 @@ let dashboardCommissionLoadSeq = 0;
 let appointmentResetTimer = 0;
 let appointmentInputVersion = 0;
 let appointmentSaving = false;
+let appointmentRequestId = "";
 let appointmentOperationSeq = 0;
 
 const ASSISTANT_HTML = `
@@ -243,6 +244,7 @@ function openAssistant() {
 }
 
 function closeAssistant() {
+  if (appointmentSaving) return false;
   if (!requestHistoryLeave()) return false;
   const modal = document.querySelector("#sales-assistant-modal");
   if (!modal) return true;
@@ -254,6 +256,7 @@ function closeAssistant() {
 function switchMode(mode) {
   const currentMode = document.querySelector("[data-assistant-mode].active")?.dataset.assistantMode || "";
   if (currentMode === mode) return true;
+  if (currentMode === "appointment" && appointmentSaving) return false;
   if (currentMode === "history" && !requestHistoryLeave()) return false;
 
   document.querySelectorAll("[data-assistant-mode]").forEach((button) => {
@@ -309,9 +312,15 @@ function setAppointmentBusy(busy) {
     .forEach((control) => { control.disabled = busy; });
 }
 
+function newAppointmentRequestId() {
+  if (globalThis.crypto?.randomUUID) return `viewing:${globalThis.crypto.randomUUID()}`;
+  return `viewing:${Date.now().toString(36)}:${Math.random().toString(36).slice(2)}`;
+}
+
 function markAppointmentInteraction() {
   if (appointmentSaving) return;
   appointmentInputVersion += 1;
+  appointmentRequestId = "";
   if (appointmentResetTimer) {
     window.clearTimeout(appointmentResetTimer);
     appointmentResetTimer = 0;
@@ -359,6 +368,7 @@ function resetAppointment() {
     form.reset();
     form.hidden = true;
   }
+  appointmentRequestId = "";
   setAppointmentBusy(false);
   showAppointmentStatus("");
   input?.focus();
@@ -382,6 +392,8 @@ function appointmentErrorMessage(code) {
     VIEWING_TIME_TOO_FAR: "Joy chỉ nhận lịch trong vòng 1 năm tới.",
     VIEWING_NOT_FOUND: "Không tìm thấy lịch hẹn này.",
     VIEWING_ID_REQUIRED: "Joy chưa xác định được lịch cần sửa.",
+    VIEWING_ID_INVALID: "Joy chưa tạo được mã an toàn cho lịch này. Hãy nhập lại.",
+    VIEWING_ID_CONFLICT: "Mã lịch này đã được dùng cho dữ liệu khác. Hãy nhập lại lịch.",
     AUTH_REQUIRED: "Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại Joy.",
   };
   return messages[code] || "Joy chưa thể lưu lịch. Hãy thử lại.";
@@ -393,6 +405,8 @@ async function saveAppointment(event) {
   const form = event.currentTarget;
   const payload = appointmentFormPayload();
   if (!payload || !form.reportValidity()) return;
+  appointmentRequestId ||= newAppointmentRequestId();
+  payload.id = appointmentRequestId;
 
   const operationId = ++appointmentOperationSeq;
   setAppointmentBusy(true);
@@ -471,7 +485,10 @@ async function initializeSalesAssistant() {
     if (document.querySelector("#sale-close-deal-modal")?.hidden === false) return;
     if (document.querySelector("#room-summary-capture")?.hidden === false) return;
     if (historyEditInProgress()) return;
-    if (!document.querySelector("#sales-assistant-modal")?.hidden) closeAssistant();
+    if (!document.querySelector("#sales-assistant-modal")?.hidden && !closeAssistant()) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
   }, { capture: true });
 
   window.addEventListener("joy:sale-deal-saved", () => void loadDashboardCommission());
