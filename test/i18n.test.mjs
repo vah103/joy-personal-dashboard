@@ -41,7 +41,7 @@ test("audited legacy surfaces translate through the shared JoyI18n dictionaries"
 test("shared i18n assets are copied without creating a second HTML owner", async () => {
   const [buildStage, saleAdapter, login, dashboardBootstrap] = await Promise.all([
     readFile(new URL("../scripts/build-i18n.mjs", import.meta.url), "utf8"),
-    readFile(new URL("../src/features/sales/sale-english-ui.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/shared/i18n.js", import.meta.url), "utf8"),
     readFile(new URL("../src/pages/login/index.html", import.meta.url), "utf8"),
     readFile(new URL("../src/pages/dashboard/app-config.js", import.meta.url), "utf8"),
   ]);
