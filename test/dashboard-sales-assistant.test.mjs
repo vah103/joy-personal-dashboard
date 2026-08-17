@@ -16,8 +16,11 @@ test("dashboard HTML loads the Sale Assistant without a hidden legacy launcher",
   assert.match(dashboard, /room-summary\.css\?v=joy-room-summary-v1/);
   assert.match(build, /resolve\(saleAppointmentsFeature, "appointment\.js"\)/);
   assert.match(build, /resolve\(saleSharedFeature, "format\.js"\)/);
-  assert.match(salesBuild, /dist", "sales/);
-  assert.match(salesBuild, /import "\.\/sales\/assistant\/sales-assistant\.js"/);
+  assert.match(salesBuild, /async function writePublicModule/);
+  assert.match(salesBuild, /assistant appointment import/);
+  assert.match(salesBuild, /assistant room-summary import/);
+  assert.match(salesBuild, /dashboardAssets/);
+  assert.match(salesBuild, /versionAssetReference/);
   assert.match(script, /Hẹn khách xem phòng/);
   assert.match(script, /Tóm tắt phòng/);
   assert.match(script, /dataset\.action = "open-sales-assistant"/);

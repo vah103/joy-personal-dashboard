@@ -28,7 +28,7 @@ test("Sale source ownership stays feature-first and the page stays layout-only",
   );
 });
 
-test("Sale frontend owners use canonical source imports and no legacy patch layers", async () => {
+test("Sale frontend owners use canonical source imports and the build maps them to versioned public assets", async () => {
   const [assistant, history, manager, format, salesBuild, packageJson] = await Promise.all([
     readFile(new URL("../src/features/sales/assistant/sales-assistant.js", import.meta.url), "utf8"),
     readFile(new URL("../src/features/sales/appointments/history.js", import.meta.url), "utf8"),
@@ -55,8 +55,11 @@ test("Sale frontend owners use canonical source imports and no legacy patch laye
   assert.match(format, /export function formatVnd/);
   assert.match(format, /export function vietnamMonthKey/);
 
-  assert.match(salesBuild, /cp\(source, destination, \{ recursive: true \}\)/);
-  assert.match(salesBuild, /sales-assistant\.js/);
+  assert.match(salesBuild, /async function writePublicModule/);
+  assert.match(salesBuild, /sale-appointment\.js\?v=\$\{buildVersion\}/);
+  assert.match(salesBuild, /sale-format\.js\?v=\$\{buildVersion\}/);
+  assert.match(salesBuild, /room-summary\.js\?v=\$\{buildVersion\}/);
+  assert.match(salesBuild, /function versionAssetReference/);
   assert.match(salesBuild, /sale-history-row-edit\.js/);
   assert.match(salesBuild, /sale-manager\.js/);
   assert.match(packageJson, /scripts\/build-sales\.mjs/);
