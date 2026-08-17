@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { translateText } from "../src/i18n/index.js";
-import { translateSaleUiText } from "../src/features/sales/sale-english-ui.js";
+import { translateSaleUiText } from "../src/features/sales/shared/i18n.js";
 
 globalThis.JoyI18n = { translateText };
 
@@ -21,7 +21,7 @@ test("shared i18n handles Sale dynamic room and date chrome", () => {
 });
 
 test("Sale adapter no longer owns a private translation dictionary", async () => {
-  const source = await readFile(new URL("../src/features/sales/sale-english-ui.js", import.meta.url), "utf8");
+  const source = await readFile(new URL("../src/features/sales/shared/i18n.js", import.meta.url), "utf8");
   assert.match(source, /JoyI18n/);
   assert.match(source, /\/i18n\/index\.js/);
   assert.doesNotMatch(source, /EXACT_TEXT/);
@@ -34,10 +34,11 @@ test("build keeps the Sale adapter while shared i18n preserves one canonical HTM
     readFile(new URL("../scripts/build-i18n.mjs", import.meta.url), "utf8"),
     readFile(new URL("../src/pages/dashboard/app-bootstrap.js", import.meta.url), "utf8"),
     readFile(new URL("../src/pages/sale/index.html", import.meta.url), "utf8"),
-    readFile(new URL("../src/features/sales/sale-english-ui.js", import.meta.url), "utf8"),
-    readFile(new URL("../src/features/sales/sale-history-row-edit.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/shared/i18n.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/appointments/history.js", import.meta.url), "utf8"),
   ]);
 
+  assert.match(build, /resolve\(saleSharedFeature, "i18n\.js"\)/);
   assert.match(build, /sale-english-ui\.js/);
   assert.match(i18nBuild, /cp\(source, target/);
   assert.doesNotMatch(i18nBuild, /writeFile|inject\(/);
