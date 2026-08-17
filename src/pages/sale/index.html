@@ -17,82 +17,82 @@
     <main class="sale-shell">
       <aside class="sale-sidebar">
         <a class="sale-brand" href="/">Hey Joy!</a>
-        <nav aria-label="Sale navigation">
+        <nav aria-label="Sale navigation" data-i18n-aria-label="salePage.navAria">
           <a href="/" class="sale-nav-link">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/><path d="M8 12h11"/></svg>
-            Dashboard
+            <span data-i18n="salePage.dashboard">Dashboard</span>
           </a>
           <span class="sale-nav-link active">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19V9m7 10V5m7 14v-7"/><path d="M3 19h18"/></svg>
-            Sale workspace
+            <span data-i18n="salePage.workspace">Sale workspace</span>
           </span>
         </nav>
         <div class="sale-sidebar-note">
-          <small>Private workspace</small>
-          <strong>2026 only</strong>
-          <p>Every saved deal is written back to the Sale sheet.</p>
+          <small data-i18n="salePage.privateWorkspace">Private workspace</small>
+          <strong data-i18n="salePage.yearOnly">2026 only</strong>
+          <p data-i18n="salePage.sidebarHelp">Every saved deal is written back to the Sale sheet.</p>
         </div>
-        <div class="sale-profile"><strong>Vanh</strong><small>Personal workspace</small></div>
+        <div class="sale-profile"><strong>Vanh</strong><small data-i18n="salePage.personalWorkspace">Personal workspace</small></div>
       </aside>
 
       <section class="sale-main">
         <header class="sale-topbar">
           <div>
-            <p class="sale-eyebrow">Income · Room deals</p>
-            <h1>Sale workspace</h1>
-            <p>One clean row here, the original two-row structure in Google Sheets.</p>
+            <p class="sale-eyebrow" data-i18n="salePage.eyebrow">Income · Room deals</p>
+            <h1 data-i18n="salePage.workspace">Sale workspace</h1>
+            <p data-i18n="salePage.subtitle">One clean row here, the original two-row structure in Google Sheets.</p>
           </div>
           <div class="sale-top-actions">
-            <a class="sale-secondary-button" href="https://docs.google.com/spreadsheets/d/13rVL8-vBNpwOTntCTjNhU31TzxCAFRujRH0X4AfqNx4/edit#gid=1462084167" target="_blank" rel="noreferrer">Open Sheet ↗</a>
-            <button class="sale-primary-button" type="button" data-action="add-deal">+ Add deal</button>
+            <a class="sale-secondary-button" href="https://docs.google.com/spreadsheets/d/13rVL8-vBNpwOTntCTjNhU31TzxCAFRujRH0X4AfqNx4/edit#gid=1462084167" target="_blank" rel="noreferrer" data-i18n="salePage.openSheet">Open Sheet ↗</a>
+            <button class="sale-primary-button" type="button" data-action="add-deal" data-i18n="salePage.addDeal">+ Add deal</button>
           </div>
         </header>
 
         <div class="sale-status" id="sale-status" hidden></div>
 
-        <section class="sale-summary" aria-label="Selected month summary">
+        <section class="sale-summary" aria-label="Selected month summary" data-i18n-aria-label="salePage.selectedMonthSummaryAria">
           <article class="sale-summary-card total-card">
-            <small>Total commission</small>
+            <small data-i18n="salePage.totalCommission">Total commission</small>
             <strong id="sale-total">0 ₫</strong>
             <span id="sale-summary-month">July 2026</span>
           </article>
           <article class="sale-summary-card">
-            <small>Closed rooms</small>
+            <small data-i18n="salePage.closedRooms">Closed rooms</small>
             <strong id="sale-count">0</strong>
-            <span>Recorded deals</span>
+            <span data-i18n="salePage.recordedDeals">Recorded deals</span>
           </article>
           <article class="sale-summary-card">
-            <small>Average commission</small>
+            <small data-i18n="salePage.averageCommission">Average commission</small>
             <strong id="sale-average">0 ₫</strong>
-            <span>Per closed room</span>
+            <span data-i18n="salePage.perClosedRoom">Per closed room</span>
           </article>
           <article class="sale-summary-card compact-card">
-            <small>Data source</small>
+            <small data-i18n="salePage.dataSource">Data source</small>
             <strong>Sale</strong>
             <span>2026 | Vanh</span>
           </article>
         </section>
 
-        <nav class="sale-months" id="sale-months" aria-label="Months in 2026"></nav>
+        <nav class="sale-months" id="sale-months" aria-label="Months in 2026" data-i18n-aria-label="salePage.monthsAria"></nav>
 
         <section class="sale-ledger-panel">
           <div class="sale-ledger-heading">
-            <div><p>2026 ledger</p><h2 id="sale-ledger-title">July deals</h2></div>
+            <div><p data-i18n="salePage.ledger">2026 ledger</p><h2 id="sale-ledger-title">July deals</h2></div>
             <label class="sale-search">
               <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg>
-              <input id="sale-search" type="search" placeholder="Search customer, phone or address" autocomplete="off">
+              <input id="sale-search" type="search" placeholder="Search customer, phone or address" data-i18n-placeholder="salePage.searchPlaceholder" autocomplete="off">
             </label>
           </div>
           <div class="sale-table-wrap" id="sale-table-wrap">
             <table class="sale-table">
-              <thead><tr><th>Customer</th><th>Address</th><th>Host</th><th>Room price</th><th>Rate</th><th>Commission</th><th></th></tr></thead>
+              <thead><tr><th data-i18n="salePage.customer">Customer</th><th data-i18n="salePage.address">Address</th><th data-i18n="salePage.host">Host</th><th data-i18n="salePage.roomPrice">Room price</th><th data-i18n="salePage.rate">Rate</th><th data-i18n="salePage.commission">Commission</th><th></th></tr></thead>
               <tbody id="sale-table-body"></tbody>
             </table>
             <div class="sale-empty" id="sale-empty" hidden>
               <span aria-hidden="true">＋</span>
-              <h3>No closed rooms yet</h3>
-              <p>July starts at 0 ₫. Add the first deal here to test the web workflow.</p>
-              <button class="sale-primary-button" type="button" data-action="add-deal">Add first deal</button>
+              <h3 data-i18n="salePage.noClosedRooms">No closed rooms yet</h3>
+              <p data-i18n="salePage.emptyHelp">July starts at 0 ₫. Add the first deal here to test the web workflow.</p>
+              <button class="sale-primary-button" type="button" data-action="add-deal" data-i18n="salePage.addFirstDeal">Add first deal</button>
             </div>
           </div>
         </section>
@@ -102,32 +102,32 @@
     <div class="sale-modal-backdrop" id="sale-modal" hidden>
       <section class="sale-modal" role="dialog" aria-modal="true" aria-labelledby="sale-form-title">
         <div class="sale-modal-heading">
-          <div><p>Sale 2026</p><h2 id="sale-form-title">Add a closed room</h2></div>
-          <button type="button" aria-label="Close form" data-action="close-form">×</button>
+          <div><p data-i18n="salePage.formBrand">Sale 2026</p><h2 id="sale-form-title" data-i18n="salePage.addTitle">Add a closed room</h2></div>
+          <button type="button" aria-label="Close form" data-i18n-aria-label="salePage.closeFormAria" data-action="close-form">×</button>
         </div>
         <form id="sale-form">
           <input name="sourceRow" type="hidden">
           <div class="sale-form-grid">
-            <label>Month<select name="month" required>
-              <option value="2026-01">January 2026</option><option value="2026-02">February 2026</option>
-              <option value="2026-03">March 2026</option><option value="2026-04">April 2026</option>
-              <option value="2026-05">May 2026</option><option value="2026-06">June 2026</option>
-              <option value="2026-07">July 2026</option><option value="2026-08">August 2026</option>
-              <option value="2026-09">September 2026</option><option value="2026-10">October 2026</option>
-              <option value="2026-11">November 2026</option><option value="2026-12">December 2026</option>
+            <label><span data-i18n="salePage.month">Month</span><select name="month" required>
+              <option value="2026-01" data-i18n="salePage.month01">January 2026</option><option value="2026-02" data-i18n="salePage.month02">February 2026</option>
+              <option value="2026-03" data-i18n="salePage.month03">March 2026</option><option value="2026-04" data-i18n="salePage.month04">April 2026</option>
+              <option value="2026-05" data-i18n="salePage.month05">May 2026</option><option value="2026-06" data-i18n="salePage.month06">June 2026</option>
+              <option value="2026-07" data-i18n="salePage.month07">July 2026</option><option value="2026-08" data-i18n="salePage.month08">August 2026</option>
+              <option value="2026-09" data-i18n="salePage.month09">September 2026</option><option value="2026-10" data-i18n="salePage.month10">October 2026</option>
+              <option value="2026-11" data-i18n="salePage.month11">November 2026</option><option value="2026-12" data-i18n="salePage.month12">December 2026</option>
             </select></label>
-            <label>Customer<input name="customer" type="text" maxlength="120" required></label>
-            <label>Phone<input name="phone" type="tel" maxlength="30" inputmode="tel"></label>
-            <label>Address<input name="address" type="text" maxlength="180" required></label>
-            <label>Host<input name="host" type="text" maxlength="120"></label>
-            <label>Room price<input name="rent" type="number" min="1" max="1000000000" step="1" inputmode="numeric" required></label>
-            <label>Commission rate (%)<input name="rate" type="number" min="0.01" max="100" step="0.01" inputmode="decimal" required></label>
+            <label><span data-i18n="salePage.customer">Customer</span><input name="customer" type="text" maxlength="120" required></label>
+            <label><span data-i18n="salePage.phone">Phone</span><input name="phone" type="tel" maxlength="30" inputmode="tel"></label>
+            <label><span data-i18n="salePage.address">Address</span><input name="address" type="text" maxlength="180" required></label>
+            <label><span data-i18n="salePage.host">Host</span><input name="host" type="text" maxlength="120"></label>
+            <label><span data-i18n="salePage.roomPrice">Room price</span><input name="rent" type="number" min="1" max="1000000000" step="1" inputmode="numeric" required></label>
+            <label><span data-i18n="salePage.commissionRate">Commission rate (%)</span><input name="rate" type="number" min="0.01" max="100" step="0.01" inputmode="decimal" required></label>
           </div>
-          <div class="sale-commission-preview"><span>Calculated commission</span><strong id="commission-preview">0 ₫</strong></div>
+          <div class="sale-commission-preview"><span data-i18n="salePage.calculatedCommission">Calculated commission</span><strong id="commission-preview">0 ₫</strong></div>
           <p class="sale-form-error" id="sale-form-error" hidden></p>
           <div class="sale-form-actions">
-            <button class="sale-secondary-button" type="button" data-action="close-form">Cancel</button>
-            <button class="sale-primary-button" type="submit" id="sale-save">Save to Sheet</button>
+            <button class="sale-secondary-button" type="button" data-action="close-form" data-i18n="salePage.cancel">Cancel</button>
+            <button class="sale-primary-button" type="submit" id="sale-save" data-i18n="salePage.saveToSheet">Save to Sheet</button>
           </div>
         </form>
       </section>
