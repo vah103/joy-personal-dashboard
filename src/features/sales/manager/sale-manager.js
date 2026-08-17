@@ -292,6 +292,7 @@ async function saveDeal(event) {
       SHEETS_WRITE_ACCESS_DENIED: "Joy does not have permission to edit this Sheet.",
       SALE_DEAL_NOT_FOUND: "This row moved in Google Sheets. Close the form and refresh before editing again.",
       SALE_DEAL_STALE: "This deal changed or moved in Google Sheets. Close the form, refresh, then edit the current row.",
+      SALE_DEAL_AMBIGUOUS: "Multiple identical deals match this edit. Refresh the Sheet and resolve the duplicate before editing.",
       SALE_DEAL_REVISION_REQUIRED: "This deal needs a fresh reload before it can be edited safely.",
       SALE_DEAL_REQUEST_CONFLICT: "This save changed after it started. Review the Sheet before trying again.",
     };
