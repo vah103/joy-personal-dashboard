@@ -44,7 +44,7 @@ test("Sale history keeps compact edit/delete controls and the real close-deal fl
   assert.match(styles, /data-deal-saved=\"true\"/);
   assert.match(styles, /\.sale-close-deal-modal/);
   assert.match(styles, /\.sale-close-deal-grid/);
-  assert.match(styles, /min-width:\s*960px/);
+  assert.match(styles, /min-width:\s*1080px/);
   assert.match(styles, /th:nth-child\(4\)[\s\S]*?width:\s*28%/);
   assert.match(styles, /th:nth-child\(5\)[\s\S]*?width:\s*12%[\s\S]*?text-align:\s*center/);
   assert.match(styles, /th:nth-child\(6\)[\s\S]*?width:\s*14%[\s\S]*?min-width:\s*132px[\s\S]*?text-align:\s*center/);
