@@ -6,6 +6,7 @@ const REMINDER_LEAD_MS = 30 * 60 * 1000;
 const FOLLOWUP_DELAY_MS = 2 * 60 * 60 * 1000;
 const MAX_LATE_MS = 24 * 60 * 60 * 1000;
 const RETRY_AFTER_MS = 2 * 60 * 1000;
+const CLOSED_STATES = new Set(["pending", "received"]);
 
 export function isSaleViewingRoute(pathname) {
   return pathname === "/api/sales/viewings";
@@ -44,7 +45,7 @@ async function listViewings(email, env) {
 
   const history = (rows.results || []).map((row) => serializeViewing(row, now));
   const viewings = history
-    .filter((viewing) => viewing.status === "upcoming")
+    .filter((viewing) => viewing.status === "upcoming" && !viewing.dealSaved)
     .sort((a, b) => a.viewingAt.localeCompare(b.viewingAt));
 
   return json({
@@ -130,6 +131,10 @@ async function updateViewing(request, email, env) {
   `).bind(id, email).first();
   if (!existing) return json({ error: "VIEWING_NOT_FOUND" }, 404);
 
+  if (await isViewingClosed(id, email, env)) {
+    return json({ error: "VIEWING_ALREADY_CLOSED" }, 409);
+  }
+
   const validation = validateViewing(input, { allowPast: true });
   if (validation.error) return json({ error: validation.error }, 400);
 
@@ -189,8 +194,19 @@ async function updateViewing(request, email, env) {
       followup_at: followupAt,
       followup_notified_at: followupNotifiedAt,
       updated_at: now,
+      commission_state: null,
     }, now),
   });
+}
+
+async function isViewingClosed(id, email, env) {
+  const row = await env.DB.prepare(`
+    SELECT state
+    FROM sale_viewing_commissions
+    WHERE viewing_id = ? AND user_email = ?
+    LIMIT 1
+  `).bind(id, email).first();
+  return CLOSED_STATES.has(String(row?.state || ""));
 }
 
 async function markDealSaved(id, email, env) {
@@ -243,7 +259,7 @@ function serializeViewing(row, now = Date.now()) {
     viewingAddress: String(row.viewing_address || "").trim(),
     viewingAt: new Date(viewingAt).toISOString(),
     status,
-    dealSaved: ["pending", "received"].includes(String(row.commission_state || "")),
+    dealSaved: CLOSED_STATES.has(String(row.commission_state || "")),
     reminderAt: isoOrEmpty(row.reminder_at),
     reminderNotifiedAt: isoOrEmpty(row.reminder_notified_at),
     followupAt: isoOrEmpty(row.followup_at),
@@ -271,6 +287,12 @@ async function processReminderPushes(env) {
       AND reminder_notified_at IS NULL
       AND reminder_at <= ?
       AND reminder_at >= ?
+      AND NOT EXISTS (
+        SELECT 1 FROM sale_viewing_commissions c
+        WHERE c.viewing_id = sale_viewings.id
+          AND c.user_email = sale_viewings.user_email
+          AND c.state IN ('pending', 'received')
+      )
     ORDER BY reminder_at ASC
     LIMIT 30
   `).bind(now, now - MAX_LATE_MS).all();
@@ -302,6 +324,12 @@ async function processFollowupPushes(env) {
       AND followup_notified_at IS NULL
       AND followup_at <= ?
       AND followup_at >= ?
+      AND NOT EXISTS (
+        SELECT 1 FROM sale_viewing_commissions c
+        WHERE c.viewing_id = sale_viewings.id
+          AND c.user_email = sale_viewings.user_email
+          AND c.state IN ('pending', 'received')
+      )
     ORDER BY followup_at ASC
     LIMIT 30
   `).bind(now, now - MAX_LATE_MS).all();
@@ -330,6 +358,12 @@ async function claimNotification(id, column, attemptAt, env) {
     SET ${column} = ?, updated_at = ?
     WHERE id = ? AND cancelled_at IS NULL
       AND (${column} IS NULL OR ${column} <= ?)
+      AND NOT EXISTS (
+        SELECT 1 FROM sale_viewing_commissions c
+        WHERE c.viewing_id = sale_viewings.id
+          AND c.user_email = sale_viewings.user_email
+          AND c.state IN ('pending', 'received')
+      )
   `).bind(attemptAt, attemptAt, id, attemptAt - RETRY_AFTER_MS).run();
   return Number(result.meta?.changes || 0) > 0;
 }

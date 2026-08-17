@@ -1,4 +1,4 @@
-import { formatVnd } from "./sale-format.js";
+import { formatVnd } from "../shared/format.js";
 
 const state = {
   months: [],

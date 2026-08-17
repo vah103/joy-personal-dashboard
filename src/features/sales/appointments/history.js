@@ -1,14 +1,14 @@
-import { formatVietnamViewingTime } from "./sale-appointment.js";
+import { formatVietnamViewingTime } from "./appointment.js";
 import {
   formatVnd,
   vietnamDatetimeLocal,
   vietnamLocalToIso,
   vietnamMonthKey,
-} from "./sale-format.js";
+} from "../shared/format.js";
 
 const HISTORY_CONTENT_SELECTOR = "#sales-history-content";
 const DISPLAY_ROW_SELECTOR = ".sales-history-table tbody tr:not(.sales-history-edit-row)";
-const DEALS_ENDPOINT = "/api/sales/deals";
+const CLOSE_DEAL_ENDPOINT = "/api/sales/viewings/close-deal";
 const VIEWINGS_ENDPOINT = "/api/sales/viewings";
 
 let viewingHistory = [];
@@ -24,6 +24,10 @@ function translateRoot(root) {
   if (root) window.JoyI18n?.translateRoot?.(root);
 }
 
+function emitSalesChanged(kind) {
+  window.dispatchEvent(new CustomEvent("joy:sales-changed", { detail: { kind } }));
+}
+
 function historyStatusLabel(viewing) {
   if (viewing.dealSaved) return "Closed";
   if (viewing.status === "upcoming") return "Sắp tới";
@@ -32,6 +36,7 @@ function historyStatusLabel(viewing) {
 }
 
 function reminderLabel(viewing) {
+  if (viewing.dealSaved) return "—";
   if (viewing.status === "cancelled") return "Cancelled";
   if (viewing.followupNotifiedAt) return "Follow-up sent";
   if (viewing.status === "past" && viewing.followupAt) return "Follow-up pending";
@@ -51,6 +56,7 @@ function appointmentErrorMessage(code) {
     VIEWING_TIME_TOO_FAR: "Joy chỉ nhận lịch trong vòng 1 năm tới.",
     VIEWING_NOT_FOUND: "Không tìm thấy lịch hẹn này.",
     VIEWING_ID_REQUIRED: "Joy chưa xác định được lịch cần sửa.",
+    VIEWING_ALREADY_CLOSED: "Deal đã được lưu. Lịch hẹn này không thể sửa hoặc xóa nữa.",
     AUTH_REQUIRED: "Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại Joy.",
   };
   return messages[code] || "Joy chưa thể lưu lịch. Hãy thử lại.";
@@ -92,17 +98,20 @@ function makeActionButton(label, action, viewing, className, { disabled = false,
 }
 
 function renderHistoryDisplayRow(viewing) {
+  const editable = !viewing.dealSaved;
   const row = document.createElement("tr");
   row.dataset.status = viewing.status;
   row.dataset.viewingId = viewing.id;
   row.dataset.dealSaved = viewing.dealSaved ? "true" : "false";
-  row.dataset.historyEditable = "true";
-  row.tabIndex = 0;
+  row.dataset.historyEditable = editable ? "true" : "false";
+  row.tabIndex = editable ? 0 : -1;
   row.setAttribute(
     "aria-label",
-    isCoarsePointer()
-      ? "Tap to edit this appointment"
-      : "Double-click or press Enter to edit this appointment",
+    editable
+      ? isCoarsePointer()
+        ? "Tap to edit this appointment"
+        : "Double-click or press Enter to edit this appointment"
+      : "Closed deal",
   );
 
   [
@@ -116,8 +125,10 @@ function renderHistoryDisplayRow(viewing) {
 
   const actionCell = document.createElement("td");
   actionCell.className = "sales-history-actions-cell";
+  if (editable) {
+    actionCell.append(makeActionButton("Edit", "edit", viewing, "sales-history-edit-button"));
+  }
   actionCell.append(
-    makeActionButton("Edit", "edit", viewing, "sales-history-edit-button"),
     makeActionButton(
       viewing.dealSaved ? "Deal saved" : "Close deal",
       "close-deal",
@@ -139,7 +150,7 @@ function renderHistoryEditRow(viewing) {
   row.className = "sales-history-edit-row";
   row.dataset.status = viewing.status;
   row.dataset.viewingId = viewing.id;
-  row.dataset.dealSaved = viewing.dealSaved ? "true" : "false";
+  row.dataset.dealSaved = "false";
 
   const timeCell = document.createElement("td");
   timeCell.append(makeHistoryInput("viewingTime", vietnamDatetimeLocal(viewing.viewingAt), { type: "datetime-local", required: true }));
@@ -166,13 +177,6 @@ function renderHistoryEditRow(viewing) {
   controls.className = "sales-history-edit-controls";
   controls.append(
     makeActionButton("Delete", "delete", viewing, "sales-history-delete-button"),
-    makeActionButton(
-      viewing.dealSaved ? "Deal saved" : "Close deal",
-      "close-deal",
-      viewing,
-      "sales-history-close-button",
-      { disabled: Boolean(viewing.dealSaved) },
-    ),
     makeActionButton("Save", "save", viewing, "sales-history-save-button"),
   );
 
@@ -192,7 +196,8 @@ function renderViewingHistory() {
   const hint = document.querySelector("#sales-history-edit-hint");
   if (!content || !count) return;
 
-  if (editingViewingId && !viewingById(editingViewingId)) editingViewingId = "";
+  const editingViewing = editingViewingId ? viewingById(editingViewingId) : null;
+  if (editingViewingId && (!editingViewing || editingViewing.dealSaved)) editingViewingId = "";
   count.textContent = `${viewingHistory.length} lịch hẹn`;
   if (hint) hint.textContent = isCoarsePointer() ? "Tap a row to edit it" : "Double-click a row to edit it";
 
@@ -220,7 +225,7 @@ function renderViewingHistory() {
   const body = document.createElement("tbody");
   viewingHistory.forEach((viewing) => {
     body.append(
-      String(viewing.id) === String(editingViewingId)
+      String(viewing.id) === String(editingViewingId) && !viewing.dealSaved
         ? renderHistoryEditRow(viewing)
         : renderHistoryDisplayRow(viewing),
     );
@@ -255,7 +260,8 @@ async function loadViewingHistory({ force = false } = {}) {
 }
 
 function startEditing(id) {
-  if (!viewingById(id)) return;
+  const viewing = viewingById(id);
+  if (!viewing || viewing.dealSaved) return;
   editingViewingId = String(id);
   renderViewingHistory();
 }
@@ -274,9 +280,18 @@ function setEditMessage(row, text) {
   translateRoot(row);
 }
 
+async function recoverClosedViewing(code) {
+  if (code !== "VIEWING_ALREADY_CLOSED") return false;
+  editingViewingId = "";
+  historyLoaded = false;
+  await loadViewingHistory({ force: true });
+  return true;
+}
+
 async function saveViewingHistoryEdit(row) {
   const id = String(row?.dataset.viewingId || "");
-  if (!id) return;
+  const viewing = viewingById(id);
+  if (!id || !viewing || viewing.dealSaved) return;
   const field = (name) => row.querySelector(`[data-history-field="${name}"]`);
   const customerName = field("customerName")?.value.trim() || "";
   const phone = field("phone")?.value.trim() || "";
@@ -303,7 +318,9 @@ async function saveViewingHistoryEdit(row) {
     editingViewingId = "";
     historyLoaded = false;
     await loadViewingHistory({ force: true });
+    emitSalesChanged("viewing-updated");
   } catch (error) {
+    if (await recoverClosedViewing(error.code)) return;
     row.querySelectorAll("button").forEach((button) => { button.disabled = false; });
     setEditMessage(row, appointmentErrorMessage(error.code));
   }
@@ -312,7 +329,7 @@ async function saveViewingHistoryEdit(row) {
 async function deleteViewing(row) {
   const id = String(row?.dataset.viewingId || "");
   const viewing = viewingById(id);
-  if (!id || !viewing) return;
+  if (!id || !viewing || viewing.dealSaved) return;
   const customer = row.querySelector('[data-history-field="customerName"]')?.value.trim() || viewing.customerName || "this appointment";
   if (!window.confirm(`Delete the appointment for ${customer}?`)) return;
 
@@ -327,11 +344,13 @@ async function deleteViewing(row) {
       body: JSON.stringify({ id }),
     });
     const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(payload.error || "VIEWING_DELETE_FAILED");
+    if (!response.ok) throw Object.assign(new Error(payload.error || "VIEWING_DELETE_FAILED"), { code: payload.error });
     viewingHistory = viewingHistory.filter((item) => String(item.id) !== id);
     editingViewingId = "";
     renderViewingHistory();
-  } catch {
+    emitSalesChanged("viewing-deleted");
+  } catch (error) {
+    if (await recoverClosedViewing(error.code)) return;
     row.querySelectorAll("button").forEach((button) => { button.disabled = false; });
     setEditMessage(row, "Could not delete the appointment. Please try again.");
   }
@@ -392,19 +411,18 @@ function updateCloseDealPreview() {
   preview.textContent = formatVnd(Math.round(rent * rate));
 }
 
-function openCloseDealForm(id, row = null) {
+function openCloseDealForm(id) {
   const viewing = viewingById(id);
-  if (!viewing || viewing.dealSaved) return;
+  if (!viewing || viewing.dealSaved || String(editingViewingId) === String(id)) return;
   const modal = ensureCloseDealModal();
   const form = modal.querySelector("#sale-close-deal-form");
   if (!form) return;
-  const field = (name) => row?.querySelector(`[data-history-field="${name}"]`)?.value.trim() || "";
 
   form.reset();
   form.elements.viewingId.value = viewing.id;
-  form.elements.customer.value = field("customerName") || viewing.customerName || "";
-  form.elements.phone.value = field("phone") || viewing.phone || "";
-  form.elements.address.value = field("viewingAddress") || viewing.viewingAddress || "";
+  form.elements.customer.value = viewing.customerName || "";
+  form.elements.phone.value = viewing.phone || "";
+  form.elements.address.value = viewing.viewingAddress || "";
   const status = modal.querySelector(".sale-close-deal-status");
   if (status) {
     status.textContent = "";
@@ -424,17 +442,6 @@ function closeDealForm() {
   if (!assistantVisible) document.body.classList.remove("modal-open");
 }
 
-async function markViewingDealSaved(id) {
-  const response = await fetch(VIEWINGS_ENDPOINT, {
-    method: "PATCH",
-    credentials: "same-origin",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id, dealSaved: true }),
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.error || "VIEWING_DEAL_STATE_FAILED");
-}
-
 async function saveClosedDeal(event) {
   event.preventDefault();
   const form = event.currentTarget;
@@ -445,7 +452,14 @@ async function saveClosedDeal(event) {
   const save = form.querySelector('button[type="submit"]');
   const data = new FormData(form);
   const viewingId = String(data.get("viewingId") || "").trim();
+  const viewing = viewingById(viewingId);
+  if (!viewing || viewing.dealSaved) {
+    closeDealForm();
+    return;
+  }
+
   const payload = {
+    viewingId,
     month: vietnamMonthKey(),
     customer: String(data.get("customer") || "").trim(),
     phone: String(data.get("phone") || "").trim(),
@@ -461,28 +475,28 @@ async function saveClosedDeal(event) {
   translateRoot(modal);
 
   try {
-    const response = await fetch(DEALS_ENDPOINT, {
+    const response = await fetch(CLOSE_DEAL_ENDPOINT, {
       method: "POST",
       credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
     const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(result.error || "SALE_DEAL_CREATE_FAILED");
+    if (!response.ok) throw Object.assign(new Error(result.error || "SALE_DEAL_CREATE_FAILED"), { code: result.error });
 
-    const viewing = viewingById(viewingId);
-    if (viewing) viewing.dealSaved = true;
     editingViewingId = "";
-    renderViewingHistory();
-    try {
-      await markViewingDealSaved(viewingId);
-    } catch {
-      // The deal is already stored in Sale Manager; keep the session marker visible.
-    }
-
+    historyLoaded = false;
+    await loadViewingHistory({ force: true });
     closeDealForm();
     window.dispatchEvent(new CustomEvent("joy:sale-deal-saved"));
-  } catch {
+    emitSalesChanged("deal-saved");
+  } catch (error) {
+    if (error.code === "VIEWING_ALREADY_CLOSED") {
+      historyLoaded = false;
+      await loadViewingHistory({ force: true });
+      closeDealForm();
+      return;
+    }
     if (status) {
       status.textContent = "Could not save the deal. Please try again.";
       status.hidden = false;
@@ -498,6 +512,7 @@ async function saveClosedDeal(event) {
 function displayRowFromTarget(target) {
   const row = target?.closest?.(DISPLAY_ROW_SELECTOR);
   if (!row?.closest(HISTORY_CONTENT_SELECTOR)) return null;
+  if (row.dataset.historyEditable !== "true") return null;
   return row;
 }
 
@@ -515,7 +530,7 @@ function installHistory() {
       if (control.dataset.historyAction === "edit") startEditing(id);
       if (control.dataset.historyAction === "save") void saveViewingHistoryEdit(row);
       if (control.dataset.historyAction === "delete") void deleteViewing(row);
-      if (control.dataset.historyAction === "close-deal") openCloseDealForm(id, row);
+      if (control.dataset.historyAction === "close-deal") openCloseDealForm(id);
       return;
     }
 

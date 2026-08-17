@@ -1,13 +1,13 @@
 import {
   formatVietnamViewingTime,
   parseSaleAppointmentInput,
-} from "./sale-appointment.js";
+} from "../appointments/appointment.js";
 import {
   formatVnd,
   vietnamDatetimeLocal,
   vietnamLocalToIso,
   vietnamMonthKey,
-} from "./sale-format.js";
+} from "../shared/format.js";
 
 const DEALS_ENDPOINT = "/api/sales/deals";
 
@@ -183,6 +183,12 @@ async function loadDashboardCommission() {
   }
 }
 
+function refreshDashboardViewings() {
+  if (typeof window.fetchCloudSales === "function") {
+    void window.fetchCloudSales({ silent: true });
+  }
+}
+
 function createAssistantModal() {
   if (!document.querySelector("#sales-assistant-modal")) {
     document.body.insertAdjacentHTML("beforeend", ASSISTANT_HTML);
@@ -326,6 +332,7 @@ async function saveAppointment(event) {
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw Object.assign(new Error(result.error || "VIEWING_CREATE_FAILED"), { code: result.error });
     showAppointmentStatus(`${result.message} ${result.viewing.customerName} · ${formatVietnamViewingTime(result.viewing.viewingAt)}.`, "success");
+    window.dispatchEvent(new CustomEvent("joy:sales-changed", { detail: { kind: "viewing-created" } }));
     window.setTimeout(() => window.location.reload(), 1200);
   } catch (error) {
     showAppointmentStatus(appointmentErrorMessage(error.code), "error");
@@ -365,6 +372,7 @@ async function initializeSalesAssistant() {
   });
 
   window.addEventListener("joy:sale-deal-saved", () => void loadDashboardCommission());
+  window.addEventListener("joy:sales-changed", refreshDashboardViewings);
   window.addEventListener("joy:i18n-ready", () => {
     decorateDashboardSaleCard();
     translateRoot(document.querySelector("#sales-assistant-modal"));
@@ -377,7 +385,7 @@ async function initializeSalesAssistant() {
     if (document.visibilityState === "visible") void loadDashboardCommission();
   });
 
-  await import("./room-summary.js?v=joy-room-summary-v1");
+  await import("../room-summary/room-summary.js?v=joy-room-summary-v1");
   window.dispatchEvent(new CustomEvent("joy:sale-assistant-ready"));
 }
 

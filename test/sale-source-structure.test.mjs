@@ -28,13 +28,25 @@ test("Sale source ownership stays feature-first and the page stays layout-only",
   );
 });
 
-test("Sale frontend owners do not reintroduce legacy patch layers", async () => {
-  const [assistant, history, manager, format] = await Promise.all([
+test("Sale frontend owners use canonical source imports and no legacy patch layers", async () => {
+  const [assistant, history, manager, format, salesBuild, packageJson] = await Promise.all([
     readFile(new URL("../src/features/sales/assistant/sales-assistant.js", import.meta.url), "utf8"),
     readFile(new URL("../src/features/sales/appointments/history.js", import.meta.url), "utf8"),
     readFile(new URL("../src/features/sales/manager/sale-manager.js", import.meta.url), "utf8"),
     readFile(new URL("../src/features/sales/shared/format.js", import.meta.url), "utf8"),
+    readFile(new URL("../scripts/build-sales.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
+
+  assert.match(assistant, /from "\.\.\/appointments\/appointment\.js"/);
+  assert.match(assistant, /from "\.\.\/shared\/format\.js"/);
+  assert.match(assistant, /import\("\.\.\/room-summary\/room-summary\.js/);
+  assert.match(history, /from "\.\/appointment\.js"/);
+  assert.match(history, /from "\.\.\/shared\/format\.js"/);
+  assert.match(manager, /from "\.\.\/shared\/format\.js"/);
+  assert.doesNotMatch(assistant, /\.\/sale-appointment\.js|\.\/sale-format\.js|\.\/room-summary\.js/);
+  assert.doesNotMatch(history, /\.\/sale-appointment\.js|\.\/sale-format\.js/);
+  assert.doesNotMatch(manager, /\.\/sale-format\.js/);
 
   assert.doesNotMatch(assistant, /renderViewingHistory|loadViewingHistory|sales-assistant-launch|sales-history-refresh/);
   assert.doesNotMatch(history, /MutationObserver|mergeReminderColumns|syncDealStates|sales-history-refresh|sales-history-cancel-button/);
@@ -42,4 +54,10 @@ test("Sale frontend owners do not reintroduce legacy patch layers", async () => 
   assert.doesNotMatch(manager, /function formatVnd\(/);
   assert.match(format, /export function formatVnd/);
   assert.match(format, /export function vietnamMonthKey/);
+
+  assert.match(salesBuild, /cp\(source, destination, \{ recursive: true \}\)/);
+  assert.match(salesBuild, /sales-assistant\.js/);
+  assert.match(salesBuild, /sale-history-row-edit\.js/);
+  assert.match(salesBuild, /sale-manager\.js/);
+  assert.match(packageJson, /scripts\/build-sales\.mjs/);
 });
