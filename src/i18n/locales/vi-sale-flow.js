@@ -29,6 +29,8 @@ export default Object.freeze({
   "saleAssistant.appointmentPlaceholder": "Ví dụ: 8h tối mai chị Lan 0987654321 xem phòng 180 Phú Mỹ",
   "saleAssistant.roomSourcePlaceholder": "Ví dụ: 180 Phú Mỹ còn phòng 302 giá 4tr2, vào luôn. Full nội thất, thang máy. Điện 4k, nước 100k/người...",
   "saleAssistant.captureAria": "Chế độ chụp tóm tắt phòng",
+  "saleAssistant.loading": "Đang tải…",
+  "saleAssistant.loadingHistory": "Đang tải lịch sử…",
   "salePage.navAria": "Điều hướng khu vực Sale",
   "salePage.dashboard": "Dashboard",
   "salePage.workspace": "Khu vực Sale",
