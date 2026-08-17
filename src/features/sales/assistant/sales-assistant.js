@@ -253,8 +253,8 @@ function closeAssistant() {
 
 function switchMode(mode) {
   const currentMode = document.querySelector("[data-assistant-mode].active")?.dataset.assistantMode || "";
-  if (currentMode === mode) return;
-  if (currentMode === "history" && !requestHistoryLeave()) return;
+  if (currentMode === mode) return true;
+  if (currentMode === "history" && !requestHistoryLeave()) return false;
 
   document.querySelectorAll("[data-assistant-mode]").forEach((button) => {
     button.classList.toggle("active", button.dataset.assistantMode === mode);
@@ -270,6 +270,7 @@ function switchMode(mode) {
   };
   if (title) title.textContent = titles[mode] || titles.appointment;
   if (mode === "history") requestHistoryLoad({ force: true });
+  return true;
 }
 
 function showAppointmentStatus(message, state = "") {
@@ -429,13 +430,29 @@ async function initializeSalesAssistant() {
   document.addEventListener("click", (event) => {
     const control = event.target.closest("[data-action], [data-assistant-mode]");
     if (!control) return;
-    if (control.dataset.action === "open-sales-assistant") openAssistant();
-    if (control.dataset.action === "close-sales-assistant") closeAssistant();
-    if (control.dataset.assistantMode) switchMode(control.dataset.assistantMode);
+    if (control.dataset.action === "open-sales-assistant") {
+      openAssistant();
+      return;
+    }
+    if (control.dataset.action === "close-sales-assistant") {
+      if (!closeAssistant()) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+      return;
+    }
+    if (control.dataset.assistantMode && !switchMode(control.dataset.assistantMode)) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
   });
 
-  document.querySelector("#sales-assistant-modal")?.addEventListener("mousedown", (event) => {
-    if (event.target.id === "sales-assistant-modal") closeAssistant();
+  document.querySelector("#sales-assistant-modal")?.addEventListener("click", (event) => {
+    if (event.target.id !== "sales-assistant-modal") return;
+    if (!closeAssistant()) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
   });
   document.querySelector("#sale-appointment-parse")?.addEventListener("click", parseAppointment);
   document.querySelector("#sale-appointment-reset")?.addEventListener("click", resetAppointment);
