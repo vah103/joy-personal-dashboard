@@ -1,19 +1,9 @@
-function normalizeWhitespace(value) {
-  return String(value || "")
-    .replace(/\r\n?/g, "\n")
-    .replace(/[\t\u00a0]+/g, " ")
-    .replace(/[ ]{2,}/g, " ")
-    .replace(/ *\n */g, "\n")
-    .trim();
-}
-
-function normalizeSearch(value) {
-  return String(value || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d");
-}
+import {
+  capitalizeFirst,
+  lowerFirst,
+  normalizeSearch,
+  normalizeWhitespace,
+} from "../shared/text.js";
 
 const INTERNAL_PHRASES = [
   /(?:hoa\s*hồng|hoa\s*hong|commission)\s*[:\-]?\s*\d+(?:[.,]\d+)?\s*%?/giu,
@@ -68,16 +58,6 @@ const LABELED_FIELDS = new Map([
   ["dich vu", "services"], ["phi dich vu", "services"],
   ["luu y", "notes"], ["ghi chu", "notes"],
 ]);
-
-function capitalizeFirst(value) {
-  const text = String(value || "").trim();
-  return text ? text[0].toUpperCase() + text.slice(1) : "";
-}
-
-function lowerFirst(value) {
-  const text = String(value || "").trim();
-  return text ? text[0].toLowerCase() + text.slice(1) : "";
-}
 
 function stripDecorations(value) {
   return String(value || "")
