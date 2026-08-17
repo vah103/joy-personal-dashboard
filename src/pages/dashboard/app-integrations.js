@@ -1,3 +1,5 @@
+let salesFetchSeq = 0;
+
 async function backendRequest(path, options = {}) {
   const headers = new Headers(options.headers || {});
   if (options.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
@@ -17,6 +19,7 @@ async function backendRequest(path, options = {}) {
 }
 
 async function fetchCloudSales({ silent = false } = {}) {
+  const requestSeq = ++salesFetchSeq;
   if (!silent) {
     sales.status = "loading";
     renderBrief();
@@ -25,12 +28,14 @@ async function fetchCloudSales({ silent = false } = {}) {
 
   try {
     const payload = await backendRequest("/api/sales/viewings");
+    if (requestSeq !== salesFetchSeq) return;
     sales.viewings = Array.isArray(payload.viewings) ? payload.viewings : [];
     sales.fetchedAt = Number(payload.fetchedAt || Date.now());
     sales.errorCode = "";
     sales.status = "ready";
     startSalesAutoRefresh();
   } catch (error) {
+    if (requestSeq !== salesFetchSeq) return;
     sales.viewings = [];
     sales.errorCode = error.code || "SALE_SYNC_FAILED";
     if (error.status === 401 || error.code === "SHEETS_AUTHORIZATION_REQUIRED") {
@@ -39,6 +44,7 @@ async function fetchCloudSales({ silent = false } = {}) {
       sales.status = "error";
     }
   }
+  if (requestSeq !== salesFetchSeq) return;
   renderBrief();
   renderSales();
 }
