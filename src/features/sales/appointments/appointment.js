@@ -298,20 +298,30 @@ export function parseSaleAppointmentInput(rawInput, now = Date.now()) {
   return { ...result, missing, valid: missing.length === 0 };
 }
 
+function interfaceLocale() {
+  return globalThis.window?.JoyI18n?.getLocale?.()
+    || globalThis.JoyI18n?.getLocale?.()
+    || "vi";
+}
+
 export function formatVietnamViewingTime(value) {
   const timestamp = new Date(value).getTime();
   if (!Number.isFinite(timestamp)) return "—";
-  const parts = new Intl.DateTimeFormat("vi-VN", {
+  const locale = interfaceLocale();
+  const browserLocale = locale === "en" ? "en-GB" : "vi-VN";
+  const parts = new Intl.DateTimeFormat(browserLocale, {
     timeZone: VIETNAM_TIME_ZONE,
     weekday: "short",
     day: "2-digit",
-    month: "2-digit",
+    month: locale === "en" ? "short" : "2-digit",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
   }).formatToParts(new Date(timestamp));
   const part = (type) => parts.find((item) => item.type === type)?.value || "";
+  const time = `${part("hour")}:${part("minute")}`;
+  if (locale === "en") return `${part("weekday")}, ${part("day")} ${part("month")} ${part("year")} · ${time}`;
   const weekday = part("weekday").replace(/^Thứ\s+/u, "Th ");
-  return `${weekday}, ${part("day")}/${part("month")}/${part("year")} · ${part("hour")}:${part("minute")}`;
+  return `${weekday}, ${part("day")}/${part("month")}/${part("year")} · ${time}`;
 }
