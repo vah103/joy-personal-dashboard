@@ -26,6 +26,18 @@ export function monthHeading(key) {
   return MONTHS[index] ? `${MONTHS[index][0]} ${match[1]}` : "";
 }
 
+export function saleDealRevision(deal) {
+  return JSON.stringify([
+    cleanText(deal?.month),
+    cleanText(deal?.address),
+    cleanText(deal?.customer),
+    cleanText(deal?.host),
+    Math.round(toNumber(deal?.rent)),
+    cleanText(deal?.phone),
+    Math.round(toRate(deal?.rate) * 1_000_000),
+  ]);
+}
+
 export function parseSaleLedger(rows, year = 2026) {
   const values = Array.isArray(rows) ? rows : [];
   const headings = [];
@@ -80,7 +92,7 @@ export function parseSaleLedger(rows, year = 2026) {
         if (!(address || customer) || !(rent || phone || rate)) continue;
 
         const commission = toNumber(primary[4]) || Math.round(rent * rate);
-        deals.push({
+        const deal = {
           id: `${heading.key}:${rowIndex + 1}`,
           month: heading.key,
           sourceRow: rowIndex + 1,
@@ -92,7 +104,9 @@ export function parseSaleLedger(rows, year = 2026) {
           phone,
           rate,
           commission,
-        });
+        };
+        deal.revision = saleDealRevision(deal);
+        deals.push(deal);
         rowIndex += 1;
       }
     }
