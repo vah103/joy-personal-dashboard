@@ -2,18 +2,26 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-test("Sale Assistant safely resets repeated appointments and keeps nested Escape local", async () => {
+test("Sale Assistant serializes appointment saves and keeps History leave synchronous", async () => {
   const source = await readFile(new URL("../src/features/sales/assistant/sales-assistant.js", import.meta.url), "utf8");
 
   assert.doesNotMatch(source, /window\.location\.reload/);
   assert.match(source, /APPOINTMENT_RESET_DELAY_MS\s*=\s*1200/);
   assert.match(source, /appointmentInputVersion/);
+  assert.match(source, /let appointmentSaving = false/);
+  assert.match(source, /let appointmentOperationSeq = 0/);
+  assert.match(source, /function setAppointmentBusy/);
+  assert.match(source, /querySelectorAll\("textarea, button"\)/);
+  assert.match(source, /querySelectorAll\("input, button"\)/);
+  assert.match(source, /if \(appointmentSaving\) return/);
+  assert.match(source, /operationId !== appointmentOperationSeq/);
   assert.match(source, /scheduleAppointmentReset\(\)/);
-  assert.match(source, /if \(save\) save\.disabled = false;/);
   assert.match(source, /#room-summary-capture/);
   assert.match(source, /historyEditInProgress/);
-  assert.match(source, /deferUntilHistoryEditResolved/);
-  assert.match(source, /if \(currentMode === mode\) return;/);
+  assert.match(source, /function requestHistoryLeave/);
+  assert.match(source, /joy:sale-history-leave-request/);
+  assert.doesNotMatch(source, /deferUntilHistoryEditResolved/);
+  assert.match(source, /if \(currentMode === "history" && !requestHistoryLeave\(\)\) return/);
   assert.match(source, /\{\s*capture:\s*true\s*\}/);
 });
 
@@ -27,12 +35,20 @@ test("visible History rerenders saving state without API polling or destroying a
   assert.match(source, /setInterval\(refreshVisibleHistoryState,\s*HISTORY_STATE_REFRESH_MS\)/);
 });
 
-test("History protects dirty edits, stale responses, async modal state, and review recovery", async () => {
+test("History protects dirty edits, mutation requests, stale responses, async modal state, and review recovery", async () => {
   const source = await readFile(new URL("../src/features/sales/appointments/history.js", import.meta.url), "utf8");
 
   assert.match(source, /let editingDirty = false/);
   assert.match(source, /confirmDiscardEditing/);
   assert.match(source, /Discard unsaved appointment changes\?/);
+  assert.match(source, /let editOperationSaving = false/);
+  assert.match(source, /let editOperationSeq = 0/);
+  assert.match(source, /function setHistoryEditBusy/);
+  assert.match(source, /row\.querySelectorAll\("input, button"\)/);
+  assert.match(source, /if \(editOperationSaving && !force\) return false/);
+  assert.match(source, /operationId !== editOperationSeq/);
+  assert.match(source, /joy:sale-history-leave-request/);
+  assert.match(source, /editOperationSaving \|\| !cancelEditing\(\)/);
   assert.match(source, /let historyLoadSeq = 0/);
   assert.match(source, /requestSeq !== historyLoadSeq/);
   assert.match(source, /let closeDealSaving = false/);
@@ -46,7 +62,7 @@ test("History protects dirty edits, stale responses, async modal state, and revi
   assert.match(source, /function closeDealErrorMessage/);
 });
 
-test("Sale Manager and Dashboard ignore stale Sale requests", async () => {
+test("Sale Manager protects dirty forms and Dashboard ignores stale Sale requests", async () => {
   const [manager, integrations, assistant] = await Promise.all([
     readFile(new URL("../src/features/sales/manager/sale-manager.js", import.meta.url), "utf8"),
     readFile(new URL("../src/pages/dashboard/app-integrations.js", import.meta.url), "utf8"),
@@ -55,8 +71,15 @@ test("Sale Manager and Dashboard ignore stale Sale requests", async () => {
 
   assert.match(manager, /loadSeq:\s*0/);
   assert.match(manager, /formSaving:\s*false/);
+  assert.match(manager, /formDirty:\s*false/);
   assert.match(manager, /formOperationSeq:\s*0/);
   assert.match(manager, /requestSeq !== state\.loadSeq/);
+  assert.match(manager, /function confirmDiscardForm/);
+  assert.match(manager, /Discard unsaved deal changes\?/);
+  assert.match(manager, /if \(!force && !confirmDiscardForm\(\)\) return false/);
+  assert.match(manager, /state\.formDirty = false/);
+  assert.match(manager, /elements\.form\.addEventListener\("input"/);
+  assert.match(manager, /elements\.form\.addEventListener\("change"/);
   assert.match(manager, /if \(state\.formSaving && !force\) return false/);
   assert.match(integrations, /let salesFetchSeq = 0/);
   assert.match(integrations, /requestSeq !== salesFetchSeq/);
