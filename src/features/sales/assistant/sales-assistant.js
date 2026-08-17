@@ -207,6 +207,18 @@ function visibleModalExists() {
   return [...document.querySelectorAll(".modal-backdrop")].some((modal) => !modal.hidden);
 }
 
+function historyEditInProgress() {
+  return Boolean(document.querySelector(".sales-history-edit-row"));
+}
+
+function deferUntilHistoryEditResolved(callback) {
+  if (!historyEditInProgress()) return false;
+  window.setTimeout(() => {
+    if (!historyEditInProgress()) callback();
+  }, 0);
+  return true;
+}
+
 function requestHistoryLoad({ force = false } = {}) {
   window.dispatchEvent(new CustomEvent("joy:sale-history-open", { detail: { force } }));
 }
@@ -215,7 +227,7 @@ function refreshVisibleHistoryState() {
   const modal = document.querySelector("#sales-assistant-modal");
   const panel = document.querySelector('[data-assistant-panel="history"]');
   if (modal?.hidden !== false || panel?.hidden !== false) return;
-  if (document.querySelector(".sales-history-edit-row")) return;
+  if (historyEditInProgress()) return;
   requestHistoryLoad();
 }
 
@@ -230,6 +242,7 @@ function openAssistant() {
 }
 
 function closeAssistant() {
+  if (deferUntilHistoryEditResolved(closeAssistant)) return;
   const modal = document.querySelector("#sales-assistant-modal");
   if (!modal) return;
   modal.hidden = true;
@@ -237,6 +250,10 @@ function closeAssistant() {
 }
 
 function switchMode(mode) {
+  const currentMode = document.querySelector("[data-assistant-mode].active")?.dataset.assistantMode || "";
+  if (currentMode === mode) return;
+  if (currentMode === "history" && deferUntilHistoryEditResolved(() => switchMode(mode))) return;
+
   document.querySelectorAll("[data-assistant-mode]").forEach((button) => {
     button.classList.toggle("active", button.dataset.assistantMode === mode);
   });
@@ -416,7 +433,7 @@ async function initializeSalesAssistant() {
     if (event.key !== "Escape") return;
     if (document.querySelector("#sale-close-deal-modal")?.hidden === false) return;
     if (document.querySelector("#room-summary-capture")?.hidden === false) return;
-    if (document.querySelector(".sales-history-edit-row")) return;
+    if (historyEditInProgress()) return;
     if (!document.querySelector("#sales-assistant-modal")?.hidden) closeAssistant();
   }, { capture: true });
 
