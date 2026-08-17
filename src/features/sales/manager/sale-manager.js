@@ -1,5 +1,9 @@
 import { formatVnd } from "../shared/format.js";
 
+const SAFE_ADD_ENDPOINT = "/api/sales/deals/idempotent";
+const SAFE_UPDATE_ENDPOINT = "/api/sales/deals/safe-update";
+const ADD_REVIEW_ENDPOINT = "/api/sales/deals/idempotent/review";
+
 const state = {
   months: [],
   selectedMonth: "",
@@ -8,6 +12,8 @@ const state = {
   loadSeq: 0,
   formSaving: false,
   formDirty: false,
+  formReviewPending: false,
+  formRequestId: "",
   formOperationSeq: 0,
 };
 
@@ -135,16 +141,49 @@ function filteredDeals(deals) {
 function setFormBusy(busy) {
   state.formSaving = busy;
   elements.form.querySelectorAll("input, select, button").forEach((control) => {
-    control.disabled = busy || (control.name === "month" && Boolean(state.editingDeal));
+    if (control.dataset.saleReview) return;
+    control.disabled = busy
+      || state.formReviewPending
+      || (control.name === "month" && Boolean(state.editingDeal));
   });
-  elements.save.disabled = busy;
+  elements.save.disabled = busy || state.formReviewPending;
+}
+
+function showFormError(message) {
+  elements.formError.replaceChildren(document.createTextNode(message));
+  elements.formError.hidden = !message;
+}
+
+function setAddReviewMode(active, message = "") {
+  state.formReviewPending = active;
+  elements.form.querySelectorAll("input, select").forEach((control) => {
+    control.disabled = active || state.formSaving || (control.name === "month" && Boolean(state.editingDeal));
+  });
+  elements.save.disabled = active || state.formSaving;
+  showFormError(message);
+  if (!active) return;
+
+  elements.formError.append(document.createElement("br"));
+  const saved = document.createElement("button");
+  saved.type = "button";
+  saved.className = "sale-secondary-button";
+  saved.dataset.saleReview = "saved";
+  saved.textContent = "Check if saved";
+  const retry = document.createElement("button");
+  retry.type = "button";
+  retry.className = "sale-secondary-button";
+  retry.dataset.saleReview = "retry";
+  retry.textContent = "Check & allow retry";
+  elements.formError.append(saved, document.createTextNode(" "), retry);
 }
 
 function openForm(deal = null) {
   if (state.formSaving) return;
   state.editingDeal = deal;
+  state.formRequestId = "";
+  state.formReviewPending = false;
   elements.form.reset();
-  elements.formError.hidden = true;
+  showFormError("");
   elements.formTitle.textContent = deal ? "Edit closed room" : "Add a closed room";
   elements.form.elements.sourceRow.value = deal?.sourceRow || "";
   elements.form.elements.month.value = deal?.month || state.selectedMonth;
@@ -156,6 +195,7 @@ function openForm(deal = null) {
   elements.form.elements.rent.value = deal?.rent || "";
   elements.form.elements.rate.value = deal ? Number(deal.rate || 0) * 100 : "";
   state.formDirty = false;
+  setFormBusy(false);
   updateCommissionPreview();
   elements.modal.hidden = false;
   document.body.classList.add("sale-modal-open");
@@ -173,12 +213,19 @@ function closeForm({ force = false } = {}) {
   document.body.classList.remove("sale-modal-open");
   state.editingDeal = null;
   state.formDirty = false;
+  state.formReviewPending = false;
+  state.formRequestId = "";
   return true;
+}
+
+function newRequestId() {
+  if (globalThis.crypto?.randomUUID) return `deal:${globalThis.crypto.randomUUID()}`;
+  return `deal:${Date.now().toString(36)}:${Math.random().toString(36).slice(2)}`;
 }
 
 async function saveDeal(event) {
   event.preventDefault();
-  if (state.formSaving || !elements.form.reportValidity()) return;
+  if (state.formSaving || state.formReviewPending || !elements.form.reportValidity()) return;
   const editingDeal = state.editingDeal;
   const wasEditing = Boolean(editingDeal);
   const form = new FormData(elements.form);
@@ -193,12 +240,21 @@ async function saveDeal(event) {
     rate: Number(form.get("rate") || 0),
   };
 
+  let endpoint = SAFE_ADD_ENDPOINT;
+  if (editingDeal) {
+    endpoint = SAFE_UPDATE_ENDPOINT;
+    payload.expectedRevision = String(editingDeal.revision || "");
+  } else {
+    state.formRequestId ||= newRequestId();
+    payload.requestId = state.formRequestId;
+  }
+
   const operationId = ++state.formOperationSeq;
   setFormBusy(true);
   elements.save.textContent = "Saving…";
-  elements.formError.hidden = true;
+  showFormError("");
   try {
-    await apiRequest("/api/sales/deals", {
+    await apiRequest(endpoint, {
       method: editingDeal ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -206,22 +262,74 @@ async function saveDeal(event) {
     if (operationId !== state.formOperationSeq) return;
     state.selectedMonth = payload.month;
     state.formDirty = false;
+    state.formRequestId = "";
     setFormBusy(false);
     closeForm({ force: true });
     showToast(wasEditing ? "Deal updated in Google Sheets" : "Deal added to Google Sheets");
     await loadDeals({ quiet: true });
   } catch (error) {
     if (operationId !== state.formOperationSeq) return;
+    if (!editingDeal && ["SALE_DEAL_SAVE_REVIEW_REQUIRED", "SALE_DEAL_SAVE_IN_PROGRESS"].includes(error.code)) {
+      state.formDirty = false;
+      setFormBusy(false);
+      setAddReviewMode(
+        true,
+        error.code === "SALE_DEAL_SAVE_IN_PROGRESS"
+          ? "The previous save may still be settling. Check its result before trying again."
+          : "Joy could not confirm whether this deal was saved. Check the Sheet result before retrying.",
+      );
+      return;
+    }
     const messages = {
       SHEETS_WRITE_AUTHORIZATION_REQUIRED: "Reconnect Google once to allow Joy to save changes.",
       SHEETS_WRITE_ACCESS_DENIED: "Joy does not have permission to edit this Sheet.",
-      SALE_DEAL_NOT_FOUND: "This row moved in Google Sheets. Close the form and try again.",
+      SALE_DEAL_NOT_FOUND: "This row moved in Google Sheets. Close the form and refresh before editing again.",
+      SALE_DEAL_STALE: "This deal changed or moved in Google Sheets. Close the form, refresh, then edit the current row.",
+      SALE_DEAL_REVISION_REQUIRED: "This deal needs a fresh reload before it can be edited safely.",
+      SALE_DEAL_REQUEST_CONFLICT: "This save changed after it started. Review the Sheet before trying again.",
     };
-    elements.formError.textContent = messages[error.code] || "The deal could not be saved. Please try again.";
-    elements.formError.hidden = false;
+    showFormError(messages[error.code] || "The deal could not be saved. Please try again.");
   } finally {
     if (operationId === state.formOperationSeq && state.formSaving) setFormBusy(false);
     if (operationId === state.formOperationSeq) elements.save.textContent = "Save to Sheet";
+  }
+}
+
+async function resolveAddReview(resolution) {
+  if (!state.formReviewPending || !state.formRequestId || state.formSaving) return;
+  const reviewButtons = elements.formError.querySelectorAll("[data-sale-review]");
+  reviewButtons.forEach((button) => { button.disabled = true; });
+  try {
+    const payload = await apiRequest(ADD_REVIEW_ENDPOINT, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ requestId: state.formRequestId, resolution }),
+    });
+    if (resolution === "saved") {
+      state.formDirty = false;
+      state.formReviewPending = false;
+      state.formRequestId = "";
+      closeForm({ force: true });
+      showToast("Deal confirmed in Google Sheets");
+      await loadDeals({ quiet: true });
+      return;
+    }
+    if (payload.retryAllowed) {
+      state.formReviewPending = false;
+      setFormBusy(false);
+      showFormError("No matching deal was found. It is safe to press Save to Sheet again.");
+    }
+  } catch (error) {
+    const messages = {
+      SALE_DEAL_SAVE_IN_PROGRESS: "The previous save is still settling. Try this check again shortly.",
+      SALE_DEAL_REVIEW_NOT_FOUND: "No matching deal is visible yet. Use “Check & allow retry” before saving again.",
+      SALE_DEAL_REVIEW_DEAL_PRESENT: "A matching deal already exists. Use “Check if saved” instead of retrying.",
+      SALE_DEAL_REVIEW_AMBIGUOUS: "Multiple identical deals exist. Open Google Sheets and resolve this manually before retrying.",
+      SALE_DEAL_REVIEW_NOT_REQUIRED: "This review is no longer active. Close the form and refresh the Sale list.",
+    };
+    setAddReviewMode(true, messages[error.code] || "Joy could not resolve this save yet. Check Google Sheets and try again.");
+  } finally {
+    elements.formError.querySelectorAll("[data-sale-review]").forEach((button) => { button.disabled = false; });
   }
 }
 
@@ -292,6 +400,12 @@ function formatPercent(value) {
 }
 
 document.addEventListener("click", (event) => {
+  const reviewControl = event.target.closest?.("[data-sale-review]");
+  if (reviewControl) {
+    void resolveAddReview(reviewControl.dataset.saleReview);
+    return;
+  }
+
   const target = event.target.closest("[data-action], [data-month]");
   if (!target) return;
   if (target.dataset.month) {
@@ -313,8 +427,16 @@ document.addEventListener("click", (event) => {
 
 elements.search.addEventListener("input", () => { state.query = elements.search.value; render(); });
 elements.form.addEventListener("submit", saveDeal);
-elements.form.addEventListener("input", () => { if (!state.formSaving) state.formDirty = true; });
-elements.form.addEventListener("change", () => { if (!state.formSaving) state.formDirty = true; });
+elements.form.addEventListener("input", () => {
+  if (state.formSaving || state.formReviewPending) return;
+  state.formDirty = true;
+  if (!state.editingDeal) state.formRequestId = "";
+});
+elements.form.addEventListener("change", () => {
+  if (state.formSaving || state.formReviewPending) return;
+  state.formDirty = true;
+  if (!state.editingDeal) state.formRequestId = "";
+});
 elements.form.elements.rent.addEventListener("input", updateCommissionPreview);
 elements.form.elements.rate.addEventListener("input", updateCommissionPreview);
 elements.modal.addEventListener("mousedown", (event) => { if (event.target === elements.modal) closeForm(); });
