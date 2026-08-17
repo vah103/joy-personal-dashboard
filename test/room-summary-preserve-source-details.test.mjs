@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { summarizeRoomListing } from "../src/pages/sale/room-summary.js";
+import { summarizeRoomListing } from "../src/features/sales/room-summary/room-summary.js";
 
 test("keeps notes attached to service values while still compacting thousand amounts", () => {
   const summary = summarizeRoomListing(`
