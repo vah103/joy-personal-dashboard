@@ -154,6 +154,10 @@ function showFormError(message) {
   elements.formError.hidden = !message;
 }
 
+function localizedText(key) {
+  return window.JoyI18n?.t?.(key) || "";
+}
+
 function setAddReviewMode(active, message = "") {
   state.formReviewPending = active;
   elements.form.querySelectorAll("input, select").forEach((control) => {
@@ -168,13 +172,16 @@ function setAddReviewMode(active, message = "") {
   saved.type = "button";
   saved.className = "sale-secondary-button";
   saved.dataset.saleReview = "saved";
-  saved.textContent = "Check if saved";
+  saved.dataset.i18n = "sales.checkSaved";
+  saved.textContent = localizedText("sales.checkSaved");
   const retry = document.createElement("button");
   retry.type = "button";
   retry.className = "sale-secondary-button";
   retry.dataset.saleReview = "retry";
-  retry.textContent = "Check & allow retry";
+  retry.dataset.i18n = "sales.checkAllowRetry";
+  retry.textContent = localizedText("sales.checkAllowRetry");
   elements.formError.append(saved, document.createTextNode(" "), retry);
+  window.JoyI18n?.translateRoot?.(elements.formError);
 }
 
 function openForm(deal = null) {
