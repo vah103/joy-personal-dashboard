@@ -10,6 +10,7 @@ import {
 } from "../shared/format.js";
 
 const DEALS_ENDPOINT = "/api/sales/deals";
+const HISTORY_STATE_REFRESH_MS = 15 * 1000;
 
 const ASSISTANT_HTML = `
   <div class="modal-backdrop sales-assistant-backdrop" id="sales-assistant-modal" role="presentation" hidden>
@@ -203,6 +204,12 @@ function requestHistoryLoad({ force = false } = {}) {
   window.dispatchEvent(new CustomEvent("joy:sale-history-open", { detail: { force } }));
 }
 
+function refreshVisibleHistoryState() {
+  const modal = document.querySelector("#sales-assistant-modal");
+  const panel = document.querySelector('[data-assistant-panel="history"]');
+  if (modal?.hidden === false && panel?.hidden === false) requestHistoryLoad();
+}
+
 function openAssistant() {
   const modal = document.querySelector("#sales-assistant-modal");
   if (!modal) return;
@@ -385,6 +392,7 @@ async function initializeSalesAssistant() {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") void loadDashboardCommission();
   });
+  window.setInterval(refreshVisibleHistoryState, HISTORY_STATE_REFRESH_MS);
 
   await import("../room-summary/room-summary.js?v=joy-room-summary-v1");
   window.dispatchEvent(new CustomEvent("joy:sale-assistant-ready"));
