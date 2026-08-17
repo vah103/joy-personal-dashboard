@@ -13,6 +13,11 @@ const loginPage = resolve(pages, "login");
 const salePage = resolve(pages, "sale");
 const features = resolve(src, "features");
 const salesFeatures = resolve(features, "sales");
+const saleAssistantFeature = resolve(salesFeatures, "assistant");
+const saleAppointmentsFeature = resolve(salesFeatures, "appointments");
+const saleRoomSummaryFeature = resolve(salesFeatures, "room-summary");
+const saleManagerFeature = resolve(salesFeatures, "manager");
+const saleSharedFeature = resolve(salesFeatures, "shared");
 const ieltsFeature = resolve(features, "ielts");
 const assets = resolve(src, "assets");
 const icons = resolve(assets, "icons");
@@ -205,16 +210,16 @@ await writeFile(resolve(dist, "app.js"), `${dashboardAppParts.join("\n\n")}\n`);
 const copies = [
   [resolve(dashboardPage, "styles.css"), "styles.css"],
   [resolve(loginPage, "login.css"), "login.css"],
-  [resolve(salePage, "sale-manager.js"), "sale-manager.js"],
-  [resolve(salePage, "sale-manager.css"), "sale-manager.css"],
-  [resolve(salePage, "room-summary.js"), "room-summary.js"],
-  [resolve(salePage, "room-summary.css"), "room-summary.css"],
-  [resolve(salesFeatures, "sales-assistant.js"), "sales-assistant.js"],
-  [resolve(salesFeatures, "sales-assistant.css"), "sales-assistant.css"],
-  [resolve(salesFeatures, "sale-english-ui.js"), "sale-english-ui.js"],
-  [resolve(salesFeatures, "sale-appointment.js"), "sale-appointment.js"],
-  [resolve(salesFeatures, "sale-history-row-edit.js"), "sale-history-row-edit.js"],
-  [resolve(salesFeatures, "sale-history-row-edit.css"), "sale-history-row-edit.css"],
+  [resolve(saleManagerFeature, "sale-manager.js"), "sale-manager.js"],
+  [resolve(saleManagerFeature, "sale-manager.css"), "sale-manager.css"],
+  [resolve(saleRoomSummaryFeature, "room-summary.js"), "room-summary.js"],
+  [resolve(saleRoomSummaryFeature, "room-summary.css"), "room-summary.css"],
+  [resolve(saleAssistantFeature, "sales-assistant.js"), "sales-assistant.js"],
+  [resolve(saleAssistantFeature, "sales-assistant.css"), "sales-assistant.css"],
+  [resolve(saleSharedFeature, "i18n.js"), "sale-english-ui.js"],
+  [resolve(saleAppointmentsFeature, "appointment.js"), "sale-appointment.js"],
+  [resolve(saleAppointmentsFeature, "history.js"), "sale-history-row-edit.js"],
+  [resolve(saleAppointmentsFeature, "history.css"), "sale-history-row-edit.css"],
   [resolve(features, "project-details", "project-details.js"), "project-details.js"],
   [resolve(features, "project-details", "project-details.css"), "project-details.css"],
   [resolve(features, "project-details", "turtlebot-roadmap.js"), "turtlebot-roadmap.js"],
