@@ -1,5 +1,6 @@
 import app from "./index.js";
 import { saleDealRevision, validateSaleDeal } from "./finance-sales.js";
+import { guardGoogleIntegration } from "./google-auth.js";
 import { isSameOrigin, json, readJson } from "./shared/http.js";
 import { getSession } from "./shared/session.js";
 
@@ -13,6 +14,8 @@ export function isSaleDealGuardRoute(pathname) {
 }
 
 export async function handleSaleDealGuardRequest(request, env) {
+  const denied = await guardGoogleIntegration(request, env, "sheets");
+  if (denied) return denied;
   const pathname = new URL(request.url).pathname;
   if (pathname === SAFE_ADD_PATH) return handleSafeAdd(request, env);
   if (pathname === SAFE_UPDATE_PATH) return handleSafeUpdate(request, env);
