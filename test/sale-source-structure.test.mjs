@@ -9,7 +9,7 @@ test("Sale frontend is organized by focused feature owners", async () => {
   assert.deepEqual(await files("assistant"), [
     "appointment-form.js", "assistant-view.js", "dashboard-sale.js", "sales-assistant.css", "sales-assistant.js",
   ]);
-  assert.deepEqual(await files("appointments"), ["appointment.js", "close-deal.js", "history.css", "history.js"]);
+  assert.deepEqual(await files("appointments"), ["appointment.js", "close-deal.js", "errors.js", "history.css", "history.js"]);
   assert.deepEqual(await files("room-summary"), ["parser.js", "renderer.js", "room-summary.css", "room-summary.js"]);
   assert.deepEqual(await files("manager"), ["sale-manager.css", "sale-manager.js"]);
   assert.deepEqual(await files("shared"), ["api.js", "format.js", "i18n.js", "text.js"]);
@@ -36,6 +36,20 @@ test("controllers use the shared Sale API and canonical source imports", async (
   assert.doesNotMatch(history, /await fetch\(/);
   assert.doesNotMatch(closeDeal, /await fetch\(/);
   assert.doesNotMatch(manager, /async function apiRequest|await fetch\(/);
+});
+
+test("Appointment and History share one error mapping", async () => {
+  const [appointmentForm, history, errors] = await Promise.all([
+    readFile(new URL("../src/features/sales/assistant/appointment-form.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/appointments/history.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/appointments/errors.js", import.meta.url), "utf8"),
+  ]);
+  assert.match(appointmentForm, /appointmentErrorMessage/);
+  assert.match(history, /appointmentErrorMessage/);
+  assert.doesNotMatch(appointmentForm, /const APPOINTMENT_ERROR_KEYS/);
+  assert.doesNotMatch(history, /const APPOINTMENT_ERROR_KEYS/);
+  assert.match(errors, /export const APPOINTMENT_ERROR_KEYS/);
+  assert.match(errors, /export function appointmentErrorMessage/);
 });
 
 test("Appointment and Room Summary share text normalization helpers", async () => {
