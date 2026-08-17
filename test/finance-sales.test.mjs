@@ -10,7 +10,7 @@ import {
 
 const appSource = fs.readFileSync(new URL("../worker/index.js", import.meta.url), "utf8");
 const routerSource = fs.readFileSync(new URL("../worker/router.js", import.meta.url), "utf8");
-const saleManagerSource = fs.readFileSync(new URL("../src/pages/sale/sale-manager.js", import.meta.url), "utf8");
+const saleManagerSource = fs.readFileSync(new URL("../src/features/sales/manager/sale-manager.js", import.meta.url), "utf8");
 
 test("finance summary uses the dedicated D1 ledger route", () => {
   assert.ok(routerSource.includes('from "./finance-ledger.js"'));
