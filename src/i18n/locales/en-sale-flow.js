@@ -1,5 +1,7 @@
 export default Object.freeze({
   "sales.managerAction": "Sale Manager",
+  "sales.checkSaved": "Check if saved",
+  "sales.checkAllowRetry": "Check & allow retry",
   "saleAssistant.closed": "Closed",
   "saleAssistant.dealSaved": "Deal saved",
   "saleAssistant.dealSavedHelp": "Deal saved to Sale Manager.",
