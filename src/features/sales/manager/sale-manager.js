@@ -5,6 +5,9 @@ const state = {
   selectedMonth: "",
   editingDeal: null,
   query: "",
+  loadSeq: 0,
+  formSaving: false,
+  formOperationSeq: 0,
 };
 
 const elements = {
@@ -29,9 +32,11 @@ const elements = {
 };
 
 async function loadDeals({ quiet = false } = {}) {
+  const requestSeq = ++state.loadSeq;
   if (!quiet) showStatus("loading", "Loading Sale 2026…");
   try {
     const payload = await apiRequest("/api/sales/deals");
+    if (requestSeq !== state.loadSeq) return;
     state.months = Array.isArray(payload.months) ? payload.months : [];
     const selectedMonthStillExists = state.months.some((month) => month.key === state.selectedMonth);
     if (!selectedMonthStillExists) {
@@ -43,6 +48,7 @@ async function loadDeals({ quiet = false } = {}) {
     hideStatus();
     render();
   } catch (error) {
+    if (requestSeq !== state.loadSeq) return;
     const reconnect = ["AUTH_REQUIRED", "SHEETS_AUTHORIZATION_REQUIRED", "SHEETS_WRITE_AUTHORIZATION_REQUIRED"].includes(error.code);
     showStatus(
       "error",
@@ -125,7 +131,16 @@ function filteredDeals(deals) {
     .some((value) => String(value || "").toLocaleLowerCase("vi").includes(query)));
 }
 
+function setFormBusy(busy) {
+  state.formSaving = busy;
+  elements.form.querySelectorAll("input, select, button").forEach((control) => {
+    control.disabled = busy || (control.name === "month" && Boolean(state.editingDeal));
+  });
+  elements.save.disabled = busy;
+}
+
 function openForm(deal = null) {
+  if (state.formSaving) return;
   state.editingDeal = deal;
   elements.form.reset();
   elements.formError.hidden = true;
@@ -145,19 +160,23 @@ function openForm(deal = null) {
   window.setTimeout(() => elements.form.elements.customer.focus(), 0);
 }
 
-function closeForm() {
+function closeForm({ force = false } = {}) {
+  if (state.formSaving && !force) return false;
   elements.modal.hidden = true;
   document.body.classList.remove("sale-modal-open");
   state.editingDeal = null;
+  return true;
 }
 
 async function saveDeal(event) {
   event.preventDefault();
-  const wasEditing = Boolean(state.editingDeal);
+  if (state.formSaving || !elements.form.reportValidity()) return;
+  const editingDeal = state.editingDeal;
+  const wasEditing = Boolean(editingDeal);
   const form = new FormData(elements.form);
   const payload = {
     sourceRow: Number(form.get("sourceRow") || 0),
-    month: state.editingDeal?.month || String(form.get("month")),
+    month: editingDeal?.month || String(form.get("month")),
     customer: String(form.get("customer") || ""),
     phone: String(form.get("phone") || ""),
     address: String(form.get("address") || ""),
@@ -166,20 +185,24 @@ async function saveDeal(event) {
     rate: Number(form.get("rate") || 0),
   };
 
-  elements.save.disabled = true;
+  const operationId = ++state.formOperationSeq;
+  setFormBusy(true);
   elements.save.textContent = "Saving…";
   elements.formError.hidden = true;
   try {
     await apiRequest("/api/sales/deals", {
-      method: state.editingDeal ? "PATCH" : "POST",
+      method: editingDeal ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
+    if (operationId !== state.formOperationSeq) return;
     state.selectedMonth = payload.month;
-    closeForm();
+    setFormBusy(false);
+    closeForm({ force: true });
     showToast(wasEditing ? "Deal updated in Google Sheets" : "Deal added to Google Sheets");
     await loadDeals({ quiet: true });
   } catch (error) {
+    if (operationId !== state.formOperationSeq) return;
     const messages = {
       SHEETS_WRITE_AUTHORIZATION_REQUIRED: "Reconnect Google once to allow Joy to save changes.",
       SHEETS_WRITE_ACCESS_DENIED: "Joy does not have permission to edit this Sheet.",
@@ -188,8 +211,8 @@ async function saveDeal(event) {
     elements.formError.textContent = messages[error.code] || "The deal could not be saved. Please try again.";
     elements.formError.hidden = false;
   } finally {
-    elements.save.disabled = false;
-    elements.save.textContent = "Save to Sheet";
+    if (operationId === state.formOperationSeq && state.formSaving) setFormBusy(false);
+    if (operationId === state.formOperationSeq) elements.save.textContent = "Save to Sheet";
   }
 }
 
@@ -272,7 +295,7 @@ document.addEventListener("click", (event) => {
   const action = target.dataset.action;
   if (action === "add-deal") openForm();
   if (action === "close-form") closeForm();
-  if (action === "retry-load") loadDeals();
+  if (action === "retry-load") void loadDeals();
   if (action === "edit-deal") {
     const deal = selectedMonth()?.deals.find((item) => item.sourceRow === Number(target.dataset.row));
     if (deal) openForm(deal);
@@ -285,4 +308,4 @@ elements.form.elements.rent.addEventListener("input", updateCommissionPreview);
 elements.form.elements.rate.addEventListener("input", updateCommissionPreview);
 elements.modal.addEventListener("mousedown", (event) => { if (event.target === elements.modal) closeForm(); });
 document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !elements.modal.hidden) closeForm(); });
-loadDeals();
+void loadDeals();
