@@ -196,6 +196,17 @@
   background: #e4f0e6;
 }
 
+.sales-history-table tbody tr[data-deal-saving="true"],
+.sales-history-table tbody tr[data-deal-saving="true"]:hover,
+.sales-history-table tbody tr[data-deal-saving="true"]:focus {
+  background: #fff8e8;
+  box-shadow: inset 3px 0 0 rgba(170, 126, 42, .28);
+}
+
+.sales-history-table tbody tr[data-deal-saving="true"] > td:last-child {
+  background: #fff8e8;
+}
+
 .sales-history-table tbody tr[data-status="upcoming"] td:nth-child(5) { color: #2f6a56; }
 .sales-history-table tbody tr[data-status="past"] td:nth-child(5) { color: #68787d; }
 .sales-history-table tbody tr[data-status="cancelled"] td:nth-child(5) { color: #916157; }
@@ -289,10 +300,16 @@
   background: #eaf2f2;
 }
 
-.sales-history-close-button:disabled {
+.sales-history-table tbody tr[data-deal-saved="true"] .sales-history-close-button:disabled {
   border-color: rgba(54, 132, 72, .38);
   color: #2f6639;
   background: #d8efd9;
+}
+
+.sales-history-table tbody tr[data-deal-saving="true"] .sales-history-close-button:disabled {
+  border-color: rgba(170, 126, 42, .34);
+  color: #785d25;
+  background: #fff0c9;
 }
 
 .sales-history-edit-button:disabled,
