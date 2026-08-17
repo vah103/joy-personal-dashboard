@@ -23,6 +23,16 @@ test("Sale Assistant keeps appointment save state inside the appointment control
   assert.match(view, /HISTORY_STATE_REFRESH_MS\s*=\s*15 \* 1000/);
 });
 
+test("Sale Assistant focuses the active tool instead of a hidden appointment input", async () => {
+  const bootstrap = await readFile(new URL("../src/features/sales/assistant/sales-assistant.js", import.meta.url), "utf8");
+  assert.match(bootstrap, /function focusActiveAssistantMode/);
+  assert.match(bootstrap, /mode === "summary"/);
+  assert.match(bootstrap, /mode === "history"/);
+  assert.match(bootstrap, /#room-summary-input/);
+  assert.match(bootstrap, /#sale-appointment-input/);
+  assert.match(bootstrap, /joy:sale-history-open/);
+});
+
 test("History groups load/edit state and keeps Close Deal in a separate controller", async () => {
   const [history, closeDeal] = await Promise.all([
     readFile(new URL("../src/features/sales/appointments/history.js", import.meta.url), "utf8"),
@@ -34,11 +44,37 @@ test("History groups load/edit state and keeps Close Deal in a separate controll
   assert.match(history, /requestSeq !== state\.history\.loadSeq/);
   assert.match(history, /state\.history\.loaded = false/);
   assert.match(history, /createCloseDealController/);
+  assert.match(history, /saleText\("saleAssistant\.reminder", "Reminder"\)/);
+  assert.doesNotMatch(history, /const APPOINTMENT_ERROR_KEYS/);
   assert.doesNotMatch(history, /function ensureCloseDealModal|function saveClosedDeal|CLOSE_DEAL_ENDPOINT/);
   assert.match(closeDeal, /const state = \{[\s\S]*saving: false[\s\S]*dirty: false[\s\S]*reviewSaving: false/);
   assert.match(closeDeal, /Discard unsaved deal changes\?/);
   assert.match(closeDeal, /SALE_DEAL_SAVE_REVIEW_REQUIRED/);
   assert.match(closeDeal, /applyReviewResolution/);
+});
+
+test("Close Deal keeps visible copy synchronized with locale and async state", async () => {
+  const closeDeal = await readFile(new URL("../src/features/sales/appointments/close-deal.js", import.meta.url), "utf8");
+  assert.match(closeDeal, /const refreshCopy = \(\) =>/);
+  assert.match(closeDeal, /formErrorCode/);
+  assert.match(closeDeal, /reviewErrorCode/);
+  assert.match(closeDeal, /reviewResolution/);
+  assert.match(closeDeal, /window\.addEventListener\("joy:i18n-ready", refreshCopy\)/);
+  assert.match(closeDeal, /window\.addEventListener\("joy:locale-changed", refreshCopy\)/);
+});
+
+test("Room Summary refreshes locale without overwriting edited availability values", async () => {
+  const [entry, renderer] = await Promise.all([
+    readFile(new URL("../src/features/sales/room-summary/room-summary.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/room-summary/renderer.js", import.meta.url), "utf8"),
+  ]);
+  assert.match(entry, /refreshRoomSummaryLocale/);
+  assert.match(entry, /joy:i18n-ready/);
+  assert.match(entry, /joy:locale-changed/);
+  assert.match(entry, /removeAttribute\("data-room-availability-text"\)/);
+  assert.match(renderer, /export function refreshRoomSummaryLocale/);
+  assert.match(renderer, /data-room-availability-text|roomAvailabilityText/);
+  assert.match(renderer, /translateSaleUiRoot/);
 });
 
 test("Sale Manager keeps safe writes while using the shared Sale API", async () => {
