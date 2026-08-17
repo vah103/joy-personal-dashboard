@@ -40,14 +40,17 @@ test("Sale static views declare semantic translation keys", async () => {
   assert.match(salePage, /data-i18n-aria-label="salePage\.navAria"/);
 });
 
-test("Sale dynamic UI uses semantic keys instead of post-render text translation", async () => {
+test("Sale dynamic UI uses semantic keys without reverse text translation", async () => {
   const [renderer, manager] = await Promise.all([
     readFile(new URL("../src/features/sales/room-summary/renderer.js", import.meta.url), "utf8"),
     readFile(new URL("../src/features/sales/manager/sale-manager.js", import.meta.url), "utf8"),
   ]);
   assert.match(renderer, /SERVICE_I18N_KEYS/);
   assert.match(renderer, /saleAssistant\.electricity/);
-  assert.doesNotMatch(renderer, /translateSaleUiRoot/);
+  assert.match(renderer, /dataset\.i18n/);
+  assert.match(renderer, /refreshRoomSummaryLocale/);
+  assert.match(renderer, /translateSaleUiRoot\(container\)/);
+  assert.doesNotMatch(renderer, /\.translateText\b|\.translateRoot\b/);
   assert.match(manager, /salePage\.monthDeals/);
   assert.match(manager, /salePage\.month\$\{monthNumber\}/);
   assert.doesNotMatch(manager, /translateSaleUiRoot/);
