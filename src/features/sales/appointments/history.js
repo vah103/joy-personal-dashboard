@@ -17,6 +17,8 @@ let viewingHistory = [];
 let historyLoaded = false;
 let editingViewingId = "";
 let editingDirty = false;
+let editOperationSaving = false;
+let editOperationSeq = 0;
 let historyInstalled = false;
 let historyLoadSeq = 0;
 let closeDealSaving = false;
@@ -324,6 +326,7 @@ function confirmDiscardEditing() {
 
 function cancelEditing({ force = false } = {}) {
   if (!editingViewingId) return true;
+  if (editOperationSaving && !force) return false;
   if (!force && !confirmDiscardEditing()) return false;
   editingViewingId = "";
   editingDirty = false;
@@ -332,6 +335,7 @@ function cancelEditing({ force = false } = {}) {
 }
 
 function startEditing(id) {
+  if (editOperationSaving) return;
   const viewing = viewingById(id);
   if (!viewing || viewing.dealSaved || viewing.dealSaving) return;
   if (editingViewingId && String(editingViewingId) !== String(id) && !cancelEditing()) return;
@@ -348,6 +352,12 @@ function setEditMessage(row, text) {
   translateRoot(row);
 }
 
+function setHistoryEditBusy(row, busy) {
+  if (!row) return;
+  row.dataset.historyBusy = busy ? "true" : "false";
+  row.querySelectorAll("input, button").forEach((control) => { control.disabled = busy; });
+}
+
 async function recoverViewingState(code) {
   if (!["VIEWING_ALREADY_CLOSED", "SALE_DEAL_SAVE_IN_PROGRESS", "SALE_DEAL_SAVE_REVIEW_REQUIRED"].includes(code)) {
     return false;
@@ -360,6 +370,7 @@ async function recoverViewingState(code) {
 }
 
 async function saveViewingHistoryEdit(row) {
+  if (editOperationSaving) return;
   const id = String(row?.dataset.viewingId || "");
   const viewing = viewingById(id);
   if (!id || !viewing || viewing.dealSaved || viewing.dealSaving) return;
@@ -374,7 +385,9 @@ async function saveViewingHistoryEdit(row) {
     return;
   }
 
-  row.querySelectorAll("button").forEach((button) => { button.disabled = true; });
+  const operationId = ++editOperationSeq;
+  editOperationSaving = true;
+  setHistoryEditBusy(row, true);
   setEditMessage(row, "Đang lưu…");
 
   try {
@@ -386,26 +399,36 @@ async function saveViewingHistoryEdit(row) {
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw Object.assign(new Error(payload.error || "VIEWING_UPDATE_FAILED"), { code: payload.error });
+    if (operationId !== editOperationSeq) return;
+
     editingViewingId = "";
     editingDirty = false;
     historyLoaded = false;
     await loadViewingHistory({ force: true });
     emitSalesChanged("viewing-updated");
   } catch (error) {
+    if (operationId !== editOperationSeq) return;
     if (await recoverViewingState(error.code)) return;
-    row.querySelectorAll("button").forEach((button) => { button.disabled = false; });
     setEditMessage(row, editErrorMessage(error.code));
+  } finally {
+    if (operationId === editOperationSeq) {
+      editOperationSaving = false;
+      if (String(editingViewingId) === id && row?.isConnected) setHistoryEditBusy(row, false);
+    }
   }
 }
 
 async function deleteViewing(row) {
+  if (editOperationSaving) return;
   const id = String(row?.dataset.viewingId || "");
   const viewing = viewingById(id);
   if (!id || !viewing || viewing.dealSaved || viewing.dealSaving) return;
   const customer = row.querySelector('[data-history-field="customerName"]')?.value.trim() || viewing.customerName || "this appointment";
   if (!window.confirm(`Delete the appointment for ${customer}?`)) return;
 
-  row.querySelectorAll("button").forEach((button) => { button.disabled = true; });
+  const operationId = ++editOperationSeq;
+  editOperationSaving = true;
+  setHistoryEditBusy(row, true);
   setEditMessage(row, "Deleting…");
 
   try {
@@ -417,15 +440,22 @@ async function deleteViewing(row) {
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw Object.assign(new Error(payload.error || "VIEWING_DELETE_FAILED"), { code: payload.error });
+    if (operationId !== editOperationSeq) return;
+
     viewingHistory = viewingHistory.filter((item) => String(item.id) !== id);
     editingViewingId = "";
     editingDirty = false;
     renderViewingHistory();
     emitSalesChanged("viewing-deleted");
   } catch (error) {
+    if (operationId !== editOperationSeq) return;
     if (await recoverViewingState(error.code)) return;
-    row.querySelectorAll("button").forEach((button) => { button.disabled = false; });
     setEditMessage(row, deleteErrorMessage(error.code));
+  } finally {
+    if (operationId === editOperationSeq) {
+      editOperationSaving = false;
+      if (String(editingViewingId) === id && row?.isConnected) setHistoryEditBusy(row, false);
+    }
   }
 }
 
@@ -802,6 +832,11 @@ function installHistory() {
       return;
     }
     cancelEditing();
+  });
+
+  window.addEventListener("joy:sale-history-leave-request", (event) => {
+    if (!editingViewingId) return;
+    if (editOperationSaving || !cancelEditing()) event.preventDefault();
   });
 
   window.addEventListener("joy:i18n-ready", () => {
