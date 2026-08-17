@@ -63,23 +63,27 @@ async function listViewings(email, env) {
 
 async function createViewing(request, email, env) {
   const input = await request.json().catch(() => null);
+  const suppliedId = String(input?.id || "").trim();
+  const requestedId = cleanViewingRequestId(suppliedId);
+  if (suppliedId && !requestedId) return json({ error: "VIEWING_ID_INVALID" }, 400);
   const validation = validateViewing(input);
   if (validation.error) return json({ error: validation.error }, 400);
 
   const now = Date.now();
   const viewing = validation.value;
-  const id = crypto.randomUUID();
+  const id = requestedId || crypto.randomUUID();
   const reminderAt = viewing.viewingAt - now >= REMINDER_LEAD_MS
     ? viewing.viewingAt - REMINDER_LEAD_MS
     : null;
   const followupAt = viewing.viewingAt + FOLLOWUP_DELAY_MS;
 
-  await env.DB.prepare(`
+  const result = await env.DB.prepare(`
     INSERT INTO sale_viewings (
       id, user_email, customer_name, phone, viewing_address, viewing_at,
       reminder_at, reminder_notified_at, followup_at, followup_notified_at,
       cancelled_at, created_at, updated_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, NULL, NULL, ?, ?)
+    ON CONFLICT(id) DO NOTHING
   `).bind(
     id,
     email,
@@ -93,8 +97,21 @@ async function createViewing(request, email, env) {
     now,
   ).run();
 
+  if (!Number(result.meta?.changes || 0)) {
+    const existing = await loadViewingById(id, email, env);
+    if (!existing) return json({ error: "VIEWING_ID_CONFLICT" }, 409);
+    if (!sameViewing(existing, viewing)) return json({ error: "VIEWING_ID_CONFLICT" }, 409);
+    return json({
+      ok: true,
+      idempotent: true,
+      message: "Lịch hẹn này đã được lưu trước đó.",
+      viewing: serializeViewing(existing, now),
+    }, 200);
+  }
+
   return json({
     ok: true,
+    idempotent: false,
     message: reminderAt
       ? "Đã lưu lịch. Joy sẽ nhắc bạn trước 30 phút và hỏi lại sau buổi xem."
       : "Đã lưu lịch. Lịch quá sát giờ để nhắc trước 30 phút; Joy vẫn sẽ hỏi lại sau buổi xem.",
@@ -270,6 +287,35 @@ function validateViewing(input, { allowPast = false } = {}) {
       viewingAt: timestamp,
     },
   };
+}
+
+async function loadViewingById(id, email, env) {
+  return env.DB.prepare(`
+    SELECT v.id, v.customer_name, v.phone, v.viewing_address, v.viewing_at,
+           v.reminder_at, v.reminder_notified_at, v.followup_at, v.followup_notified_at,
+           v.cancelled_at, v.created_at, v.updated_at,
+           c.state AS commission_state,
+           l.locked_at AS deal_locked_at
+    FROM sale_viewings v
+    LEFT JOIN sale_viewing_commissions c
+      ON c.viewing_id = v.id AND c.user_email = v.user_email
+    LEFT JOIN sale_viewing_deal_locks l
+      ON l.viewing_id = v.id AND l.user_email = v.user_email
+    WHERE v.id = ? AND v.user_email = ?
+    LIMIT 1
+  `).bind(id, email).first();
+}
+
+function sameViewing(row, viewing) {
+  return String(row?.customer_name || "").trim() === viewing.customerName
+    && String(row?.phone || "").trim() === viewing.phone
+    && String(row?.viewing_address || "").trim() === viewing.viewingAddress
+    && Number(row?.viewing_at || 0) === viewing.viewingAt;
+}
+
+function cleanViewingRequestId(value) {
+  const text = String(value || "").trim();
+  return /^[A-Za-z0-9:_-]{8,120}$/.test(text) ? text : "";
 }
 
 function serializeViewing(row, now = Date.now()) {
