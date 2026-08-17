@@ -2,6 +2,7 @@ import {
   formatVietnamViewingTime,
   parseSaleAppointmentInput,
 } from "../appointments/appointment.js";
+import { appointmentErrorMessage } from "../appointments/errors.js";
 import { saleApi } from "../shared/api.js";
 import {
   vietnamDatetimeLocal,
@@ -137,23 +138,6 @@ function scheduleReset() {
   }, APPOINTMENT_RESET_DELAY_MS);
 }
 
-const APPOINTMENT_ERROR_KEYS = Object.freeze({
-  VIEWING_ADDRESS_REQUIRED: ["saleAssistant.errorAddressRequired", "Vui lòng nhập địa chỉ xem phòng."],
-  VIEWING_TIME_REQUIRED: ["saleAssistant.errorTimeRequired", "Vui lòng chọn thời gian hẹn."],
-  VIEWING_TIME_IN_PAST: ["saleAssistant.errorTimePast", "Thời gian hẹn đã qua. Hãy chọn lại."],
-  VIEWING_TIME_TOO_FAR: ["saleAssistant.errorTimeFar", "Joy chỉ nhận lịch trong vòng 1 năm tới."],
-  VIEWING_NOT_FOUND: ["saleAssistant.errorViewingNotFound", "Không tìm thấy lịch hẹn này."],
-  VIEWING_ID_REQUIRED: ["saleAssistant.errorViewingIdRequired", "Joy chưa xác định được lịch cần sửa."],
-  VIEWING_ID_INVALID: ["saleAssistant.errorViewingIdInvalid", "Joy chưa tạo được mã an toàn cho lịch này. Hãy nhập lại."],
-  VIEWING_ID_CONFLICT: ["saleAssistant.errorViewingIdConflict", "Mã lịch này đã được dùng cho dữ liệu khác. Hãy nhập lại lịch."],
-  AUTH_REQUIRED: ["saleAssistant.errorAuthRequired", "Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại Joy."],
-});
-
-function errorMessage(code) {
-  const [key, fallback] = APPOINTMENT_ERROR_KEYS[code] || ["saleAssistant.appointmentSaveFailed", "Joy chưa thể lưu lịch. Hãy thử lại."];
-  return saleText(key, fallback);
-}
-
 async function saveAppointment(event) {
   event.preventDefault();
   if (state.saving) return;
@@ -184,7 +168,7 @@ async function saveAppointment(event) {
     scheduleReset();
   } catch (error) {
     if (operationId !== state.operationSeq) return;
-    showStatus(errorMessage(error.code), "error");
+    showStatus(appointmentErrorMessage(error.code), "error");
   } finally {
     if (operationId === state.operationSeq && state.saving) setBusy(false);
   }
