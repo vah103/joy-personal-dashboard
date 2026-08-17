@@ -1,5 +1,7 @@
 export default Object.freeze({
   "sales.managerAction": "Quản lý deal",
+  "sales.checkSaved": "Kiểm tra đã lưu",
+  "sales.checkAllowRetry": "Kiểm tra và cho phép thử lại",
   "saleAssistant.closed": "Đã chốt",
   "saleAssistant.dealSaved": "Đã lưu deal",
   "saleAssistant.dealSavedHelp": "Deal đã được lưu vào Sale Manager.",
