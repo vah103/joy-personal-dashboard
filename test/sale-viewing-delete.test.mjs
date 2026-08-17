@@ -20,7 +20,7 @@ test("Sale history keeps compact edit/delete controls and the real close-deal fl
   assert.match(interaction, /method: "PATCH"/);
   assert.match(interaction, /openCloseDealForm\(row\)/);
   assert.match(interaction, /body: JSON\.stringify\(\{ id, dealSaved: true \}\)/);
-  assert.match(interaction, /dealSavedIds\.add\(id\)/);
+  assert.match(interaction, /dealSavedIds\.add\(viewingId\)/);
   assert.match(interaction, /document\.addEventListener\("click"/);
   assert.match(interaction, /cancelEditing\(content\)/);
   assert.match(
