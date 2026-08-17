@@ -1,31 +1,56 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { translateText } from "../src/i18n/index.js";
-import { translateSaleUiText } from "../src/features/sales/shared/i18n.js";
+import { saleText } from "../src/features/sales/shared/i18n.js";
 
-globalThis.JoyI18n = { translateText };
+globalThis.JoyI18n = {
+  t(key, values = {}) {
+    if (key === "sale.test") return `Semantic ${values.value}`;
+    return key;
+  },
+};
 
-test("Sale language adapter delegates core copy to shared JoyI18n", () => {
-  assert.equal(translateSaleUiText("Tóm tắt phòng"), "Room summary");
-  assert.equal(translateSaleUiText("Lịch sử"), "History");
-  assert.equal(translateSaleUiText("Đang lưu lịch vào Joy…"), "Saving appointment to Joy…");
+test("Sale language adapter resolves semantic keys through shared JoyI18n", () => {
+  assert.equal(saleText("sale.test", "Fallback", { value: "copy" }), "Semantic copy");
+  assert.equal(saleText("sale.missing", "Fallback"), "Fallback");
 });
 
-test("shared i18n handles Sale dynamic room and date chrome", () => {
-  assert.equal(translateSaleUiText("4 lịch hẹn"), "4 appointments");
-  assert.equal(translateSaleUiText("Th 3, 11/08/2026 · 20:03"), "Tue, 11 Aug 2026 · 20:03");
-  assert.equal(translateSaleUiText("14 phòng · Trống từ 1/9", "en"), "14 rooms · Available from 1/9");
-  assert.equal(translateSaleUiText("P201, P202 (trống 1/9)"), "P201, P202 (available from 1/9)");
-  assert.equal(translateSaleUiText("35k/m"), "35k/m");
-});
-
-test("Sale adapter no longer owns a private translation dictionary", async () => {
+test("Sale adapter translates only explicit semantic bindings", async () => {
   const source = await readFile(new URL("../src/features/sales/shared/i18n.js", import.meta.url), "utf8");
   assert.match(source, /JoyI18n/);
   assert.match(source, /\/i18n\/index\.js/);
-  assert.doesNotMatch(source, /EXACT_TEXT/);
-  assert.doesNotMatch(source, /ENGLISH_MONTHS/);
+  assert.match(source, /data-i18n-placeholder/);
+  assert.match(source, /data-i18n-aria-label/);
+  assert.match(source, /i18n\.t\?\.\(key\)/);
+  assert.doesNotMatch(source, /\.translateText\b/);
+  assert.doesNotMatch(source, /\.translateRoot\b/);
+  assert.doesNotMatch(source, /EXACT_TEXT|ENGLISH_MONTHS/);
+});
+
+test("Sale static views declare semantic translation keys", async () => {
+  const [assistant, salePage] = await Promise.all([
+    readFile(new URL("../src/features/sales/assistant/assistant-view.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/pages/sale/index.html", import.meta.url), "utf8"),
+  ]);
+  assert.match(assistant, /data-i18n="saleAssistant\.appointments"/);
+  assert.match(assistant, /data-i18n-placeholder="saleAssistant\.appointmentPlaceholder"/);
+  assert.match(assistant, /data-i18n-aria-label="saleAssistant\.toolsAria"/);
+  assert.match(salePage, /data-i18n="salePage\.workspace"/);
+  assert.match(salePage, /data-i18n-placeholder="salePage\.searchPlaceholder"/);
+  assert.match(salePage, /data-i18n-aria-label="salePage\.navAria"/);
+});
+
+test("Sale dynamic UI uses semantic keys instead of post-render text translation", async () => {
+  const [renderer, manager] = await Promise.all([
+    readFile(new URL("../src/features/sales/room-summary/renderer.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/manager/sale-manager.js", import.meta.url), "utf8"),
+  ]);
+  assert.match(renderer, /SERVICE_I18N_KEYS/);
+  assert.match(renderer, /saleAssistant\.electricity/);
+  assert.doesNotMatch(renderer, /translateSaleUiRoot/);
+  assert.match(manager, /salePage\.monthDeals/);
+  assert.match(manager, /salePage\.month\$\{monthNumber\}/);
+  assert.doesNotMatch(manager, /translateSaleUiRoot/);
 });
 
 test("build keeps the Sale adapter while shared i18n preserves one canonical HTML owner", async () => {
