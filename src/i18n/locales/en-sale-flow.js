@@ -5,5 +5,13 @@ export default Object.freeze({
   "saleAssistant.dealSavedHelp": "Deal saved to Sale Manager.",
   "saleAssistant.saveDeal": "Save deal",
   "saleAssistant.savingDeal": "Saving deal…",
+  "saleAssistant.savingDealState": "Saving deal",
+  "saleAssistant.reviewDealSave": "Review deal save",
+  "saleAssistant.reviewSave": "Review save",
+  "saleAssistant.closedDealAria": "Closed deal",
+  "saleAssistant.dealSaveProgressAria": "Deal save in progress",
+  "saleAssistant.reviewSaveHelp": "Check Sale Manager before retrying this deal.",
+  "saleAssistant.dealSaveProgressHelp": "Deal save is in progress.",
+  "saleAssistant.closeDealHelp": "Close this deal.",
   "saleAssistant.dealSaveFailed": "Could not save the deal. Please try again.",
 });
