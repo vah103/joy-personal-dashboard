@@ -1,5 +1,6 @@
 import { formatVietnamViewingTime } from "./appointment.js";
 import { createCloseDealController, dealSavingNeedsReview } from "./close-deal.js";
+import { appointmentErrorMessage } from "./errors.js";
 import { saleApi } from "../shared/api.js";
 import { vietnamDatetimeLocal, vietnamLocalToIso } from "../shared/format.js";
 import { saleText, translateSaleUiRoot } from "../shared/i18n.js";
@@ -50,24 +51,6 @@ function reminderLabel(viewing) {
   if (viewing.reminderNotifiedAt) return saleText("saleAssistant.reminderSent", "Reminder sent");
   if (viewing.followupAt) return saleText("saleAssistant.followupPending", "Follow-up pending");
   return "—";
-}
-
-const APPOINTMENT_ERROR_KEYS = Object.freeze({
-  VIEWING_ADDRESS_REQUIRED: ["saleAssistant.errorAddressRequired", "Vui lòng nhập địa chỉ xem phòng."],
-  VIEWING_TIME_REQUIRED: ["saleAssistant.errorTimeRequired", "Vui lòng chọn thời gian hẹn."],
-  VIEWING_TIME_IN_PAST: ["saleAssistant.errorTimePast", "Thời gian hẹn đã qua. Hãy chọn lại."],
-  VIEWING_TIME_TOO_FAR: ["saleAssistant.errorTimeFar", "Joy chỉ nhận lịch trong vòng 1 năm tới."],
-  VIEWING_NOT_FOUND: ["saleAssistant.errorViewingNotFound", "Không tìm thấy lịch hẹn này."],
-  VIEWING_ID_REQUIRED: ["saleAssistant.errorViewingIdRequired", "Joy chưa xác định được lịch cần sửa."],
-  VIEWING_ALREADY_CLOSED: ["saleAssistant.errorViewingClosed", "Deal đã được lưu. Lịch hẹn này không thể sửa hoặc xóa nữa."],
-  SALE_DEAL_SAVE_IN_PROGRESS: ["saleAssistant.dealSaveProgressHelp", "Deal đang được lưu. Hãy chờ trạng thái cập nhật."],
-  SALE_DEAL_SAVE_REVIEW_REQUIRED: ["saleAssistant.reviewResolveHelp", "Trạng thái lưu deal cần được kiểm tra trước khi thao tác tiếp."],
-  AUTH_REQUIRED: ["saleAssistant.errorAuthRequired", "Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại Joy."],
-});
-
-function actionErrorMessage(code, fallbackKey, fallback) {
-  const [key, message] = APPOINTMENT_ERROR_KEYS[code] || [fallbackKey, fallback];
-  return saleText(key, message);
 }
 
 function makeHistoryInput(field, value, { type = "text", maxLength = 0, required = false } = {}) {
@@ -243,7 +226,7 @@ function renderViewingHistory() {
     saleText("saleAssistant.phoneShort", "SĐT"),
     saleText("saleAssistant.address", "Địa chỉ"),
     saleText("saleAssistant.status", "Trạng thái"),
-    "Reminder",
+    saleText("saleAssistant.reminder", "Reminder"),
     "",
   ].forEach((label) => {
     const th = document.createElement("th");
@@ -378,7 +361,7 @@ async function saveViewingHistoryEdit(row) {
     if (await recoverViewingState(error.code)) return;
     setEditMessage(
       row,
-      actionErrorMessage(error.code, "saleAssistant.editFailed", "Không thể cập nhật lịch hẹn. Hãy thử lại."),
+      appointmentErrorMessage(error.code, "saleAssistant.editFailed", "Không thể cập nhật lịch hẹn. Hãy thử lại."),
     );
   } finally {
     if (operationId === state.edit.operationSeq) {
@@ -417,7 +400,7 @@ async function deleteViewing(row) {
     if (await recoverViewingState(error.code)) return;
     setEditMessage(
       row,
-      actionErrorMessage(error.code, "saleAssistant.deleteFailed", "Không thể xóa lịch hẹn. Hãy thử lại."),
+      appointmentErrorMessage(error.code, "saleAssistant.deleteFailed", "Không thể xóa lịch hẹn. Hãy thử lại."),
     );
   } finally {
     if (operationId === state.edit.operationSeq) {
