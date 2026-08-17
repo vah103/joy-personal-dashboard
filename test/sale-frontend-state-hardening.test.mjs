@@ -56,6 +56,21 @@ test("Sale Manager keeps safe writes while using the shared Sale API", async () 
   assert.match(manager, /confirmDiscardForm/);
 });
 
+test("Sale Manager cannot discard an unresolved add review or lose its request id on refresh", async () => {
+  const manager = await readFile(new URL("../src/features/sales/manager/sale-manager.js", import.meta.url), "utf8");
+  assert.match(manager, /ADD_REVIEW_STORAGE_KEY\s*=\s*"joy:sale:add-review:v1"/);
+  assert.match(manager, /function persistPendingAddReview/);
+  assert.match(manager, /sessionStorage\.setItem\(ADD_REVIEW_STORAGE_KEY/);
+  assert.match(manager, /function restorePendingAddReview/);
+  assert.match(manager, /sessionStorage\.getItem\(ADD_REVIEW_STORAGE_KEY\)/);
+  assert.match(manager, /if \(!force && \(state\.formSaving \|\| state\.formReviewPending\)\) return false/);
+  assert.match(manager, /\[data-action="close-form"\]/);
+  assert.match(manager, /window\.addEventListener\("beforeunload"/);
+  assert.match(manager, /persistPendingAddReview\(payload\)/);
+  assert.match(manager, /clearPendingAddReview\(\)/);
+  assert.match(manager, /const restoredPendingReview = restorePendingAddReview\(\)/);
+});
+
 test("shared Sale API normalizes JSON requests and structured errors", async () => {
   const api = await readFile(new URL("../src/features/sales/shared/api.js", import.meta.url), "utf8");
   assert.match(api, /export async function saleApi/);
