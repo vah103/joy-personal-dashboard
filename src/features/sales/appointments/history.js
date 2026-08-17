@@ -22,6 +22,7 @@ let editOperationSeq = 0;
 let historyInstalled = false;
 let historyLoadSeq = 0;
 let closeDealSaving = false;
+let closeDealDirty = false;
 let closeDealOperationSeq = 0;
 let reviewResolutionSaving = false;
 let reviewOperationSeq = 0;
@@ -296,11 +297,11 @@ function renderViewingHistory() {
 async function loadViewingHistory({ force = false } = {}) {
   if (historyLoaded && !force) {
     renderViewingHistory();
-    return;
+    return true;
   }
   const content = document.querySelector(HISTORY_CONTENT_SELECTOR);
   const count = document.querySelector("#sales-history-count");
-  if (!content || !count) return;
+  if (!content || !count) return false;
   const requestSeq = ++historyLoadSeq;
   content.textContent = "Đang tải lịch sử…";
   count.textContent = "Đang tải…";
@@ -309,14 +310,17 @@ async function loadViewingHistory({ force = false } = {}) {
     const response = await fetch(VIEWINGS_ENDPOINT, { credentials: "same-origin" });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || "VIEWING_HISTORY_FAILED");
-    if (requestSeq !== historyLoadSeq) return;
+    if (requestSeq !== historyLoadSeq) return false;
     viewingHistory = Array.isArray(payload.history) ? payload.history : [];
     historyLoaded = true;
     renderViewingHistory();
+    return true;
   } catch {
-    if (requestSeq !== historyLoadSeq) return;
+    if (requestSeq !== historyLoadSeq) return false;
+    historyLoaded = false;
     content.textContent = "Joy chưa tải được lịch sử. Hãy thử lại.";
     count.textContent = "Không tải được";
+    return false;
   }
 }
 
@@ -507,6 +511,8 @@ function ensureCloseDealModal() {
   const form = modal.querySelector("#sale-close-deal-form");
   form?.elements.rent.addEventListener("input", updateCloseDealPreview);
   form?.elements.rate.addEventListener("input", updateCloseDealPreview);
+  form?.addEventListener("input", () => { if (!closeDealSaving && !form.hidden) closeDealDirty = true; });
+  form?.addEventListener("change", () => { if (!closeDealSaving && !form.hidden) closeDealDirty = true; });
   form?.addEventListener("submit", saveClosedDeal);
   modal.addEventListener("mousedown", (event) => {
     if (event.target === modal) closeDealForm();
@@ -559,6 +565,7 @@ function openCloseDealForm(id, { message = "" } = {}) {
   form.elements.customer.value = viewing.customerName || "";
   form.elements.phone.value = viewing.phone || "";
   form.elements.address.value = viewing.viewingAddress || "";
+  closeDealDirty = false;
   const status = modal.querySelector(".sale-close-deal-status");
   if (status) {
     status.textContent = message;
@@ -582,6 +589,7 @@ function openDealReview(id) {
   const form = modal.querySelector("#sale-close-deal-form");
   const review = modal.querySelector("#sale-close-deal-review");
   if (!form || !review) return;
+  closeDealDirty = false;
   form.hidden = true;
   review.hidden = false;
   review.dataset.viewingId = viewing.id;
@@ -604,6 +612,11 @@ function closeDealForm({ force = false } = {}) {
   if (!force && (closeDealSaving || reviewResolutionSaving)) return false;
   const modal = document.querySelector("#sale-close-deal-modal");
   if (!modal) return true;
+  const form = modal.querySelector("#sale-close-deal-form");
+  if (!force && form?.hidden === false && closeDealDirty && !window.confirm("Discard unsaved deal changes?")) {
+    return false;
+  }
+  closeDealDirty = false;
   modal.hidden = true;
   const assistantVisible = document.querySelector("#sales-assistant-modal")?.hidden === false;
   if (!assistantVisible) document.body.classList.remove("modal-open");
@@ -623,6 +636,7 @@ async function saveClosedDeal(event) {
   const viewingId = String(data.get("viewingId") || "").trim();
   const viewing = viewingById(viewingId);
   if (!viewing || viewing.dealSaved || viewing.dealSaving) {
+    closeDealDirty = false;
     closeDealForm({ force: true });
     return;
   }
@@ -658,6 +672,7 @@ async function saveClosedDeal(event) {
 
     editingViewingId = "";
     editingDirty = false;
+    closeDealDirty = false;
     historyLoaded = false;
     await loadViewingHistory({ force: true });
     closeDealSaving = false;
@@ -668,6 +683,7 @@ async function saveClosedDeal(event) {
   } catch (error) {
     if (operationId !== closeDealOperationSeq) return;
     if (error.code === "SALE_DEAL_SAVE_REVIEW_REQUIRED") {
+      closeDealDirty = false;
       historyLoaded = false;
       await loadViewingHistory({ force: true });
       closeDealSaving = false;
@@ -676,6 +692,7 @@ async function saveClosedDeal(event) {
       return;
     }
     if (await recoverViewingState(error.code)) {
+      closeDealDirty = false;
       closeDealSaving = false;
       setCloseDealBusy(false);
       closeDealForm({ force: true });
@@ -694,6 +711,15 @@ async function saveClosedDeal(event) {
     if (save) save.textContent = "Save deal";
     translateRoot(modal);
   }
+}
+
+function applyReviewResolutionLocally(viewingId, resolution) {
+  const viewing = viewingById(viewingId);
+  if (!viewing) return;
+  viewing.dealSaving = false;
+  viewing.dealSavingSince = "";
+  if (resolution === "saved") viewing.dealSaved = true;
+  renderViewingHistory();
 }
 
 async function resolveDealReview(resolution) {
@@ -724,11 +750,12 @@ async function resolveDealReview(resolution) {
     if (!response.ok) throw Object.assign(new Error(payload.error || "SALE_DEAL_REVIEW_FAILED"), { code: payload.error });
     if (operationId !== reviewOperationSeq) return;
 
-    historyLoaded = false;
-    await loadViewingHistory({ force: true });
+    applyReviewResolutionLocally(viewingId, resolution);
     reviewResolutionSaving = false;
     setReviewBusy(false);
     closeDealForm({ force: true });
+    historyLoaded = false;
+    void loadViewingHistory({ force: true });
 
     if (resolution === "saved") {
       window.dispatchEvent(new CustomEvent("joy:sale-deal-saved"));
