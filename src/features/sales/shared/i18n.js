@@ -24,6 +24,11 @@ async function ensureSharedI18n(doc = globalThis.document) {
   return sharedI18n();
 }
 
+export function saleText(key, fallback = "", values = {}) {
+  const translated = sharedI18n()?.t?.(key, values);
+  return translated && translated !== key ? translated : fallback || translated || key;
+}
+
 export function translateSaleUiText(value) {
   const i18n = sharedI18n();
   return i18n?.translateText ? i18n.translateText(value) : String(value ?? "");
