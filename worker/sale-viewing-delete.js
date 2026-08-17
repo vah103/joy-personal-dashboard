@@ -188,7 +188,7 @@ async function handleSaleViewingCloseDeal(request, env) {
   const payload = await dealResponse.json().catch(() => ({}));
   if (!dealResponse.ok) {
     if (payload.error === "SALE_WRITE_FAILED") {
-      return json({ error: "SALE_DEAL_SAVE_REVIEW_REQUIRED", reviewNow: true }, 409);
+      return json({ error: "SALE_DEAL_SAVE_IN_PROGRESS" }, 409);
     }
     await releaseCloseDealLock(viewingId, session.user_email, env);
     return json(payload, dealResponse.status);
@@ -196,7 +196,7 @@ async function handleSaleViewingCloseDeal(request, env) {
 
   const marked = await markViewingClosed(viewingId, session.user_email, env);
   if (!marked) {
-    return json({ error: "SALE_DEAL_SAVE_REVIEW_REQUIRED", reviewNow: true }, 409);
+    return json({ error: "SALE_DEAL_SAVE_IN_PROGRESS" }, 409);
   }
   await releaseCloseDealLock(viewingId, session.user_email, env);
   return json({ ...payload, dealSaved: true }, dealResponse.status);
@@ -230,6 +230,9 @@ async function handleSaleViewingCloseDealReview(request, env) {
 
   const lock = await viewingDealLock(viewingId, session.user_email, env);
   if (!lock) return json({ error: "SALE_DEAL_REVIEW_NOT_REQUIRED" }, 409);
+  if (Date.now() - Number(lock.locked_at || 0) < DEAL_LOCK_REVIEW_MS) {
+    return json({ error: "SALE_DEAL_SAVE_IN_PROGRESS" }, 409);
+  }
 
   if (resolution === "saved") {
     const marked = await markViewingClosed(viewingId, session.user_email, env);
