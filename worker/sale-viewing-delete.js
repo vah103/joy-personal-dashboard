@@ -10,6 +10,7 @@ const DELETE_PATH = "/api/sales/viewings/delete";
 const COMMISSION_PATH = "/api/sales/viewings/commission";
 const CLOSE_DEAL_PATH = "/api/sales/viewings/close-deal";
 const CLOSED_STATES = new Set(["pending", "received"]);
+const DEAL_LOCK_REVIEW_MS = 2 * 60 * 1000;
 
 export function isSaleViewingDeleteRoute(pathname) {
   return pathname === DELETE_PATH
@@ -41,8 +42,25 @@ async function viewingDealMarker(id, email, env) {
   `).bind(id, email).first();
 }
 
+async function viewingDealLock(id, email, env) {
+  return env.DB.prepare(`
+    SELECT locked_at
+    FROM sale_viewing_deal_locks
+    WHERE viewing_id = ? AND user_email = ?
+    LIMIT 1
+  `).bind(id, email).first();
+}
+
 function isClosedMarker(row) {
   return CLOSED_STATES.has(String(row?.state || ""));
+}
+
+function dealLockError(lock, now = Date.now()) {
+  const lockedAt = Number(lock?.locked_at || 0);
+  if (lockedAt && now - lockedAt >= DEAL_LOCK_REVIEW_MS) {
+    return "SALE_DEAL_SAVE_REVIEW_REQUIRED";
+  }
+  return "SALE_DEAL_SAVE_IN_PROGRESS";
 }
 
 async function handleSaleViewingDelete(request, env) {
@@ -59,6 +77,8 @@ async function handleSaleViewingDelete(request, env) {
   if (isClosedMarker(await viewingDealMarker(id, session.user_email, env))) {
     return json({ error: "VIEWING_ALREADY_CLOSED" }, 409);
   }
+  const dealLock = await viewingDealLock(id, session.user_email, env);
+  if (dealLock) return json({ error: dealLockError(dealLock) }, 409);
 
   const result = await env.DB.prepare(`
     DELETE FROM sale_viewings
@@ -74,6 +94,43 @@ async function handleSaleViewingDelete(request, env) {
     id,
     message: "Đã xóa lịch hẹn.",
   });
+}
+
+async function acquireCloseDealLock(id, email, env) {
+  const now = Date.now();
+  const result = await env.DB.prepare(`
+    INSERT INTO sale_viewing_deal_locks (viewing_id, user_email, locked_at)
+    VALUES (?, ?, ?)
+    ON CONFLICT(viewing_id) DO NOTHING
+  `).bind(id, email, now).run();
+  if (Number(result.meta?.changes || 0) > 0) return { acquired: true, lockedAt: now };
+  const existing = await viewingDealLock(id, email, env);
+  return { acquired: false, lockedAt: Number(existing?.locked_at || 0) };
+}
+
+async function releaseCloseDealLock(id, email, env) {
+  await env.DB.prepare(`
+    DELETE FROM sale_viewing_deal_locks
+    WHERE viewing_id = ? AND user_email = ?
+  `).bind(id, email).run();
+}
+
+async function markViewingClosed(id, email, env) {
+  const now = Date.now();
+  const result = await env.DB.prepare(`
+    INSERT INTO sale_viewing_commissions (viewing_id, user_email, state, updated_at)
+    SELECT id, user_email, 'pending', ?
+    FROM sale_viewings
+    WHERE id = ? AND user_email = ?
+    ON CONFLICT(viewing_id) DO UPDATE SET
+      user_email = excluded.user_email,
+      state = CASE
+        WHEN sale_viewing_commissions.state = 'received' THEN 'received'
+        ELSE 'pending'
+      END,
+      updated_at = excluded.updated_at
+  `).bind(now, id, email).run();
+  return Number(result.meta?.changes || 0) > 0;
 }
 
 async function handleSaleViewingCloseDeal(request, env) {
@@ -95,63 +152,49 @@ async function handleSaleViewingCloseDeal(request, env) {
   `).bind(viewingId, session.user_email).first();
   if (!viewing) return json({ error: "VIEWING_NOT_FOUND" }, 404);
 
-  const existingMarker = await viewingDealMarker(viewingId, session.user_email, env);
-  if (isClosedMarker(existingMarker)) {
+  if (isClosedMarker(await viewingDealMarker(viewingId, session.user_email, env))) {
+    await releaseCloseDealLock(viewingId, session.user_email, env);
     return json({ ok: true, alreadySaved: true, dealSaved: true });
   }
 
-  const now = Date.now();
-  const reservation = await env.DB.prepare(`
-    INSERT INTO sale_viewing_commissions (viewing_id, user_email, state, updated_at)
-    VALUES (?, ?, 'pending', ?)
-    ON CONFLICT(viewing_id) DO NOTHING
-  `).bind(viewingId, session.user_email, now).run();
-
-  if (!Number(reservation.meta?.changes || 0)) {
-    const marker = await viewingDealMarker(viewingId, session.user_email, env);
-    if (isClosedMarker(marker)) {
-      return json({ ok: true, alreadySaved: true, dealSaved: true });
-    }
-    return json({ error: "SALE_DEAL_SAVE_IN_PROGRESS" }, 409);
+  const lock = await acquireCloseDealLock(viewingId, session.user_email, env);
+  if (!lock.acquired) {
+    return json({ error: dealLockError({ locked_at: lock.lockedAt }) }, 409);
   }
 
-  try {
-    const headers = new Headers(request.headers);
-    headers.delete("content-length");
-    headers.set("content-type", "application/json");
-    const dealRequest = new Request(new URL("/api/sales/deals", request.url), {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        month: input.month,
-        customer: input.customer,
-        phone: input.phone,
-        address: input.address,
-        host: input.host,
-        rent: input.rent,
-        rate: input.rate,
-      }),
-    });
+  const headers = new Headers(request.headers);
+  headers.delete("content-length");
+  headers.set("content-type", "application/json");
+  const dealRequest = new Request(new URL("/api/sales/deals", request.url), {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      month: input.month,
+      customer: input.customer,
+      phone: input.phone,
+      address: input.address,
+      host: input.host,
+      rent: input.rent,
+      rate: input.rate,
+    }),
+  });
 
-    const dealResponse = await app.fetch(dealRequest, env, {});
-    const payload = await dealResponse.json().catch(() => ({}));
-    if (!dealResponse.ok) {
-      await releaseCloseDealReservation(viewingId, session.user_email, env);
-      return json(payload, dealResponse.status);
+  const dealResponse = await app.fetch(dealRequest, env, {});
+  const payload = await dealResponse.json().catch(() => ({}));
+  if (!dealResponse.ok) {
+    if (payload.error === "SALE_WRITE_FAILED") {
+      return json({ error: "SALE_DEAL_SAVE_REVIEW_REQUIRED" }, 409);
     }
-
-    return json({ ...payload, dealSaved: true }, dealResponse.status);
-  } catch (error) {
-    await releaseCloseDealReservation(viewingId, session.user_email, env);
-    throw error;
+    await releaseCloseDealLock(viewingId, session.user_email, env);
+    return json(payload, dealResponse.status);
   }
-}
 
-async function releaseCloseDealReservation(id, email, env) {
-  await env.DB.prepare(`
-    DELETE FROM sale_viewing_commissions
-    WHERE viewing_id = ? AND user_email = ? AND state = 'pending'
-  `).bind(id, email).run();
+  const marked = await markViewingClosed(viewingId, session.user_email, env);
+  if (!marked) {
+    return json({ error: "SALE_DEAL_SAVE_REVIEW_REQUIRED" }, 409);
+  }
+  await releaseCloseDealLock(viewingId, session.user_email, env);
+  return json({ ...payload, dealSaved: true }, dealResponse.status);
 }
 
 async function handleSaleViewingCommissionRequest(request, env) {
@@ -189,6 +232,9 @@ async function handleSaleViewingCommissionRequest(request, env) {
     LIMIT 1
   `).bind(id, session.user_email).first();
   if (!viewing) return json({ error: "VIEWING_NOT_FOUND" }, 404);
+
+  const dealLock = await viewingDealLock(id, session.user_email, env);
+  if (dealLock) return json({ error: dealLockError(dealLock) }, 409);
 
   const existing = await viewingDealMarker(id, session.user_email, env);
   const currentState = normalizeCommissionState(existing?.state);

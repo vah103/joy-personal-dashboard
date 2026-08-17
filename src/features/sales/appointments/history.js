@@ -10,6 +10,7 @@ const HISTORY_CONTENT_SELECTOR = "#sales-history-content";
 const DISPLAY_ROW_SELECTOR = ".sales-history-table tbody tr:not(.sales-history-edit-row)";
 const CLOSE_DEAL_ENDPOINT = "/api/sales/viewings/close-deal";
 const VIEWINGS_ENDPOINT = "/api/sales/viewings";
+const DEAL_LOCK_REVIEW_MS = 2 * 60 * 1000;
 
 let viewingHistory = [];
 let historyLoaded = false;
@@ -28,15 +29,22 @@ function emitSalesChanged(kind) {
   window.dispatchEvent(new CustomEvent("joy:sales-changed", { detail: { kind } }));
 }
 
+function dealSavingNeedsReview(viewing) {
+  if (!viewing?.dealSaving || !viewing.dealSavingSince) return false;
+  const lockedAt = new Date(viewing.dealSavingSince).getTime();
+  return Number.isFinite(lockedAt) && Date.now() - lockedAt >= DEAL_LOCK_REVIEW_MS;
+}
+
 function historyStatusLabel(viewing) {
   if (viewing.dealSaved) return "Closed";
+  if (viewing.dealSaving) return dealSavingNeedsReview(viewing) ? "Review deal save" : "Saving deal";
   if (viewing.status === "upcoming") return "Sắp tới";
   if (viewing.status === "cancelled") return "Đã huỷ";
   return "Đã qua";
 }
 
 function reminderLabel(viewing) {
-  if (viewing.dealSaved) return "—";
+  if (viewing.dealSaved || viewing.dealSaving) return "—";
   if (viewing.status === "cancelled") return "Cancelled";
   if (viewing.followupNotifiedAt) return "Follow-up sent";
   if (viewing.status === "past" && viewing.followupAt) return "Follow-up pending";
@@ -57,6 +65,8 @@ function appointmentErrorMessage(code) {
     VIEWING_NOT_FOUND: "Không tìm thấy lịch hẹn này.",
     VIEWING_ID_REQUIRED: "Joy chưa xác định được lịch cần sửa.",
     VIEWING_ALREADY_CLOSED: "Deal đã được lưu. Lịch hẹn này không thể sửa hoặc xóa nữa.",
+    SALE_DEAL_SAVE_IN_PROGRESS: "Deal đang được lưu. Hãy chờ trạng thái cập nhật.",
+    SALE_DEAL_SAVE_REVIEW_REQUIRED: "Trạng thái lưu deal cần được kiểm tra trước khi thao tác tiếp.",
     AUTH_REQUIRED: "Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại Joy.",
   };
   return messages[code] || "Joy chưa thể lưu lịch. Hãy thử lại.";
@@ -98,11 +108,12 @@ function makeActionButton(label, action, viewing, className, { disabled = false,
 }
 
 function renderHistoryDisplayRow(viewing) {
-  const editable = !viewing.dealSaved;
+  const editable = !viewing.dealSaved && !viewing.dealSaving;
   const row = document.createElement("tr");
   row.dataset.status = viewing.status;
   row.dataset.viewingId = viewing.id;
   row.dataset.dealSaved = viewing.dealSaved ? "true" : "false";
+  row.dataset.dealSaving = viewing.dealSaving ? "true" : "false";
   row.dataset.historyEditable = editable ? "true" : "false";
   row.tabIndex = editable ? 0 : -1;
   row.setAttribute(
@@ -111,7 +122,7 @@ function renderHistoryDisplayRow(viewing) {
       ? isCoarsePointer()
         ? "Tap to edit this appointment"
         : "Double-click or press Enter to edit this appointment"
-      : "Closed deal",
+      : viewing.dealSaved ? "Closed deal" : "Deal save in progress",
   );
 
   [
@@ -128,15 +139,25 @@ function renderHistoryDisplayRow(viewing) {
   if (editable) {
     actionCell.append(makeActionButton("Edit", "edit", viewing, "sales-history-edit-button"));
   }
+  const savingReview = dealSavingNeedsReview(viewing);
+  const closeLabel = viewing.dealSaved
+    ? "Deal saved"
+    : viewing.dealSaving
+      ? savingReview ? "Review save" : "Saving…"
+      : "Close deal";
   actionCell.append(
     makeActionButton(
-      viewing.dealSaved ? "Deal saved" : "Close deal",
+      closeLabel,
       "close-deal",
       viewing,
       "sales-history-close-button",
       {
-        disabled: Boolean(viewing.dealSaved),
-        title: viewing.dealSaved ? "Deal saved to Sale Manager." : "Close this deal.",
+        disabled: Boolean(viewing.dealSaved || viewing.dealSaving),
+        title: viewing.dealSaved
+          ? "Deal saved to Sale Manager."
+          : viewing.dealSaving
+            ? savingReview ? "Check Sale Manager before retrying this deal." : "Deal save is in progress."
+            : "Close this deal.",
       },
     ),
   );
@@ -151,6 +172,7 @@ function renderHistoryEditRow(viewing) {
   row.dataset.status = viewing.status;
   row.dataset.viewingId = viewing.id;
   row.dataset.dealSaved = "false";
+  row.dataset.dealSaving = "false";
 
   const timeCell = document.createElement("td");
   timeCell.append(makeHistoryInput("viewingTime", vietnamDatetimeLocal(viewing.viewingAt), { type: "datetime-local", required: true }));
@@ -197,7 +219,7 @@ function renderViewingHistory() {
   if (!content || !count) return;
 
   const editingViewing = editingViewingId ? viewingById(editingViewingId) : null;
-  if (editingViewingId && (!editingViewing || editingViewing.dealSaved)) editingViewingId = "";
+  if (editingViewingId && (!editingViewing || editingViewing.dealSaved || editingViewing.dealSaving)) editingViewingId = "";
   count.textContent = `${viewingHistory.length} lịch hẹn`;
   if (hint) hint.textContent = isCoarsePointer() ? "Tap a row to edit it" : "Double-click a row to edit it";
 
@@ -225,7 +247,7 @@ function renderViewingHistory() {
   const body = document.createElement("tbody");
   viewingHistory.forEach((viewing) => {
     body.append(
-      String(viewing.id) === String(editingViewingId) && !viewing.dealSaved
+      String(viewing.id) === String(editingViewingId) && !viewing.dealSaved && !viewing.dealSaving
         ? renderHistoryEditRow(viewing)
         : renderHistoryDisplayRow(viewing),
     );
@@ -261,7 +283,7 @@ async function loadViewingHistory({ force = false } = {}) {
 
 function startEditing(id) {
   const viewing = viewingById(id);
-  if (!viewing || viewing.dealSaved) return;
+  if (!viewing || viewing.dealSaved || viewing.dealSaving) return;
   editingViewingId = String(id);
   renderViewingHistory();
 }
@@ -280,8 +302,10 @@ function setEditMessage(row, text) {
   translateRoot(row);
 }
 
-async function recoverClosedViewing(code) {
-  if (code !== "VIEWING_ALREADY_CLOSED") return false;
+async function recoverViewingState(code) {
+  if (!["VIEWING_ALREADY_CLOSED", "SALE_DEAL_SAVE_IN_PROGRESS", "SALE_DEAL_SAVE_REVIEW_REQUIRED"].includes(code)) {
+    return false;
+  }
   editingViewingId = "";
   historyLoaded = false;
   await loadViewingHistory({ force: true });
@@ -291,7 +315,7 @@ async function recoverClosedViewing(code) {
 async function saveViewingHistoryEdit(row) {
   const id = String(row?.dataset.viewingId || "");
   const viewing = viewingById(id);
-  if (!id || !viewing || viewing.dealSaved) return;
+  if (!id || !viewing || viewing.dealSaved || viewing.dealSaving) return;
   const field = (name) => row.querySelector(`[data-history-field="${name}"]`);
   const customerName = field("customerName")?.value.trim() || "";
   const phone = field("phone")?.value.trim() || "";
@@ -320,7 +344,7 @@ async function saveViewingHistoryEdit(row) {
     await loadViewingHistory({ force: true });
     emitSalesChanged("viewing-updated");
   } catch (error) {
-    if (await recoverClosedViewing(error.code)) return;
+    if (await recoverViewingState(error.code)) return;
     row.querySelectorAll("button").forEach((button) => { button.disabled = false; });
     setEditMessage(row, appointmentErrorMessage(error.code));
   }
@@ -329,7 +353,7 @@ async function saveViewingHistoryEdit(row) {
 async function deleteViewing(row) {
   const id = String(row?.dataset.viewingId || "");
   const viewing = viewingById(id);
-  if (!id || !viewing || viewing.dealSaved) return;
+  if (!id || !viewing || viewing.dealSaved || viewing.dealSaving) return;
   const customer = row.querySelector('[data-history-field="customerName"]')?.value.trim() || viewing.customerName || "this appointment";
   if (!window.confirm(`Delete the appointment for ${customer}?`)) return;
 
@@ -350,9 +374,9 @@ async function deleteViewing(row) {
     renderViewingHistory();
     emitSalesChanged("viewing-deleted");
   } catch (error) {
-    if (await recoverClosedViewing(error.code)) return;
+    if (await recoverViewingState(error.code)) return;
     row.querySelectorAll("button").forEach((button) => { button.disabled = false; });
-    setEditMessage(row, "Could not delete the appointment. Please try again.");
+    setEditMessage(row, appointmentErrorMessage(error.code) || "Could not delete the appointment. Please try again.");
   }
 }
 
@@ -413,7 +437,7 @@ function updateCloseDealPreview() {
 
 function openCloseDealForm(id) {
   const viewing = viewingById(id);
-  if (!viewing || viewing.dealSaved || String(editingViewingId) === String(id)) return;
+  if (!viewing || viewing.dealSaved || viewing.dealSaving || String(editingViewingId) === String(id)) return;
   const modal = ensureCloseDealModal();
   const form = modal.querySelector("#sale-close-deal-form");
   if (!form) return;
@@ -453,7 +477,7 @@ async function saveClosedDeal(event) {
   const data = new FormData(form);
   const viewingId = String(data.get("viewingId") || "").trim();
   const viewing = viewingById(viewingId);
-  if (!viewing || viewing.dealSaved) {
+  if (!viewing || viewing.dealSaved || viewing.dealSaving) {
     closeDealForm();
     return;
   }
@@ -491,14 +515,12 @@ async function saveClosedDeal(event) {
     window.dispatchEvent(new CustomEvent("joy:sale-deal-saved"));
     emitSalesChanged("deal-saved");
   } catch (error) {
-    if (error.code === "VIEWING_ALREADY_CLOSED") {
-      historyLoaded = false;
-      await loadViewingHistory({ force: true });
+    if (await recoverViewingState(error.code)) {
       closeDealForm();
       return;
     }
     if (status) {
-      status.textContent = "Could not save the deal. Please try again.";
+      status.textContent = appointmentErrorMessage(error.code) || "Could not save the deal. Please try again.";
       status.hidden = false;
       translateRoot(modal);
     }

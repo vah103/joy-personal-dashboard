@@ -6,6 +6,7 @@ const REMINDER_LEAD_MS = 30 * 60 * 1000;
 const FOLLOWUP_DELAY_MS = 2 * 60 * 60 * 1000;
 const MAX_LATE_MS = 24 * 60 * 60 * 1000;
 const RETRY_AFTER_MS = 2 * 60 * 1000;
+const DEAL_LOCK_REVIEW_MS = 2 * 60 * 1000;
 const CLOSED_STATES = new Set(["pending", "received"]);
 
 export function isSaleViewingRoute(pathname) {
@@ -31,13 +32,16 @@ export async function handleSaleViewingRequest(request, env) {
 async function listViewings(email, env) {
   const now = Date.now();
   const rows = await env.DB.prepare(`
-    SELECT id, customer_name, phone, viewing_address, viewing_at,
+    SELECT sale_viewings.id, customer_name, phone, viewing_address, viewing_at,
            reminder_at, reminder_notified_at, followup_at, followup_notified_at,
            cancelled_at, created_at, sale_viewings.updated_at AS updated_at,
-           c.state AS commission_state
+           c.state AS commission_state,
+           l.locked_at AS deal_locked_at
     FROM sale_viewings
     LEFT JOIN sale_viewing_commissions c
       ON c.viewing_id = sale_viewings.id AND c.user_email = sale_viewings.user_email
+    LEFT JOIN sale_viewing_deal_locks l
+      ON l.viewing_id = sale_viewings.id AND l.user_email = sale_viewings.user_email
     WHERE sale_viewings.user_email = ?
     ORDER BY viewing_at DESC, created_at DESC
     LIMIT 300
@@ -45,7 +49,7 @@ async function listViewings(email, env) {
 
   const history = (rows.results || []).map((row) => serializeViewing(row, now));
   const viewings = history
-    .filter((viewing) => viewing.status === "upcoming" && !viewing.dealSaved)
+    .filter((viewing) => viewing.status === "upcoming" && !viewing.dealSaved && !viewing.dealSaving)
     .sort((a, b) => a.viewingAt.localeCompare(b.viewingAt));
 
   return json({
@@ -108,6 +112,7 @@ async function createViewing(request, email, env) {
       created_at: now,
       updated_at: now,
       commission_state: null,
+      deal_locked_at: null,
     }, now),
   }, 201);
 }
@@ -131,9 +136,8 @@ async function updateViewing(request, email, env) {
   `).bind(id, email).first();
   if (!existing) return json({ error: "VIEWING_NOT_FOUND" }, 404);
 
-  if (await isViewingClosed(id, email, env)) {
-    return json({ error: "VIEWING_ALREADY_CLOSED" }, 409);
-  }
+  const writeState = await viewingWriteState(id, email, env);
+  if (writeState.error) return json({ error: writeState.error }, 409);
 
   const validation = validateViewing(input, { allowPast: true });
   if (validation.error) return json({ error: validation.error }, 400);
@@ -195,21 +199,41 @@ async function updateViewing(request, email, env) {
       followup_notified_at: followupNotifiedAt,
       updated_at: now,
       commission_state: null,
+      deal_locked_at: null,
     }, now),
   });
 }
 
-async function isViewingClosed(id, email, env) {
+async function viewingWriteState(id, email, env) {
   const row = await env.DB.prepare(`
-    SELECT state
-    FROM sale_viewing_commissions
-    WHERE viewing_id = ? AND user_email = ?
+    SELECT c.state AS commission_state, l.locked_at AS deal_locked_at
+    FROM sale_viewings v
+    LEFT JOIN sale_viewing_commissions c
+      ON c.viewing_id = v.id AND c.user_email = v.user_email
+    LEFT JOIN sale_viewing_deal_locks l
+      ON l.viewing_id = v.id AND l.user_email = v.user_email
+    WHERE v.id = ? AND v.user_email = ?
     LIMIT 1
   `).bind(id, email).first();
-  return CLOSED_STATES.has(String(row?.state || ""));
+  if (CLOSED_STATES.has(String(row?.commission_state || ""))) {
+    return { error: "VIEWING_ALREADY_CLOSED" };
+  }
+  const lockedAt = Number(row?.deal_locked_at || 0);
+  if (lockedAt) {
+    return {
+      error: Date.now() - lockedAt >= DEAL_LOCK_REVIEW_MS
+        ? "SALE_DEAL_SAVE_REVIEW_REQUIRED"
+        : "SALE_DEAL_SAVE_IN_PROGRESS",
+    };
+  }
+  return { error: "" };
 }
 
 async function markDealSaved(id, email, env) {
+  const writeState = await viewingWriteState(id, email, env);
+  if (writeState.error === "VIEWING_ALREADY_CLOSED") return json({ ok: true, dealSaved: true });
+  if (writeState.error) return json({ error: writeState.error }, 409);
+
   const now = Date.now();
   const result = await env.DB.prepare(`
     INSERT INTO sale_viewing_commissions (viewing_id, user_email, state, updated_at)
@@ -251,7 +275,9 @@ function validateViewing(input, { allowPast = false } = {}) {
 function serializeViewing(row, now = Date.now()) {
   const viewingAt = Number(row.viewing_at);
   const cancelledAt = nullableNumber(row.cancelled_at);
+  const lockedAt = nullableNumber(row.deal_locked_at);
   const status = cancelledAt ? "cancelled" : viewingAt < now ? "past" : "upcoming";
+  const dealSaved = CLOSED_STATES.has(String(row.commission_state || ""));
   return {
     id: String(row.id || ""),
     customerName: String(row.customer_name || "").trim(),
@@ -259,7 +285,9 @@ function serializeViewing(row, now = Date.now()) {
     viewingAddress: String(row.viewing_address || "").trim(),
     viewingAt: new Date(viewingAt).toISOString(),
     status,
-    dealSaved: CLOSED_STATES.has(String(row.commission_state || "")),
+    dealSaved,
+    dealSaving: !dealSaved && Boolean(lockedAt),
+    dealSavingSince: !dealSaved && lockedAt ? new Date(lockedAt).toISOString() : "",
     reminderAt: isoOrEmpty(row.reminder_at),
     reminderNotifiedAt: isoOrEmpty(row.reminder_notified_at),
     followupAt: isoOrEmpty(row.followup_at),
@@ -292,6 +320,11 @@ async function processReminderPushes(env) {
         WHERE c.viewing_id = sale_viewings.id
           AND c.user_email = sale_viewings.user_email
           AND c.state IN ('pending', 'received')
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM sale_viewing_deal_locks l
+        WHERE l.viewing_id = sale_viewings.id
+          AND l.user_email = sale_viewings.user_email
       )
     ORDER BY reminder_at ASC
     LIMIT 30
@@ -330,6 +363,11 @@ async function processFollowupPushes(env) {
           AND c.user_email = sale_viewings.user_email
           AND c.state IN ('pending', 'received')
       )
+      AND NOT EXISTS (
+        SELECT 1 FROM sale_viewing_deal_locks l
+        WHERE l.viewing_id = sale_viewings.id
+          AND l.user_email = sale_viewings.user_email
+      )
     ORDER BY followup_at ASC
     LIMIT 30
   `).bind(now, now - MAX_LATE_MS).all();
@@ -363,6 +401,11 @@ async function claimNotification(id, column, attemptAt, env) {
         WHERE c.viewing_id = sale_viewings.id
           AND c.user_email = sale_viewings.user_email
           AND c.state IN ('pending', 'received')
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM sale_viewing_deal_locks l
+        WHERE l.viewing_id = sale_viewings.id
+          AND l.user_email = sale_viewings.user_email
       )
   `).bind(attemptAt, attemptAt, id, attemptAt - RETRY_AFTER_MS).run();
   return Number(result.meta?.changes || 0) > 0;
