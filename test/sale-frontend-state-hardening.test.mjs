@@ -11,7 +11,9 @@ test("Sale Assistant safely resets repeated appointments and keeps nested Escape
   assert.match(source, /scheduleAppointmentReset\(\)/);
   assert.match(source, /if \(save\) save\.disabled = false;/);
   assert.match(source, /#room-summary-capture/);
-  assert.match(source, /document\.querySelector\("\.sales-history-edit-row"\)/);
+  assert.match(source, /historyEditInProgress/);
+  assert.match(source, /deferUntilHistoryEditResolved/);
+  assert.match(source, /if \(currentMode === mode\) return;/);
   assert.match(source, /\{\s*capture:\s*true\s*\}/);
 });
 
@@ -20,7 +22,7 @@ test("visible History rerenders saving state without API polling or destroying a
 
   assert.match(source, /HISTORY_STATE_REFRESH_MS\s*=\s*15\s*\*\s*1000/);
   assert.match(source, /function refreshVisibleHistoryState/);
-  assert.match(source, /if \(document\.querySelector\("\.sales-history-edit-row"\)\) return;/);
+  assert.match(source, /if \(historyEditInProgress\(\)\) return;/);
   assert.match(source, /requestHistoryLoad\(\)/);
   assert.match(source, /setInterval\(refreshVisibleHistoryState,\s*HISTORY_STATE_REFRESH_MS\)/);
 });
@@ -71,7 +73,12 @@ test("deal review recovery is explicit and never blindly retries an uncertain wr
   assert.match(worker, /Date\.now\(\) - Number\(lock\.locked_at \|\| 0\) < DEAL_LOCK_REVIEW_MS/);
   assert.match(worker, /resolution === "saved"/);
   assert.match(worker, /retryAllowed: true/);
-  assert.doesNotMatch(worker, /SALE_WRITE_FAILED[\s\S]{0,200}releaseCloseDealLock/);
+
+  const uncertainWriteBranch = worker.match(
+    /if \(payload\.error === "SALE_WRITE_FAILED"\) \{([\s\S]*?)\n\s*\}/,
+  )?.[1] || "";
+  assert.match(uncertainWriteBranch, /SALE_DEAL_SAVE_IN_PROGRESS/);
+  assert.doesNotMatch(uncertainWriteBranch, /releaseCloseDealLock/);
 });
 
 test("deal saved and deal saving use distinct visual states", async () => {
