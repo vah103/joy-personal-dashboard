@@ -12,7 +12,7 @@ test("Sale frontend is organized by focused feature owners", async () => {
   assert.deepEqual(await files("appointments"), ["appointment.js", "close-deal.js", "history.css", "history.js"]);
   assert.deepEqual(await files("room-summary"), ["parser.js", "renderer.js", "room-summary.css", "room-summary.js"]);
   assert.deepEqual(await files("manager"), ["sale-manager.css", "sale-manager.js"]);
-  assert.deepEqual(await files("shared"), ["api.js", "format.js", "i18n.js"]);
+  assert.deepEqual(await files("shared"), ["api.js", "format.js", "i18n.js", "text.js"]);
 });
 
 test("controllers use the shared Sale API and canonical source imports", async () => {
@@ -36,6 +36,23 @@ test("controllers use the shared Sale API and canonical source imports", async (
   assert.doesNotMatch(history, /await fetch\(/);
   assert.doesNotMatch(closeDeal, /await fetch\(/);
   assert.doesNotMatch(manager, /async function apiRequest|await fetch\(/);
+});
+
+test("Appointment and Room Summary share text normalization helpers", async () => {
+  const [appointment, parser, sharedText] = await Promise.all([
+    readFile(new URL("../src/features/sales/appointments/appointment.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/room-summary/parser.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/shared/text.js", import.meta.url), "utf8"),
+  ]);
+  assert.match(appointment, /shared\/text\.js/);
+  assert.match(parser, /shared\/text\.js/);
+  assert.doesNotMatch(appointment, /function normalizeSearch|function normalizeText/);
+  assert.doesNotMatch(parser, /function normalizeSearch|function normalizeWhitespace|function capitalizeFirst|function lowerFirst/);
+  assert.match(sharedText, /export function normalizeText/);
+  assert.match(sharedText, /export function normalizeWhitespace/);
+  assert.match(sharedText, /export function normalizeSearch/);
+  assert.match(sharedText, /export function capitalizeFirst/);
+  assert.match(sharedText, /export function lowerFirst/);
 });
 
 test("Sale build copies the canonical module tree and keeps public compatibility entries", async () => {
