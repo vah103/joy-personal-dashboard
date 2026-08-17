@@ -1,84 +1,93 @@
 import { execFileSync } from "node:child_process";
-import { readFile, writeFile } from "node:fs/promises";
+import { cp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
 const dist = resolve(root, "dist");
-const sales = resolve(root, "src", "features", "sales");
+const salesSource = resolve(root, "src", "features", "sales");
+const publicSales = resolve(dist, "sales");
 
-function resolveBuildVersion() {
-  const candidate = process.env.JOY_BUILD_VERSION
-    || process.env.GITHUB_SHA
-    || (() => {
-      try {
-        return execFileSync("git", ["rev-parse", "HEAD"], {
-          cwd: root,
-          encoding: "utf8",
-          stdio: ["ignore", "pipe", "ignore"],
-        }).trim();
-      } catch {
-        return "development";
-      }
-    })();
-  return `joy-build-${String(candidate || "development").trim().replace(/[^a-zA-Z0-9._-]+/g, "-").slice(0, 16)}`;
-}
-
-const buildVersion = resolveBuildVersion();
-
-function replaceRequired(source, search, replacement, label) {
-  if (!source.includes(search)) throw new Error(`Missing Sale build anchor: ${label}`);
-  return source.replace(search, replacement);
-}
-
-async function writePublicModule(sourcePath, destination, replacements) {
-  let source = await readFile(sourcePath, "utf8");
-  for (const [search, replacement, label] of replacements) {
-    source = replaceRequired(source, search, replacement, label);
+function buildVersion() {
+  const candidates = [process.env.GITHUB_SHA, process.env.CF_PAGES_COMMIT_SHA, process.env.COMMIT_SHA]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean);
+  if (candidates.length) return candidates[0].slice(0, 12);
+  try {
+    return execFileSync("git", ["rev-parse", "--short=12", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+  } catch {
+    return "dev";
   }
-  await writeFile(resolve(dist, destination), source);
 }
 
-function versionAssetReference(source, asset) {
+const version = buildVersion();
+
+async function listJsFiles(directory) {
+  const files = [];
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const path = resolve(directory, entry.name);
+    if (entry.isDirectory()) files.push(...await listJsFiles(path));
+    else if (entry.isFile() && entry.name.endsWith(".js")) files.push(path);
+  }
+  return files;
+}
+
+function versionRelativeModuleImports(source) {
+  return source.replace(
+    /(["'])(\.\.?\/[^"'?]+\.js)(?:\?v=[^"']*)?\1/g,
+    (_match, quote, path) => `${quote}${path}?v=${version}${quote}`,
+  );
+}
+
+async function copyCanonicalSalesTree() {
+  await rm(publicSales, { recursive: true, force: true });
+  await cp(salesSource, publicSales, { recursive: true, force: true });
+  for (const path of await listJsFiles(publicSales)) {
+    const source = await readFile(path, "utf8");
+    await writeFile(path, versionRelativeModuleImports(source));
+  }
+}
+
+const publicEntries = Object.freeze({
+  "sales-assistant.js": "./sales/assistant/sales-assistant.js",
+  "sale-history-row-edit.js": "./sales/appointments/history.js",
+  "sale-manager.js": "./sales/manager/sale-manager.js",
+  "room-summary.js": "./sales/room-summary/room-summary.js",
+  "sale-english-ui.js": "./sales/shared/i18n.js",
+});
+
+async function writeCompatibilityEntries() {
+  await Promise.all(Object.entries(publicEntries).map(([filename, target]) => (
+    writeFile(resolve(dist, filename), `export * from "${target}?v=${version}";\n`)
+  )));
+}
+
+function versionAssetReference(html, asset) {
   const escaped = asset.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const pattern = new RegExp(`(["'])${escaped}(?:\\?v=[^"']*)?\\1`, "g");
-  let count = 0;
-  const output = source.replace(pattern, (_match, quote) => {
-    count += 1;
-    return `${quote}${asset}?v=${buildVersion}${quote}`;
-  });
-  if (count !== 1) throw new Error(`Expected one Sale asset reference for ${asset}; found ${count}`);
-  return output;
+  return html.replace(new RegExp(`${escaped}\\?v=[^"']+`, "g"), `${asset}?v=${version}`);
 }
 
-await Promise.all([
-  writePublicModule(resolve(sales, "assistant", "sales-assistant.js"), "sales-assistant.js", [
-    ['from "../appointments/appointment.js";', `from "./sale-appointment.js?v=${buildVersion}";`, "assistant appointment import"],
-    ['from "../shared/format.js";', `from "./sale-format.js?v=${buildVersion}";`, "assistant format import"],
-    ['import("../room-summary/room-summary.js?v=joy-room-summary-v1")', `import("./room-summary.js?v=${buildVersion}")`, "assistant room-summary import"],
-  ]),
-  writePublicModule(resolve(sales, "appointments", "history.js"), "sale-history-row-edit.js", [
-    ['from "./appointment.js";', `from "./sale-appointment.js?v=${buildVersion}";`, "history appointment import"],
-    ['from "../shared/format.js";', `from "./sale-format.js?v=${buildVersion}";`, "history format import"],
-  ]),
-  writePublicModule(resolve(sales, "manager", "sale-manager.js"), "sale-manager.js", [
-    ['from "../shared/format.js";', `from "./sale-format.js?v=${buildVersion}";`, "manager format import"],
-  ]),
-]);
+async function versionPageAssets(filename, assets) {
+  const path = resolve(dist, filename);
+  let html = await readFile(path, "utf8");
+  for (const asset of assets) html = versionAssetReference(html, asset);
+  await writeFile(path, html);
+}
 
-const dashboardAssets = [
+await copyCanonicalSalesTree();
+await writeCompatibilityEntries();
+
+await versionPageAssets("index.html", [
   "room-summary.css",
   "sales-assistant.css",
   "sale-history-row-edit.css",
   "sales-assistant.js",
   "sale-history-row-edit.js",
-];
-let dashboard = await readFile(resolve(dist, "index.html"), "utf8");
-for (const asset of dashboardAssets) dashboard = versionAssetReference(dashboard, asset);
-await writeFile(resolve(dist, "index.html"), dashboard);
+]);
 
-const managerAssets = ["sale-manager.css", "sale-manager.js", "sale-english-ui.js"];
-let manager = await readFile(resolve(dist, "sale-manager.html"), "utf8");
-for (const asset of managerAssets) manager = versionAssetReference(manager, asset);
-await writeFile(resolve(dist, "sale-manager.html"), manager);
+await versionPageAssets("sale-manager.html", [
+  "sale-manager.css",
+  "sale-manager.js",
+  "sale-english-ui.js",
+]);
 
-console.log(`Sale frontend built with canonical imports (${buildVersion})`);
+console.log(`Built Sale module tree and compatibility entries (v=${version}).`);
