@@ -80,7 +80,7 @@
 }
 
 .sales-history-table {
-  min-width: 960px;
+  min-width: 1080px;
 }
 
 .sales-history-table th:nth-child(1),
@@ -126,7 +126,23 @@
 
 .sales-history-table thead th:last-child,
 .sales-history-table tbody tr:not(.sales-history-edit-row) > .sales-history-actions-cell {
-  display: none;
+  width: 168px;
+  min-width: 168px;
+  text-align: right;
+}
+
+.sales-history-table tbody tr:not(.sales-history-edit-row) > .sales-history-actions-cell {
+  display: table-cell;
+}
+
+.sales-history-table tbody tr:not(.sales-history-edit-row) .sales-history-actions-cell > button {
+  min-height: 30px;
+  padding: 0 9px;
+  font-size: 10px;
+}
+
+.sales-history-table tbody tr:not(.sales-history-edit-row) .sales-history-actions-cell > button + button {
+  margin-left: 5px;
 }
 
 .sales-history-table tbody tr[data-history-editable="true"] {
