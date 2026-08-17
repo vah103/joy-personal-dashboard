@@ -51,16 +51,12 @@ function applyDealState(row) {
     if (cells[4]) cells[4].textContent = "Closed";
   }
 
-  const button = row.querySelector(".sales-history-close-button");
-  if (!button) {
-    if (saved) translateRoot(row);
-    return;
-  }
-
-  button.disabled = saved;
-  button.dataset.dealSaved = saved ? "true" : "false";
-  button.textContent = saved ? "Deal saved" : "Close deal";
-  button.title = saved ? "Deal saved to Sale Manager." : "Close this deal.";
+  row.querySelectorAll(".sales-history-close-button").forEach((button) => {
+    button.disabled = saved;
+    button.dataset.dealSaved = saved ? "true" : "false";
+    button.textContent = saved ? "Deal saved" : "Close deal";
+    button.title = saved ? "Deal saved to Sale Manager." : "Close this deal.";
+  });
   translateRoot(row);
 }
 
@@ -129,7 +125,23 @@ function mergeReminderColumns(content) {
 
 function decorateDisplayRows(content) {
   content.querySelectorAll(DISPLAY_ROW_SELECTOR).forEach((row) => {
-    if (!row.querySelector(EDIT_CONTROL_SELECTOR)) return;
+    const edit = row.querySelector(EDIT_CONTROL_SELECTOR);
+    if (!edit) return;
+
+    const actions = row.querySelector(".sales-history-actions-cell");
+    if (actions && !actions.querySelector(".sales-history-display-close-button")) {
+      edit.hidden = false;
+      edit.textContent = "Edit";
+      const close = document.createElement("button");
+      close.type = "button";
+      close.className = "sales-history-close-button sales-history-display-close-button";
+      close.addEventListener("click", (event) => {
+        event.stopPropagation();
+        openCloseDealForm(row);
+      });
+      actions.append(close);
+    }
+
     applyDealState(row);
     row.dataset.historyEditable = "true";
     row.tabIndex = 0;
@@ -262,12 +274,13 @@ function openCloseDealForm(row) {
   const form = modal.querySelector("#sale-close-deal-form");
   if (!form) return;
 
+  const cells = [...row.children];
   const field = (name) => row.querySelector(`[data-history-field="${name}"]`)?.value.trim() || "";
   form.reset();
   form.elements.viewingId.value = id;
-  form.elements.customer.value = field("customerName");
-  form.elements.phone.value = field("phone");
-  form.elements.address.value = field("viewingAddress");
+  form.elements.customer.value = field("customerName") || cells[1]?.textContent.trim() || "";
+  form.elements.phone.value = field("phone") || cells[2]?.textContent.trim() || "";
+  form.elements.address.value = field("viewingAddress") || cells[3]?.textContent.trim() || "";
   const status = modal.querySelector(".sale-close-deal-status");
   if (status) {
     status.textContent = "";
