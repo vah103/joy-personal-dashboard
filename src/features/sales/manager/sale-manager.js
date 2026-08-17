@@ -5,6 +5,7 @@ import { saleText } from "../shared/i18n.js";
 const SAFE_ADD_ENDPOINT = "/api/sales/deals/idempotent";
 const SAFE_UPDATE_ENDPOINT = "/api/sales/deals/safe-update";
 const ADD_REVIEW_ENDPOINT = "/api/sales/deals/idempotent/review";
+const ADD_REVIEW_STORAGE_KEY = "joy:sale:add-review:v1";
 
 const state = {
   months: [], selectedMonth: "", editingDeal: null, query: "", loadSeq: 0,
@@ -153,6 +154,9 @@ function setFormBusy(busy) {
     if (control.dataset.saleReview) return;
     control.disabled = busy || state.formReviewPending || (control.name === "month" && Boolean(state.editingDeal));
   });
+  elements.modal.querySelectorAll('[data-action="close-form"]').forEach((control) => {
+    control.disabled = busy || state.formReviewPending;
+  });
   elements.save.disabled = busy || state.formReviewPending;
 }
 
@@ -165,6 +169,9 @@ function setAddReviewMode(active, message = "") {
   state.formReviewPending = active;
   elements.form.querySelectorAll("input, select").forEach((control) => {
     control.disabled = active || state.formSaving || (control.name === "month" && Boolean(state.editingDeal));
+  });
+  elements.modal.querySelectorAll('[data-action="close-form"]').forEach((control) => {
+    control.disabled = active || state.formSaving;
   });
   elements.save.disabled = active || state.formSaving;
   showFormError(message);
@@ -183,8 +190,80 @@ function setAddReviewMode(active, message = "") {
   elements.formError.append(saved, document.createTextNode(" "), retry);
 }
 
+function persistPendingAddReview(payload) {
+  if (!state.formRequestId) return;
+  try {
+    window.sessionStorage.setItem(ADD_REVIEW_STORAGE_KEY, JSON.stringify({
+      requestId: state.formRequestId,
+      payload: {
+        month: String(payload.month || ""),
+        customer: String(payload.customer || ""),
+        phone: String(payload.phone || ""),
+        address: String(payload.address || ""),
+        host: String(payload.host || ""),
+        rent: Number(payload.rent || 0),
+        rate: Number(payload.rate || 0),
+      },
+    }));
+  } catch {
+    // Review remains protected in memory even if browser storage is unavailable.
+  }
+}
+
+function clearPendingAddReview() {
+  try {
+    window.sessionStorage.removeItem(ADD_REVIEW_STORAGE_KEY);
+  } catch {
+    // Storage may be unavailable in restricted browsing modes.
+  }
+}
+
+function storedPendingAddReview() {
+  try {
+    const parsed = JSON.parse(window.sessionStorage.getItem(ADD_REVIEW_STORAGE_KEY) || "null");
+    const requestId = String(parsed?.requestId || "");
+    const payload = parsed?.payload;
+    if (!/^[A-Za-z0-9:_-]{8,160}$/u.test(requestId) || !payload || typeof payload !== "object") {
+      clearPendingAddReview();
+      return null;
+    }
+    return { requestId, payload };
+  } catch {
+    clearPendingAddReview();
+    return null;
+  }
+}
+
+function restorePendingAddReview() {
+  const pending = storedPendingAddReview();
+  if (!pending) return false;
+  state.editingDeal = null;
+  state.formRequestId = pending.requestId;
+  state.selectedMonth = String(pending.payload.month || state.selectedMonth);
+  elements.form.reset();
+  elements.form.elements.sourceRow.value = "";
+  elements.form.elements.month.value = String(pending.payload.month || "");
+  elements.form.elements.customer.value = String(pending.payload.customer || "");
+  elements.form.elements.phone.value = String(pending.payload.phone || "");
+  elements.form.elements.address.value = String(pending.payload.address || "");
+  elements.form.elements.host.value = String(pending.payload.host || "");
+  elements.form.elements.rent.value = Number(pending.payload.rent || 0) || "";
+  elements.form.elements.rate.value = Number(pending.payload.rate || 0) || "";
+  state.formDirty = false;
+  setFormBusy(false);
+  setAddReviewMode(
+    true,
+    saleText("sales.reviewUncertain", "Joy could not confirm whether this deal was saved. Check the Sheet result before retrying."),
+  );
+  updateCommissionPreview();
+  elements.formTitle.textContent = saleText("sales.addTitle", "Add a closed room");
+  elements.modal.hidden = false;
+  document.body.classList.add("sale-modal-open");
+  return true;
+}
+
 function openForm(deal = null) {
-  if (state.formSaving) return;
+  if (state.formSaving || state.formReviewPending) return;
   state.editingDeal = deal;
   state.formRequestId = "";
   state.formReviewPending = false;
@@ -215,7 +294,7 @@ function confirmDiscardForm() {
 }
 
 function closeForm({ force = false } = {}) {
-  if (state.formSaving && !force) return false;
+  if (!force && (state.formSaving || state.formReviewPending)) return false;
   if (!force && !confirmDiscardForm()) return false;
   elements.modal.hidden = true;
   document.body.classList.remove("sale-modal-open");
@@ -274,6 +353,7 @@ async function saveDeal(event) {
     if (operationId !== state.formOperationSeq) return;
     state.selectedMonth = payload.month;
     state.formDirty = false;
+    clearPendingAddReview();
     state.formRequestId = "";
     setFormBusy(false);
     closeForm({ force: true });
@@ -285,6 +365,7 @@ async function saveDeal(event) {
     if (operationId !== state.formOperationSeq) return;
     if (!editingDeal && ["SALE_DEAL_SAVE_REVIEW_REQUIRED", "SALE_DEAL_SAVE_IN_PROGRESS"].includes(error.code)) {
       state.formDirty = false;
+      persistPendingAddReview(payload);
       setFormBusy(false);
       setAddReviewMode(
         true,
@@ -323,6 +404,7 @@ async function resolveAddReview(resolution) {
     if (resolution === "saved") {
       state.formDirty = false;
       state.formReviewPending = false;
+      clearPendingAddReview();
       state.formRequestId = "";
       closeForm({ force: true });
       showToast(saleText("sales.confirmedToast", "Deal confirmed in Google Sheets"));
@@ -331,6 +413,7 @@ async function resolveAddReview(resolution) {
     }
     if (payload.retryAllowed) {
       state.formReviewPending = false;
+      clearPendingAddReview();
       setFormBusy(false);
       showFormError(saleText(
         "sales.reviewRetryReady",
@@ -340,6 +423,14 @@ async function resolveAddReview(resolution) {
   } catch (error) {
     const [key, fallback] = REVIEW_ERROR_KEYS[error.code]
       || ["sales.reviewFailed", "Joy could not resolve this save yet. Check Google Sheets and try again."];
+    if (error.code === "SALE_DEAL_REVIEW_NOT_REQUIRED") {
+      state.formReviewPending = false;
+      clearPendingAddReview();
+      state.formRequestId = "";
+      setFormBusy(false);
+      showFormError(saleText(key, fallback));
+      return;
+    }
     setAddReviewMode(true, saleText(key, fallback));
   } finally {
     elements.formError.querySelectorAll("[data-sale-review]").forEach((button) => { button.disabled = false; });
@@ -441,5 +532,11 @@ elements.modal.addEventListener("mousedown", (event) => {
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !elements.modal.hidden) closeForm();
 });
+window.addEventListener("beforeunload", (event) => {
+  if (!state.formReviewPending) return;
+  event.preventDefault();
+  event.returnValue = "";
+});
 window.addEventListener("joy:locale-changed", render);
-void loadDeals();
+const restoredPendingReview = restorePendingAddReview();
+void loadDeals({ quiet: restoredPendingReview });
