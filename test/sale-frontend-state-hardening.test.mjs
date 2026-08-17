@@ -21,7 +21,9 @@ test("Sale Assistant serializes appointment saves and keeps History leave synchr
   assert.match(source, /function requestHistoryLeave/);
   assert.match(source, /joy:sale-history-leave-request/);
   assert.doesNotMatch(source, /deferUntilHistoryEditResolved/);
-  assert.match(source, /if \(currentMode === "history" && !requestHistoryLeave\(\)\) return/);
+  assert.match(source, /if \(currentMode === "history" && !requestHistoryLeave\(\)\) return false/);
+  assert.match(source, /stopImmediatePropagation\(\)/);
+  assert.match(source, /#sales-assistant-modal"\)\?\.addEventListener\("click"/);
   assert.match(source, /\{\s*capture:\s*true\s*\}/);
 });
 
