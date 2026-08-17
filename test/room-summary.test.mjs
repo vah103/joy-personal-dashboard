@@ -131,17 +131,23 @@ test("keeps common-service explanations and recognizes laundry fees", () => {
   ]);
 });
 
-test("Sale page exposes one screenshot-focused room summary interface", async () => {
-  const [html, css, source, build] = await Promise.all([
+test("Room Summary is owned by Sale Assistant, not the standalone Sale Manager page", async () => {
+  const [salePage, dashboard, assistant, css, source, build] = await Promise.all([
     readFile(new URL("../src/pages/sale/index.html", import.meta.url), "utf8"),
+    readFile(new URL("../src/pages/dashboard/index.html", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/sales-assistant.js", import.meta.url), "utf8"),
     readFile(new URL("../src/pages/sale/room-summary.css", import.meta.url), "utf8"),
     readFile(new URL("../src/pages/sale/room-summary.js", import.meta.url), "utf8"),
     readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8"),
   ]);
 
-  assert.match(html, /id="room-summary-input"/);
-  assert.match(html, /id="room-summary-capture-button"/);
-  assert.match(html, /Temporary · never saved/);
+  assert.doesNotMatch(salePage, /id="room-summary-input"/);
+  assert.doesNotMatch(salePage, /room-summary\.js/);
+  assert.doesNotMatch(salePage, /room-summary\.css/);
+  assert.match(dashboard, /room-summary\.css/);
+  assert.match(assistant, /data-assistant-mode="summary"/);
+  assert.match(assistant, /id="room-summary-input"/);
+  assert.match(assistant, /id="room-summary-capture-button"/);
   assert.match(css, /\.sale-room-capture/);
   assert.match(css, /\.room-share-detail-row/);
   assert.match(source, /appendDetailRow\(details, "Phòng trống"/);
