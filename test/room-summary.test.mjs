@@ -10,7 +10,6 @@ test("creates a clean customer room summary without private sale details", () =>
     Điện 4k nước 100k/người wifi 100k/phòng gửi xe 100k/xe
     Cọc 1 tháng; SĐT 0987654321; hoa hồng 50%; nguồn chị Lan
   `);
-
   assert.equal(summary.address, "180 Phú Mỹ");
   assert.deepEqual(summary.rooms, [{ title: "Phòng 302", price: "4tr2", note: "Có thể vào ở ngay" }]);
   assert.equal(summary.availability, "302, có thể vào ở ngay");
@@ -19,10 +18,7 @@ test("creates a clean customer room summary without private sale details", () =>
   assert.equal(summary.stairs, "Có");
   assert.match(summary.furniture, /full nội thất/i);
   assert.deepEqual(summary.services.map(({ label, value }) => [label, value]), [
-    ["Điện", "4k/số"],
-    ["Nước", "100k/người"],
-    ["Mạng", "100k/phòng"],
-    ["Gửi xe", "100k/xe"],
+    ["Điện", "4k/số"], ["Nước", "100k/người"], ["Mạng", "100k/phòng"], ["Gửi xe", "100k/xe"],
   ]);
   assert.deepEqual(summary.notes, ["Cọc 1 tháng"]);
   assert.doesNotMatch(JSON.stringify(summary), /0987654321|hoa hồng|chị Lan/i);
@@ -36,37 +32,25 @@ test("supports several available rooms and keeps the result temporary", async ()
     Điện 4k; nước 100k/ng; wifi 100k; xe 100k
     Cọc 1 tháng, hợp đồng 6 tháng
   `);
-
-  assert.deepEqual(summary.rooms.map(({ title, price }) => [title, price]), [
-    ["Phòng 301", "3tr8"],
-    ["Phòng 402", "4tr2"],
-  ]);
+  assert.deepEqual(summary.rooms.map(({ title, price }) => [title, price]), [["Phòng 301", "3tr8"], ["Phòng 402", "4tr2"]]);
   assert.equal(summary.availability, "301, 402");
   assert.equal(summary.price, "301: 3tr8; 402: 4tr2");
   assert.deepEqual(summary.notes, ["Cọc 1 tháng", "Hợp đồng 6 tháng"]);
-
-  const source = await readFile(new URL("../src/features/sales/room-summary/room-summary.js", import.meta.url), "utf8");
+  const source = await readFile(new URL("../src/features/sales/room-summary/parser.js", import.meta.url), "utf8");
   assert.doesNotMatch(source, /localStorage|sessionStorage|\/api\//);
 });
 
 test("parses the labeled TL21House form into a customer-friendly layout", () => {
   const summary = summarizeRoomListing(`
     🌷30% - 12m  Mã: 🏆 007B
-
     🏢Địa chỉ : SỐ 9 ngõ 63/53 Trần Quốc Vượng- Cầu Giấy
-
     ⌛️Trống : P201(1/9)
-
     ☘Giá : 5tr1
     ☘Dạng phòng : studio
     ☘Thang : MÁY
-
     🏆Nội thất : Full như hình- Máy lọc nước riêng-bếp từ
-
     🏆Dịch vụ : Điện 4000/số. Nước 35k/m3. Mạng 100k/tháng,dvc 200k/ng,free 1 xe (xe T2 100k)
-
     ⭐Lưu ý:
-
     - Đóng 1 cọc 1
     - KHÔNG NHẬN XE ĐIỆN
     - KHÔNG CHUNG CHỦ GIỜ GIẤC TỰ DO
@@ -74,7 +58,6 @@ test("parses the labeled TL21House form into a customer-friendly layout", () => 
     - Nguồn hàng cập nhật liên tục tại
       🏆TL21House🏆
   `);
-
   assert.equal(summary.address, "Số 9 ngõ 63/53 Trần Quốc Vượng - Cầu Giấy");
   assert.equal(summary.availability, "P201, trống 1/9");
   assert.equal(summary.price, "5tr1/tháng");
@@ -82,17 +65,10 @@ test("parses the labeled TL21House form into a customer-friendly layout", () => 
   assert.equal(summary.stairs, "Có");
   assert.equal(summary.furniture, "Full đồ như hình, máy lọc nước riêng, bếp từ");
   assert.deepEqual(summary.services.map(({ label, value }) => [label, value]), [
-    ["Điện", "4k/số"],
-    ["Nước", "35k/m³"],
-    ["Mạng", "100k/tháng"],
-    ["Dịch vụ chung", "200k/người"],
-    ["Gửi xe", "Free 1 xe, xe thứ 2 100k"],
+    ["Điện", "4k/số"], ["Nước", "35k/m³"], ["Mạng", "100k/tháng"],
+    ["Dịch vụ chung", "200k/người"], ["Gửi xe", "Free 1 xe, xe thứ 2 100k"],
   ]);
-  assert.deepEqual(summary.notes, [
-    "Đóng 1 cọc 1",
-    "Không nhận xe điện",
-    "Không chung chủ, giờ giấc tự do",
-  ]);
+  assert.deepEqual(summary.notes, ["Đóng 1 cọc 1", "Không nhận xe điện", "Không chung chủ, giờ giấc tự do"]);
   assert.doesNotMatch(JSON.stringify(summary), /30%|007B|TL21House|alo trước 30p|Nguồn hàng/i);
 });
 
@@ -101,14 +77,9 @@ test("separates refrigerator fees from parking details", () => {
     Địa chỉ: 54 ngõ 66 Hồ Tùng Mậu - Cầu Giấy
     Dịch vụ: Điện 4000/số.Nước 35k/m3. Mạng 100k/tháng,dvc 200k/ng,free 2 xe (xe T3 120k) Tủ Lạnh + 200k
   `);
-
   assert.deepEqual(summary.services.map(({ label, value }) => [label, value]), [
-    ["Điện", "4k/số"],
-    ["Nước", "35k/m³"],
-    ["Mạng", "100k/tháng"],
-    ["Dịch vụ chung", "200k/người"],
-    ["Gửi xe", "Free 2 xe, xe thứ 3 120k"],
-    ["Tủ lạnh", "200k"],
+    ["Điện", "4k/số"], ["Nước", "35k/m³"], ["Mạng", "100k/tháng"],
+    ["Dịch vụ chung", "200k/người"], ["Gửi xe", "Free 2 xe, xe thứ 3 120k"], ["Tủ lạnh", "200k"],
   ]);
 });
 
@@ -121,38 +92,34 @@ test("keeps common-service explanations and recognizes laundry fees", () => {
     Dịch vụ chung 250k / người ( vệ sinh , rác thải , điện dùng chung)
     Giặt sấy 50k/ng
   `);
-
   assert.deepEqual(summary.services.map(({ label, value }) => [label, value]), [
-    ["Điện", "4k/số"],
-    ["Nước", "34k/số"],
-    ["Mạng", "100k/phòng"],
-    ["Dịch vụ chung", "250k/người (vệ sinh, rác thải, điện dùng chung)"],
-    ["Giặt sấy", "50k/người"],
+    ["Điện", "4k/số"], ["Nước", "34k/số"], ["Mạng", "100k/phòng"],
+    ["Dịch vụ chung", "250k/người (vệ sinh, rác thải, điện dùng chung)"], ["Giặt sấy", "50k/người"],
   ]);
 });
 
-test("Room Summary is owned by Sale Assistant, not the standalone Sale Manager page", async () => {
-  const [salePage, dashboard, assistant, css, source, build] = await Promise.all([
+test("Room Summary is split into parser, renderer and Assistant-owned bootstrap", async () => {
+  const [salePage, dashboard, view, css, entry, parser, renderer, build] = await Promise.all([
     readFile(new URL("../src/pages/sale/index.html", import.meta.url), "utf8"),
     readFile(new URL("../src/pages/dashboard/index.html", import.meta.url), "utf8"),
-    readFile(new URL("../src/features/sales/assistant/sales-assistant.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/assistant/assistant-view.js", import.meta.url), "utf8"),
     readFile(new URL("../src/features/sales/room-summary/room-summary.css", import.meta.url), "utf8"),
     readFile(new URL("../src/features/sales/room-summary/room-summary.js", import.meta.url), "utf8"),
-    readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/room-summary/parser.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/room-summary/renderer.js", import.meta.url), "utf8"),
+    readFile(new URL("../scripts/build-sales.mjs", import.meta.url), "utf8"),
   ]);
-
-  assert.doesNotMatch(salePage, /id="room-summary-input"/);
-  assert.doesNotMatch(salePage, /room-summary\.js/);
-  assert.doesNotMatch(salePage, /room-summary\.css/);
+  assert.doesNotMatch(salePage, /id="room-summary-input"|room-summary\.js|room-summary\.css/);
   assert.match(dashboard, /room-summary\.css/);
-  assert.match(assistant, /data-assistant-mode="summary"/);
-  assert.match(assistant, /id="room-summary-input"/);
-  assert.match(assistant, /id="room-summary-capture-button"/);
+  assert.match(view, /data-assistant-mode="summary"/);
+  assert.match(view, /id="room-summary-input"/);
+  assert.match(view, /id="room-summary-capture-button"/);
   assert.match(css, /\.sale-room-capture/);
   assert.match(css, /\.room-share-detail-row/);
-  assert.match(source, /appendDetailRow\(details, "Phòng trống"/);
-  assert.match(source, /renderListSection\(container, "Dịch vụ"/);
-  assert.match(build, /saleRoomSummaryFeature/);
-  assert.match(build, /room-summary\.js/);
-  assert.match(build, /room-summary\.css/);
+  assert.match(entry, /parser\.js/);
+  assert.match(entry, /renderer\.js/);
+  assert.match(parser, /export function summarizeRoomListing/);
+  assert.match(renderer, /appendDetailRow\(details, "saleAssistant\.roomAvailability"/);
+  assert.match(renderer, /renderListSection\(\s*container,\s*"saleAssistant\.services"/s);
+  assert.match(build, /copyCanonicalSalesTree/);
 });
