@@ -1,52 +1,37 @@
+import { saleApi } from "../shared/api.js";
 import { formatVnd } from "../shared/format.js";
+import { saleText, translateSaleUiRoot } from "../shared/i18n.js";
 
 const SAFE_ADD_ENDPOINT = "/api/sales/deals/idempotent";
 const SAFE_UPDATE_ENDPOINT = "/api/sales/deals/safe-update";
 const ADD_REVIEW_ENDPOINT = "/api/sales/deals/idempotent/review";
 
 const state = {
-  months: [],
-  selectedMonth: "",
-  editingDeal: null,
-  query: "",
-  loadSeq: 0,
-  formSaving: false,
-  formDirty: false,
-  formReviewPending: false,
-  formRequestId: "",
-  formOperationSeq: 0,
+  months: [], selectedMonth: "", editingDeal: null, query: "", loadSeq: 0,
+  formSaving: false, formDirty: false, formReviewPending: false,
+  formRequestId: "", formOperationSeq: 0,
 };
 
 const elements = {
-  status: document.querySelector("#sale-status"),
-  months: document.querySelector("#sale-months"),
-  total: document.querySelector("#sale-total"),
-  count: document.querySelector("#sale-count"),
-  average: document.querySelector("#sale-average"),
-  summaryMonth: document.querySelector("#sale-summary-month"),
-  ledgerTitle: document.querySelector("#sale-ledger-title"),
-  tableBody: document.querySelector("#sale-table-body"),
-  tableWrap: document.querySelector("#sale-table-wrap"),
-  empty: document.querySelector("#sale-empty"),
-  search: document.querySelector("#sale-search"),
-  modal: document.querySelector("#sale-modal"),
-  form: document.querySelector("#sale-form"),
-  formTitle: document.querySelector("#sale-form-title"),
-  formError: document.querySelector("#sale-form-error"),
-  save: document.querySelector("#sale-save"),
-  commissionPreview: document.querySelector("#commission-preview"),
-  toast: document.querySelector("#sale-toast"),
+  status: document.querySelector("#sale-status"), months: document.querySelector("#sale-months"),
+  total: document.querySelector("#sale-total"), count: document.querySelector("#sale-count"),
+  average: document.querySelector("#sale-average"), summaryMonth: document.querySelector("#sale-summary-month"),
+  ledgerTitle: document.querySelector("#sale-ledger-title"), tableBody: document.querySelector("#sale-table-body"),
+  tableWrap: document.querySelector("#sale-table-wrap"), empty: document.querySelector("#sale-empty"),
+  search: document.querySelector("#sale-search"), modal: document.querySelector("#sale-modal"),
+  form: document.querySelector("#sale-form"), formTitle: document.querySelector("#sale-form-title"),
+  formError: document.querySelector("#sale-form-error"), save: document.querySelector("#sale-save"),
+  commissionPreview: document.querySelector("#commission-preview"), toast: document.querySelector("#sale-toast"),
 };
 
 async function loadDeals({ quiet = false } = {}) {
   const requestSeq = ++state.loadSeq;
-  if (!quiet) showStatus("loading", "Loading Sale 2026…");
+  if (!quiet) showStatus("loading", saleText("sales.loading", "Loading Sale 2026…"));
   try {
-    const payload = await apiRequest("/api/sales/deals");
+    const payload = await saleApi("/api/sales/deals");
     if (requestSeq !== state.loadSeq) return;
     state.months = Array.isArray(payload.months) ? payload.months : [];
-    const selectedMonthStillExists = state.months.some((month) => month.key === state.selectedMonth);
-    if (!selectedMonthStillExists) {
+    if (!state.months.some((month) => month.key === state.selectedMonth)) {
       const suggestedMonth = String(payload.selectedMonth || "");
       const currentMonth = state.months.find((month) => month.key === suggestedMonth);
       const firstMonthWithDeals = state.months.find((month) => Number(month.count || 0) > 0);
@@ -59,10 +44,25 @@ async function loadDeals({ quiet = false } = {}) {
     const reconnect = ["AUTH_REQUIRED", "SHEETS_AUTHORIZATION_REQUIRED", "SHEETS_WRITE_AUTHORIZATION_REQUIRED"].includes(error.code);
     showStatus(
       "error",
-      reconnect ? "Google Sheets needs to be connected again before Joy can manage Sale." : "Joy could not load the Sale sheet.",
-      reconnect ? { label: "Connect Google", href: "/auth/start" } : { label: "Try again", action: "retry-load" },
+      reconnect
+        ? saleText("sales.connectRequired", "Google Sheets needs to be connected again before Joy can manage Sale.")
+        : saleText("sales.loadFailed", "Joy could not load the Sale sheet."),
+      reconnect
+        ? { label: saleText("sales.connectGoogle", "Connect Google"), href: "/auth/start" }
+        : { label: saleText("sales.tryAgain", "Try again"), action: "retry-load" },
     );
   }
+}
+
+function selectedMonth() {
+  return state.months.find((month) => month.key === state.selectedMonth) || null;
+}
+
+function filteredDeals(deals) {
+  const query = state.query.trim().toLocaleLowerCase("vi");
+  if (!query) return deals;
+  return deals.filter((deal) => [deal.customer, deal.phone, deal.address, deal.host]
+    .some((value) => String(value || "").toLocaleLowerCase("vi").includes(query)));
 }
 
 function render() {
@@ -74,20 +74,22 @@ function render() {
   elements.average.textContent = formatVnd(month?.count ? total / month.count : 0);
   elements.count.textContent = String(month?.count || 0);
   elements.summaryMonth.textContent = month?.label || "—";
-  elements.ledgerTitle.textContent = month?.label ? `${month.label.replace(" 2026", "")} deals` : "Deals";
+  elements.ledgerTitle.textContent = month?.label
+    ? `${month.label.replace(" 2026", "")} deals`
+    : saleText("sales.deals", "Deals");
   elements.tableBody.replaceChildren(...deals.map(renderDealRow));
   elements.empty.hidden = Boolean(deals.length) || Boolean(state.query);
   elements.tableWrap.classList.toggle("is-empty", !deals.length && !state.query);
-
   if (!deals.length && state.query) {
     const row = document.createElement("tr");
     const cell = document.createElement("td");
     cell.colSpan = 7;
     cell.className = "sale-no-results";
-    cell.textContent = "No matching deals in this month.";
+    cell.textContent = saleText("sales.noMatchingDeals", "No matching deals in this month.");
     row.append(cell);
     elements.tableBody.append(row);
   }
+  translateSaleUiRoot(document.querySelector(".sale-page") || document.body);
 }
 
 function renderMonths() {
@@ -121,30 +123,17 @@ function renderDealRow(deal) {
   edit.className = "sale-edit-button";
   edit.dataset.action = "edit-deal";
   edit.dataset.row = String(deal.sourceRow);
-  edit.textContent = "Edit";
+  edit.textContent = saleText("sales.edit", "Edit");
   actionCell.append(edit);
   row.append(actionCell);
   return row;
-}
-
-function selectedMonth() {
-  return state.months.find((month) => month.key === state.selectedMonth) || null;
-}
-
-function filteredDeals(deals) {
-  const query = state.query.trim().toLocaleLowerCase("vi");
-  if (!query) return deals;
-  return deals.filter((deal) => [deal.customer, deal.phone, deal.address, deal.host]
-    .some((value) => String(value || "").toLocaleLowerCase("vi").includes(query)));
 }
 
 function setFormBusy(busy) {
   state.formSaving = busy;
   elements.form.querySelectorAll("input, select, button").forEach((control) => {
     if (control.dataset.saleReview) return;
-    control.disabled = busy
-      || state.formReviewPending
-      || (control.name === "month" && Boolean(state.editingDeal));
+    control.disabled = busy || state.formReviewPending || (control.name === "month" && Boolean(state.editingDeal));
   });
   elements.save.disabled = busy || state.formReviewPending;
 }
@@ -152,10 +141,6 @@ function setFormBusy(busy) {
 function showFormError(message) {
   elements.formError.replaceChildren(document.createTextNode(message));
   elements.formError.hidden = !message;
-}
-
-function localizedText(key) {
-  return window.JoyI18n?.t?.(key) || "";
 }
 
 function setAddReviewMode(active, message = "") {
@@ -166,22 +151,19 @@ function setAddReviewMode(active, message = "") {
   elements.save.disabled = active || state.formSaving;
   showFormError(message);
   if (!active) return;
-
   elements.formError.append(document.createElement("br"));
   const saved = document.createElement("button");
   saved.type = "button";
   saved.className = "sale-secondary-button";
   saved.dataset.saleReview = "saved";
-  saved.dataset.i18n = "sales.checkSaved";
-  saved.textContent = localizedText("sales.checkSaved");
+  saved.textContent = saleText("sales.checkSaved", "Check if saved");
   const retry = document.createElement("button");
   retry.type = "button";
   retry.className = "sale-secondary-button";
   retry.dataset.saleReview = "retry";
-  retry.dataset.i18n = "sales.checkAllowRetry";
-  retry.textContent = localizedText("sales.checkAllowRetry");
+  retry.textContent = saleText("sales.checkAllowRetry", "Check & allow retry");
   elements.formError.append(saved, document.createTextNode(" "), retry);
-  window.JoyI18n?.translateRoot?.(elements.formError);
+  translateSaleUiRoot(elements.formError);
 }
 
 function openForm(deal = null) {
@@ -191,7 +173,9 @@ function openForm(deal = null) {
   state.formReviewPending = false;
   elements.form.reset();
   showFormError("");
-  elements.formTitle.textContent = deal ? "Edit closed room" : "Add a closed room";
+  elements.formTitle.textContent = deal
+    ? saleText("sales.editTitle", "Edit closed room")
+    : saleText("sales.addTitle", "Add a closed room");
   elements.form.elements.sourceRow.value = deal?.sourceRow || "";
   elements.form.elements.month.value = deal?.month || state.selectedMonth;
   elements.form.elements.month.disabled = Boolean(deal);
@@ -210,7 +194,7 @@ function openForm(deal = null) {
 }
 
 function confirmDiscardForm() {
-  return !state.formDirty || window.confirm("Discard unsaved deal changes?");
+  return !state.formDirty || window.confirm(saleText("sales.discardChanges", "Discard unsaved deal changes?"));
 }
 
 function closeForm({ force = false } = {}) {
@@ -230,6 +214,16 @@ function newRequestId() {
   return `deal:${Date.now().toString(36)}:${Math.random().toString(36).slice(2)}`;
 }
 
+const SAVE_ERROR_KEYS = Object.freeze({
+  SHEETS_WRITE_AUTHORIZATION_REQUIRED: ["sales.reconnectWrite", "Reconnect Google once to allow Joy to save changes."],
+  SHEETS_WRITE_ACCESS_DENIED: ["sales.writeDenied", "Joy does not have permission to edit this Sheet."],
+  SALE_DEAL_NOT_FOUND: ["sales.dealNotFound", "This row moved in Google Sheets. Close the form and refresh before editing again."],
+  SALE_DEAL_STALE: ["sales.dealStale", "This deal changed or moved in Google Sheets. Close the form, refresh, then edit the current row."],
+  SALE_DEAL_AMBIGUOUS: ["sales.dealAmbiguous", "Multiple identical deals match this edit. Refresh the Sheet and resolve the duplicate before editing."],
+  SALE_DEAL_REVISION_REQUIRED: ["sales.revisionRequired", "This deal needs a fresh reload before it can be edited safely."],
+  SALE_DEAL_REQUEST_CONFLICT: ["sales.requestConflict", "This save changed after it started. Review the Sheet before trying again."],
+});
+
 async function saveDeal(event) {
   event.preventDefault();
   if (state.formSaving || state.formReviewPending || !elements.form.reportValidity()) return;
@@ -246,7 +240,6 @@ async function saveDeal(event) {
     rent: Number(form.get("rent") || 0),
     rate: Number(form.get("rate") || 0),
   };
-
   let endpoint = SAFE_ADD_ENDPOINT;
   if (editingDeal) {
     endpoint = SAFE_UPDATE_ENDPOINT;
@@ -255,24 +248,21 @@ async function saveDeal(event) {
     state.formRequestId ||= newRequestId();
     payload.requestId = state.formRequestId;
   }
-
   const operationId = ++state.formOperationSeq;
   setFormBusy(true);
-  elements.save.textContent = "Saving…";
+  elements.save.textContent = saleText("sales.saving", "Saving…");
   showFormError("");
   try {
-    await apiRequest(endpoint, {
-      method: editingDeal ? "PATCH" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    await saleApi(endpoint, { method: editingDeal ? "PATCH" : "POST", body: payload });
     if (operationId !== state.formOperationSeq) return;
     state.selectedMonth = payload.month;
     state.formDirty = false;
     state.formRequestId = "";
     setFormBusy(false);
     closeForm({ force: true });
-    showToast(wasEditing ? "Deal updated in Google Sheets" : "Deal added to Google Sheets");
+    showToast(wasEditing
+      ? saleText("sales.updatedToast", "Deal updated in Google Sheets")
+      : saleText("sales.addedToast", "Deal added to Google Sheets"));
     await loadDeals({ quiet: true });
   } catch (error) {
     if (operationId !== state.formOperationSeq) return;
@@ -282,60 +272,58 @@ async function saveDeal(event) {
       setAddReviewMode(
         true,
         error.code === "SALE_DEAL_SAVE_IN_PROGRESS"
-          ? "The previous save may still be settling. Check its result before trying again."
-          : "Joy could not confirm whether this deal was saved. Check the Sheet result before retrying.",
+          ? saleText("sales.reviewSettling", "The previous save may still be settling. Check its result before trying again.")
+          : saleText("sales.reviewUncertain", "Joy could not confirm whether this deal was saved. Check the Sheet result before retrying."),
       );
       return;
     }
-    const messages = {
-      SHEETS_WRITE_AUTHORIZATION_REQUIRED: "Reconnect Google once to allow Joy to save changes.",
-      SHEETS_WRITE_ACCESS_DENIED: "Joy does not have permission to edit this Sheet.",
-      SALE_DEAL_NOT_FOUND: "This row moved in Google Sheets. Close the form and refresh before editing again.",
-      SALE_DEAL_STALE: "This deal changed or moved in Google Sheets. Close the form, refresh, then edit the current row.",
-      SALE_DEAL_AMBIGUOUS: "Multiple identical deals match this edit. Refresh the Sheet and resolve the duplicate before editing.",
-      SALE_DEAL_REVISION_REQUIRED: "This deal needs a fresh reload before it can be edited safely.",
-      SALE_DEAL_REQUEST_CONFLICT: "This save changed after it started. Review the Sheet before trying again.",
-    };
-    showFormError(messages[error.code] || "The deal could not be saved. Please try again.");
+    const [key, fallback] = SAVE_ERROR_KEYS[error.code]
+      || ["sales.saveFailed", "The deal could not be saved. Please try again."];
+    showFormError(saleText(key, fallback));
   } finally {
     if (operationId === state.formOperationSeq && state.formSaving) setFormBusy(false);
-    if (operationId === state.formOperationSeq) elements.save.textContent = "Save to Sheet";
+    if (operationId === state.formOperationSeq) elements.save.textContent = saleText("sales.saveToSheet", "Save to Sheet");
   }
 }
+
+const REVIEW_ERROR_KEYS = Object.freeze({
+  SALE_DEAL_SAVE_IN_PROGRESS: ["sales.reviewStillSettling", "The previous save is still settling. Try this check again shortly."],
+  SALE_DEAL_REVIEW_NOT_FOUND: ["sales.reviewNotFound", "No matching deal is visible yet. Use “Check & allow retry” before saving again."],
+  SALE_DEAL_REVIEW_DEAL_PRESENT: ["sales.reviewDealPresent", "A matching deal already exists. Use “Check if saved” instead of retrying."],
+  SALE_DEAL_REVIEW_AMBIGUOUS: ["sales.reviewAmbiguous", "Multiple identical deals exist. Open Google Sheets and resolve this manually before retrying."],
+  SALE_DEAL_REVIEW_NOT_REQUIRED: ["sales.reviewNotRequired", "This review is no longer active. Close the form and refresh the Sale list."],
+});
 
 async function resolveAddReview(resolution) {
   if (!state.formReviewPending || !state.formRequestId || state.formSaving) return;
   const reviewButtons = elements.formError.querySelectorAll("[data-sale-review]");
   reviewButtons.forEach((button) => { button.disabled = true; });
   try {
-    const payload = await apiRequest(ADD_REVIEW_ENDPOINT, {
+    const payload = await saleApi(ADD_REVIEW_ENDPOINT, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ requestId: state.formRequestId, resolution }),
+      body: { requestId: state.formRequestId, resolution },
     });
     if (resolution === "saved") {
       state.formDirty = false;
       state.formReviewPending = false;
       state.formRequestId = "";
       closeForm({ force: true });
-      showToast("Deal confirmed in Google Sheets");
+      showToast(saleText("sales.confirmedToast", "Deal confirmed in Google Sheets"));
       await loadDeals({ quiet: true });
       return;
     }
     if (payload.retryAllowed) {
       state.formReviewPending = false;
       setFormBusy(false);
-      showFormError("No matching deal was found. It is safe to press Save to Sheet again.");
+      showFormError(saleText(
+        "sales.reviewRetryReady",
+        "No matching deal was found. It is safe to press Save to Sheet again.",
+      ));
     }
   } catch (error) {
-    const messages = {
-      SALE_DEAL_SAVE_IN_PROGRESS: "The previous save is still settling. Try this check again shortly.",
-      SALE_DEAL_REVIEW_NOT_FOUND: "No matching deal is visible yet. Use “Check & allow retry” before saving again.",
-      SALE_DEAL_REVIEW_DEAL_PRESENT: "A matching deal already exists. Use “Check if saved” instead of retrying.",
-      SALE_DEAL_REVIEW_AMBIGUOUS: "Multiple identical deals exist. Open Google Sheets and resolve this manually before retrying.",
-      SALE_DEAL_REVIEW_NOT_REQUIRED: "This review is no longer active. Close the form and refresh the Sale list.",
-    };
-    setAddReviewMode(true, messages[error.code] || "Joy could not resolve this save yet. Check Google Sheets and try again.");
+    const [key, fallback] = REVIEW_ERROR_KEYS[error.code]
+      || ["sales.reviewFailed", "Joy could not resolve this save yet. Check Google Sheets and try again."];
+    setAddReviewMode(true, saleText(key, fallback));
   } finally {
     elements.formError.querySelectorAll("[data-sale-review]").forEach((button) => { button.disabled = false; });
   }
@@ -345,17 +333,6 @@ function updateCommissionPreview() {
   const rent = Number(elements.form.elements.rent.value || 0);
   const rate = Number(elements.form.elements.rate.value || 0) / 100;
   elements.commissionPreview.textContent = formatVnd(Math.round(rent * rate));
-}
-
-async function apiRequest(path, options = {}) {
-  const response = await fetch(path, {
-    credentials: "same-origin",
-    ...options,
-    headers: { Accept: "application/json", ...(options.headers || {}) },
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw Object.assign(new Error(payload.error || "REQUEST_FAILED"), { code: payload.error });
-  return payload;
 }
 
 function showStatus(type, message, action) {
@@ -374,35 +351,30 @@ function showStatus(type, message, action) {
 }
 
 function hideStatus() { elements.status.hidden = true; }
-
 function showToast(message) {
   elements.toast.textContent = message;
   elements.toast.hidden = false;
   window.setTimeout(() => { elements.toast.hidden = true; }, 2400);
 }
-
 function cellWithPrimary(primary, secondary) {
   const cell = document.createElement("td");
   const strong = document.createElement("strong");
-  strong.textContent = primary || "Unnamed customer";
+  strong.textContent = primary || saleText("sales.unnamedCustomer", "Unnamed customer");
   const small = document.createElement("small");
-  small.textContent = secondary || "No phone";
+  small.textContent = secondary || saleText("sales.noPhone", "No phone");
   cell.append(strong, small);
   return cell;
 }
-
 function textCell(value) {
   const cell = document.createElement("td");
   cell.textContent = value;
   return cell;
 }
-
 function privateCell(value, className = "") {
   const cell = textCell(value);
   cell.className = `private-cell ${className}`.trim();
   return cell;
 }
-
 function formatPercent(value) {
   return new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 2 }).format(Number(value || 0) * 100);
 }
@@ -413,8 +385,7 @@ document.addEventListener("click", (event) => {
     void resolveAddReview(reviewControl.dataset.saleReview);
     return;
   }
-
-  const target = event.target.closest("[data-action], [data-month]");
+  const target = event.target.closest?.("[data-action], [data-month]");
   if (!target) return;
   if (target.dataset.month) {
     state.selectedMonth = target.dataset.month;
@@ -433,20 +404,25 @@ document.addEventListener("click", (event) => {
   }
 });
 
-elements.search.addEventListener("input", () => { state.query = elements.search.value; render(); });
+elements.search.addEventListener("input", () => {
+  state.query = elements.search.value;
+  render();
+});
 elements.form.addEventListener("submit", saveDeal);
-elements.form.addEventListener("input", () => {
-  if (state.formSaving || state.formReviewPending) return;
-  state.formDirty = true;
-  if (!state.editingDeal) state.formRequestId = "";
-});
-elements.form.addEventListener("change", () => {
-  if (state.formSaving || state.formReviewPending) return;
-  state.formDirty = true;
-  if (!state.editingDeal) state.formRequestId = "";
-});
+for (const type of ["input", "change"]) {
+  elements.form.addEventListener(type, () => {
+    if (state.formSaving || state.formReviewPending) return;
+    state.formDirty = true;
+    if (!state.editingDeal) state.formRequestId = "";
+  });
+}
 elements.form.elements.rent.addEventListener("input", updateCommissionPreview);
 elements.form.elements.rate.addEventListener("input", updateCommissionPreview);
-elements.modal.addEventListener("mousedown", (event) => { if (event.target === elements.modal) closeForm(); });
-document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !elements.modal.hidden) closeForm(); });
+elements.modal.addEventListener("mousedown", (event) => {
+  if (event.target === elements.modal) closeForm();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !elements.modal.hidden) closeForm();
+});
+window.addEventListener("joy:locale-changed", render);
 void loadDeals();
