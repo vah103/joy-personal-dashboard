@@ -207,6 +207,73 @@ async function listSaleDeals(email, env) {
   }
 }
 
+function sheetUserValue(value) {
+  if (value && typeof value === "object" && typeof value.formula === "string") {
+    return { formulaValue: value.formula };
+  }
+  if (typeof value === "number" && Number.isFinite(value)) return { numberValue: value };
+  return { stringValue: String(value ?? "") };
+}
+
+function updateCellsRequest(sheetId, rowIndex, columnIndex, values) {
+  return {
+    updateCells: {
+      start: { sheetId, rowIndex, columnIndex },
+      rows: [{ values: values.map((value) => ({ userEnteredValue: sheetUserValue(value) })) }],
+      fields: "userEnteredValue",
+    },
+  };
+}
+
+function insertRowsRequest(sheetId, startIndex, count, inheritFromBefore = true) {
+  return {
+    insertDimension: {
+      range: {
+        sheetId,
+        dimension: "ROWS",
+        startIndex,
+        endIndex: startIndex + count,
+      },
+      inheritFromBefore: startIndex > 0 && inheritFromBefore,
+    },
+  };
+}
+
+function copySaleBlockFormatRequest(sheetId, destinationStart, rowCount) {
+  return {
+    copyPaste: {
+      source: {
+        sheetId,
+        startRowIndex: destinationStart + rowCount,
+        endRowIndex: destinationStart + rowCount * 2,
+        startColumnIndex: 0,
+        endColumnIndex: 5,
+      },
+      destination: {
+        sheetId,
+        startRowIndex: destinationStart,
+        endRowIndex: destinationStart + rowCount,
+        startColumnIndex: 0,
+        endColumnIndex: 5,
+      },
+      pasteType: "PASTE_FORMAT",
+      pasteOrientation: "NORMAL",
+    },
+  };
+}
+
+function saleDealCellRequests(sheetId, primaryRow, deal) {
+  return [
+    updateCellsRequest(sheetId, primaryRow - 1, 1, [
+      deal.address,
+      deal.customer,
+      deal.host,
+      { formula: `=B${primaryRow + 1}*D${primaryRow + 1}` },
+    ]),
+    updateCellsRequest(sheetId, primaryRow, 1, [deal.rent, deal.phone, deal.rate]),
+  ];
+}
+
 async function addSaleDeal(request, email, env) {
   if (!env.FINANCE_SPREADSHEET_ID) return json({ error: "FINANCE_SHEET_NOT_CONFIGURED" }, 503);
   const validation = validateSaleDeal(await readJson(request));
@@ -220,41 +287,43 @@ async function addSaleDeal(request, email, env) {
     const sheetId = await getSheetId(accessToken, spreadsheetId, SALE_SHEET_TITLE);
     const block = ledger.blocks.find((item) => item.key === validation.value.month);
     let primaryRow;
+    let requests;
 
     if (block && block.headerIndex >= 0) {
       const insertIndex = block.headerIndex + 1;
-      await insertRows(accessToken, spreadsheetId, sheetId, insertIndex, 2, false);
       primaryRow = insertIndex + 1;
       const lastDetailRow = block.deals.length
         ? Math.max(...block.deals.map((deal) => deal.detailRow)) + 2
         : primaryRow + 1;
-      await writeSaleDeal(accessToken, spreadsheetId, primaryRow, validation.value);
-      await writeMonthTotalFormula(
-        accessToken,
-        spreadsheetId,
-        block.headingRow,
-        block.headerRow + 1,
-        lastDetailRow,
-      );
+      requests = [
+        insertRowsRequest(sheetId, insertIndex, 2, false),
+        ...saleDealCellRequests(sheetId, primaryRow, validation.value),
+        updateCellsRequest(sheetId, block.headingRow - 1, 4, [
+          { formula: `=SUM(E${block.headerRow + 1}:E${lastDetailRow})` },
+        ]),
+      ];
     } else {
       const firstHeadingIndex = ledger.blocks.length
         ? Math.min(...ledger.blocks.map((item) => item.headingIndex))
         : 0;
-      await insertRows(accessToken, spreadsheetId, sheetId, firstHeadingIndex, 6);
-      if (ledger.blocks.length) {
-        await copySaleBlockFormat(accessToken, spreadsheetId, sheetId, firstHeadingIndex, 6);
-      }
       const headingRow = firstHeadingIndex + 1;
       const headerRow = headingRow + 2;
       primaryRow = headingRow + 3;
-      await sheetsValuesBatchUpdate(accessToken, spreadsheetId, [
-        { range: `Sale!B${headingRow}:B${headingRow}`, values: [[monthHeading(validation.value.month)]] },
-        { range: `Sale!B${headerRow}:E${headerRow}`, values: [["Address", "Customer", "Host", "Commission"]] },
-      ], "RAW");
-      await writeSaleDeal(accessToken, spreadsheetId, primaryRow, validation.value);
-      await writeMonthTotalFormula(accessToken, spreadsheetId, headingRow, primaryRow, primaryRow + 1);
+      requests = [insertRowsRequest(sheetId, firstHeadingIndex, 6)];
+      if (ledger.blocks.length) {
+        requests.push(copySaleBlockFormatRequest(sheetId, firstHeadingIndex, 6));
+      }
+      requests.push(
+        updateCellsRequest(sheetId, headingRow - 1, 1, [monthHeading(validation.value.month)]),
+        updateCellsRequest(sheetId, headerRow - 1, 1, ["Address", "Customer", "Host", "Commission"]),
+        ...saleDealCellRequests(sheetId, primaryRow, validation.value),
+        updateCellsRequest(sheetId, headingRow - 1, 4, [
+          { formula: `=SUM(E${primaryRow}:E${primaryRow + 1})` },
+        ]),
+      );
     }
 
+    await sheetsBatchUpdate(accessToken, spreadsheetId, requests);
     return json({
       ok: true,
       deal: { ...validation.value, sourceRow: primaryRow, detailRow: primaryRow + 1 },
