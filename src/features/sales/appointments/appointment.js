@@ -1,21 +1,7 @@
+import { normalizeSearch, normalizeText } from "../shared/text.js";
+
 const VIETNAM_TIME_ZONE = "Asia/Ho_Chi_Minh";
 const VIETNAM_OFFSET_MS = 7 * 60 * 60 * 1000;
-
-function normalizeText(value) {
-  return String(value || "")
-    .replace(/\r\n?/g, "\n")
-    .replace(/[\t\u00a0]+/g, " ")
-    .replace(/[ ]{2,}/g, " ")
-    .trim();
-}
-
-function normalizeSearch(value) {
-  return String(value || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d");
-}
 
 const LABELED_APPOINTMENT_FIELDS = new Map([
   ["ten", "customerName"],
