@@ -16,6 +16,7 @@ test("visible History rerenders deal-saving state without polling the API", asyn
 
   assert.match(source, /HISTORY_STATE_REFRESH_MS\s*=\s*15\s*\*\s*1000/);
   assert.match(source, /function refreshVisibleHistoryState/);
+  assert.match(source, /if \(document\.querySelector\("\.sales-history-edit-row"\)\) return;/);
   assert.match(source, /requestHistoryLoad\(\)/);
   assert.match(source, /setInterval\(refreshVisibleHistoryState,\s*HISTORY_STATE_REFRESH_MS\)/);
 });
@@ -25,7 +26,11 @@ test("deal saved and deal saving use distinct visual states", async () => {
 
   assert.match(styles, /tr\[data-deal-saved="true"\][\s\S]*\.sales-history-close-button:disabled/);
   assert.match(styles, /tr\[data-deal-saving="true"\][\s\S]*\.sales-history-close-button:disabled/);
-  assert.doesNotMatch(styles, /\.sales-history-close-button:disabled\s*\{\s*border-color:\s*rgba\(54,\s*132,\s*72/);
+
+  const genericDisabled = styles.match(
+    /\.sales-history-edit-button:disabled,[\s\S]*?\.sales-history-close-button:disabled\s*\{([\s\S]*?)\}/,
+  )?.[1] || "";
+  assert.doesNotMatch(genericDisabled, /background|border-color|color/);
 });
 
 test("deal saving and review copy is localized in both Sale flow dictionaries", async () => {
