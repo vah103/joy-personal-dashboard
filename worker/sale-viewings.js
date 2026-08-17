@@ -32,9 +32,12 @@ async function listViewings(email, env) {
   const rows = await env.DB.prepare(`
     SELECT id, customer_name, phone, viewing_address, viewing_at,
            reminder_at, reminder_notified_at, followup_at, followup_notified_at,
-           cancelled_at, created_at, updated_at
+           cancelled_at, created_at, sale_viewings.updated_at AS updated_at,
+           c.state AS commission_state
     FROM sale_viewings
-    WHERE user_email = ?
+    LEFT JOIN sale_viewing_commissions c
+      ON c.viewing_id = sale_viewings.id AND c.user_email = sale_viewings.user_email
+    WHERE sale_viewings.user_email = ?
     ORDER BY viewing_at DESC, created_at DESC
     LIMIT 300
   `).bind(email).all();
@@ -103,6 +106,7 @@ async function createViewing(request, email, env) {
       cancelled_at: null,
       created_at: now,
       updated_at: now,
+      commission_state: null,
     }, now),
   }, 201);
 }
@@ -111,6 +115,10 @@ async function updateViewing(request, email, env) {
   const input = await request.json().catch(() => null);
   const id = cleanText(input?.id, 120);
   if (!id) return json({ error: "VIEWING_ID_REQUIRED" }, 400);
+
+  if (input?.dealSaved === true) {
+    return markDealSaved(id, email, env);
+  }
 
   const existing = await env.DB.prepare(`
     SELECT id, customer_name, phone, viewing_address, viewing_at,
@@ -185,6 +193,22 @@ async function updateViewing(request, email, env) {
   });
 }
 
+async function markDealSaved(id, email, env) {
+  const now = Date.now();
+  const result = await env.DB.prepare(`
+    INSERT INTO sale_viewing_commissions (viewing_id, user_email, state, updated_at)
+    SELECT id, user_email, 'pending', ?
+    FROM sale_viewings
+    WHERE id = ? AND user_email = ?
+    ON CONFLICT(viewing_id) DO UPDATE SET
+      user_email = excluded.user_email,
+      updated_at = excluded.updated_at
+  `).bind(now, id, email).run();
+
+  if (!Number(result.meta?.changes || 0)) return json({ error: "VIEWING_NOT_FOUND" }, 404);
+  return json({ ok: true, dealSaved: true });
+}
+
 function validateViewing(input, { allowPast = false } = {}) {
   const phone = cleanPhone(input?.phone);
   const viewingAddress = cleanText(input?.viewingAddress, 220);
@@ -219,6 +243,7 @@ function serializeViewing(row, now = Date.now()) {
     viewingAddress: String(row.viewing_address || "").trim(),
     viewingAt: new Date(viewingAt).toISOString(),
     status,
+    dealSaved: ["pending", "received"].includes(String(row.commission_state || "")),
     reminderAt: isoOrEmpty(row.reminder_at),
     reminderNotifiedAt: isoOrEmpty(row.reminder_notified_at),
     followupAt: isoOrEmpty(row.followup_at),
