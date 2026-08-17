@@ -29,6 +29,8 @@ export default Object.freeze({
   "saleAssistant.appointmentPlaceholder": "Example: tomorrow at 8 PM, Ms. Lan 0987654321 views room 180 Phu My",
   "saleAssistant.roomSourcePlaceholder": "Example: 180 Phu My has room 302 at 4.2m, available now. Fully furnished, elevator. Electricity 4k, water 100k/person...",
   "saleAssistant.captureAria": "Room summary screenshot view",
+  "saleAssistant.loading": "Loading…",
+  "saleAssistant.loadingHistory": "Loading history…",
   "salePage.navAria": "Sale workspace navigation",
   "salePage.dashboard": "Dashboard",
   "salePage.workspace": "Sale workspace",
