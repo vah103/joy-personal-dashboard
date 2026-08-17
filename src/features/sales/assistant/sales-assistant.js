@@ -2,10 +2,14 @@ import {
   formatVietnamViewingTime,
   parseSaleAppointmentInput,
 } from "./sale-appointment.js";
+import {
+  formatVnd,
+  vietnamDatetimeLocal,
+  vietnamLocalToIso,
+  vietnamMonthKey,
+} from "./sale-format.js";
 
-let historyLoaded = false;
-let viewingHistory = [];
-let editingViewingId = "";
+const DEALS_ENDPOINT = "/api/sales/deals";
 
 const ASSISTANT_HTML = `
   <div class="modal-backdrop sales-assistant-backdrop" id="sales-assistant-modal" role="presentation" hidden>
@@ -81,10 +85,9 @@ const ASSISTANT_HTML = `
         <div class="sales-history-workspace">
           <div class="sales-history-heading">
             <div>
-              <small>Lịch hẹn được lưu trong Joy</small>
               <strong id="sales-history-count">Đang tải…</strong>
+              <span class="sales-history-edit-hint" id="sales-history-edit-hint"></span>
             </div>
-            <button class="secondary-button" id="sales-history-refresh" type="button">Làm mới</button>
           </div>
           <div class="sales-history-table-wrap" id="sales-history-content" aria-live="polite">
             <p class="sales-history-loading">Đang tải lịch sử…</p>
@@ -99,41 +102,85 @@ const ASSISTANT_HTML = `
   </div>
 `;
 
-function createAssistantLaunchers() {
+function translateRoot(root) {
+  if (root) window.JoyI18n?.translateRoot?.(root);
+}
+
+function decorateDashboardSaleCard() {
   const salesPanel = document.querySelector("#sales");
   const heading = salesPanel?.querySelector(".panel-heading");
   const salesBody = salesPanel?.querySelector(".sales-body");
-  const salesSummary = salesPanel?.querySelector(".sales-summary");
-  if (!salesPanel || !heading || !salesBody || !salesSummary) return false;
+  const upcoming = salesBody?.querySelector(".sales-summary");
+  if (!salesPanel || !heading || !salesBody || !upcoming) return false;
 
-  const manageButton = heading.querySelector('[data-action="open-sale-manager"]:last-child');
-  if (manageButton && !heading.querySelector(".sales-heading-actions")) {
-    const actions = document.createElement("div");
+  const titleButton = heading.querySelector(".panel-title-button");
+  if (titleButton) {
+    const wrapper = document.createElement("div");
+    const title = titleButton.querySelector("h2");
+    if (title) wrapper.append(title);
+    titleButton.replaceWith(wrapper);
+  }
+
+  let actions = heading.querySelector(".sales-heading-actions");
+  if (!actions) {
+    actions = document.createElement("div");
     actions.className = "sales-heading-actions";
-    const assistantButton = document.createElement("button");
-    assistantButton.type = "button";
-    assistantButton.className = "quiet-link sales-assistant-heading-button";
-    assistantButton.dataset.action = "open-sales-assistant";
-    assistantButton.textContent = "Assistant";
-    manageButton.before(actions);
-    actions.append(assistantButton, manageButton);
+    heading.append(actions);
   }
 
-  if (!salesBody.querySelector(".sales-assistant-launch")) {
-    const launch = document.createElement("button");
-    launch.type = "button";
-    launch.className = "sales-assistant-launch";
-    launch.dataset.action = "open-sales-assistant";
-    launch.innerHTML = `
-      <span class="sales-assistant-launch-icon" aria-hidden="true">＋</span>
-      <span class="sales-assistant-launch-copy">
-        <strong>Schedule a viewing</strong>
-      </span>
-      <span class="sales-assistant-launch-arrow" aria-hidden="true">→</span>
-    `;
-    salesSummary.after(launch);
+  let assistant = actions.querySelector('[data-action="open-sales-assistant"]');
+  if (!assistant) {
+    assistant = document.createElement("button");
+    assistant.type = "button";
+    assistant.className = "quiet-link sales-assistant-heading-button";
+    assistant.dataset.action = "open-sales-assistant";
+    actions.prepend(assistant);
   }
+  assistant.textContent = "Sale Assistant";
+
+  const managerButtons = [...heading.querySelectorAll('[data-action="open-sale-manager"]')];
+  const manager = managerButtons.at(-1);
+  managerButtons.slice(0, -1).forEach((button) => button.remove());
+  if (manager) {
+    manager.textContent = "Sale Manager";
+    actions.append(manager);
+  }
+
+  if (!salesBody.querySelector(".sales-dashboard-overview")) {
+    const overview = document.createElement("div");
+    overview.className = "sales-dashboard-overview";
+    upcoming.before(overview);
+    overview.append(upcoming);
+
+    const commission = document.createElement("div");
+    commission.className = "sales-summary sales-dashboard-commission";
+    const label = document.createElement("p");
+    label.className = "subheading";
+    label.textContent = "Commission";
+    const value = document.createElement("strong");
+    value.id = "sales-commission";
+    value.textContent = "—";
+    commission.append(label, value);
+    overview.append(commission);
+  }
+
+  translateRoot(salesPanel);
   return true;
+}
+
+async function loadDashboardCommission() {
+  const target = document.querySelector("#sales-commission");
+  if (!target) return;
+  try {
+    const response = await fetch(DEALS_ENDPOINT, { credentials: "same-origin" });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || "SALE_DEALS_LOAD_FAILED");
+    const month = (Array.isArray(payload.months) ? payload.months : [])
+      .find((item) => item?.key === vietnamMonthKey());
+    target.textContent = formatVnd(month?.total || 0);
+  } catch {
+    target.textContent = "—";
+  }
 }
 
 function createAssistantModal() {
@@ -146,11 +193,17 @@ function visibleModalExists() {
   return [...document.querySelectorAll(".modal-backdrop")].some((modal) => !modal.hidden);
 }
 
+function requestHistoryLoad({ force = false } = {}) {
+  window.dispatchEvent(new CustomEvent("joy:sale-history-open", { detail: { force } }));
+}
+
 function openAssistant() {
   const modal = document.querySelector("#sales-assistant-modal");
   if (!modal) return;
   modal.hidden = false;
   document.body.classList.add("modal-open");
+  const activeMode = document.querySelector("[data-assistant-mode].active")?.dataset.assistantMode;
+  if (activeMode === "history") requestHistoryLoad({ force: true });
   window.setTimeout(() => document.querySelector("#sale-appointment-input")?.focus(), 0);
 }
 
@@ -175,30 +228,7 @@ function switchMode(mode) {
     history: "Lịch sử hẹn khách",
   };
   if (title) title.textContent = titles[mode] || titles.appointment;
-  if (mode === "history") loadViewingHistory();
-}
-
-function vietnamDatetimeLocal(isoValue) {
-  const date = new Date(isoValue);
-  if (Number.isNaN(date.getTime())) return "";
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(date);
-  const part = (type) => parts.find((item) => item.type === type)?.value || "";
-  return `${part("year")}-${part("month")}-${part("day")}T${part("hour")}:${part("minute")}`;
-}
-
-function vietnamLocalToIso(value) {
-  const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
-  if (!match) return "";
-  const [, year, month, day, hour, minute] = match.map(Number);
-  return new Date(Date.UTC(year, month - 1, day, hour - 7, minute)).toISOString();
+  if (mode === "history") requestHistoryLoad({ force: true });
 }
 
 function showAppointmentStatus(message, state = "") {
@@ -295,7 +325,6 @@ async function saveAppointment(event) {
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw Object.assign(new Error(result.error || "VIEWING_CREATE_FAILED"), { code: result.error });
-    historyLoaded = false;
     showAppointmentStatus(`${result.message} ${result.viewing.customerName} · ${formatVietnamViewingTime(result.viewing.viewingAt)}.`, "success");
     window.setTimeout(() => window.location.reload(), 1200);
   } catch (error) {
@@ -304,249 +333,17 @@ async function saveAppointment(event) {
   }
 }
 
-function historyStatusLabel(status) {
-  if (status === "upcoming") return "Sắp tới";
-  if (status === "cancelled") return "Đã huỷ";
-  return "Đã qua";
-}
-
-function notificationLabel(viewing, kind) {
-  const notified = kind === "reminder" ? viewing.reminderNotifiedAt : viewing.followupNotifiedAt;
-  const scheduled = kind === "reminder" ? viewing.reminderAt : viewing.followupAt;
-  if (notified) return "Đã gửi";
-  if (!scheduled) return kind === "reminder" ? "Không nhắc" : "—";
-  if (viewing.status === "cancelled") return "Đã huỷ";
-  return "Chờ gửi";
-}
-
-function makeHistoryInput(field, value, { type = "text", maxLength = 0, required = false } = {}) {
-  const input = document.createElement("input");
-  input.className = "sales-history-edit-input";
-  input.dataset.historyField = field;
-  input.type = type;
-  input.value = value || "";
-  if (maxLength) input.maxLength = maxLength;
-  if (required) input.required = true;
-  if (type === "tel") input.inputMode = "tel";
-  return input;
-}
-
-function appendHistoryCell(row, value) {
-  const cell = document.createElement("td");
-  cell.textContent = value;
-  row.append(cell);
-  return cell;
-}
-
-function renderHistoryDisplayRow(viewing) {
-  const row = document.createElement("tr");
-  row.dataset.status = viewing.status;
-  [
-    formatVietnamViewingTime(viewing.viewingAt),
-    viewing.customerName || "—",
-    viewing.phone || "—",
-    viewing.viewingAddress || "—",
-    historyStatusLabel(viewing.status),
-    notificationLabel(viewing, "reminder"),
-    notificationLabel(viewing, "followup"),
-  ].forEach((value) => appendHistoryCell(row, value));
-
-  const actionCell = document.createElement("td");
-  actionCell.className = "sales-history-actions-cell";
-  const edit = document.createElement("button");
-  edit.type = "button";
-  edit.className = "sales-history-edit-button";
-  edit.dataset.action = "edit-sale-viewing";
-  edit.dataset.viewingId = viewing.id;
-  edit.textContent = "Sửa";
-  actionCell.append(edit);
-  row.append(actionCell);
-  return row;
-}
-
-function renderHistoryEditRow(viewing) {
-  const row = document.createElement("tr");
-  row.className = "sales-history-edit-row";
-  row.dataset.status = viewing.status;
-  row.dataset.viewingId = viewing.id;
-
-  const timeCell = document.createElement("td");
-  timeCell.append(makeHistoryInput("viewingTime", vietnamDatetimeLocal(viewing.viewingAt), { type: "datetime-local", required: true }));
-  row.append(timeCell);
-
-  const customerCell = document.createElement("td");
-  customerCell.append(makeHistoryInput("customerName", viewing.customerName, { maxLength: 100, required: true }));
-  row.append(customerCell);
-
-  const phoneCell = document.createElement("td");
-  phoneCell.append(makeHistoryInput("phone", viewing.phone, { type: "tel", maxLength: 20 }));
-  row.append(phoneCell);
-
-  const addressCell = document.createElement("td");
-  addressCell.append(makeHistoryInput("viewingAddress", viewing.viewingAddress, { maxLength: 220, required: true }));
-  row.append(addressCell);
-
-  appendHistoryCell(row, historyStatusLabel(viewing.status));
-  appendHistoryCell(row, notificationLabel(viewing, "reminder"));
-  appendHistoryCell(row, notificationLabel(viewing, "followup"));
-
-  const actionCell = document.createElement("td");
-  actionCell.className = "sales-history-actions-cell";
-  const controls = document.createElement("div");
-  controls.className = "sales-history-edit-controls";
-
-  const save = document.createElement("button");
-  save.type = "button";
-  save.className = "sales-history-save-button";
-  save.dataset.action = "save-sale-viewing";
-  save.dataset.viewingId = viewing.id;
-  save.textContent = "Lưu";
-
-  const cancel = document.createElement("button");
-  cancel.type = "button";
-  cancel.className = "sales-history-cancel-button";
-  cancel.dataset.action = "cancel-sale-viewing-edit";
-  cancel.dataset.viewingId = viewing.id;
-  cancel.textContent = "Huỷ";
-
-  const message = document.createElement("small");
-  message.className = "sales-history-edit-message";
-  message.hidden = true;
-
-  controls.append(save, cancel, message);
-  actionCell.append(controls);
-  row.append(actionCell);
-  return row;
-}
-
-function renderViewingHistory(history) {
-  const content = document.querySelector("#sales-history-content");
-  const count = document.querySelector("#sales-history-count");
-  if (!content || !count) return;
-
-  viewingHistory = Array.isArray(history) ? history : [];
-  if (editingViewingId && !viewingHistory.some((viewing) => viewing.id === editingViewingId)) {
-    editingViewingId = "";
-  }
-  count.textContent = `${viewingHistory.length} lịch hẹn`;
-
-  if (!viewingHistory.length) {
-    const empty = document.createElement("p");
-    empty.className = "sales-history-empty";
-    empty.textContent = "Chưa có lịch hẹn nào trong Joy.";
-    content.replaceChildren(empty);
-    return;
-  }
-
-  const table = document.createElement("table");
-  table.className = "sales-history-table";
-  const head = document.createElement("thead");
-  const headRow = document.createElement("tr");
-  ["Thời gian", "Khách", "SĐT", "Địa chỉ", "Trạng thái", "Nhắc 30p", "Follow-up", ""].forEach((label) => {
-    const th = document.createElement("th");
-    th.scope = "col";
-    th.textContent = label;
-    headRow.append(th);
-  });
-  head.append(headRow);
-
-  const body = document.createElement("tbody");
-  viewingHistory.forEach((viewing) => {
-    body.append(
-      viewing.id === editingViewingId
-        ? renderHistoryEditRow(viewing)
-        : renderHistoryDisplayRow(viewing),
-    );
-  });
-  table.append(head, body);
-  content.replaceChildren(table);
-}
-
-async function saveViewingHistoryEdit(control) {
-  const id = control.dataset.viewingId || "";
-  const row = control.closest("tr");
-  if (!id || !row) return;
-
-  const field = (name) => row.querySelector(`[data-history-field="${name}"]`);
-  const customerName = field("customerName")?.value.trim() || "";
-  const phone = field("phone")?.value.trim() || "";
-  const viewingAddress = field("viewingAddress")?.value.trim() || "";
-  const viewingAt = vietnamLocalToIso(field("viewingTime")?.value || "");
-  const message = row.querySelector(".sales-history-edit-message");
-
-  if (!customerName || !viewingAddress || !viewingAt) {
-    if (message) {
-      message.textContent = "Điền đủ tên, địa chỉ và thời gian.";
-      message.hidden = false;
-    }
-    return;
-  }
-
-  const buttons = row.querySelectorAll("button");
-  buttons.forEach((button) => { button.disabled = true; });
-  if (message) {
-    message.textContent = "Đang lưu…";
-    message.hidden = false;
-  }
-
-  try {
-    const response = await fetch("/api/sales/viewings", {
-      method: "PATCH",
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, customerName, phone, viewingAddress, viewingAt }),
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw Object.assign(new Error(payload.error || "VIEWING_UPDATE_FAILED"), { code: payload.error });
-
-    editingViewingId = "";
-    historyLoaded = false;
-    await loadViewingHistory({ force: true });
-  } catch (error) {
-    buttons.forEach((button) => { button.disabled = false; });
-    if (message) {
-      message.textContent = appointmentErrorMessage(error.code);
-      message.hidden = false;
-    }
-  }
-}
-
-async function loadViewingHistory({ force = false } = {}) {
-  if (historyLoaded && !force) return;
-  const content = document.querySelector("#sales-history-content");
-  const count = document.querySelector("#sales-history-count");
-  if (content) content.textContent = "Đang tải lịch sử…";
-  if (count) count.textContent = "Đang tải…";
-  try {
-    const response = await fetch("/api/sales/viewings", { credentials: "same-origin" });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(payload.error || "VIEWING_HISTORY_FAILED");
-    renderViewingHistory(Array.isArray(payload.history) ? payload.history : []);
-    historyLoaded = true;
-  } catch {
-    if (content) content.textContent = "Joy chưa tải được lịch sử. Hãy thử lại.";
-    if (count) count.textContent = "Không tải được";
-  }
-}
-
 async function initializeSalesAssistant() {
-  if (!createAssistantLaunchers()) return;
+  if (!decorateDashboardSaleCard()) return;
   createAssistantModal();
+  translateRoot(document.querySelector("#sales-assistant-modal"));
+  void loadDashboardCommission();
 
   document.addEventListener("click", (event) => {
     const control = event.target.closest("[data-action], [data-assistant-mode]");
     if (!control) return;
     if (control.dataset.action === "open-sales-assistant") openAssistant();
     if (control.dataset.action === "close-sales-assistant") closeAssistant();
-    if (control.dataset.action === "edit-sale-viewing") {
-      editingViewingId = control.dataset.viewingId || "";
-      renderViewingHistory(viewingHistory);
-    }
-    if (control.dataset.action === "cancel-sale-viewing-edit") {
-      editingViewingId = "";
-      renderViewingHistory(viewingHistory);
-    }
-    if (control.dataset.action === "save-sale-viewing") saveViewingHistoryEdit(control);
     if (control.dataset.assistantMode) switchMode(control.dataset.assistantMode);
   });
 
@@ -560,21 +357,28 @@ async function initializeSalesAssistant() {
   document.querySelector("#sale-appointment-input")?.addEventListener("keydown", (event) => {
     if ((event.ctrlKey || event.metaKey) && event.key === "Enter") parseAppointment();
   });
-  document.querySelector("#sales-history-refresh")?.addEventListener("click", () => {
-    editingViewingId = "";
-    loadViewingHistory({ force: true });
-  });
 
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && editingViewingId) {
-      editingViewingId = "";
-      renderViewingHistory(viewingHistory);
-      return;
-    }
-    if (event.key === "Escape" && !document.querySelector("#sales-assistant-modal")?.hidden) closeAssistant();
+    if (event.key !== "Escape") return;
+    if (document.querySelector("#sale-close-deal-modal")?.hidden === false) return;
+    if (!document.querySelector("#sales-assistant-modal")?.hidden) closeAssistant();
+  });
+
+  window.addEventListener("joy:sale-deal-saved", () => void loadDashboardCommission());
+  window.addEventListener("joy:i18n-ready", () => {
+    decorateDashboardSaleCard();
+    translateRoot(document.querySelector("#sales-assistant-modal"));
+  });
+  window.addEventListener("joy:locale-changed", () => {
+    decorateDashboardSaleCard();
+    translateRoot(document.querySelector("#sales-assistant-modal"));
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") void loadDashboardCommission();
   });
 
   await import("./room-summary.js?v=joy-room-summary-v1");
+  window.dispatchEvent(new CustomEvent("joy:sale-assistant-ready"));
 }
 
 if (document.readyState === "loading") {

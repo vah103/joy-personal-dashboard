@@ -16,13 +16,14 @@ test("Sale viewings no longer depend on Google Sheets at runtime", async () => {
   assert.match(worker, /INSERT INTO sale_viewings/);
   assert.doesNotMatch(worker, /Google Sheets|sheets\.googleapis|SALE_SPREADSHEET_ID|Appointments!/);
   assert.match(assistant, /data-assistant-mode="history"/);
+  assert.match(assistant, /joy:sale-history-open/);
 });
 
-test("Sale history supports account-scoped inline edits", async () => {
-  const [worker, assistant, styles] = await Promise.all([
+test("Sale history supports account-scoped inline edits from its own module", async () => {
+  const [worker, history, styles] = await Promise.all([
     readFile(new URL("../worker/sale-viewings.js", import.meta.url), "utf8"),
-    readFile(new URL("../src/features/sales/assistant/sales-assistant.js", import.meta.url), "utf8"),
-    readFile(new URL("../src/features/sales/assistant/sales-assistant.css", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/appointments/history.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/appointments/history.css", import.meta.url), "utf8"),
   ]);
 
   assert.match(worker, /request\.method === "PATCH"/);
@@ -30,9 +31,9 @@ test("Sale history supports account-scoped inline edits", async () => {
   assert.match(worker, /UPDATE sale_viewings/);
   assert.match(worker, /allowPast: true/);
   assert.match(worker, /ORDER BY viewing_at DESC/);
-  assert.match(assistant, /dataset\.action = "edit-sale-viewing"/);
-  assert.match(assistant, /method: "PATCH"/);
-  assert.match(assistant, /dataset\.historyField = field/);
+  assert.match(history, /dataset\.historyAction = action/);
+  assert.match(history, /method: "PATCH"/);
+  assert.match(history, /dataset\.historyField = field/);
   assert.match(styles, /sales-history-edit-input/);
   assert.match(styles, /sales-history-save-button/);
 });

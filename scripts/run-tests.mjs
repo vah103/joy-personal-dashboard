@@ -34,6 +34,7 @@ const compatibilityPaths = [
   ["sale-history-row-edit.js", "src/features/sales/appointments/history.js"],
   ["sale-history-row-edit.css", "src/features/sales/appointments/history.css"],
   ["sale-english-ui.js", "src/features/sales/shared/i18n.js"],
+  ["sale-format.js", "src/features/sales/shared/format.js"],
   ["project-details.js", "src/features/project-details/project-details.js"],
   ["project-details.css", "src/features/project-details/project-details.css"],
   ["turtlebot4-art.webp", "src/features/project-details/turtlebot4-art.webp"],
@@ -93,6 +94,7 @@ const syntaxChecks = [
   "src/features/sales/appointments/history.js",
   "src/features/sales/assistant/sales-assistant.js",
   "src/features/sales/shared/i18n.js",
+  "src/features/sales/shared/format.js",
   "src/features/finance/finance-amount-core.js",
   "src/features/weather/weather-rain.js",
   "src/features/tasks/task-english.js",
@@ -159,7 +161,6 @@ async function prepareCompatibilityLink(legacyPath, sourcePath) {
   }
 
   if (existing) {
-    // A previous interrupted test run may have left this managed symlink behind.
     await rm(legacy, { recursive: true, force: true });
   }
 

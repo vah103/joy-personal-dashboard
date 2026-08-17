@@ -217,6 +217,7 @@ const copies = [
   [resolve(saleAssistantFeature, "sales-assistant.js"), "sales-assistant.js"],
   [resolve(saleAssistantFeature, "sales-assistant.css"), "sales-assistant.css"],
   [resolve(saleSharedFeature, "i18n.js"), "sale-english-ui.js"],
+  [resolve(saleSharedFeature, "format.js"), "sale-format.js"],
   [resolve(saleAppointmentsFeature, "appointment.js"), "sale-appointment.js"],
   [resolve(saleAppointmentsFeature, "history.js"), "sale-history-row-edit.js"],
   [resolve(saleAppointmentsFeature, "history.css"), "sale-history-row-edit.css"],

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-test("dashboard HTML loads the visible Sale Assistant", async () => {
+test("dashboard HTML loads the Sale Assistant without a hidden legacy launcher", async () => {
   const [dashboard, build, script, styles] = await Promise.all([
     readFile(new URL("../src/pages/dashboard/index.html", import.meta.url), "utf8"),
     readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8"),
@@ -14,21 +14,21 @@ test("dashboard HTML loads the visible Sale Assistant", async () => {
   assert.match(dashboard, /type="module" src="sales-assistant\.js\?v=joy-dashboard-sales-assistant-v5"/);
   assert.match(dashboard, /room-summary\.css\?v=joy-room-summary-v1/);
   assert.match(build, /resolve\(saleAppointmentsFeature, "appointment\.js"\)/);
+  assert.match(build, /resolve\(saleSharedFeature, "format\.js"\)/);
   assert.match(script, /Hẹn khách xem phòng/);
   assert.match(script, /Tóm tắt phòng/);
-  assert.match(script, /<strong>Schedule a viewing<\/strong>/);
-  assert.doesNotMatch(script, /Nhập một câu → kiểm tra → lưu vào Sheet/);
-  assert.match(script, /data-action = "open-sales-assistant"|dataset\.action = "open-sales-assistant"/);
+  assert.match(script, /dataset\.action = "open-sales-assistant"/);
+  assert.match(script, /joy:sale-history-open/);
+  assert.match(script, /id = "sales-commission"/);
   assert.match(script, /import\("\.\/room-summary\.js\?v=joy-room-summary-v1"\)/);
-  assert.match(styles, /\.sales-assistant-launch\s*\{[^}]*padding:\s*9px 11px/s);
-  assert.match(styles, /\.sales-assistant-launch-icon\s*\{[^}]*width:\s*32px;[^}]*height:\s*32px/s);
+  assert.doesNotMatch(script, /Schedule a viewing/);
+  assert.doesNotMatch(script, /sales-assistant-launch/);
+  assert.doesNotMatch(styles, /\.sales-assistant-launch/);
   assert.match(styles, /\.sales-assistant-modal/);
-  assert.match(styles, /\.sales-history-table\s*\{[^}]*font-size:\s*13px;/s);
-  assert.match(styles, /\.sales-history-table td:nth-child\(2\)[\s\S]*font-weight:\s*850;/);
-  assert.match(styles, /\.sales-history-table th:last-child,[\s\S]*position:\s*sticky;[\s\S]*right:\s*0;/);
+  assert.match(styles, /#sales \.sales-dashboard-overview/);
 });
 
-test("assistant keeps Upcoming Viewings and Manage 2026 intact", async () => {
+test("assistant keeps Upcoming Viewings and converts the old manager heading into explicit actions", async () => {
   const [dashboard, script] = await Promise.all([
     readFile(new URL("../src/pages/dashboard/index.html", import.meta.url), "utf8"),
     readFile(new URL("../src/features/sales/assistant/sales-assistant.js", import.meta.url), "utf8"),
@@ -36,6 +36,7 @@ test("assistant keeps Upcoming Viewings and Manage 2026 intact", async () => {
 
   assert.match(dashboard, /Upcoming viewings/i);
   assert.match(dashboard, /Manage 2026/);
-  assert.match(script, /salesSummary\.after\(launch\)/);
-  assert.match(script, /manageButton\.before\(actions\)/);
+  assert.match(script, /assistant\.textContent = "Sale Assistant"/);
+  assert.match(script, /manager\.textContent = "Sale Manager"/);
+  assert.match(script, /overview\.append\(upcoming\)/);
 });

@@ -9,19 +9,23 @@ test("Sale Manager is the only tool rendered on the standalone sale page", async
   assert.doesNotMatch(page, /class="sale-room-tool"/);
   assert.match(page, /id="sale-table-body"/);
   assert.match(page, /id="sale-modal"/);
+  assert.match(page, /<script type="module" src="sale-manager\.js/);
 });
 
 test("closing a viewing creates a real Sale Manager deal and persists the saved marker", async () => {
-  const [ui, worker] = await Promise.all([
+  const [history, assistant, worker] = await Promise.all([
     readFile(new URL("../src/features/sales/appointments/history.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/assistant/sales-assistant.js", import.meta.url), "utf8"),
     readFile(new URL("../worker/sale-viewings.js", import.meta.url), "utf8"),
   ]);
 
-  assert.match(ui, /const DEALS_ENDPOINT = "\/api\/sales\/deals"/);
-  assert.match(ui, /method: "POST"/);
-  assert.match(ui, /body: JSON\.stringify\(\{ id, dealSaved: true \}\)/);
-  assert.match(ui, /id = "sales-commission"/);
-  assert.match(ui, /textContent = "Sale Manager"/);
+  assert.match(history, /const DEALS_ENDPOINT = "\/api\/sales\/deals"/);
+  assert.match(history, /method: "POST"/);
+  assert.match(history, /body: JSON\.stringify\(\{ id, dealSaved: true \}\)/);
+  assert.match(history, /if \(viewing\) viewing\.dealSaved = true/);
+  assert.match(assistant, /id = "sales-commission"/);
+  assert.match(assistant, /textContent = "Sale Manager"/);
+  assert.match(assistant, /joy:sale-deal-saved/);
   assert.match(worker, /sale_viewing_commissions/);
   assert.match(worker, /input\?\.dealSaved === true/);
   assert.match(worker, /dealSaved: \["pending", "received"\]/);

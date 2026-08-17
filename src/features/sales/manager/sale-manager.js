@@ -1,3 +1,5 @@
+import { formatVnd } from "./sale-format.js";
+
 const state = {
   months: [],
   selectedMonth: "",
@@ -251,10 +253,6 @@ function privateCell(value, className = "") {
   const cell = textCell(value);
   cell.className = `private-cell ${className}`.trim();
   return cell;
-}
-
-function formatVnd(value) {
-  return `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(Number(value || 0))} ₫`;
 }
 
 function formatPercent(value) {
