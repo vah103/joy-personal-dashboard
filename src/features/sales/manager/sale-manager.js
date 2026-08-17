@@ -1,6 +1,6 @@
 import { saleApi } from "../shared/api.js";
 import { formatVnd } from "../shared/format.js";
-import { saleText, translateSaleUiRoot } from "../shared/i18n.js";
+import { saleText } from "../shared/i18n.js";
 
 const SAFE_ADD_ENDPOINT = "/api/sales/deals/idempotent";
 const SAFE_UPDATE_ENDPOINT = "/api/sales/deals/safe-update";
@@ -58,6 +58,17 @@ function selectedMonth() {
   return state.months.find((month) => month.key === state.selectedMonth) || null;
 }
 
+function localizedMonthLabel(month) {
+  if (!month) return "";
+  const monthNumber = String(month.key || "").match(/-(\d{2})$/u)?.[1] || "";
+  return monthNumber ? saleText(`salePage.month${monthNumber}`, month.label || "") : month.label || "";
+}
+
+function localizedMonthShortLabel(month) {
+  const fullLabel = localizedMonthLabel(month);
+  return fullLabel ? fullLabel.replace(/\s+2026$/u, "") : month?.shortLabel || "";
+}
+
 function filteredDeals(deals) {
   const query = state.query.trim().toLocaleLowerCase("vi");
   if (!query) return deals;
@@ -70,12 +81,14 @@ function render() {
   const month = selectedMonth();
   const deals = filteredDeals(month?.deals || []);
   const total = Number(month?.total || 0);
+  const monthLabel = localizedMonthLabel(month);
+  const monthShortLabel = localizedMonthShortLabel(month);
   elements.total.textContent = formatVnd(total);
   elements.average.textContent = formatVnd(month?.count ? total / month.count : 0);
   elements.count.textContent = String(month?.count || 0);
-  elements.summaryMonth.textContent = month?.label || "—";
-  elements.ledgerTitle.textContent = month?.label
-    ? `${month.label.replace(" 2026", "")} deals`
+  elements.summaryMonth.textContent = monthLabel || "—";
+  elements.ledgerTitle.textContent = month
+    ? saleText("salePage.monthDeals", `${monthShortLabel} deals`, { month: monthShortLabel })
     : saleText("sales.deals", "Deals");
   elements.tableBody.replaceChildren(...deals.map(renderDealRow));
   elements.empty.hidden = Boolean(deals.length) || Boolean(state.query);
@@ -89,7 +102,12 @@ function render() {
     row.append(cell);
     elements.tableBody.append(row);
   }
-  translateSaleUiRoot(document.querySelector(".sale-page") || document.body);
+  if (!elements.modal.hidden) {
+    elements.formTitle.textContent = state.editingDeal
+      ? saleText("sales.editTitle", "Edit closed room")
+      : saleText("sales.addTitle", "Add a closed room");
+  }
+  if (!state.formSaving) elements.save.textContent = saleText("sales.saveToSheet", "Save to Sheet");
 }
 
 function renderMonths() {
@@ -99,7 +117,7 @@ function renderMonths() {
     button.className = month.key === state.selectedMonth ? "active" : "";
     button.dataset.month = month.key;
     const label = document.createElement("span");
-    label.textContent = month.shortLabel;
+    label.textContent = localizedMonthShortLabel(month);
     const count = document.createElement("small");
     count.textContent = String(month.count || 0);
     button.append(label, count);
@@ -163,7 +181,6 @@ function setAddReviewMode(active, message = "") {
   retry.dataset.saleReview = "retry";
   retry.textContent = saleText("sales.checkAllowRetry", "Check & allow retry");
   elements.formError.append(saved, document.createTextNode(" "), retry);
-  translateSaleUiRoot(elements.formError);
 }
 
 function openForm(deal = null) {
