@@ -5,5 +5,13 @@ export default Object.freeze({
   "saleAssistant.dealSavedHelp": "Deal đã được lưu vào Sale Manager.",
   "saleAssistant.saveDeal": "Lưu deal",
   "saleAssistant.savingDeal": "Đang lưu deal…",
+  "saleAssistant.savingDealState": "Đang lưu deal",
+  "saleAssistant.reviewDealSave": "Kiểm tra trạng thái lưu deal",
+  "saleAssistant.reviewSave": "Kiểm tra lưu",
+  "saleAssistant.closedDealAria": "Deal đã chốt",
+  "saleAssistant.dealSaveProgressAria": "Deal đang được lưu",
+  "saleAssistant.reviewSaveHelp": "Hãy kiểm tra Sale Manager trước khi thử lưu lại deal này.",
+  "saleAssistant.dealSaveProgressHelp": "Deal đang được lưu.",
+  "saleAssistant.closeDealHelp": "Chốt deal này.",
   "saleAssistant.dealSaveFailed": "Chưa lưu được deal. Hãy thử lại.",
 });
