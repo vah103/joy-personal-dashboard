@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import {
   formatVietnamViewingTime,
   parseSaleAppointmentInput,
-} from "../src/features/sales/sale-appointment.js";
+} from "../src/features/sales/appointments/appointment.js";
 import { isSaleViewingRoute } from "../worker/sale-viewings.js";
 
 const NOW = Date.parse("2026-07-27T02:00:00.000Z"); // 09:00 in Vietnam
@@ -125,7 +125,7 @@ test("Sale viewing route is owned by the D1 module", () => {
 
 test("dashboard builds D1-backed viewing history and schedules Sale pushes", async () => {
   const [assistant, router, worker, migration] = await Promise.all([
-    readFile(new URL("../src/features/sales/sales-assistant.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/assistant/sales-assistant.js", import.meta.url), "utf8"),
     readFile(new URL("../worker/router.js", import.meta.url), "utf8"),
     readFile(new URL("../worker/sale-viewings.js", import.meta.url), "utf8"),
     readFile(new URL("../migrations/20260811_sale_viewings.sql", import.meta.url), "utf8"),
