@@ -99,8 +99,8 @@ test("Sale Manager uses safe add/update endpoints and explicit uncertain-write r
   assert.match(manager, /function resolveAddReview/);
   assert.match(manager, /SALE_DEAL_STALE/);
   assert.match(manager, /SALE_DEAL_SAVE_REVIEW_REQUIRED/);
-  assert.match(manager, /data\.i18n = "sales\.checkSaved"/);
-  assert.match(manager, /data\.i18n = "sales\.checkAllowRetry"/);
+  assert.match(manager, /dataset\.i18n = "sales\.checkSaved"/);
+  assert.match(manager, /dataset\.i18n = "sales\.checkAllowRetry"/);
 });
 
 test("Sale Manager protects dirty forms and Dashboard ignores stale Sale requests", async () => {
