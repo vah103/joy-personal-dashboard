@@ -102,7 +102,7 @@ export function findUntranslatedHtmlLiterals(source, translatedValues) {
       pushFinding(findings, known, value, source, literal.start + (match.index || 0), "HTML text");
     }
 
-    for (const match of visibleMarkup.matchAll(/\b(?:aria-label|title|placeholder)=["']([^"']+)["']/giu)) {
+    for (const match of visibleMarkup.matchAll(/(?:^|\s)(?:aria-label|title|placeholder)=["']([^"']+)["']/giu)) {
       pushFinding(findings, known, match[1], source, literal.start + (match.index || 0), "HTML attribute");
     }
   }
