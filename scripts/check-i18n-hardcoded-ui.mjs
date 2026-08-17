@@ -26,7 +26,7 @@ const DYNAMIC_HTML_AUDIT = new Set([
   "src/features/ielts/course-sync.js",
   "src/features/project-hub/project-hub-core.js",
   "src/features/project-hub/project-hub-render.js",
-  "src/features/sales/assistant/sales-assistant.js",
+  "src/features/sales/assistant/assistant-view.js",
   "src/features/tasks/task-reminders.js",
   "src/features/weather/weather-rain.js",
   "src/pages/dashboard/app-communication.js",
