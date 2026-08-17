@@ -4,8 +4,8 @@ import { readFile } from "node:fs/promises";
 
 test("Sale history keeps compact edit/delete controls and the real close-deal flow", async () => {
   const [interaction, styles, endpoint, router] = await Promise.all([
-    readFile(new URL("../src/features/sales/sale-history-row-edit.js", import.meta.url), "utf8"),
-    readFile(new URL("../src/features/sales/sale-history-row-edit.css", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/appointments/history.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/appointments/history.css", import.meta.url), "utf8"),
     readFile(new URL("../worker/sale-viewing-delete.js", import.meta.url), "utf8"),
     readFile(new URL("../worker/router.js", import.meta.url), "utf8"),
   ]);
@@ -26,7 +26,7 @@ test("Sale history keeps compact edit/delete controls and the real close-deal fl
   assert.match(
     interaction,
     /event\.target\.closest\?\.\(EDIT_CONTROL_SELECTOR\)\) return;/,
-    "the synthetic Edit click must not be mistaken for an outside click",
+    "the synthetic hidden Edit click must not be mistaken for an outside click",
   );
   assert.match(interaction, /headers\[5\]\.textContent = "Reminder"/);
   assert.match(interaction, /headers\[6\]\.remove\(\)/);
