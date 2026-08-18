@@ -19,11 +19,14 @@ test("dashboard loads the Sale Assistant from focused frontend modules", async (
   assert.match(build, /versionPageAssets/);
   assert.match(bootstrap, /installAssistantView/);
   assert.match(bootstrap, /installAppointmentForm/);
-  assert.match(bootstrap, /installDashboardSale/);
+  assert.match(bootstrap, /installDashboardSale\(\);\s*\n\s*installAssistantView/);
+  assert.doesNotMatch(bootstrap, /if\s*\(\s*!installDashboardSale\(\)\s*\)\s*return/);
+  assert.match(bootstrap, /focusActiveAssistantMode/);
   assert.match(bootstrap, /room-summary\/room-summary\.js/);
   assert.match(view, /data-assistant-mode="summary"/);
   assert.match(view, /id="room-summary-input"/);
   assert.match(view, /joy:sale-history-open/);
+  assert.doesNotMatch(view, /sale-appointment-input"\)\?\.focus/);
   assert.match(dashboardSale, /dataset\.action = "open-sales-assistant"/);
   assert.match(dashboardSale, /id = "sales-commission"/);
   assert.match(dashboardSale, /refreshDashboardViewings/);
