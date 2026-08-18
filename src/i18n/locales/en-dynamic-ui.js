@@ -70,6 +70,10 @@ export default Object.freeze({
   "dynamic.projectHub.recordedSession": "recorded session",
 
   "dynamic.sale.subtitleLegacy": "Create appointments, track history, and summarize room information directly in Joy.",
+  "sales.manageYear": "Sale Manager ↗",
+  "dynamic.sale.deleteDeal": "Delete deal",
+  "dynamic.sale.dealDeleted": "Deal deleted from Google Sheets",
+  "dynamic.sale.deleteDealFailed": "Could not delete the deal. Please try again.",
 
   "dynamic.weather.title": "Hanoi weather",
   "dynamic.weather.weekly": "Weekly forecast",

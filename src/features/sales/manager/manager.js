@@ -1,3 +1,6 @@
+const CLOSE_DEAL_DRAFT_KEY = "joy:sale-close-manager-draft";
+const CLOSE_DEAL_PENDING_SYNC_KEY = "joy:sale-close-manager-pending-sync";
+
 const state = {
   months: [],
   selectedMonth: "",
@@ -22,9 +25,90 @@ const elements = {
   formTitle: document.querySelector("#sale-form-title"),
   formError: document.querySelector("#sale-form-error"),
   save: document.querySelector("#sale-save"),
+  deleteDeal: document.querySelector("#sale-delete"),
   commissionPreview: document.querySelector("#commission-preview"),
   toast: document.querySelector("#sale-toast"),
 };
+
+function readSessionJson(key) {
+  try {
+    const raw = window.sessionStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function removeSessionValue(key) {
+  try {
+    window.sessionStorage.removeItem(key);
+  } catch {
+    // Session storage is optional; the Manager remains usable without it.
+  }
+}
+
+function writeSessionValue(key, value) {
+  try {
+    window.sessionStorage.setItem(key, value);
+  } catch {
+    // Session storage is optional; the Manager remains usable without it.
+  }
+}
+
+function closeDealDraft() {
+  const draft = readSessionJson(CLOSE_DEAL_DRAFT_KEY);
+  if (!draft?.viewingId) return null;
+  return {
+    viewingId: String(draft.viewingId),
+    customer: String(draft.customer || ""),
+    phone: String(draft.phone || ""),
+    address: String(draft.address || ""),
+    month: /^2026-\d{2}$/.test(String(draft.month || "")) ? String(draft.month) : "",
+  };
+}
+
+function discardCloseDealDraft() {
+  removeSessionValue(CLOSE_DEAL_DRAFT_KEY);
+}
+
+async function setViewingCommissionState(viewingId, commissionState) {
+  if (!viewingId) return;
+  await apiRequest("/api/sales/viewings/commission", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id: viewingId, state: commissionState }),
+  });
+}
+
+async function retryPendingViewingSync() {
+  let viewingId = "";
+  try {
+    viewingId = String(window.sessionStorage.getItem(CLOSE_DEAL_PENDING_SYNC_KEY) || "");
+  } catch {
+    return;
+  }
+  if (!viewingId) return;
+  try {
+    await setViewingCommissionState(viewingId, "pending");
+    removeSessionValue(CLOSE_DEAL_PENDING_SYNC_KEY);
+  } catch {
+    // Keep the id for the next Manager visit; never resave the Sheet row just to retry D1 state.
+  }
+}
+
+function prefillCloseDealDraft() {
+  const draft = closeDealDraft();
+  if (!draft) return;
+  openForm();
+  if (draft.month && elements.form.elements.month.querySelector(`option[value="${draft.month}"]`)) {
+    elements.form.elements.month.value = draft.month;
+  }
+  elements.form.elements.customer.value = draft.customer;
+  elements.form.elements.phone.value = draft.phone;
+  elements.form.elements.address.value = draft.address;
+  updateCommissionPreview();
+  window.setTimeout(() => elements.form.elements.host.focus(), 0);
+}
 
 async function loadDeals({ quiet = false } = {}) {
   if (!quiet) showStatus("loading", "Loading Sale 2026…");
@@ -123,6 +207,10 @@ function filteredDeals(deals) {
     .some((value) => String(value || "").toLocaleLowerCase("vi").includes(query)));
 }
 
+function uiText(value) {
+  return window.JoyI18n?.translateText ? window.JoyI18n.translateText(value) : value;
+}
+
 function openForm(deal = null) {
   state.editingDeal = deal;
   elements.form.reset();
@@ -137,6 +225,9 @@ function openForm(deal = null) {
   elements.form.elements.host.value = deal?.host || "";
   elements.form.elements.rent.value = deal?.rent || "";
   elements.form.elements.rate.value = deal ? Number(deal.rate || 0) * 100 : "";
+  elements.deleteDeal.hidden = !deal;
+  elements.deleteDeal.disabled = false;
+  elements.deleteDeal.textContent = uiText("Delete deal");
   updateCommissionPreview();
   elements.modal.hidden = false;
   document.body.classList.add("sale-modal-open");
@@ -152,6 +243,7 @@ function closeForm() {
 async function saveDeal(event) {
   event.preventDefault();
   const wasEditing = Boolean(state.editingDeal);
+  const viewingDraft = wasEditing ? null : closeDealDraft();
   const form = new FormData(elements.form);
   const payload = {
     sourceRow: Number(form.get("sourceRow") || 0),
@@ -173,10 +265,32 @@ async function saveDeal(event) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
+
+    let historySyncPending = false;
+    if (!wasEditing && viewingDraft?.viewingId) {
+      discardCloseDealDraft();
+      try {
+        await setViewingCommissionState(viewingDraft.viewingId, "pending");
+        removeSessionValue(CLOSE_DEAL_PENDING_SYNC_KEY);
+      } catch {
+        historySyncPending = true;
+        writeSessionValue(CLOSE_DEAL_PENDING_SYNC_KEY, viewingDraft.viewingId);
+      }
+    }
+
     state.selectedMonth = payload.month;
     closeForm();
-    showToast(wasEditing ? "Deal updated in Google Sheets" : "Deal added to Google Sheets");
+    showToast(
+      historySyncPending
+        ? "Deal saved · History status will sync automatically"
+        : wasEditing
+          ? "Deal updated in Google Sheets"
+          : viewingDraft
+            ? "Deal saved · commission pending"
+            : "Deal added to Google Sheets",
+    );
     await loadDeals({ quiet: true });
+    if (historySyncPending) void retryPendingViewingSync();
   } catch (error) {
     const messages = {
       SHEETS_WRITE_AUTHORIZATION_REQUIRED: "Reconnect Google once to allow Joy to save changes.",
@@ -188,6 +302,49 @@ async function saveDeal(event) {
   } finally {
     elements.save.disabled = false;
     elements.save.textContent = "Save to Sheet";
+  }
+}
+
+async function deleteCurrentDeal() {
+  const deal = state.editingDeal;
+  if (!deal || !window.confirm(uiText("Delete deal"))) return;
+
+  elements.deleteDeal.disabled = true;
+  elements.deleteDeal.textContent = uiText("Deleting…");
+  elements.save.disabled = true;
+  elements.formError.hidden = true;
+
+  try {
+    await apiRequest("/api/sales/deals", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sourceRow: deal.sourceRow,
+        month: deal.month,
+        customer: deal.customer,
+        address: deal.address,
+      }),
+    });
+
+    state.selectedMonth = deal.month;
+    closeForm();
+    showToast(uiText("Deal deleted from Google Sheets"));
+    await loadDeals({ quiet: true });
+  } catch (error) {
+    const messages = {
+      SHEETS_WRITE_AUTHORIZATION_REQUIRED: "Reconnect Google once to allow Joy to save changes.",
+      SHEETS_WRITE_ACCESS_DENIED: "Joy does not have permission to edit this Sheet.",
+      SALE_DEAL_NOT_FOUND: "This row moved in Google Sheets. Close the form and try again.",
+      SALE_DEAL_CHANGED: "This row moved in Google Sheets. Close the form and try again.",
+    };
+    elements.formError.textContent = messages[error.code] || uiText("Could not delete the deal. Please try again.");
+    elements.formError.hidden = false;
+  } finally {
+    elements.save.disabled = false;
+    if (!elements.modal.hidden) {
+      elements.deleteDeal.disabled = false;
+      elements.deleteDeal.textContent = uiText("Delete deal");
+    }
   }
 }
 
@@ -273,18 +430,34 @@ document.addEventListener("click", (event) => {
   }
   const action = target.dataset.action;
   if (action === "add-deal") openForm();
-  if (action === "close-form") closeForm();
+  if (action === "close-form") {
+    discardCloseDealDraft();
+    closeForm();
+  }
   if (action === "retry-load") loadDeals();
   if (action === "edit-deal") {
     const deal = selectedMonth()?.deals.find((item) => item.sourceRow === Number(target.dataset.row));
     if (deal) openForm(deal);
   }
+  if (action === "delete-deal") void deleteCurrentDeal();
 });
 
 elements.search.addEventListener("input", () => { state.query = elements.search.value; render(); });
 elements.form.addEventListener("submit", saveDeal);
 elements.form.elements.rent.addEventListener("input", updateCommissionPreview);
 elements.form.elements.rate.addEventListener("input", updateCommissionPreview);
-elements.modal.addEventListener("mousedown", (event) => { if (event.target === elements.modal) closeForm(); });
-document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !elements.modal.hidden) closeForm(); });
-loadDeals();
+elements.modal.addEventListener("mousedown", (event) => {
+  if (event.target !== elements.modal) return;
+  discardCloseDealDraft();
+  closeForm();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape" || elements.modal.hidden) return;
+  discardCloseDealDraft();
+  closeForm();
+});
+
+loadDeals().then(() => {
+  void retryPendingViewingSync();
+  prefillCloseDealDraft();
+});

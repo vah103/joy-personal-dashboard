@@ -85,6 +85,11 @@ async function handleSaleViewingCommissionRequest(request, env) {
   const id = cleanViewingId(input?.id);
   if (!id) return json({ error: "VIEWING_ID_REQUIRED" }, 400);
 
+  const requestedState = normalizeCommissionState(input?.state);
+  if (input?.state !== undefined && requestedState === "none") {
+    return json({ error: "VIEWING_COMMISSION_STATE_INVALID" }, 400);
+  }
+
   const viewing = await env.DB.prepare(`
     SELECT id
     FROM sale_viewings
@@ -101,9 +106,11 @@ async function handleSaleViewingCommissionRequest(request, env) {
   `).bind(id, session.user_email).first();
 
   const currentState = normalizeCommissionState(existing?.state);
-  const state = currentState === "pending" || currentState === "received"
-    ? "received"
-    : "pending";
+  const state = requestedState !== "none"
+    ? requestedState
+    : currentState === "pending" || currentState === "received"
+      ? "received"
+      : "pending";
   const now = Date.now();
 
   await env.DB.prepare(`

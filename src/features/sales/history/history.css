@@ -1,0 +1,207 @@
+.sales-history-heading {
+  margin: 0 0 10px;
+  padding: 0 2px;
+  min-height: 0;
+  align-items: baseline;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.sales-history-heading > div {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.sales-history-heading > div > small:first-child,
+#sales-history-refresh {
+  display: none !important;
+}
+
+#sales-history-count {
+  margin: 0;
+  color: #536970;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
+.sales-history-edit-hint {
+  display: inline;
+  margin: 0;
+  color: #8a979b;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.sales-history-table {
+  min-width: 960px;
+}
+
+.sales-history-table th:nth-child(1),
+.sales-history-table td:nth-child(1) {
+  width: 17%;
+}
+
+.sales-history-table th:nth-child(2),
+.sales-history-table td:nth-child(2) {
+  width: 15%;
+}
+
+.sales-history-table th:nth-child(3),
+.sales-history-table td:nth-child(3) {
+  width: 14%;
+}
+
+.sales-history-table th:nth-child(4),
+.sales-history-table td:nth-child(4) {
+  width: 28%;
+}
+
+.sales-history-table tbody tr:not(.sales-history-edit-row) > td:nth-child(4) {
+  text-transform: capitalize;
+}
+
+.sales-history-table th:nth-child(5),
+.sales-history-table td:nth-child(5) {
+  width: 12%;
+  min-width: 112px;
+  text-align: center;
+}
+
+.sales-history-table th:nth-child(6),
+.sales-history-table td:nth-child(6) {
+  width: 14%;
+  min-width: 132px;
+  padding-left: 18px;
+  padding-right: 22px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.sales-history-table thead th:last-child,
+.sales-history-table tbody tr:not(.sales-history-edit-row) > .sales-history-actions-cell {
+  display: none;
+}
+
+.sales-history-table tbody tr[data-history-editable="true"] {
+  cursor: default;
+}
+
+.sales-history-table tbody tr[data-history-editable="true"]:hover {
+  background: #f4f8f7;
+  box-shadow: inset 3px 0 0 rgba(64, 92, 101, .16);
+}
+
+.sales-history-table tbody tr[data-history-editable="true"]:focus {
+  outline: none;
+  background: #f1f6f5;
+  box-shadow: inset 0 0 0 2px rgba(64, 92, 101, .16);
+}
+
+.sales-history-table tbody tr[data-commission-state="pending"],
+.sales-history-table tbody tr[data-commission-state="pending"]:hover,
+.sales-history-table tbody tr[data-commission-state="pending"]:focus {
+  background: #fff3cf;
+  box-shadow: inset 3px 0 0 rgba(181, 145, 54, .40);
+}
+
+.sales-history-table tbody tr[data-commission-state="received"],
+.sales-history-table tbody tr[data-commission-state="received"]:hover,
+.sales-history-table tbody tr[data-commission-state="received"]:focus {
+  background: #d8efd9;
+  box-shadow: inset 3px 0 0 rgba(65, 143, 76, .50);
+}
+
+.sales-history-table tbody tr[data-commission-state="pending"] > td:last-child {
+  background: #fff3cf;
+}
+
+.sales-history-table tbody tr[data-commission-state="received"] > td:last-child {
+  background: #d8efd9;
+}
+
+.sales-history-table tbody tr[data-history-editable="true"]:hover > td:last-child,
+.sales-history-table tbody tr[data-history-editable="true"]:focus > td:last-child {
+  background: inherit;
+}
+
+.sales-history-table tbody tr.sales-history-edit-row > .sales-history-actions-cell {
+  min-width: 196px;
+}
+
+.sales-history-edit-row .sales-history-cancel-button {
+  display: none !important;
+}
+
+.sales-history-edit-row .sales-history-edit-controls {
+  grid-template-columns: auto auto auto;
+  justify-content: end;
+}
+
+.sales-history-delete-button,
+.sales-history-close-button {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.sales-history-delete-button {
+  border: 1px solid rgba(143, 81, 70, .22);
+  color: #8a554c;
+  background: rgba(255, 255, 255, .88);
+}
+
+.sales-history-delete-button:hover {
+  border-color: rgba(143, 81, 70, .38);
+  color: #73463f;
+  background: #fff8f6;
+}
+
+.sales-history-close-button {
+  border: 1px solid rgba(154, 122, 43, .26);
+  color: #78612d;
+  background: #fffaf0;
+}
+
+.sales-history-close-button:hover {
+  border-color: rgba(154, 122, 43, .42);
+  color: #654f20;
+  background: #fff6df;
+}
+
+.sales-history-close-button[data-commission-state="pending"] {
+  border-color: rgba(172, 133, 37, .44);
+  color: #765616;
+  background: #ffe9aa;
+}
+
+.sales-history-close-button[data-commission-state="received"] {
+  border-color: rgba(54, 132, 72, .46);
+  color: #2f6639;
+  background: #c9e9ce;
+}
+
+.sales-history-delete-button:disabled,
+.sales-history-close-button:disabled {
+  cursor: default;
+  opacity: .62;
+}
+
+@media (max-width: 700px) {
+  .sales-history-heading > div {
+    flex-wrap: wrap;
+    gap: 4px 8px;
+  }
+
+  .sales-history-edit-hint {
+    font-size: 10px;
+  }
+}

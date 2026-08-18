@@ -35,7 +35,7 @@ test("build keeps the Sale adapter while shared i18n preserves one canonical HTM
     readFile(new URL("../src/pages/dashboard/app-bootstrap.js", import.meta.url), "utf8"),
     readFile(new URL("../src/pages/sale/index.html", import.meta.url), "utf8"),
     readFile(new URL("../src/features/sales/sale-english-ui.js", import.meta.url), "utf8"),
-    readFile(new URL("../src/features/sales/sale-history-row-edit.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/history/history-edit.js", import.meta.url), "utf8"),
   ]);
 
   assert.match(build, /sale-english-ui\.js/);

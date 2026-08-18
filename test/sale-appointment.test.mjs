@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import {
   formatVietnamViewingTime,
   parseSaleAppointmentInput,
-} from "../src/features/sales/sale-appointment.js";
+} from "../src/features/sales/appointments/parser.js";
 import { isSaleViewingRoute } from "../worker/sale-viewings.js";
 
 const NOW = Date.parse("2026-07-27T02:00:00.000Z"); // 09:00 in Vietnam
@@ -124,24 +124,28 @@ test("Sale viewing route is owned by the D1 module", () => {
 });
 
 test("dashboard builds D1-backed viewing history and schedules Sale pushes", async () => {
-  const [assistant, router, worker, migration] = await Promise.all([
-    readFile(new URL("../src/features/sales/sales-assistant.js", import.meta.url), "utf8"),
+  const [assistantView, appointmentForm, router, worker, migration] = await Promise.all([
+    readFile(new URL("../src/features/sales/assistant/assistant-view.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/appointments/appointment-form.js", import.meta.url), "utf8"),
     readFile(new URL("../worker/router.js", import.meta.url), "utf8"),
     readFile(new URL("../worker/sale-viewings.js", import.meta.url), "utf8"),
     readFile(new URL("../migrations/20260811_sale_viewings.sql", import.meta.url), "utf8"),
   ]);
 
-  assert.match(assistant, /data-assistant-mode="history"/);
-  assert.match(assistant, /Lịch sử hẹn khách/);
-  assert.match(assistant, /Đang lưu lịch vào Joy/);
-  assert.doesNotMatch(assistant, /Appointments Sheet|Google Sheets trước khi lưu lịch/);
+  assert.match(assistantView, /data-assistant-mode="history"/);
+  assert.match(assistantView, /history: "History"/);
+  assert.match(appointmentForm, /Đang lưu lịch vào Joy/);
+  assert.doesNotMatch(`${assistantView}\n${appointmentForm}`, /Appointments Sheet|Google Sheets trước khi lưu lịch/);
 
   assert.match(router, /handleSaleViewingRequest/);
   assert.match(router, /runSaleViewingSchedule/);
   assert.doesNotMatch(router, /handleSaleViewingCreate/);
 
   assert.match(worker, /INSERT INTO sale_viewings/);
-  assert.match(worker, /REMINDER_LEAD_MS = 30 \* 60 \* 1000/);
+  assert.doesNotMatch(worker, /REMINDER_LEAD_MS/);
+  assert.match(worker, /const reminderAt = viewing\.viewingAt;/);
+  assert.match(worker, /reminderAt = viewing\.viewingAt > now \? viewing\.viewingAt : null;/);
+  assert.match(worker, /đúng giờ hẹn/);
   assert.match(worker, /FOLLOWUP_DELAY_MS = 2 \* 60 \* 60 \* 1000/);
   assert.match(worker, /Lịch xem phòng sắp tới/);
   assert.match(worker, /Theo dõi khách xem phòng/);
