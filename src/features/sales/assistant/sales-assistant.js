@@ -33,6 +33,7 @@ async function initializeSalesAssistant() {
   installAssistantView({ isAppointmentSaving });
   installAssistantFocus();
   installAppointmentForm();
+  await import("../appointments/history-interactions.js");
   await import("../room-summary/room-summary.js");
   window.dispatchEvent(new CustomEvent("joy:sale-assistant-ready"));
 }
