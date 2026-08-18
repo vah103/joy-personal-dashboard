@@ -16,6 +16,8 @@ import {
 
 async function initializeSalesAssistant() {
   if (!createAssistantLaunchers()) return;
+  const managerButton = document.querySelector('#sales .panel-heading [data-action="open-sale-manager"]:last-child');
+  if (managerButton) managerButton.textContent = "Sale Manager ↗";
   createAssistantModal();
 
   document.addEventListener("click", (event) => {
