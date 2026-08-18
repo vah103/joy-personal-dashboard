@@ -70,6 +70,7 @@ export default Object.freeze({
   "dynamic.projectHub.recordedSession": "recorded session",
 
   "dynamic.sale.subtitleLegacy": "Create appointments, track history, and summarize room information directly in Joy.",
+  "sales.manageYear": "Sale Manager ↗",
 
   "dynamic.weather.title": "Hanoi weather",
   "dynamic.weather.weekly": "Weekly forecast",
