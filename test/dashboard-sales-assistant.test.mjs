@@ -34,6 +34,32 @@ test("dashboard loads the Sale Assistant from focused frontend modules", async (
   assert.doesNotMatch(styles, /\.sales-assistant-launch/);
 });
 
+test("Sale Assistant scopes mode DOM and background History refresh does not steal focus", async () => {
+  const [bootstrap, view] = await Promise.all([
+    readFile(new URL("../src/features/sales/assistant/sales-assistant.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/assistant/assistant-view.js", import.meta.url), "utf8"),
+  ]);
+  assert.match(view, /modal\.querySelector\("\[data-assistant-mode\]\.active"\)/);
+  assert.match(view, /modal\.querySelectorAll\("\[data-assistant-mode\]"\)/);
+  assert.match(view, /modal\.querySelectorAll\("\[data-assistant-panel\]"\)/);
+  assert.doesNotMatch(view, /document\.querySelectorAll\("\[data-assistant-mode\]"\)/);
+  assert.doesNotMatch(view, /document\.querySelectorAll\("\[data-assistant-panel\]"\)/);
+  assert.match(view, /requestHistoryLoad\(\{ focus: false \}\)/);
+  assert.match(bootstrap, /event\.detail\?\.focus === false/);
+});
+
+test("Sale Assistant owns and cleans up its History refresh timer", async () => {
+  const view = await readFile(new URL("../src/features/sales/assistant/assistant-view.js", import.meta.url), "utf8");
+  assert.match(view, /let historyRefreshTimerId = 0/);
+  assert.match(view, /clearHistoryRefreshTimer/);
+  assert.match(view, /window\.clearInterval\(historyRefreshTimerId\)/);
+  assert.match(view, /startHistoryRefreshTimer\(modal\)/);
+  assert.match(view, /assistantViewController\?\.abort\(\)/);
+  assert.match(view, /const controller = new AbortController\(\)/);
+  assert.match(view, /return \(\) => \{/);
+  assert.match(view, /delete modal\.dataset\.saleAssistantViewInstalled/);
+});
+
 test("dashboard Sale card keeps Upcoming and explicit Assistant/Manager actions", async () => {
   const [dashboard, dashboardSale] = await Promise.all([
     readFile(new URL("../src/pages/dashboard/index.html", import.meta.url), "utf8"),
