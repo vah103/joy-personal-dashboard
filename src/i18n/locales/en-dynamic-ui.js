@@ -71,6 +71,9 @@ export default Object.freeze({
 
   "dynamic.sale.subtitleLegacy": "Create appointments, track history, and summarize room information directly in Joy.",
   "sales.manageYear": "Sale Manager ↗",
+  "dynamic.sale.deleteDeal": "Delete deal",
+  "dynamic.sale.dealDeleted": "Deal deleted from Google Sheets",
+  "dynamic.sale.deleteDealFailed": "Could not delete the deal. Please try again.",
 
   "dynamic.weather.title": "Hanoi weather",
   "dynamic.weather.weekly": "Weekly forecast",
@@ -90,7 +93,7 @@ export default Object.freeze({
   "dynamic.p1008.sharedShopping": "Shared shopping",
   "dynamic.p1008.splitSharedShopping": "Split shared shopping costs",
   "dynamic.p1008.splitRules": "Split rules",
-  "dynamic.p1008.splitRulesHelp": "6 people: split everything evenly · 5 people: exclude Hưng · 4 people: exclude Hưng and A Mạnh.",
+  "dynamic.p1008.splitRulesHelp": "6 people: split everything evenly · 5 people: exclude Hưng · Split 4: exclude Hưng and A Mạnh.",
   "dynamic.p1008.monthHelp": "Enter items in the month they are paid. For example, an item finalized on 15/8 is saved in August 2026.",
   "dynamic.p1008.totalShopping": "Total shared shopping",
   "dynamic.p1008.itemCount": "Items",
