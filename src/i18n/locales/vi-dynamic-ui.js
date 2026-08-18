@@ -70,6 +70,7 @@ export default Object.freeze({
   "dynamic.projectHub.recordedSession": "buổi đã ghi",
 
   "dynamic.sale.subtitleLegacy": "Tạo lịch, theo dõi lịch sử và tóm tắt thông tin phòng ngay trong Joy.",
+  "sales.manageYear": "Sale Manager ↗",
 
   "dynamic.weather.title": "Thời tiết Hà Nội",
   "dynamic.weather.weekly": "Dự báo theo tuần",
