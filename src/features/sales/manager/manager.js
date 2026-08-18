@@ -25,6 +25,7 @@ const elements = {
   formTitle: document.querySelector("#sale-form-title"),
   formError: document.querySelector("#sale-form-error"),
   save: document.querySelector("#sale-save"),
+  deleteDeal: document.querySelector("#sale-delete"),
   commissionPreview: document.querySelector("#commission-preview"),
   toast: document.querySelector("#sale-toast"),
 };
@@ -206,6 +207,10 @@ function filteredDeals(deals) {
     .some((value) => String(value || "").toLocaleLowerCase("vi").includes(query)));
 }
 
+function uiText(value) {
+  return window.JoyI18n?.translateText ? window.JoyI18n.translateText(value) : value;
+}
+
 function openForm(deal = null) {
   state.editingDeal = deal;
   elements.form.reset();
@@ -220,6 +225,9 @@ function openForm(deal = null) {
   elements.form.elements.host.value = deal?.host || "";
   elements.form.elements.rent.value = deal?.rent || "";
   elements.form.elements.rate.value = deal ? Number(deal.rate || 0) * 100 : "";
+  elements.deleteDeal.hidden = !deal;
+  elements.deleteDeal.disabled = false;
+  elements.deleteDeal.textContent = uiText("Delete deal");
   updateCommissionPreview();
   elements.modal.hidden = false;
   document.body.classList.add("sale-modal-open");
@@ -294,6 +302,49 @@ async function saveDeal(event) {
   } finally {
     elements.save.disabled = false;
     elements.save.textContent = "Save to Sheet";
+  }
+}
+
+async function deleteCurrentDeal() {
+  const deal = state.editingDeal;
+  if (!deal || !window.confirm(uiText("Delete deal"))) return;
+
+  elements.deleteDeal.disabled = true;
+  elements.deleteDeal.textContent = uiText("Deleting…");
+  elements.save.disabled = true;
+  elements.formError.hidden = true;
+
+  try {
+    await apiRequest("/api/sales/deals", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sourceRow: deal.sourceRow,
+        month: deal.month,
+        customer: deal.customer,
+        address: deal.address,
+      }),
+    });
+
+    state.selectedMonth = deal.month;
+    closeForm();
+    showToast(uiText("Deal deleted from Google Sheets"));
+    await loadDeals({ quiet: true });
+  } catch (error) {
+    const messages = {
+      SHEETS_WRITE_AUTHORIZATION_REQUIRED: "Reconnect Google once to allow Joy to save changes.",
+      SHEETS_WRITE_ACCESS_DENIED: "Joy does not have permission to edit this Sheet.",
+      SALE_DEAL_NOT_FOUND: "This row moved in Google Sheets. Close the form and try again.",
+      SALE_DEAL_CHANGED: "This row moved in Google Sheets. Close the form and try again.",
+    };
+    elements.formError.textContent = messages[error.code] || uiText("Could not delete the deal. Please try again.");
+    elements.formError.hidden = false;
+  } finally {
+    elements.save.disabled = false;
+    if (!elements.modal.hidden) {
+      elements.deleteDeal.disabled = false;
+      elements.deleteDeal.textContent = uiText("Delete deal");
+    }
   }
 }
 
@@ -388,6 +439,7 @@ document.addEventListener("click", (event) => {
     const deal = selectedMonth()?.deals.find((item) => item.sourceRow === Number(target.dataset.row));
     if (deal) openForm(deal);
   }
+  if (action === "delete-deal") void deleteCurrentDeal();
 });
 
 elements.search.addEventListener("input", () => { state.query = elements.search.value; render(); });
