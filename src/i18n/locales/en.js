@@ -12,4 +12,7 @@ export default Object.freeze({
   ...dynamicUi,
   "p1008.water": "Household water",
   "p1008.parking": "Parking fee",
+  "sales.reminder30": "At viewing time",
+  "saleAssistant.savedReminder": "Appointment saved. Joy will remind you at the viewing time and follow up afterward.",
+  "saleAssistant.savedTooClose": "Appointment saved. Joy will remind you at the viewing time and follow up afterward.",
 });
