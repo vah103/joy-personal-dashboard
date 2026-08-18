@@ -17,8 +17,12 @@ test("dashboard HTML loads the visible Sale Assistant", async () => {
   assert.match(dashboard, /room-summary\.css\?v=joy-room-summary-v1/);
   assert.match(build, /resolve\(salesFeatures, "sale-appointment\.js"\)/);
   assert.match(entry, /\.\/assistant\/assistant\.js/);
-  assert.match(view, /Hẹn khách xem phòng/);
-  assert.match(view, /Tóm tắt phòng/);
+  assert.match(view, /data-assistant-mode="appointment" data-i18n-skip>Appointments<\/button>/);
+  assert.match(view, /data-assistant-mode="summary" data-i18n-skip>Room summary<\/button>/);
+  assert.match(view, /data-assistant-mode="history" data-i18n-skip>History<\/button>/);
+  assert.match(view, /appointment: "Appointments"/);
+  assert.match(view, /summary: "Room summary"/);
+  assert.match(view, /history: "History"/);
   assert.match(view, /<strong>Schedule a viewing<\/strong>/);
   assert.doesNotMatch(view, /Nhập một câu → kiểm tra → lưu vào Sheet/);
   assert.match(view, /data-action = "open-sales-assistant"|dataset\.action = "open-sales-assistant"/);
