@@ -91,7 +91,7 @@ const auditedSurfaceCopy = [
   ["project-data/speaking/speaking.js", ["How do I say this?", "Make it English", "Try another"]],
   ["src/features/finance/finance.js", ["Actual balance", "Monthly finance", "Save transaction"]],
   ["src/features/project-hub/project-hub-render.js", ["Overall progress", "Completion gate", "Recommended next action"]],
-  ["src/pages/sale/sale-manager.js", ["No matching deals in this month.", "Edit closed room", "Saving…"]],
+  ["src/features/sales/manager/manager.js", ["No matching deals in this month.", "Edit closed room", "Saving…"]],
 ];
 const translatedValues = new Set(Object.values(en).concat(Object.values(vi)));
 for (const [file, expectedCopy] of auditedSurfaceCopy) {
