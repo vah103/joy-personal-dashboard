@@ -6,14 +6,21 @@ const sales = resolve(root, "src", "features", "sales");
 const dist = resolve(root, "dist");
 
 const copies = [
-  [resolve(sales, "shared", "i18n.js"), resolve(dist, "shared", "i18n.js")],
-  [resolve(sales, "room-summary", "formatter.js"), resolve(dist, "room-summary", "formatter.js")],
-  [resolve(sales, "room-summary", "renderer.js"), resolve(dist, "room-summary", "renderer.js")],
-  [resolve(sales, "room-summary", "room-summary.js"), resolve(dist, "room-summary", "room-summary.js")],
+  ["shared/i18n.js", "shared/i18n.js"],
+  ["shared/dates.js", "shared/dates.js"],
+  ["room-summary/formatter.js", "room-summary/formatter.js"],
+  ["room-summary/renderer.js", "room-summary/renderer.js"],
+  ["room-summary/room-summary.js", "room-summary/room-summary.js"],
+  ["assistant/assistant.js", "assistant/assistant.js"],
+  ["assistant/assistant-view.js", "assistant/assistant-view.js"],
+  ["appointments/parser.js", "appointments/parser.js"],
+  ["appointments/appointment-form.js", "appointments/appointment-form.js"],
+  ["history/history.js", "history/history.js"],
 ];
 
-await mkdir(resolve(dist, "shared"), { recursive: true });
-await mkdir(resolve(dist, "room-summary"), { recursive: true });
-await Promise.all(copies.map(([source, destination]) => cp(source, destination)));
+for (const directory of ["shared", "room-summary", "assistant", "appointments", "history"]) {
+  await mkdir(resolve(dist, directory), { recursive: true });
+}
+await Promise.all(copies.map(([source, destination]) => cp(resolve(sales, source), resolve(dist, destination))));
 
 console.log("Built canonical Sale feature modules.");
