@@ -22,7 +22,10 @@ function installAssistantFocus() {
     if (!control) return;
     window.setTimeout(focusActiveAssistantMode, 0);
   });
-  window.addEventListener("joy:sale-history-open", () => window.setTimeout(focusActiveAssistantMode, 0));
+  window.addEventListener("joy:sale-history-open", (event) => {
+    if (event.detail?.focus === false) return;
+    window.setTimeout(focusActiveAssistantMode, 0);
+  });
 }
 
 async function initializeSalesAssistant() {
