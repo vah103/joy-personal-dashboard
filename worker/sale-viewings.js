@@ -2,7 +2,6 @@ import { isSameOrigin, json } from "./shared/http.js";
 import { getSession } from "./shared/session.js";
 import { sendPushToUser } from "./shared/push-send.js";
 
-const REMINDER_LEAD_MS = 30 * 60 * 1000;
 const FOLLOWUP_DELAY_MS = 2 * 60 * 60 * 1000;
 const MAX_LATE_MS = 24 * 60 * 60 * 1000;
 const RETRY_AFTER_MS = 2 * 60 * 1000;
@@ -61,9 +60,7 @@ async function createViewing(request, email, env) {
   const now = Date.now();
   const viewing = validation.value;
   const id = crypto.randomUUID();
-  const reminderAt = viewing.viewingAt - now >= REMINDER_LEAD_MS
-    ? viewing.viewingAt - REMINDER_LEAD_MS
-    : null;
+  const reminderAt = viewing.viewingAt;
   const followupAt = viewing.viewingAt + FOLLOWUP_DELAY_MS;
 
   await env.DB.prepare(`
@@ -87,9 +84,7 @@ async function createViewing(request, email, env) {
 
   return json({
     ok: true,
-    message: reminderAt
-      ? "Đã lưu lịch. Joy sẽ nhắc bạn trước 30 phút và hỏi lại sau buổi xem."
-      : "Đã lưu lịch. Lịch quá sát giờ để nhắc trước 30 phút; Joy vẫn sẽ hỏi lại sau buổi xem.",
+    message: "Đã lưu lịch. Joy sẽ nhắc bạn đúng giờ hẹn và hỏi lại sau buổi xem.",
     viewing: serializeViewing({
       id,
       customer_name: viewing.customerName,
@@ -135,9 +130,7 @@ async function updateViewing(request, email, env) {
   let followupNotifiedAt = nullableNumber(existing.followup_notified_at);
 
   if (timeChanged) {
-    reminderAt = viewing.viewingAt - now >= REMINDER_LEAD_MS
-      ? viewing.viewingAt - REMINDER_LEAD_MS
-      : null;
+    reminderAt = viewing.viewingAt > now ? viewing.viewingAt : null;
     reminderNotifiedAt = null;
     followupAt = viewing.viewingAt > now
       ? viewing.viewingAt + FOLLOWUP_DELAY_MS
