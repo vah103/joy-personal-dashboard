@@ -3,6 +3,7 @@ const DISPLAY_ROW_SELECTOR = ".sales-history-table tbody tr:not(.sales-history-e
 const EDIT_CONTROL_SELECTOR = '[data-action="edit-sale-viewing"]';
 const CANCEL_CONTROL_SELECTOR = '[data-action="cancel-sale-viewing-edit"]';
 const COMMISSION_ENDPOINT = "/api/sales/viewings/commission";
+const CLOSE_DEAL_DRAFT_KEY = "joy:sale-close-manager-draft";
 
 let commissionStates = new Map();
 let commissionSyncPromise = null;
@@ -48,7 +49,7 @@ function applyCommissionState(row) {
     ? "Closed, commission not received yet. Press again when payment is received."
     : state === "received"
       ? "Commission received."
-      : "Close this deal.";
+      : "Close this deal in Sale Manager.";
 }
 
 async function syncCommissionStates() {
@@ -144,6 +145,33 @@ function setDeleteMessage(row, text) {
   message.hidden = !text;
 }
 
+function closeDealDraftForRow(row) {
+  const viewingId = viewingIdForRow(row);
+  if (!viewingId) return null;
+  const value = (field) => row.querySelector(`[data-history-field="${field}"]`)?.value.trim() || "";
+  const viewingTime = value("viewingTime");
+  return {
+    viewingId,
+    customer: value("customerName"),
+    phone: value("phone"),
+    address: value("viewingAddress"),
+    month: /^2026-\d{2}/.test(viewingTime) ? viewingTime.slice(0, 7) : "",
+  };
+}
+
+function openCloseDealInManager(row) {
+  const draft = closeDealDraftForRow(row);
+  if (!draft) return false;
+  try {
+    window.sessionStorage.setItem(CLOSE_DEAL_DRAFT_KEY, JSON.stringify(draft));
+  } catch {
+    return false;
+  }
+  setDeleteMessage(row, "Opening Sale Manager…");
+  window.location.assign("/sale-manager.html");
+  return true;
+}
+
 async function deleteViewing(row, button) {
   const id = row.dataset.viewingId || "";
   if (!id) return;
@@ -233,6 +261,12 @@ function decorateEditRow(content) {
   close.textContent = "Close deal";
   close.addEventListener("click", (event) => {
     event.stopPropagation();
+    if (commissionStateForRow(row) === "none") {
+      if (!openCloseDealInManager(row)) {
+        setDeleteMessage(row, "Could not open Sale Manager. Please try again.");
+      }
+      return;
+    }
     advanceCommissionState(row, close);
   });
 
