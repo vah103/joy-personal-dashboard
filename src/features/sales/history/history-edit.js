@@ -1,12 +1,14 @@
+import {
+  applyCommissionState,
+  forgetCommissionState,
+  handleCloseDeal,
+  syncCommissionStates,
+} from "./close-deal.js";
+
 const HISTORY_CONTENT_SELECTOR = "#sales-history-content";
 const DISPLAY_ROW_SELECTOR = ".sales-history-table tbody tr:not(.sales-history-edit-row)";
 const EDIT_CONTROL_SELECTOR = '[data-action="edit-sale-viewing"]';
 const CANCEL_CONTROL_SELECTOR = '[data-action="cancel-sale-viewing-edit"]';
-const COMMISSION_ENDPOINT = "/api/sales/viewings/commission";
-const CLOSE_DEAL_DRAFT_KEY = "joy:sale-close-manager-draft";
-
-let commissionStates = new Map();
-let commissionSyncPromise = null;
 
 function isCoarsePointer() {
   return window.matchMedia?.("(pointer: coarse)")?.matches === true;
@@ -24,55 +26,6 @@ function startRowEdit(row) {
 
 function refreshHistory() {
   document.querySelector("#sales-history-refresh")?.click();
-}
-
-function viewingIdForRow(row) {
-  return String(
-    row?.dataset.viewingId
-    || row?.querySelector(EDIT_CONTROL_SELECTOR)?.dataset.viewingId
-    || "",
-  ).trim();
-}
-
-function commissionStateForRow(row) {
-  return commissionStates.get(viewingIdForRow(row)) || "none";
-}
-
-function applyCommissionState(row) {
-  const state = commissionStateForRow(row);
-  row.dataset.commissionState = state;
-  const button = row.querySelector(".sales-history-close-button");
-  if (!button) return;
-  button.dataset.commissionState = state;
-  button.disabled = state === "received";
-  button.title = state === "pending"
-    ? "Closed, commission not received yet. Press again when payment is received."
-    : state === "received"
-      ? "Commission received."
-      : "Close this deal in Sale Manager.";
-}
-
-async function syncCommissionStates() {
-  if (commissionSyncPromise) return commissionSyncPromise;
-  commissionSyncPromise = (async () => {
-    try {
-      const response = await fetch(COMMISSION_ENDPOINT, { credentials: "same-origin" });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.error || "VIEWING_COMMISSION_LOAD_FAILED");
-      commissionStates = new Map(
-        (Array.isArray(payload.states) ? payload.states : [])
-          .filter((item) => item?.viewingId && ["pending", "received"].includes(item.state))
-          .map((item) => [String(item.viewingId), item.state]),
-      );
-      const content = document.querySelector(HISTORY_CONTENT_SELECTOR);
-      if (content) decorateRows(content);
-    } catch {
-      // Commission color is helpful metadata; history remains usable if it cannot load.
-    } finally {
-      commissionSyncPromise = null;
-    }
-  })();
-  return commissionSyncPromise;
 }
 
 function matchesLabel(value, ...labels) {
@@ -145,33 +98,6 @@ function setDeleteMessage(row, text) {
   message.hidden = !text;
 }
 
-function closeDealDraftForRow(row) {
-  const viewingId = viewingIdForRow(row);
-  if (!viewingId) return null;
-  const value = (field) => row.querySelector(`[data-history-field="${field}"]`)?.value.trim() || "";
-  const viewingTime = value("viewingTime");
-  return {
-    viewingId,
-    customer: value("customerName"),
-    phone: value("phone"),
-    address: value("viewingAddress"),
-    month: /^2026-\d{2}/.test(viewingTime) ? viewingTime.slice(0, 7) : "",
-  };
-}
-
-function openCloseDealInManager(row) {
-  const draft = closeDealDraftForRow(row);
-  if (!draft) return false;
-  try {
-    window.sessionStorage.setItem(CLOSE_DEAL_DRAFT_KEY, JSON.stringify(draft));
-  } catch {
-    return false;
-  }
-  setDeleteMessage(row, "Opening Sale Manager…");
-  window.location.assign("/sale-manager.html");
-  return true;
-}
-
 async function deleteViewing(row, button) {
   const id = row.dataset.viewingId || "";
   if (!id) return;
@@ -191,45 +117,12 @@ async function deleteViewing(row, button) {
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || "VIEWING_DELETE_FAILED");
-    commissionStates.delete(id);
+    forgetCommissionState(id);
     refreshHistory();
   } catch {
     row.querySelectorAll("button").forEach((control) => { control.disabled = false; });
     button.disabled = false;
     setDeleteMessage(row, "Could not delete the appointment. Please try again.");
-  }
-}
-
-async function advanceCommissionState(row, button) {
-  const id = viewingIdForRow(row);
-  if (!id || commissionStateForRow(row) === "received") return;
-
-  button.disabled = true;
-  setDeleteMessage(row, "Updating deal status…");
-
-  try {
-    const response = await fetch(COMMISSION_ENDPOINT, {
-      method: "PATCH",
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(payload.error || "VIEWING_COMMISSION_UPDATE_FAILED");
-
-    const state = ["pending", "received"].includes(payload.state) ? payload.state : "none";
-    if (state === "none") throw new Error("VIEWING_COMMISSION_STATE_INVALID");
-    commissionStates.set(id, state);
-    applyCommissionState(row);
-    setDeleteMessage(
-      row,
-      state === "pending"
-        ? "Closed · commission pending."
-        : "Commission received.",
-    );
-  } catch {
-    button.disabled = false;
-    setDeleteMessage(row, "Could not update the deal status. Please try again.");
   }
 }
 
@@ -261,13 +154,7 @@ function decorateEditRow(content) {
   close.textContent = "Close deal";
   close.addEventListener("click", (event) => {
     event.stopPropagation();
-    if (commissionStateForRow(row) === "none") {
-      if (!openCloseDealInManager(row)) {
-        setDeleteMessage(row, "Could not open Sale Manager. Please try again.");
-      }
-      return;
-    }
-    advanceCommissionState(row, close);
+    handleCloseDeal(row, close, setDeleteMessage);
   });
 
   controls.insertBefore(remove, save);
@@ -331,7 +218,7 @@ function installHistoryRowEditing() {
     if (historyTab) {
       window.setTimeout(() => {
         refreshHistory();
-        syncCommissionStates();
+        syncCommissionStates(decorateRows);
       }, 0);
     }
 
@@ -341,7 +228,7 @@ function installHistoryRowEditing() {
         const historyPanel = document.querySelector('[data-assistant-panel="history"]');
         if (historyPanel && !historyPanel.hidden) {
           refreshHistory();
-          syncCommissionStates();
+          syncCommissionStates(decorateRows);
         }
       }, 0);
     }
