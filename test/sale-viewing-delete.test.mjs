@@ -3,8 +3,9 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 test("Sale history keeps compact edit controls and commission stages", async () => {
-  const [interaction, styles, endpoint, router, migration] = await Promise.all([
-    readFile(new URL("../src/features/sales/sale-history-row-edit.js", import.meta.url), "utf8"),
+  const [interaction, closeDeal, styles, endpoint, router, migration] = await Promise.all([
+    readFile(new URL("../src/features/sales/history/history-edit.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/history/close-deal.js", import.meta.url), "utf8"),
     readFile(new URL("../src/features/sales/sale-history-row-edit.css", import.meta.url), "utf8"),
     readFile(new URL("../worker/sale-viewing-delete.js", import.meta.url), "utf8"),
     readFile(new URL("../worker/router.js", import.meta.url), "utf8"),
@@ -14,11 +15,11 @@ test("Sale history keeps compact edit controls and commission stages", async () 
   assert.match(interaction, /textContent = "Delete"/);
   assert.match(interaction, /textContent = "Close deal"/);
   assert.match(interaction, /method: "DELETE"/);
-  assert.match(interaction, /method: "PATCH"/);
-  assert.match(interaction, /COMMISSION_ENDPOINT/);
-  assert.match(interaction, /commissionStates\.set\(id, state\)/);
-  assert.match(interaction, /state === "pending"[\s\S]*?Closed · commission pending/);
-  assert.match(interaction, /Commission received/);
+  assert.match(closeDeal, /method: "PATCH"/);
+  assert.match(closeDeal, /COMMISSION_ENDPOINT/);
+  assert.match(closeDeal, /commissionStates\.set\(id, state\)/);
+  assert.match(closeDeal, /state === "pending"[\s\S]*?Closed · commission pending/);
+  assert.match(closeDeal, /Commission received/);
   assert.match(interaction, /document\.addEventListener\("click"/);
   assert.match(interaction, /cancelEditing\(content\)/);
   assert.match(
@@ -34,7 +35,7 @@ test("Sale history keeps compact edit controls and commission stages", async () 
   assert.match(interaction, /return "Follow-up sent"/);
   assert.match(interaction, /function refreshHistory\(\)/);
   assert.match(interaction, /data-assistant-mode=\"history\"/);
-  assert.match(interaction, /syncCommissionStates\(\)/);
+  assert.match(interaction, /syncCommissionStates\(decorateRows\)/);
 
   assert.match(styles, /\.sales-history-cancel-button\s*\{\s*display:\s*none !important;/s);
   assert.match(styles, /#sales-history-refresh\s*\{[\s\S]*?display:\s*none !important;/);
