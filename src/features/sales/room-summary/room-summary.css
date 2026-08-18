@@ -1,0 +1,338 @@
+.sale-page textarea { font: inherit; }
+
+.sale-room-tool {
+  margin-top: 28px;
+  overflow: hidden;
+  border: 1px solid rgba(60, 72, 75, 0.14);
+  border-radius: 22px;
+  background: rgba(248, 246, 241, 0.72);
+  box-shadow: 0 18px 45px rgba(48, 58, 60, 0.09);
+  animation: sale-enter-up 600ms 120ms cubic-bezier(.2, .75, .25, 1) both;
+}
+
+.sale-room-tool-heading {
+  padding: 20px 22px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid rgba(60, 72, 75, 0.11);
+}
+
+.sale-room-tool-heading p,
+.sale-room-tool-heading h2,
+.sale-room-tool-heading span { margin: 0; }
+.sale-room-tool-heading p {
+  color: #647b82;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.sale-room-tool-heading h2 {
+  margin-top: 4px;
+  color: #2e3b3f;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 28px;
+  font-weight: 500;
+}
+.sale-room-tool-heading span {
+  display: block;
+  margin-top: 5px;
+  color: #738083;
+  font-size: 11px;
+}
+.sale-room-tool-heading > small {
+  padding: 7px 10px;
+  border: 1px solid rgba(74, 96, 101, .13);
+  border-radius: 999px;
+  color: #607379;
+  background: rgba(211, 222, 221, .45);
+  font-size: 9px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sale-room-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(400px, .95fr);
+}
+
+.sale-room-composer,
+.sale-room-preview { padding: 22px; }
+.sale-room-composer { border-right: 1px solid rgba(60, 72, 75, .1); }
+.sale-room-composer label {
+  display: block;
+  margin-bottom: 8px;
+  color: #56666a;
+  font-size: 11px;
+  font-weight: 700;
+}
+.sale-room-composer textarea {
+  width: 100%;
+  min-height: 330px;
+  resize: vertical;
+  padding: 16px;
+  border: 1px solid rgba(60, 72, 75, .16);
+  border-radius: 15px;
+  outline: 0;
+  color: #354347;
+  background: rgba(255, 253, 248, .82);
+  font-family: "Nunito", "Instrument Sans", Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.65;
+  box-shadow: inset 0 1px rgba(255, 255, 255, .8);
+}
+.sale-room-composer textarea:focus {
+  border-color: rgba(67, 102, 112, .45);
+  box-shadow: 0 0 0 3px rgba(91, 125, 135, .09);
+}
+.sale-room-composer textarea::placeholder { color: #9aa3a4; }
+.sale-room-composer > p,
+.sale-room-edit-note {
+  margin: 9px 0 0;
+  color: #849092;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.sale-room-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+}
+.sale-room-actions button { min-width: 112px; }
+
+.sale-room-preview { background: rgba(225, 230, 228, .35); }
+.sale-room-preview-heading {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.sale-room-preview-heading small,
+.sale-room-preview-heading strong { display: block; }
+.sale-room-preview-heading small {
+  color: #738083;
+  font-size: 8px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.sale-room-preview-heading strong {
+  margin-top: 3px;
+  color: #42545a;
+  font-size: 12px;
+}
+.sale-room-preview-heading button:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+  transform: none;
+}
+
+.room-share-card {
+  width: min(100%, 560px);
+  min-height: 370px;
+  margin: 0 auto;
+  padding: 34px 38px;
+  border: 1px solid #e5e5e2;
+  border-radius: 18px;
+  color: #111;
+  background: #fff;
+  font-family: "Nunito", "Instrument Sans", Arial, sans-serif;
+  box-shadow: 0 14px 34px rgba(46, 59, 63, .11);
+}
+.room-share-card.is-empty {
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+.room-share-empty span {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 12px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  color: #53707a;
+  background: #e7eeee;
+  font-size: 22px;
+}
+.room-share-empty strong { display: block; font-size: 14px; }
+.room-share-empty p {
+  max-width: 270px;
+  margin: 6px auto 0;
+  color: #8a9496;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.room-share-details {
+  display: grid;
+  gap: 17px;
+}
+.room-share-detail-row {
+  margin: 0;
+  color: #171717;
+  font-size: 16px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.room-share-detail-row strong {
+  font-weight: 800;
+}
+.room-share-detail-value {
+  font-weight: 500;
+}
+
+.room-share-room-pricing {
+  margin: 1px 0 0;
+  padding: 0;
+}
+.room-share-room-pricing > h4 {
+  margin: 0 0 9px;
+  color: #171717;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+.room-share-price-list {
+  margin: 0;
+  padding-left: 24px;
+  color: #171717;
+}
+.room-share-price-list li {
+  margin-top: 5px;
+  padding-left: 2px;
+  font-size: 15px;
+  line-height: 1.52;
+  overflow-wrap: anywhere;
+}
+.room-share-price-list li:first-child { margin-top: 0; }
+.room-share-price-value { font-weight: 750; }
+.room-share-price-rooms { font-weight: 500; }
+.room-share-room-pricing-multi {
+  padding: 1px 0 0;
+}
+.room-share-availability-group {
+  margin-top: 13px;
+  padding-left: 13px;
+  border-left: 2px solid #dbe4e2;
+}
+.room-share-availability-group:first-of-type { margin-top: 7px; }
+.room-share-availability-group h5 {
+  margin: 0 0 7px;
+  color: #42585e;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+.room-share-availability-group .room-share-price-list {
+  padding-left: 21px;
+}
+
+.room-share-section {
+  margin-top: 28px;
+}
+.room-share-section-title {
+  margin: 0 0 13px;
+  color: #151515;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+.room-share-services,
+.room-share-notes {
+  margin: 0;
+  padding-left: 25px;
+  color: #181818;
+}
+.room-share-services li,
+.room-share-notes li {
+  margin-top: 8px;
+  padding-left: 3px;
+  font-size: 15px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.room-share-services li:first-child,
+.room-share-notes li:first-child { margin-top: 0; }
+.room-share-services strong { font-weight: 700; }
+
+.room-share-card [contenteditable="true"] {
+  border-radius: 4px;
+  outline: 0;
+}
+.room-share-card [contenteditable="true"]:focus {
+  background: #f0f5f4;
+  box-shadow: 0 0 0 3px #f0f5f4;
+}
+
+.sale-room-capture {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  padding: 18px;
+  overflow: auto;
+  display: grid;
+  place-items: center;
+  background: #dde3e2;
+  cursor: pointer;
+}
+.sale-room-capture[hidden] { display: none; }
+.sale-room-capture-card { width: min(100%, 560px); }
+.sale-room-capture .room-share-card {
+  width: 100%;
+  min-height: 0;
+  height: auto;
+  margin: 0;
+  box-shadow: 0 18px 42px rgba(38, 50, 54, .13);
+}
+.sale-room-capture-open { overflow: hidden; }
+
+@media (max-width: 1050px) {
+  .sale-room-workspace { grid-template-columns: 1fr; }
+  .sale-room-composer { border-right: 0; border-bottom: 1px solid rgba(60, 72, 75, .1); }
+  .sale-room-composer textarea { min-height: 250px; }
+}
+
+@media (max-width: 700px) {
+  .sale-room-tool { margin-top: 22px; border-radius: 19px; }
+  .sale-room-tool-heading { padding: 17px; align-items: flex-start; }
+  .sale-room-tool-heading h2 { font-size: 24px; }
+  .sale-room-tool-heading span { font-size: 10px; }
+  .sale-room-tool-heading > small { display: none; }
+  .sale-room-composer,
+  .sale-room-preview { padding: 16px; }
+  .sale-room-composer textarea { min-height: 220px; font-size: 12px; }
+  .sale-room-actions button { flex: 1; min-width: 0; }
+  .sale-room-preview-heading { align-items: flex-end; }
+  .sale-room-preview-heading button { min-height: 38px; padding: 0 11px; font-size: 10px; }
+  .room-share-card {
+    min-height: 330px;
+    padding: 28px 24px;
+    border-radius: 16px;
+  }
+  .room-share-details { gap: 15px; }
+  .room-share-detail-row { font-size: 15px; }
+  .room-share-room-pricing > h4 { font-size: 15px; }
+  .room-share-price-list li { font-size: 14px; }
+  .room-share-availability-group h5 { font-size: 13px; }
+  .room-share-section { margin-top: 25px; }
+  .room-share-section-title { font-size: 16px; }
+  .room-share-services li,
+  .room-share-notes li { font-size: 14px; }
+  .sale-room-capture {
+    padding: 10px;
+    align-items: start;
+  }
+  .sale-room-capture .room-share-card {
+    min-height: 0;
+    height: auto;
+    border-radius: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sale-room-tool { animation: none; }
+}
