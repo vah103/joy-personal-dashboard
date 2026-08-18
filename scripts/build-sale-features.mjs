@@ -6,6 +6,19 @@ const sales = resolve(root, "src", "features", "sales");
 const dist = resolve(root, "dist");
 
 const copies = [
+  // Public compatibility assets keep their existing URLs while source ownership lives by feature.
+  ["entries/sales-assistant.js", "sales-assistant.js"],
+  ["entries/history-row-edit.js", "sale-history-row-edit.js"],
+  ["entries/sale-ui.js", "sale-english-ui.js"],
+  ["entries/appointment.js", "sale-appointment.js"],
+  ["assistant/assistant.css", "sales-assistant.css"],
+  ["history/history.css", "sale-history-row-edit.css"],
+  ["manager/manager.js", "sale-manager.js"],
+  ["manager/manager.css", "sale-manager.css"],
+  ["room-summary/legacy-room-summary.js", "room-summary.js"],
+  ["room-summary/room-summary.css", "room-summary.css"],
+
+  // Canonical modules referenced by the public entries.
   ["shared/i18n.js", "shared/i18n.js"],
   ["shared/dates.js", "shared/dates.js"],
   ["room-summary/formatter.js", "room-summary/formatter.js"],
@@ -25,4 +38,4 @@ for (const directory of ["shared", "room-summary", "assistant", "appointments", 
 }
 await Promise.all(copies.map(([source, destination]) => cp(resolve(sales, source), resolve(dist, destination))));
 
-console.log("Built canonical Sale feature modules.");
+console.log("Built canonical Sale feature modules and public compatibility assets.");
