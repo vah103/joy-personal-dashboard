@@ -4,16 +4,16 @@ const ASSISTANT_HTML = `
       <div class="modal-heading sales-assistant-heading">
         <div>
           <p class="section-kicker">Sale Assistant</p>
-          <h2 id="sales-assistant-title">Hẹn khách xem phòng</h2>
+          <h2 id="sales-assistant-title" data-i18n-skip>Appointments</h2>
           <span>Tạo lịch, theo dõi lịch sử và tóm tắt thông tin phòng ngay trong Joy.</span>
         </div>
         <button type="button" aria-label="Đóng Sale Assistant" data-action="close-sales-assistant">×</button>
       </div>
 
       <nav class="sales-assistant-tabs" aria-label="Sale Assistant tools">
-        <button class="active" type="button" data-assistant-mode="appointment">Hẹn khách</button>
-        <button type="button" data-assistant-mode="summary">Tóm tắt phòng</button>
-        <button type="button" data-assistant-mode="history">Lịch sử</button>
+        <button class="active" type="button" data-assistant-mode="appointment" data-i18n-skip>Appointments</button>
+        <button type="button" data-assistant-mode="summary" data-i18n-skip>Room summary</button>
+        <button type="button" data-assistant-mode="history" data-i18n-skip>History</button>
       </nav>
 
       <section class="sales-assistant-panel" data-assistant-panel="appointment">
@@ -161,9 +161,9 @@ export function switchAssistantMode(mode, onHistory, doc = document) {
   });
   const title = doc.querySelector("#sales-assistant-title");
   const titles = {
-    appointment: "Hẹn khách xem phòng",
-    summary: "Tóm tắt thông tin phòng",
-    history: "Lịch sử hẹn khách",
+    appointment: "Appointments",
+    summary: "Room summary",
+    history: "History",
   };
   if (title) title.textContent = titles[mode] || titles.appointment;
   if (mode === "history") onHistory?.();
