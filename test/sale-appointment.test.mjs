@@ -142,7 +142,10 @@ test("dashboard builds D1-backed viewing history and schedules Sale pushes", asy
   assert.doesNotMatch(router, /handleSaleViewingCreate/);
 
   assert.match(worker, /INSERT INTO sale_viewings/);
-  assert.match(worker, /REMINDER_LEAD_MS = 30 \* 60 \* 1000/);
+  assert.doesNotMatch(worker, /REMINDER_LEAD_MS/);
+  assert.match(worker, /const reminderAt = viewing\.viewingAt;/);
+  assert.match(worker, /reminderAt = viewing\.viewingAt > now \? viewing\.viewingAt : null;/);
+  assert.match(worker, /đúng giờ hẹn/);
   assert.match(worker, /FOLLOWUP_DELAY_MS = 2 \* 60 \* 60 \* 1000/);
   assert.match(worker, /Lịch xem phòng sắp tới/);
   assert.match(worker, /Theo dõi khách xem phòng/);
