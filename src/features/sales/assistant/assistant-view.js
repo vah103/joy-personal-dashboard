@@ -7,6 +7,9 @@ const MODE_TITLES = Object.freeze({
   history: ["saleAssistant.historyTitle", "Lịch sử hẹn khách"],
 });
 
+let assistantViewController = null;
+let historyRefreshTimerId = 0;
+
 const ASSISTANT_HTML = `
   <div class="modal-backdrop sales-assistant-backdrop" id="sales-assistant-modal" role="presentation" hidden>
     <section class="modal sales-assistant-modal" role="dialog" aria-modal="true" aria-labelledby="sales-assistant-title">
@@ -109,37 +112,59 @@ function visibleModalExists() {
   return [...document.querySelectorAll(".modal-backdrop")].some((modal) => !modal.hidden);
 }
 
-function historyEditInProgress() {
-  return Boolean(document.querySelector(".sales-history-edit-row"));
+function clearHistoryRefreshTimer() {
+  if (!historyRefreshTimerId) return;
+  window.clearInterval(historyRefreshTimerId);
+  historyRefreshTimerId = 0;
 }
 
-function requestHistoryLeave() {
-  if (!historyEditInProgress()) return true;
+function historyEditInProgress(modal) {
+  return Boolean(modal.querySelector(".sales-history-edit-row"));
+}
+
+function requestHistoryLeave(modal) {
+  if (!historyEditInProgress(modal)) return true;
   const event = new CustomEvent("joy:sale-history-leave-request", { cancelable: true });
   window.dispatchEvent(event);
-  return !event.defaultPrevented && !historyEditInProgress();
+  return !event.defaultPrevented && !historyEditInProgress(modal);
 }
 
-function requestHistoryLoad({ force = false } = {}) {
-  window.dispatchEvent(new CustomEvent("joy:sale-history-open", { detail: { force } }));
+function requestHistoryLoad({ force = false, focus = true } = {}) {
+  window.dispatchEvent(new CustomEvent("joy:sale-history-open", { detail: { force, focus } }));
 }
 
-function updateAssistantTitle(mode) {
+function updateAssistantTitle(modal, mode) {
   const [key, fallback] = MODE_TITLES[mode] || MODE_TITLES.appointment;
-  const title = document.querySelector("#sales-assistant-title");
+  const title = modal.querySelector("#sales-assistant-title");
   if (!title) return;
   title.textContent = saleText(key, fallback);
+}
+
+function startHistoryRefreshTimer(modal) {
+  clearHistoryRefreshTimer();
+  historyRefreshTimerId = window.setInterval(() => {
+    const panel = modal.querySelector('[data-assistant-panel="history"]');
+    if (modal.hidden !== false || panel?.hidden !== false || historyEditInProgress(modal)) return;
+    requestHistoryLoad({ focus: false });
+  }, HISTORY_STATE_REFRESH_MS);
 }
 
 export function installAssistantView({ isAppointmentSaving = () => false } = {}) {
   const modal = createAssistantModal();
   if (!modal || modal.dataset.saleAssistantViewInstalled === "true") return;
+
+  assistantViewController?.abort();
+  clearHistoryRefreshTimer();
+  const controller = new AbortController();
+  assistantViewController = controller;
+  const { signal } = controller;
+
   modal.dataset.saleAssistantViewInstalled = "true";
   translateSaleUiRoot(modal);
 
   const closeAssistant = () => {
     if (isAppointmentSaving()) return false;
-    if (!requestHistoryLeave()) return false;
+    if (!requestHistoryLeave(modal)) return false;
     modal.hidden = true;
     if (!visibleModalExists()) document.body.classList.remove("modal-open");
     return true;
@@ -148,23 +173,23 @@ export function installAssistantView({ isAppointmentSaving = () => false } = {})
   const openAssistant = () => {
     modal.hidden = false;
     document.body.classList.add("modal-open");
-    const activeMode = document.querySelector("[data-assistant-mode].active")?.dataset.assistantMode;
+    const activeMode = modal.querySelector("[data-assistant-mode].active")?.dataset.assistantMode;
     if (activeMode === "history") requestHistoryLoad({ force: true });
   };
 
   const switchMode = (mode) => {
-    const currentMode = document.querySelector("[data-assistant-mode].active")?.dataset.assistantMode || "";
+    const currentMode = modal.querySelector("[data-assistant-mode].active")?.dataset.assistantMode || "";
     if (currentMode === mode) return true;
     if (currentMode === "appointment" && isAppointmentSaving()) return false;
-    if (currentMode === "history" && !requestHistoryLeave()) return false;
+    if (currentMode === "history" && !requestHistoryLeave(modal)) return false;
 
-    document.querySelectorAll("[data-assistant-mode]").forEach((button) => {
+    modal.querySelectorAll("[data-assistant-mode]").forEach((button) => {
       button.classList.toggle("active", button.dataset.assistantMode === mode);
     });
-    document.querySelectorAll("[data-assistant-panel]").forEach((panel) => {
+    modal.querySelectorAll("[data-assistant-panel]").forEach((panel) => {
       panel.hidden = panel.dataset.assistantPanel !== mode;
     });
-    updateAssistantTitle(mode);
+    updateAssistantTitle(modal, mode);
     if (mode === "history") requestHistoryLoad({ force: true });
     return true;
   };
@@ -176,6 +201,7 @@ export function installAssistantView({ isAppointmentSaving = () => false } = {})
       openAssistant();
       return;
     }
+    if (!modal.contains(control)) return;
     if (control.dataset.action === "close-sales-assistant") {
       if (!closeAssistant()) {
         event.preventDefault();
@@ -187,7 +213,7 @@ export function installAssistantView({ isAppointmentSaving = () => false } = {})
       event.preventDefault();
       event.stopImmediatePropagation();
     }
-  });
+  }, { signal });
 
   modal.addEventListener("click", (event) => {
     if (event.target !== modal) return;
@@ -195,30 +221,33 @@ export function installAssistantView({ isAppointmentSaving = () => false } = {})
       event.preventDefault();
       event.stopPropagation();
     }
-  });
+  }, { signal });
 
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
     if (document.querySelector("#sale-close-deal-modal")?.hidden === false) return;
     if (document.querySelector("#room-summary-capture")?.hidden === false) return;
-    if (historyEditInProgress()) return;
+    if (historyEditInProgress(modal)) return;
     if (!modal.hidden && !closeAssistant()) {
       event.preventDefault();
       event.stopImmediatePropagation();
     }
-  }, { capture: true });
+  }, { capture: true, signal });
 
   const translate = () => {
-    const mode = document.querySelector("[data-assistant-mode].active")?.dataset.assistantMode || "appointment";
-    updateAssistantTitle(mode);
+    const mode = modal.querySelector("[data-assistant-mode].active")?.dataset.assistantMode || "appointment";
+    updateAssistantTitle(modal, mode);
     translateSaleUiRoot(modal);
   };
-  window.addEventListener("joy:i18n-ready", translate);
-  window.addEventListener("joy:locale-changed", translate);
+  window.addEventListener("joy:i18n-ready", translate, { signal });
+  window.addEventListener("joy:locale-changed", translate, { signal });
 
-  window.setInterval(() => {
-    const panel = document.querySelector('[data-assistant-panel="history"]');
-    if (modal.hidden !== false || panel?.hidden !== false || historyEditInProgress()) return;
-    requestHistoryLoad();
-  }, HISTORY_STATE_REFRESH_MS);
+  startHistoryRefreshTimer(modal);
+
+  return () => {
+    controller.abort();
+    clearHistoryRefreshTimer();
+    if (assistantViewController === controller) assistantViewController = null;
+    delete modal.dataset.saleAssistantViewInstalled;
+  };
 }
