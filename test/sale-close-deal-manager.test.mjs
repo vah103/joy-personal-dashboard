@@ -13,7 +13,7 @@ test("first History close hands the viewing to Sale Manager", async () => {
 });
 
 test("Sale Manager prefills the viewing and marks pending only after saving the deal", async () => {
-  const manager = await readFile(new URL("../src/pages/sale/sale-manager.js", import.meta.url), "utf8");
+  const manager = await readFile(new URL("../src/features/sales/manager/manager.js", import.meta.url), "utf8");
 
   assert.match(manager, /function prefillCloseDealDraft\(\)/);
   assert.match(manager, /elements\.form\.elements\.customer\.value = draft\.customer/);
