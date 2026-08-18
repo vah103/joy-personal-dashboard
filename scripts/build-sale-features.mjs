@@ -16,6 +16,8 @@ const copies = [
   ["appointments/parser.js", "appointments/parser.js"],
   ["appointments/appointment-form.js", "appointments/appointment-form.js"],
   ["history/history.js", "history/history.js"],
+  ["history/history-edit.js", "history/history-edit.js"],
+  ["history/close-deal.js", "history/close-deal.js"],
 ];
 
 for (const directory of ["shared", "room-summary", "assistant", "appointments", "history"]) {
