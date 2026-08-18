@@ -204,6 +204,8 @@ function validateViewing(input, { allowPast = false } = {}) {
 function serializeViewing(row, now = Date.now()) {
   const viewingAt = Number(row.viewing_at);
   const cancelledAt = nullableNumber(row.cancelled_at);
+  const reminderAt = nullableNumber(row.reminder_at);
+  const reminderNotifiedAt = nullableNumber(row.reminder_notified_at);
   const status = cancelledAt ? "cancelled" : viewingAt < now ? "past" : "upcoming";
   return {
     id: String(row.id || ""),
@@ -212,8 +214,8 @@ function serializeViewing(row, now = Date.now()) {
     viewingAddress: String(row.viewing_address || "").trim(),
     viewingAt: new Date(viewingAt).toISOString(),
     status,
-    reminderAt: isoOrEmpty(row.reminder_at),
-    reminderNotifiedAt: isoOrEmpty(row.reminder_notified_at),
+    reminderAt: isoOrEmpty(reminderAt && !reminderNotifiedAt ? viewingAt : reminderAt),
+    reminderNotifiedAt: isoOrEmpty(reminderNotifiedAt),
     followupAt: isoOrEmpty(row.followup_at),
     followupNotifiedAt: isoOrEmpty(row.followup_notified_at),
     createdAt: isoOrEmpty(row.created_at),
@@ -237,9 +239,9 @@ async function processReminderPushes(env) {
     WHERE cancelled_at IS NULL
       AND reminder_at IS NOT NULL
       AND reminder_notified_at IS NULL
-      AND reminder_at <= ?
-      AND reminder_at >= ?
-    ORDER BY reminder_at ASC
+      AND viewing_at <= ?
+      AND viewing_at >= ?
+    ORDER BY viewing_at ASC
     LIMIT 30
   `).bind(now, now - MAX_LATE_MS).all();
 
