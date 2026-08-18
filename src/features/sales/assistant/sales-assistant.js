@@ -26,7 +26,7 @@ function installAssistantFocus() {
 }
 
 async function initializeSalesAssistant() {
-  if (!installDashboardSale()) return;
+  installDashboardSale();
   installAssistantView({ isAppointmentSaving });
   installAssistantFocus();
   installAppointmentForm();
