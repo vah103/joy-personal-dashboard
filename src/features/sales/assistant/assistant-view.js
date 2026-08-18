@@ -150,7 +150,6 @@ export function installAssistantView({ isAppointmentSaving = () => false } = {})
     document.body.classList.add("modal-open");
     const activeMode = document.querySelector("[data-assistant-mode].active")?.dataset.assistantMode;
     if (activeMode === "history") requestHistoryLoad({ force: true });
-    window.setTimeout(() => document.querySelector("#sale-appointment-input")?.focus(), 0);
   };
 
   const switchMode = (mode) => {
