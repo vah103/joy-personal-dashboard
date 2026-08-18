@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { monthTotalFormulaAfterDelete } from "../worker/sale-deal-delete.js";
 
 test("first History close hands the viewing to Sale Manager", async () => {
   const closeDeal = await readFile(new URL("../src/features/sales/history/close-deal.js", import.meta.url), "utf8");
@@ -22,6 +23,32 @@ test("Sale Manager prefills the viewing and marks pending only after saving the 
   assert.match(manager, /await apiRequest\("\/api\/sales\/deals"/);
   assert.match(manager, /await setViewingCommissionState\(viewingDraft\.viewingId, "pending"\)/);
   assert.match(manager, /CLOSE_DEAL_PENDING_SYNC_KEY/);
+});
+
+test("Edit deal popup exposes a guarded delete action", async () => {
+  const [html, manager, router, worker] = await Promise.all([
+    readFile(new URL("../src/pages/sale/index.html", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/manager/manager.js", import.meta.url), "utf8"),
+    readFile(new URL("../worker/router.js", import.meta.url), "utf8"),
+    readFile(new URL("../worker/sale-deal-delete.js", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(html, /id="sale-delete"[^>]*data-action="delete-deal"[^>]*hidden/);
+  assert.match(manager, /elements\.deleteDeal\.hidden = !deal/);
+  assert.match(manager, /window\.confirm\(uiText\("Delete deal"\)\)/);
+  assert.match(manager, /method: "DELETE"/);
+  assert.match(manager, /sourceRow: deal\.sourceRow/);
+  assert.match(router, /isSaleDealDeleteRoute\(pathname, request\)/);
+  assert.match(worker, /deleteDimension/);
+  assert.match(worker, /endIndex: existing\.detailRow/);
+  assert.match(worker, /formulaValue: totalFormula/);
+
+  const block = {
+    headerRow: 3,
+    deals: [{ sourceRow: 4 }, { sourceRow: 6 }],
+  };
+  assert.equal(monthTotalFormulaAfterDelete(block, 4), "=SUM(E4:E5)");
+  assert.equal(monthTotalFormulaAfterDelete({ headerRow: 3, deals: [{ sourceRow: 4 }] }, 4), "=0");
 });
 
 test("commission endpoint supports idempotent explicit pending state while retaining legacy toggle", async () => {
