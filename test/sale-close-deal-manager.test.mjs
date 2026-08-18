@@ -3,13 +3,13 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 test("first History close hands the viewing to Sale Manager", async () => {
-  const history = await readFile(new URL("../src/features/sales/sale-history-row-edit.js", import.meta.url), "utf8");
+  const closeDeal = await readFile(new URL("../src/features/sales/history/close-deal.js", import.meta.url), "utf8");
 
-  assert.match(history, /CLOSE_DEAL_DRAFT_KEY = "joy:sale-close-manager-draft"/);
-  assert.match(history, /window\.sessionStorage\.setItem\(CLOSE_DEAL_DRAFT_KEY/);
-  assert.match(history, /window\.location\.assign\("\/sale-manager\.html"\)/);
-  assert.match(history, /commissionStateForRow\(row\) === "none"/);
-  assert.match(history, /advanceCommissionState\(row, close\)/);
+  assert.match(closeDeal, /CLOSE_DEAL_DRAFT_KEY = "joy:sale-close-manager-draft"/);
+  assert.match(closeDeal, /window\.sessionStorage\.setItem\(CLOSE_DEAL_DRAFT_KEY/);
+  assert.match(closeDeal, /window\.location\.assign\("\/sale-manager\.html"\)/);
+  assert.match(closeDeal, /commissionStateForRow\(row\) === "none"/);
+  assert.match(closeDeal, /advanceCommissionState\(row, button, setMessage\)/);
 });
 
 test("Sale Manager prefills the viewing and marks pending only after saving the deal", async () => {
