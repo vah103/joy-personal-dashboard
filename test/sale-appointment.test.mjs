@@ -132,8 +132,10 @@ test("dashboard builds D1-backed viewing history and schedules Sale pushes", asy
   ]);
 
   assert.match(assistant, /data-assistant-mode="history"/);
-  assert.match(assistant, /Lịch sử hẹn khách/);
-  assert.match(assistant, /Đang lưu lịch vào Joy/);
+  assert.match(assistant, /t\("saleAssistant\.viewingHistory"\)/);
+  assert.match(assistant, /t\("saleAssistant\.saving"\)/);
+  assert.doesNotMatch(assistant, /history:\s*"Lịch sử hẹn khách"/);
+  assert.doesNotMatch(assistant, /Đang lưu lịch vào Joy/);
   assert.doesNotMatch(assistant, /Appointments Sheet|Google Sheets trước khi lưu lịch/);
 
   assert.match(router, /handleSaleViewingRequest/);
