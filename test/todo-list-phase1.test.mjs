@@ -88,6 +88,20 @@ test("completed tasks are checked, struck through, and retain normal sorting", (
   assert.ok(!app.includes("completedTasks.concat"));
 });
 
+test("repeating task rows expose the existing durable delete flow", () => {
+  const todo = fs.readFileSync(
+    new URL("../src/features/tasks/todo-visibility.js", import.meta.url),
+    "utf8",
+  );
+
+  assert.ok(todo.includes("function decorateRepeatingTaskRows()"));
+  assert.ok(todo.includes('row.classList.contains("joy-task-repeating")'));
+  assert.ok(todo.includes("row.append(buildDeleteButton(id, title))"));
+  assert.ok(todo.includes("queueTaskDeletion(id)"));
+  assert.ok(todo.includes('await deleteCloudTask(id)'));
+  assert.ok(todo.includes('button.closest("#task-list")'));
+});
+
 test("project deletion requires confirmation and preserves string ids", () => {
   const html = fs.readFileSync(
     new URL("../src/pages/dashboard/index.html", import.meta.url),
