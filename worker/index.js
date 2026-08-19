@@ -4,7 +4,11 @@ import {
   parseSaleLedger,
   validateSaleDeal,
 } from "./finance-sales.js";
-import { gmailSearchQuery, isGmailMessageNew } from "./gmail-sync.js";
+import {
+  gmailDiscoveryCutoff,
+  gmailSearchQuery,
+  isGmailMessageNew,
+} from "./gmail-sync.js";
 import { isSameOrigin, json, readJson } from "./shared/http.js";
 import { getSession } from "./shared/session.js";
 
@@ -404,13 +408,14 @@ async function syncGmail(email, env) {
 
   try {
     const syncState = await env.DB.prepare(
-      "SELECT watch_started_at FROM gmail_sync WHERE user_email = ?",
+      "SELECT watch_started_at, last_synced_at FROM gmail_sync WHERE user_email = ?",
     ).bind(email).first();
 
     const watchStartedAt = Number(syncState?.watch_started_at || 0);
+    const lastSyncedAt = Number(syncState?.last_synced_at || 0);
 
-    // The first sync after this migration establishes a clean starting point.
-    // Existing cached, pinned and dismissed mail is intentionally discarded.
+    // The first sync establishes a clean baseline. Mail that already existed
+    // before Joy started tracking must never be surfaced as new.
     if (!watchStartedAt) {
       await env.DB.batch([
         env.DB.prepare("DELETE FROM email_cache WHERE user_email = ?").bind(email),
@@ -433,12 +438,20 @@ async function syncGmail(email, env) {
     }
 
     const accessToken = await getAccessToken(email, env);
-    const preferences = await env.DB.prepare(`
-      SELECT message_id, pinned, dismissed, updated_at
-      FROM email_preferences
-      WHERE user_email = ?
-      ORDER BY updated_at DESC
-    `).bind(email).all();
+    const [preferences, cached] = await Promise.all([
+      env.DB.prepare(`
+        SELECT message_id, pinned, dismissed, updated_at
+        FROM email_preferences
+        WHERE user_email = ?
+        ORDER BY updated_at DESC
+      `).bind(email).all(),
+      env.DB.prepare(`
+        SELECT message_id
+        FROM email_cache
+        WHERE user_email = ?
+        ORDER BY pinned DESC, fetched_at DESC
+      `).bind(email).all(),
+    ]);
 
     const dismissed = new Set(
       preferences.results
@@ -449,19 +462,34 @@ async function syncGmail(email, env) {
     const pinnedIds = preferences.results
       .filter((row) => row.pinned && !row.dismissed)
       .map((row) => String(row.message_id));
+    const pinnedIdSet = new Set(pinnedIds);
 
+    const existingIds = cached.results
+      .map((row) => String(row.message_id || ""))
+      .filter((id) => id && !dismissed.has(id));
+    const existingIdSet = new Set(existingIds);
+
+    // New discovery advances from the last successful sync, not from the
+    // original watch start. Existing visible mail is carried separately below.
+    const discoveryCutoff = gmailDiscoveryCutoff(watchStartedAt, lastSyncedAt);
     const listQuery = new URLSearchParams({
       maxResults: "25",
-      q: gmailSearchQuery(watchStartedAt),
+      q: gmailSearchQuery(discoveryCutoff),
     });
 
     const list = await gmailApi(accessToken, `/messages?${listQuery}`);
     const unreadIds = (list.messages || [])
       .map((message) => String(message.id))
-      .filter((id) => !dismissed.has(id))
+      .filter((id) => (
+        !dismissed.has(id)
+        && !pinnedIdSet.has(id)
+        && !existingIdSet.has(id)
+      ))
       .slice(0, 5);
 
-    const ids = [...new Set([...pinnedIds, ...unreadIds])];
+    // Pinned mail stays first, genuinely new mail comes next, and already
+    // visible mail remains until it is read or explicitly dismissed.
+    const ids = [...new Set([...pinnedIds, ...unreadIds, ...existingIds])];
 
     const messages = (await Promise.all(ids.map(async (id) => {
       try {
@@ -475,13 +503,30 @@ async function syncGmail(email, env) {
           `/messages/${encodeURIComponent(id)}?${detailsQuery}`,
         );
 
-        if (!isGmailMessageNew(message, watchStartedAt)) return null;
-        return normalizeGmailMessage(message, pinnedIds.includes(id));
+        const pinned = pinnedIdSet.has(id);
+        const alreadyVisible = existingIdSet.has(id);
+        const unread = !Array.isArray(message.labelIds) || message.labelIds.includes("UNREAD");
+
+        if (pinned || alreadyVisible) {
+          if (!isGmailMessageNew(message, watchStartedAt)) return null;
+          if (!pinned && !unread) return null;
+        } else if (!unread || !isGmailMessageNew(message, discoveryCutoff)) {
+          return null;
+        }
+
+        return normalizeGmailMessage(message, pinned);
       } catch (error) {
         if (error.status === 404) return null;
         throw error;
       }
     }))).filter(Boolean);
+
+    // A scheduled sync and a visible-page refresh can overlap. A stale sync
+    // must not overwrite a newer cache snapshot.
+    const latestSyncState = await env.DB.prepare(
+      "SELECT last_synced_at FROM gmail_sync WHERE user_email = ?",
+    ).bind(email).first();
+    if (Number(latestSyncState?.last_synced_at || 0) > lastSyncedAt) return [];
 
     const statements = [
       env.DB.prepare("DELETE FROM email_cache WHERE user_email = ?").bind(email),
