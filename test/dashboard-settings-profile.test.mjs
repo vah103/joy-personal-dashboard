@@ -13,6 +13,11 @@ test("dashboard Settings moves from the sidebar into the Joy account popup", asy
   assert.match(css, /\.joy-account-heading-actions > \.joy-settings-trigger-account \[data-joy-settings-label\]\{display:none\}/);
   assert.match(css, /\.joy-settings-trigger-sale\{[\s\S]*margin:0 0 12px;/);
 
+  assert.match(config, /const canRelocateSettings = typeof window !== "undefined"/);
+  assert.match(config, /typeof window\.addEventListener === "function"/);
+  assert.match(config, /typeof document\.addEventListener === "function"/);
+  assert.match(config, /typeof MutationObserver === "function"/);
+  assert.match(config, /if \(!canRelocateSettings\) return;/);
   assert.match(config, /function moveSettingsIntoAccount\(\)/);
   assert.match(config, /\.sidebar-footer > \[data-joy-settings-open\]/);
   assert.match(config, /#joy-account-modal \.joy-account-heading-actions/);
