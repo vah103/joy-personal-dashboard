@@ -2,53 +2,55 @@ import {
   formatVietnamViewingTime,
   parseSaleAppointmentInput,
 } from "./sale-appointment.js";
+import { t, translateText } from "/i18n/index.js?v=joy-i18n-v1";
 
 let historyLoaded = false;
 let viewingHistory = [];
 let editingViewingId = "";
 
-const ASSISTANT_HTML = `
+function assistantHtml() {
+  return `
   <div class="modal-backdrop sales-assistant-backdrop" id="sales-assistant-modal" role="presentation" hidden>
     <section class="modal sales-assistant-modal" role="dialog" aria-modal="true" aria-labelledby="sales-assistant-title">
       <div class="modal-heading sales-assistant-heading">
         <div>
-          <p class="section-kicker">Sale Assistant</p>
-          <h2 id="sales-assistant-title">Hẹn khách xem phòng</h2>
-          <span>Tạo lịch, theo dõi lịch sử và tóm tắt thông tin phòng ngay trong Joy.</span>
+          <p class="section-kicker">${t("saleAssistant.title")}</p>
+          <h2 id="sales-assistant-title">${t("cleanup.sale.scheduleViewing")}</h2>
+          <span>${t("saleAssistant.subtitle")}</span>
         </div>
-        <button type="button" aria-label="Đóng Sale Assistant" data-action="close-sales-assistant">×</button>
+        <button type="button" aria-label="${t("saleAssistant.close")}" data-action="close-sales-assistant">×</button>
       </div>
 
-      <nav class="sales-assistant-tabs" aria-label="Sale Assistant tools">
-        <button class="active" type="button" data-assistant-mode="appointment">Hẹn khách</button>
-        <button type="button" data-assistant-mode="summary">Tóm tắt phòng</button>
-        <button type="button" data-assistant-mode="history">Lịch sử</button>
+      <nav class="sales-assistant-tabs" aria-label="${t("cleanup.sale.tools")}">
+        <button class="active" type="button" data-assistant-mode="appointment">${t("saleAssistant.appointments")}</button>
+        <button type="button" data-assistant-mode="summary">${t("saleAssistant.roomSummary")}</button>
+        <button type="button" data-assistant-mode="history">${t("saleAssistant.history")}</button>
       </nav>
 
       <section class="sales-assistant-panel" data-assistant-panel="appointment">
         <div class="sales-appointment-layout">
           <div class="sales-appointment-composer">
-            <label for="sale-appointment-input">Thông tin lịch hẹn</label>
-            <textarea id="sale-appointment-input" maxlength="1200" spellcheck="false" placeholder="Ví dụ: 8h tối mai chị Lan 0987654321 xem phòng 180 Phú Mỹ"></textarea>
-            <p>Joy hiểu “30p nữa”, “mai 8h tối”, “ngày kia”, “giờ khách qua” và ngày dạng 28/07.</p>
-            <button class="primary-button" id="sale-appointment-parse" type="button">Tạo lịch hẹn</button>
+            <label for="sale-appointment-input">${t("saleAssistant.appointmentDetails")}</label>
+            <textarea id="sale-appointment-input" maxlength="1200" spellcheck="false" placeholder="${t("saleAssistant.exampleAppointment")}"></textarea>
+            <p>${t("saleAssistant.inputHelp")}</p>
+            <button class="primary-button" id="sale-appointment-parse" type="button">${t("saleAssistant.createAppointment")}</button>
           </div>
 
           <form class="sales-appointment-preview" id="sale-appointment-form" hidden>
             <div class="sales-appointment-preview-heading">
-              <div><small>Kiểm tra trước khi lưu</small><strong id="sale-appointment-time-label">—</strong></div>
-              <span>Joy lịch hẹn</span>
+              <div><small>${t("saleAssistant.review")}</small><strong id="sale-appointment-time-label">—</strong></div>
+              <span>${t("saleAssistant.joyAppointment")}</span>
             </div>
             <div class="sales-appointment-fields">
-              <label>Tên khách<input name="customerName" type="text" maxlength="100" required></label>
-              <label>Số điện thoại<input name="phone" type="tel" maxlength="20" inputmode="tel"></label>
-              <label class="wide">Địa chỉ xem phòng<input name="viewingAddress" type="text" maxlength="220" required></label>
-              <label class="wide">Thời gian<input name="viewingTime" type="datetime-local" required></label>
+              <label>${t("saleAssistant.customerName")}<input name="customerName" type="text" maxlength="100" required></label>
+              <label>${t("saleAssistant.phone")}<input name="phone" type="tel" maxlength="20" inputmode="tel"></label>
+              <label class="wide">${t("saleAssistant.address")}<input name="viewingAddress" type="text" maxlength="220" required></label>
+              <label class="wide">${t("saleAssistant.time")}<input name="viewingTime" type="datetime-local" required></label>
             </div>
             <p class="sales-appointment-status" id="sale-appointment-status" hidden></p>
             <div class="sales-appointment-actions">
-              <button class="secondary-button" type="button" id="sale-appointment-reset">Nhập lại</button>
-              <button class="primary-button" type="submit" id="sale-appointment-save">Lưu lịch</button>
+              <button class="secondary-button" type="button" id="sale-appointment-reset">${t("saleAssistant.startOver")}</button>
+              <button class="primary-button" type="submit" id="sale-appointment-save">${t("saleAssistant.saveAppointment")}</button>
             </div>
           </form>
         </div>
@@ -57,22 +59,22 @@ const ASSISTANT_HTML = `
       <section class="sales-assistant-panel" data-assistant-panel="summary" hidden>
         <div class="sale-room-workspace sales-assistant-workspace">
           <div class="sale-room-composer">
-            <label for="room-summary-input">Thông tin phòng nguồn</label>
-            <textarea id="room-summary-input" maxlength="12000" spellcheck="false" placeholder="Ví dụ: 180 Phú Mỹ còn phòng 302 giá 4tr2, vào luôn. Full nội thất, thang máy. Điện 4k, nước 100k/người..."></textarea>
-            <p>Số điện thoại, tên nguồn, link và hoa hồng sẽ được loại khỏi bản gửi khách.</p>
+            <label for="room-summary-input">${t("saleAssistant.sourceRoom")}</label>
+            <textarea id="room-summary-input" maxlength="12000" spellcheck="false" placeholder="${t("saleAssistant.exampleRoom")}"></textarea>
+            <p>${t("saleAssistant.sourcePrivacy")}</p>
             <div class="sale-room-actions">
-              <button class="secondary-button" id="room-summary-clear" type="button">Xóa</button>
-              <button class="primary-button" id="room-summary-generate" type="button">Tạo tóm tắt</button>
+              <button class="secondary-button" id="room-summary-clear" type="button">${t("saleAssistant.clear")}</button>
+              <button class="primary-button" id="room-summary-generate" type="button">${t("saleAssistant.createSummary")}</button>
             </div>
           </div>
 
           <div class="sale-room-preview">
             <div class="sale-room-preview-heading">
-              <div><small>Bản gửi khách</small><strong>Sẵn sàng chụp màn hình</strong></div>
-              <button class="secondary-button" id="room-summary-capture-button" type="button" disabled>Chế độ chụp</button>
+              <div><small>${t("saleAssistant.customerView")}</small><strong>${t("saleAssistant.readyScreenshot")}</strong></div>
+              <button class="secondary-button" id="room-summary-capture-button" type="button" disabled>${t("saleAssistant.screenshotView")}</button>
             </div>
             <article class="room-share-card is-empty" id="room-summary-card" aria-live="polite"></article>
-            <p class="sale-room-edit-note">Chạm vào nội dung đã tạo để sửa trước khi chụp.</p>
+            <p class="sale-room-edit-note">${t("saleAssistant.editHint")}</p>
           </div>
         </div>
       </section>
@@ -81,23 +83,24 @@ const ASSISTANT_HTML = `
         <div class="sales-history-workspace">
           <div class="sales-history-heading">
             <div>
-              <small>Lịch hẹn được lưu trong Joy</small>
-              <strong id="sales-history-count">Đang tải…</strong>
+              <small>${t("saleAssistant.savedInJoy")}</small>
+              <strong id="sales-history-count">${t("cleanup.sale.loadingEllipsis")}</strong>
             </div>
-            <button class="secondary-button" id="sales-history-refresh" type="button">Làm mới</button>
+            <button class="secondary-button" id="sales-history-refresh" type="button">${t("common.refresh")}</button>
           </div>
           <div class="sales-history-table-wrap" id="sales-history-content" aria-live="polite">
-            <p class="sales-history-loading">Đang tải lịch sử…</p>
+            <p class="sales-history-loading">${t("saleAssistant.loadingHistory")}</p>
           </div>
         </div>
       </section>
     </section>
   </div>
 
-  <div class="sale-room-capture" id="room-summary-capture" hidden aria-label="Room summary screenshot view">
+  <div class="sale-room-capture" id="room-summary-capture" hidden aria-label="${t("saleManager.captureAria")}">
     <div class="sale-room-capture-card" id="room-summary-capture-card"></div>
   </div>
 `;
+}
 
 function createAssistantLaunchers() {
   const salesPanel = document.querySelector("#sales");
@@ -114,7 +117,7 @@ function createAssistantLaunchers() {
     assistantButton.type = "button";
     assistantButton.className = "quiet-link sales-assistant-heading-button";
     assistantButton.dataset.action = "open-sales-assistant";
-    assistantButton.textContent = "Assistant";
+    assistantButton.textContent = t("cleanup.sale.assistant");
     manageButton.before(actions);
     actions.append(assistantButton, manageButton);
   }
@@ -127,7 +130,7 @@ function createAssistantLaunchers() {
     launch.innerHTML = `
       <span class="sales-assistant-launch-icon" aria-hidden="true">＋</span>
       <span class="sales-assistant-launch-copy">
-        <strong>Schedule a viewing</strong>
+        <strong>${t("cleanup.sale.scheduleViewing")}</strong>
       </span>
       <span class="sales-assistant-launch-arrow" aria-hidden="true">→</span>
     `;
@@ -138,7 +141,7 @@ function createAssistantLaunchers() {
 
 function createAssistantModal() {
   if (!document.querySelector("#sales-assistant-modal")) {
-    document.body.insertAdjacentHTML("beforeend", ASSISTANT_HTML);
+    document.body.insertAdjacentHTML("beforeend", assistantHtml());
   }
 }
 
@@ -170,9 +173,9 @@ function switchMode(mode) {
   });
   const title = document.querySelector("#sales-assistant-title");
   const titles = {
-    appointment: "Hẹn khách xem phòng",
-    summary: "Tóm tắt thông tin phòng",
-    history: "Lịch sử hẹn khách",
+    appointment: t("cleanup.sale.scheduleViewing"),
+    summary: t("saleAssistant.roomInfoSummary"),
+    history: t("saleAssistant.viewingHistory"),
   };
   if (title) title.textContent = titles[mode] || titles.appointment;
   if (mode === "history") loadViewingHistory();
@@ -201,6 +204,10 @@ function vietnamLocalToIso(value) {
   return new Date(Date.UTC(year, month - 1, day, hour - 7, minute)).toISOString();
 }
 
+function formatViewingTime(value) {
+  return translateText(formatVietnamViewingTime(value));
+}
+
 function showAppointmentStatus(message, state = "") {
   const status = document.querySelector("#sale-appointment-status");
   if (!status) return;
@@ -224,7 +231,7 @@ function appointmentFormPayload() {
 function updateAppointmentTimeLabel() {
   const payload = appointmentFormPayload();
   const label = document.querySelector("#sale-appointment-time-label");
-  if (label) label.textContent = payload?.viewingAt ? formatVietnamViewingTime(payload.viewingAt) : "Chưa rõ thời gian";
+  if (label) label.textContent = payload?.viewingAt ? formatViewingTime(payload.viewingAt) : t("saleAssistant.timeUnknown");
 }
 
 function parseAppointment() {
@@ -239,16 +246,10 @@ function parseAppointment() {
   form.elements.viewingTime.value = vietnamDatetimeLocal(parsed.viewingAt);
   updateAppointmentTimeLabel();
 
-  if (parsed.valid) {
-    showAppointmentStatus("Joy đã tách thông tin. Hãy kiểm tra lại trước khi lưu.", "ready");
-  } else {
-    const missingLabels = {
-      customerName: "tên khách",
-      viewingAddress: "địa chỉ",
-      viewingAt: "thời gian",
-    };
-    showAppointmentStatus(`Chưa nhận ra ${parsed.missing.map((item) => missingLabels[item]).join(", ")}. Bạn có thể điền trực tiếp bên dưới.`, "warning");
-  }
+  showAppointmentStatus(
+    parsed.valid ? t("saleAssistant.parsedReview") : t("cleanup.sale.requiredFields"),
+    parsed.valid ? "ready" : "warning",
+  );
   form.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
@@ -265,16 +266,16 @@ function resetAppointment() {
 }
 
 function appointmentErrorMessage(code) {
-  const messages = {
-    VIEWING_ADDRESS_REQUIRED: "Vui lòng nhập địa chỉ xem phòng.",
-    VIEWING_TIME_REQUIRED: "Vui lòng chọn thời gian hẹn.",
-    VIEWING_TIME_IN_PAST: "Thời gian hẹn đã qua. Hãy chọn lại.",
-    VIEWING_TIME_TOO_FAR: "Joy chỉ nhận lịch trong vòng 1 năm tới.",
-    VIEWING_NOT_FOUND: "Không tìm thấy lịch hẹn này.",
-    VIEWING_ID_REQUIRED: "Joy chưa xác định được lịch cần sửa.",
-    AUTH_REQUIRED: "Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại Joy.",
+  const keys = {
+    VIEWING_ADDRESS_REQUIRED: "saleAssistant.needAddress",
+    VIEWING_TIME_REQUIRED: "saleAssistant.needTime",
+    VIEWING_TIME_IN_PAST: "saleAssistant.pastTime",
+    VIEWING_TIME_TOO_FAR: "saleAssistant.oneYear",
+    VIEWING_NOT_FOUND: "saleAssistant.notFound",
+    VIEWING_ID_REQUIRED: "saleAssistant.editUnknown",
+    AUTH_REQUIRED: "saleAssistant.sessionExpired",
   };
-  return messages[code] || "Joy chưa thể lưu lịch. Hãy thử lại.";
+  return t(keys[code] || "saleAssistant.saveFailed");
 }
 
 async function saveAppointment(event) {
@@ -284,7 +285,7 @@ async function saveAppointment(event) {
   const payload = appointmentFormPayload();
   if (!payload || !form.reportValidity()) return;
   save.disabled = true;
-  showAppointmentStatus("Đang lưu lịch vào Joy…", "loading");
+  showAppointmentStatus(t("saleAssistant.saving"), "loading");
 
   try {
     const response = await fetch("/api/sales/viewings", {
@@ -296,7 +297,13 @@ async function saveAppointment(event) {
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw Object.assign(new Error(result.error || "VIEWING_CREATE_FAILED"), { code: result.error });
     historyLoaded = false;
-    showAppointmentStatus(`${result.message} ${result.viewing.customerName} · ${formatVietnamViewingTime(result.viewing.viewingAt)}.`, "success");
+    const savedCopy = result.viewing?.shortNoticeAppointment
+      ? t("saleAssistant.savedTooClose")
+      : t("saleAssistant.savedReminder");
+    showAppointmentStatus(
+      `${savedCopy} ${result.viewing.customerName} · ${formatViewingTime(result.viewing.viewingAt)}.`,
+      "success",
+    );
     window.setTimeout(() => window.location.reload(), 1200);
   } catch (error) {
     showAppointmentStatus(appointmentErrorMessage(error.code), "error");
@@ -305,18 +312,18 @@ async function saveAppointment(event) {
 }
 
 function historyStatusLabel(status) {
-  if (status === "upcoming") return "Sắp tới";
-  if (status === "cancelled") return "Đã huỷ";
-  return "Đã qua";
+  if (status === "upcoming") return t("saleAssistant.upcoming");
+  if (status === "cancelled") return t("saleAssistant.cancelled");
+  return t("saleAssistant.past");
 }
 
 function notificationLabel(viewing, kind) {
   const notified = kind === "reminder" ? viewing.reminderNotifiedAt : viewing.followupNotifiedAt;
   const scheduled = kind === "reminder" ? viewing.reminderAt : viewing.followupAt;
-  if (notified) return "Đã gửi";
-  if (!scheduled) return kind === "reminder" ? "Không nhắc" : "—";
-  if (viewing.status === "cancelled") return "Đã huỷ";
-  return "Chờ gửi";
+  if (notified) return t("saleAssistant.sent");
+  if (!scheduled) return kind === "reminder" ? t("saleAssistant.noReminder") : "—";
+  if (viewing.status === "cancelled") return t("saleAssistant.cancelled");
+  return t("saleAssistant.pending");
 }
 
 function makeHistoryInput(field, value, { type = "text", maxLength = 0, required = false } = {}) {
@@ -342,7 +349,7 @@ function renderHistoryDisplayRow(viewing) {
   const row = document.createElement("tr");
   row.dataset.status = viewing.status;
   [
-    formatVietnamViewingTime(viewing.viewingAt),
+    formatViewingTime(viewing.viewingAt),
     viewing.customerName || "—",
     viewing.phone || "—",
     viewing.viewingAddress || "—",
@@ -358,7 +365,7 @@ function renderHistoryDisplayRow(viewing) {
   edit.className = "sales-history-edit-button";
   edit.dataset.action = "edit-sale-viewing";
   edit.dataset.viewingId = viewing.id;
-  edit.textContent = "Sửa";
+  edit.textContent = t("common.edit");
   actionCell.append(edit);
   row.append(actionCell);
   return row;
@@ -400,14 +407,14 @@ function renderHistoryEditRow(viewing) {
   save.className = "sales-history-save-button";
   save.dataset.action = "save-sale-viewing";
   save.dataset.viewingId = viewing.id;
-  save.textContent = "Lưu";
+  save.textContent = t("common.save");
 
   const cancel = document.createElement("button");
   cancel.type = "button";
   cancel.className = "sales-history-cancel-button";
   cancel.dataset.action = "cancel-sale-viewing-edit";
   cancel.dataset.viewingId = viewing.id;
-  cancel.textContent = "Huỷ";
+  cancel.textContent = t("common.cancel");
 
   const message = document.createElement("small");
   message.className = "sales-history-edit-message";
@@ -428,12 +435,12 @@ function renderViewingHistory(history) {
   if (editingViewingId && !viewingHistory.some((viewing) => viewing.id === editingViewingId)) {
     editingViewingId = "";
   }
-  count.textContent = `${viewingHistory.length} lịch hẹn`;
+  count.textContent = t("saleAssistant.appointmentCount", { count: viewingHistory.length });
 
   if (!viewingHistory.length) {
     const empty = document.createElement("p");
     empty.className = "sales-history-empty";
-    empty.textContent = "Chưa có lịch hẹn nào trong Joy.";
+    empty.textContent = t("saleAssistant.noAppointments");
     content.replaceChildren(empty);
     return;
   }
@@ -442,7 +449,16 @@ function renderViewingHistory(history) {
   table.className = "sales-history-table";
   const head = document.createElement("thead");
   const headRow = document.createElement("tr");
-  ["Thời gian", "Khách", "SĐT", "Địa chỉ", "Trạng thái", "Nhắc 30p", "Follow-up", ""].forEach((label) => {
+  [
+    t("sales.viewingTime"),
+    t("sales.customer"),
+    t("sales.phone"),
+    t("sales.viewingAddress"),
+    t("saleAssistant.status"),
+    t("sales.reminder30"),
+    t("sales.followUp"),
+    "",
+  ].forEach((label) => {
     const th = document.createElement("th");
     th.scope = "col";
     th.textContent = label;
@@ -476,7 +492,7 @@ async function saveViewingHistoryEdit(control) {
 
   if (!customerName || !viewingAddress || !viewingAt) {
     if (message) {
-      message.textContent = "Điền đủ tên, địa chỉ và thời gian.";
+      message.textContent = t("cleanup.sale.requiredFields");
       message.hidden = false;
     }
     return;
@@ -485,7 +501,7 @@ async function saveViewingHistoryEdit(control) {
   const buttons = row.querySelectorAll("button");
   buttons.forEach((button) => { button.disabled = true; });
   if (message) {
-    message.textContent = "Đang lưu…";
+    message.textContent = t("common.saving");
     message.hidden = false;
   }
 
@@ -515,8 +531,8 @@ async function loadViewingHistory({ force = false } = {}) {
   if (historyLoaded && !force) return;
   const content = document.querySelector("#sales-history-content");
   const count = document.querySelector("#sales-history-count");
-  if (content) content.textContent = "Đang tải lịch sử…";
-  if (count) count.textContent = "Đang tải…";
+  if (content) content.textContent = t("saleAssistant.loadingHistory");
+  if (count) count.textContent = t("cleanup.sale.loadingEllipsis");
   try {
     const response = await fetch("/api/sales/viewings", { credentials: "same-origin" });
     const payload = await response.json().catch(() => ({}));
@@ -524,8 +540,8 @@ async function loadViewingHistory({ force = false } = {}) {
     renderViewingHistory(Array.isArray(payload.history) ? payload.history : []);
     historyLoaded = true;
   } catch {
-    if (content) content.textContent = "Joy chưa tải được lịch sử. Hãy thử lại.";
-    if (count) count.textContent = "Không tải được";
+    if (content) content.textContent = t("cleanup.sale.historyFailed");
+    if (count) count.textContent = t("cleanup.sale.loadFailedShort");
   }
 }
 
