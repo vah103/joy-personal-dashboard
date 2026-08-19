@@ -61,7 +61,7 @@
   font-size:15px;
   line-height:1;
 }
-.sidebar-footer:has(.joy-signout) > .joy-settings-trigger{right:50px}
+.sidebar-footer:has(.joy-signout-button) > .joy-settings-trigger{right:50px}
 
 .header-avatar[role="button"]{cursor:pointer}
 .header-avatar[role="button"]:focus-visible{
