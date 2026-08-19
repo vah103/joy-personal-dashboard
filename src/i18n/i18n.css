@@ -26,6 +26,43 @@
   color:inherit;
 }
 
+/* Dashboard: keep Settings inside the profile card visually, as a gear-only control. */
+.sidebar-footer{position:relative}
+.sidebar-footer > .joy-settings-trigger{
+  position:absolute;
+  right:12px;
+  bottom:12px;
+  z-index:2;
+  width:28px;
+  min-height:28px;
+  height:28px;
+  margin:0;
+  padding:0;
+  display:grid;
+  place-items:center;
+  gap:0;
+  border:1px solid rgba(58,73,78,.16);
+  border-radius:9px;
+  background:rgba(255,255,255,.18);
+  color:#52646a;
+  font:700 15px/1 "Nunito","Instrument Sans",Arial,sans-serif;
+}
+.sidebar-footer > .joy-settings-trigger:hover{
+  background:rgba(255,255,255,.34);
+  border-color:rgba(58,73,78,.26);
+}
+.sidebar-footer > .joy-settings-trigger:focus-visible{
+  outline:2px solid rgba(69,105,116,.52);
+  outline-offset:2px;
+}
+.sidebar-footer > .joy-settings-trigger [data-joy-settings-label]{display:none}
+.sidebar-footer > .joy-settings-trigger > span[aria-hidden="true"]{
+  display:block;
+  font-size:15px;
+  line-height:1;
+}
+.sidebar-footer:has(.joy-signout) > .joy-settings-trigger{right:50px}
+
 .header-avatar[role="button"]{cursor:pointer}
 .header-avatar[role="button"]:focus-visible{
   outline:2px solid rgba(69,105,116,.52);
