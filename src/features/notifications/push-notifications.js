@@ -159,6 +159,8 @@
         icon: "/joy-blue-icon.png?v=joy-topographic-blue-v1",
         badge: "/joy-blue-icon.png?v=joy-topographic-blue-v1",
         tag: "hey-joy-local-check",
+        renotify: true,
+        silent: false,
         data: { url: "/", kind: "test" },
       });
       return true;
