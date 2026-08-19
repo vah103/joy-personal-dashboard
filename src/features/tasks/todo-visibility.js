@@ -155,6 +155,17 @@
     style.id = "joy-task-delete-styles";
     style.textContent = `
       #task-list .task-delete-button { display: none !important; }
+      #task-list .task-row.joy-task-repeating {
+        padding-right: 38px;
+      }
+      #task-list .task-row.joy-task-repeating .task-delete-button {
+        position: absolute;
+        top: 50%;
+        right: 0;
+        z-index: 2;
+        display: inline-grid !important;
+        transform: translateY(-50%);
+      }
       .history-task-row {
         grid-template-columns: auto minmax(0, 1fr) auto auto !important;
       }
@@ -189,7 +200,8 @@
         stroke-width: 1.8;
         pointer-events: none;
       }
-      .history-task-row.joy-task-removing {
+      .history-task-row.joy-task-removing,
+      #task-list .task-row.joy-task-removing {
         opacity: .45;
         pointer-events: none;
       }
@@ -253,10 +265,29 @@
     });
   }
 
+  function decorateRepeatingTaskRows() {
+    const list = document.querySelector("#task-list");
+    if (!list) return;
+
+    list.querySelectorAll(".task-row").forEach((row) => {
+      const existing = row.querySelector(".task-delete-button");
+      if (!row.classList.contains("joy-task-repeating")) {
+        existing?.remove();
+        return;
+      }
+      if (existing) return;
+
+      const id = String(row.querySelector("input[data-task-id]")?.dataset.taskId || "").trim();
+      const title = row.querySelector(".task-title")?.textContent?.trim() || "";
+      if (!id) return;
+      row.append(buildDeleteButton(id, title));
+    });
+  }
+
   async function handleTaskDeletion(button) {
     const id = String(button.dataset.joyDeleteTask || "").trim();
-    const row = button.closest(".history-task-row");
-    const title = row?.querySelector(".history-task-title")?.textContent?.trim() || "this task";
+    const row = button.closest(".history-task-row, .task-row");
+    const title = row?.querySelector(".history-task-title, .task-title")?.textContent?.trim() || "this task";
     if (!id || !row) return;
 
     if (!root.confirm(`Delete “${title}”?`)) return;
@@ -281,6 +312,7 @@
   function startTaskDeletionUi() {
     installDeleteButtonStyles();
     decorateHistoryRows();
+    decorateRepeatingTaskRows();
 
     const history = document.querySelector("#task-history-content");
     if (history) {
@@ -290,9 +322,19 @@
       });
     }
 
+    const taskList = document.querySelector("#task-list");
+    if (taskList) {
+      new MutationObserver(decorateRepeatingTaskRows).observe(taskList, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ["class"],
+      });
+    }
+
     document.addEventListener("click", (event) => {
       const button = event.target.closest?.(".task-delete-button");
-      if (!button || !button.closest("#task-history-modal")) return;
+      if (!button || (!button.closest("#task-history-modal") && !button.closest("#task-list"))) return;
       event.preventDefault();
       event.stopPropagation();
       void handleTaskDeletion(button);
