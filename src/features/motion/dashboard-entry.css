@@ -84,14 +84,31 @@
   transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
 }
 
-/* Notes logo optical alignment + restrained obsidian sparkle. */
+/* Notes logo centered to the full sidebar width + restrained obsidian sparkle. */
+.compact-nav.joy-notes-nav {
+  width: 100% !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  justify-items: stretch !important;
+  align-items: start !important;
+}
+
 .joy-notes-nav .notes-app-launcher {
   position: relative;
+  width: 100% !important;
+  justify-self: stretch !important;
   overflow: visible;
 }
 
 .joy-notes-nav .notes-app-logo-frame {
-  left: 6px;
+  left: auto !important;
+  right: auto !important;
+  justify-self: center !important;
+  margin-inline: auto !important;
+}
+
+.joy-notes-nav .notes-app-label {
+  justify-self: center !important;
+  text-align: center !important;
 }
 
 .joy-notes-nav .notes-app-launcher::before,
