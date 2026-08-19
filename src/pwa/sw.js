@@ -156,7 +156,7 @@ async function showPushNotification(data) {
     icon: data.icon || "/joy-blue-icon.png?v=joy-topographic-blue-v1",
     badge: data.badge || "/joy-blue-icon.png?v=joy-topographic-blue-v1",
     tag: data.tag || "hey-joy-notification",
-    renotify: Boolean(data.renotify),
+    renotify: kind === "test" || Boolean(data.renotify),
     silent: false,
     data: data.data || { url: "/" },
   };
