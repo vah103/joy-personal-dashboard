@@ -3,12 +3,12 @@
   if (canWriteHead && !document.querySelector('link[data-joy-i18n-style="true"]')) {
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = "/i18n/i18n.css?v=joy-i18n-v1";
+    link.href = "/i18n/i18n.css?v=joy-i18n-v2";
     link.dataset.joyI18nStyle = "true";
     document.head.append(link);
   }
   if (typeof document?.createElement === "function") {
-    void import("/i18n/index.js?v=joy-i18n-v1");
+    void import("/i18n/index.js?v=joy-i18n-v2");
   }
 })();
 
