@@ -3,18 +3,28 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 import {
+  gmailDiscoveryCutoff,
   gmailSearchQuery,
   isGmailMessageNew,
 } from "../worker/gmail-sync.js";
 
-test("builds a Gmail unread query from the watch start", () => {
+test("Gmail discovery advances from the last successful sync", () => {
+  const watchStartedAt = 1_725_000_000_000;
+  const lastSyncedAt = 1_725_000_123_456;
+
+  assert.equal(gmailDiscoveryCutoff(watchStartedAt, lastSyncedAt), lastSyncedAt);
+  assert.equal(gmailDiscoveryCutoff(watchStartedAt, 0), watchStartedAt);
+  assert.equal(gmailDiscoveryCutoff(0, lastSyncedAt), 0);
+});
+
+test("builds a Gmail unread query from the discovery cutoff", () => {
   assert.equal(
     gmailSearchQuery(1_725_000_123_456),
     "is:unread in:inbox after:1725000123",
   );
 });
 
-test("accepts only Gmail messages received after tracking started", () => {
+test("accepts only Gmail messages received after the requested cutoff", () => {
   const cutoff = 1_725_000_123_456;
 
   assert.equal(
@@ -33,7 +43,7 @@ test("accepts only Gmail messages received after tracking started", () => {
   );
 });
 
-test("worker stores a persistent Gmail watch start per account", () => {
+test("worker keeps visible mail but never rediscovers the old watch window", () => {
   const source = fs.readFileSync(
     new URL("../worker/index.js", import.meta.url),
     "utf8",
@@ -44,10 +54,24 @@ test("worker stores a persistent Gmail watch start per account", () => {
     "utf8",
   );
 
-  assert.ok(source.includes("watch_started_at"));
-  assert.ok(source.includes("gmailSearchQuery(watchStartedAt)"));
-  assert.ok(source.includes("isGmailMessageNew(message, watchStartedAt)"));
+  assert.ok(source.includes("SELECT watch_started_at, last_synced_at FROM gmail_sync"));
+  assert.ok(source.includes("gmailDiscoveryCutoff(watchStartedAt, lastSyncedAt)"));
+  assert.ok(source.includes("gmailSearchQuery(discoveryCutoff)"));
+  assert.ok(source.includes("isGmailMessageNew(message, discoveryCutoff)"));
+  assert.ok(source.includes("FROM email_cache"));
+  assert.ok(source.includes("...existingIds"));
+  assert.ok(!source.includes("gmailSearchQuery(watchStartedAt)"));
   assert.ok(migration.includes("ADD COLUMN watch_started_at"));
+});
+
+test("worker rejects stale overlapping Gmail syncs", () => {
+  const source = fs.readFileSync(
+    new URL("../worker/index.js", import.meta.url),
+    "utf8",
+  );
+
+  assert.ok(source.includes("SELECT last_synced_at FROM gmail_sync WHERE user_email = ?"));
+  assert.ok(source.includes("Number(latestSyncState?.last_synced_at || 0) > lastSyncedAt"));
 });
 
 test("frontend removes completed mail and uses the SVG pin icon", () => {
