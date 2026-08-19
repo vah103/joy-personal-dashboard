@@ -6,7 +6,7 @@ import { translateSaleUiText } from "../src/features/sales/sale-english-ui.js";
 
 globalThis.JoyI18n = { translateText };
 
-test("Sale language adapter delegates core copy to shared JoyI18n", () => {
+test("Sale language adapter delegates generic Sale copy to shared JoyI18n", () => {
   assert.equal(translateSaleUiText("Tóm tắt phòng"), "Room summary");
   assert.equal(translateSaleUiText("Lịch sử"), "History");
   assert.equal(translateSaleUiText("Đang lưu lịch vào Joy…"), "Saving appointment to Joy…");
@@ -28,7 +28,18 @@ test("Sale adapter no longer owns a private translation dictionary", async () =>
   assert.doesNotMatch(source, /ENGLISH_MONTHS/);
 });
 
-test("build keeps the Sale adapter while shared i18n preserves one canonical HTML owner", async () => {
+test("Sale Assistant directly owns its locale-aware copy", async () => {
+  const assistant = await readFile(new URL("../src/features/sales/sales-assistant.js", import.meta.url), "utf8");
+  assert.match(assistant, /import \{ t, translateText \} from "\/i18n\/index\.js\?v=joy-i18n-v1"/);
+  assert.match(assistant, /assistantHtml\(\)/);
+  assert.match(assistant, /t\("saleAssistant\.appointments"\)/);
+  assert.match(assistant, /t\("saleAssistant\.roomSummary"\)/);
+  assert.match(assistant, /t\("saleAssistant\.history"\)/);
+  assert.match(assistant, /translateText\(formatVietnamViewingTime\(value\)\)/);
+  assert.doesNotMatch(assistant, /const ASSISTANT_HTML/);
+});
+
+test("build keeps the generic Sale adapter while shared i18n preserves one canonical HTML owner", async () => {
   const [build, i18nBuild, bootstrap, salePage, adapter, history] = await Promise.all([
     readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8"),
     readFile(new URL("../scripts/build-i18n.mjs", import.meta.url), "utf8"),
