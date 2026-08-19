@@ -42,6 +42,14 @@
   to { stroke-dashoffset: 0; }
 }
 
+@keyframes joy-notes-twinkle {
+  0%, 80%, 100% { opacity: 0; transform: scale(.3) rotate(0deg); }
+  84% { opacity: .86; transform: scale(1) rotate(22deg); }
+  88% { opacity: .22; transform: scale(.62) rotate(38deg); }
+  91% { opacity: .72; transform: scale(.9) rotate(48deg); }
+  95% { opacity: 0; transform: scale(1.45) rotate(62deg); }
+}
+
 .sidebar { animation: joy-enter-left 620ms cubic-bezier(.2,.75,.25,1) both; }
 .topbar { animation: joy-enter-up 560ms 70ms cubic-bezier(.2,.75,.25,1) both; }
 .weather-card { animation: joy-enter-soft 560ms 150ms cubic-bezier(.2,.75,.25,1) both; }
@@ -76,6 +84,46 @@
   transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
 }
 
+/* Notes logo optical alignment + restrained obsidian sparkle. */
+.joy-notes-nav .notes-app-launcher {
+  position: relative;
+  overflow: visible;
+}
+
+.joy-notes-nav .notes-app-logo-frame {
+  left: 6px;
+}
+
+.joy-notes-nav .notes-app-launcher::before,
+.joy-notes-nav .notes-app-launcher::after {
+  content: "✦";
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  color: rgba(239, 236, 255, .94);
+  line-height: 1;
+  opacity: 0;
+  text-shadow:
+    0 0 5px rgba(222, 216, 255, .82),
+    0 0 12px rgba(119, 103, 196, .42);
+  animation: joy-notes-twinkle 7.8s ease-in-out infinite;
+}
+
+.joy-notes-nav .notes-app-launcher::before {
+  top: 17px;
+  right: 28px;
+  font-size: 9px;
+}
+
+.joy-notes-nav .notes-app-launcher::after {
+  top: 65px;
+  left: 27px;
+  font-size: 6px;
+  color: rgba(218, 229, 255, .9);
+  animation-duration: 9.1s;
+  animation-delay: -4.2s;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sidebar,
   .topbar,
@@ -92,7 +140,9 @@
   .joy-motion-character,
   .header-avatar,
   .header-actions .icon-button,
-  .brand {
+  .brand,
+  .joy-notes-nav .notes-app-launcher::before,
+  .joy-notes-nav .notes-app-launcher::after {
     animation: none !important;
   }
 
