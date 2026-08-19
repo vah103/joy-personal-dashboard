@@ -157,6 +157,7 @@ async function showPushNotification(data) {
     badge: data.badge || "/joy-blue-icon.png?v=joy-topographic-blue-v1",
     tag: data.tag || "hey-joy-notification",
     renotify: Boolean(data.renotify),
+    silent: false,
     data: data.data || { url: "/" },
   };
 
