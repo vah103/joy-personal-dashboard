@@ -16,7 +16,12 @@
 // single control, but move it out of the cramped sidebar profile card and into
 // the Joy account popup beside the notification and close controls.
 (() => {
-  if (typeof document === "undefined") return;
+  const canRelocateSettings = typeof window !== "undefined"
+    && typeof window.addEventListener === "function"
+    && typeof document !== "undefined"
+    && typeof document.addEventListener === "function"
+    && typeof MutationObserver === "function";
+  if (!canRelocateSettings) return;
 
   let observer = null;
 
