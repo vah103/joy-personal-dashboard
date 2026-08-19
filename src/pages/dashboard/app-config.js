@@ -3,12 +3,49 @@
   if (canWriteHead && !document.querySelector('link[data-joy-i18n-style="true"]')) {
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = "/i18n/i18n.css?v=joy-i18n-v2";
+    link.href = "/i18n/i18n.css?v=joy-i18n-v3";
     link.dataset.joyI18nStyle = "true";
     document.head.append(link);
   }
   if (typeof document?.createElement === "function") {
-    void import("/i18n/index.js?v=joy-i18n-v2");
+    void import("/i18n/index.js?v=joy-i18n-v3");
+  }
+})();
+
+// The dashboard Settings control is created by the shared i18n layer. Keep that
+// single control, but move it out of the cramped sidebar profile card and into
+// the Joy account popup beside the notification and close controls.
+(() => {
+  if (typeof document === "undefined") return;
+
+  let observer = null;
+
+  function moveSettingsIntoAccount() {
+    const actions = document.querySelector("#joy-account-modal .joy-account-heading-actions");
+    const button = document.querySelector(".sidebar-footer > [data-joy-settings-open]");
+    if (!actions || !button) return false;
+
+    button.classList.add("joy-settings-trigger-account");
+    const notificationSlot = actions.querySelector("[data-notification-slot]");
+    actions.insertBefore(button, notificationSlot || actions.firstChild);
+    observer?.disconnect();
+    observer = null;
+    return true;
+  }
+
+  function watchForSettingsAndAccountPopup() {
+    if (moveSettingsIntoAccount() || observer || !document.documentElement) return;
+    observer = new MutationObserver(() => {
+      moveSettingsIntoAccount();
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+  }
+
+  window.addEventListener("joy:i18n-ready", watchForSettingsAndAccountPopup);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", watchForSettingsAndAccountPopup, { once: true });
+  } else {
+    watchForSettingsAndAccountPopup();
   }
 })();
 
