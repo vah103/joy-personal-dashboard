@@ -21,3 +21,16 @@ test("Notes launcher stays safe in minimal non-browser test harnesses", async ()
   assert.match(source, /typeof document\.createElement === "function"/);
   assert.match(source, /if \(!canMountNotes\) return;/);
 });
+
+test("Notes launcher uses a restrained animated graph layer", async () => {
+  const source = await readFile(new URL("../src/features/motion/dashboard-entry.css", import.meta.url), "utf8");
+
+  assert.match(source, /@keyframes joy-notes-graph-drift/);
+  assert.match(source, /4-node graph sits behind the wolf/);
+  assert.match(source, /stroke-dashoffset/);
+  assert.match(source, /dur='5\.6s'/);
+  assert.match(source, /dur='6\.8s'/);
+  assert.match(source, /dur='5\.2s'/);
+  assert.match(source, /prefers-reduced-motion/);
+  assert.match(source, /\.notes-app-launcher::before[\s\S]*display: none !important/);
+});
