@@ -227,6 +227,14 @@ export async function listOpenCoreTasks(db, userEmail, limit = 50) {
   return resultsOf(result).map(taskFromRow);
 }
 
+export async function listPromotedLegacyTaskSourceRefs(db, userEmail) {
+  const result = await db.prepare(`
+    SELECT source_ref FROM joy_core_tasks
+    WHERE user_email = ? AND source_ref LIKE 'legacy:tasks:%'
+  `).bind(userEmail).all();
+  return new Set(resultsOf(result).map((row) => row.source_ref).filter(Boolean));
+}
+
 export async function getCoreTask(db, userEmail, taskId) {
   const row = await db.prepare(`
     SELECT * FROM joy_core_tasks
