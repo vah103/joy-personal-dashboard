@@ -71,14 +71,14 @@ test("Vocabulary lookup uses a wide readable two-column workspace", () => {
   assert.match(extraStyles, /grid-template-areas:[\s\S]*"heading"[\s\S]*"form"[\s\S]*"status"[\s\S]*"result"/);
 });
 
-test("Vocabulary outside card clearly opens full practice in the popup", () => {
+test("Vocabulary outside card keeps Practice while lookup and Say it live in Saved Words", () => {
   assert.match(compactFrontend, /data-vocab-practice-root="desktop"/);
   assert.match(compactFrontend, /vocabulary-compact-card/);
   assert.match(compactFrontend, /data-vocab-open-practice/);
   assert.match(compactFrontend, />Practice</);
   assert.match(compactFrontend, /Practice vocabulary and enter an answer/);
-  assert.match(compactFrontend, /data-vocab-open-lookup/);
-  assert.match(compactFrontend, /data-speaking-open/);
+  assert.doesNotMatch(compactFrontend, /data-vocab-open-lookup/);
+  assert.doesNotMatch(compactFrontend, /data-speaking-open/);
   assert.doesNotMatch(compactFrontend, /data-vocab-practice-form|Your answer|Show answer|Check/);
   assert.match(frontend, /data-vocab-practice-root="mobile"/);
   assert.match(frontend, /data-vocab-practice-form/);
@@ -184,12 +184,15 @@ test("Dashboard loader cache-busts all Vocabulary assets", () => {
   assert.match(loader, /vocabulary-openai\.css\?v=joy-vocabulary-openai-v2/);
   assert.match(loader, /vocabulary-compact\.css\?v=joy-vocabulary-compact-v2/);
   assert.match(loader, /vocabulary-library\.css\?v=joy-vocabulary-library-v3/);
+  assert.match(loader, /vocabulary-library-tools\.css\?v=joy-vocabulary-library-tools-v1/);
   assert.match(loader, /vocabulary\.js\?v=joy-vocabulary-v2/);
-  assert.match(loader, /vocabulary-compact\.js\?v=joy-vocabulary-compact-v2/);
+  assert.match(loader, /vocabulary-compact\.js\?v=joy-vocabulary-compact-v3/);
   assert.match(loader, /vocabulary-library\.js\?v=joy-vocabulary-library-v2/);
+  assert.match(loader, /vocabulary-library-tools\.js\?v=joy-vocabulary-library-tools-v1/);
   assert.match(loader, /vocabulary-mobile-inline\.js\?v=joy-vocabulary-mobile-inline-v3/);
   assert.match(loader, /loadCompactCard/);
   assert.match(loader, /loadLibrary/);
+  assert.match(loader, /loadLibraryTools/);
 });
 
 test("Vocabulary JavaScript files pass syntax checks", () => {

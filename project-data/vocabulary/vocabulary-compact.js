@@ -28,14 +28,10 @@
 
     root.innerHTML = `
       <section class="vocabulary-compact-card" aria-label="Vocabulary">
-        <div class="vocabulary-compact-topline">
+        <div class="vocabulary-compact-topline" role="button" tabindex="0">
           <div class="vocabulary-compact-title">
             <strong>Words</strong>
             <span aria-label="${escapeHtml(count)} saved words">${escapeHtml(count)}</span>
-          </div>
-          <div class="vocabulary-compact-actions">
-            <button type="button" data-speaking-open>Say it</button>
-            <button type="button" data-vocab-open-lookup aria-label="Add a word">+</button>
           </div>
         </div>
         ${hasWords ? `
@@ -48,10 +44,10 @@
             <span class="vocabulary-compact-arrow" aria-hidden="true">→</span>
           </button>
         ` : `
-          <button class="vocabulary-compact-empty" type="button" data-vocab-open-lookup>
+          <div class="vocabulary-compact-empty">
             <span aria-hidden="true">Aa</span>
             <small>Add a word</small>
-          </button>
+          </div>
         `}
       </section>
     `;
