@@ -8,8 +8,10 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const frontendPath = resolve(root, "project-data/vocabulary/vocabulary.js");
 const compactFrontendPath = resolve(root, "project-data/vocabulary/vocabulary-compact.js");
+const libraryFrontendPath = resolve(root, "project-data/vocabulary/vocabulary-library.js");
 const mobileInlinePath = resolve(root, "project-data/vocabulary/vocabulary-mobile-inline.js");
 const compactStylesPath = resolve(root, "project-data/vocabulary/vocabulary-compact.css");
+const libraryStylesPath = resolve(root, "project-data/vocabulary/vocabulary-library.css");
 const extraStylesPath = resolve(root, "project-data/vocabulary/vocabulary-openai.css");
 const workerPath = resolve(root, "worker/vocabulary.js");
 const openAiPath = resolve(root, "worker/shared/openai-responses.js");
@@ -21,8 +23,10 @@ const wranglerPath = resolve(root, "wrangler.jsonc");
 const [
   frontend,
   compactFrontend,
+  libraryFrontend,
   mobileInline,
   compactStyles,
+  libraryStyles,
   extraStyles,
   worker,
   openAi,
@@ -33,8 +37,10 @@ const [
 ] = await Promise.all([
   readFile(frontendPath, "utf8"),
   readFile(compactFrontendPath, "utf8"),
+  readFile(libraryFrontendPath, "utf8"),
   readFile(mobileInlinePath, "utf8"),
   readFile(compactStylesPath, "utf8"),
+  readFile(libraryStylesPath, "utf8"),
   readFile(extraStylesPath, "utf8"),
   readFile(workerPath, "utf8"),
   readFile(openAiPath, "utf8"),
@@ -80,6 +86,39 @@ test("Vocabulary outside card clearly opens full practice in the popup", () => {
   assert.match(compactStyles, /\.vocabulary-compact-meta/);
   assert.match(compactStyles, /cursor:\s*pointer/);
   assert.match(compactStyles, /-webkit-line-clamp:\s*2/);
+});
+
+test("Vocabulary top bar opens an editable saved-word library without hijacking action buttons", () => {
+  assert.match(libraryFrontend, /\.vocabulary-compact-topline/);
+  assert.match(libraryFrontend, /event\.target\.closest\("button"\)/);
+  assert.match(libraryFrontend, /vocabulary-library-table/);
+  assert.match(libraryFrontend, />English</);
+  assert.match(libraryFrontend, />IPA</);
+  assert.match(libraryFrontend, />Vietnamese reading</);
+  assert.match(libraryFrontend, />Vietnamese meaning</);
+  assert.match(libraryFrontend, />English example</);
+  assert.match(libraryFrontend, /data-vocab-library-add/);
+  assert.match(libraryFrontend, /data-vocab-library-save-row/);
+  assert.match(libraryFrontend, /data-vocab-field="english"/);
+  assert.match(libraryFrontend, /data-vocab-field="ipa"/);
+  assert.match(libraryFrontend, /data-vocab-field="pronunciationVi"/);
+  assert.match(libraryFrontend, /data-vocab-field="vietnamese"/);
+  assert.match(libraryFrontend, /data-vocab-field="example"/);
+  assert.match(libraryStyles, /min-width:\s*1080px/);
+  assert.match(libraryStyles, /position:\s*sticky/);
+});
+
+test("Vocabulary library supports manual insert and persistent edits through the existing D1 route", () => {
+  assert.match(libraryFrontend, /word\.operation = "update"/);
+  assert.match(libraryFrontend, /method:\s*"POST"/);
+  assert.match(worker, /allowManual:\s*true/);
+  assert.match(worker, /body\.operation === "update"/);
+  assert.match(worker, /updateVocabularyWord/);
+  assert.match(worker, /UPDATE vocabulary_words/);
+  assert.match(worker, /english_key = \?/);
+  assert.match(worker, /VOCABULARY_WORD_EXISTS/);
+  assert.match(worker, /updated:\s*true/);
+  assert.match(worker, /if \(!allowManual && \(!partOfSpeech \|\| !exampleVietnamese\)\) return null/);
 });
 
 test("Narrow layouts clone the compact launcher and preserve the real practice modal", () => {
@@ -135,16 +174,20 @@ test("Vocabulary save and review routes retain authenticated D1 storage", () => 
 test("Dashboard loader cache-busts all Vocabulary assets", () => {
   assert.match(loader, /vocabulary-openai\.css\?v=joy-vocabulary-openai-v2/);
   assert.match(loader, /vocabulary-compact\.css\?v=joy-vocabulary-compact-v2/);
+  assert.match(loader, /vocabulary-library\.css\?v=joy-vocabulary-library-v1/);
   assert.match(loader, /vocabulary\.js\?v=joy-vocabulary-v2/);
   assert.match(loader, /vocabulary-compact\.js\?v=joy-vocabulary-compact-v2/);
+  assert.match(loader, /vocabulary-library\.js\?v=joy-vocabulary-library-v1/);
   assert.match(loader, /vocabulary-mobile-inline\.js\?v=joy-vocabulary-mobile-inline-v3/);
   assert.match(loader, /loadCompactCard/);
+  assert.match(loader, /loadLibrary/);
 });
 
 test("Vocabulary JavaScript files pass syntax checks", () => {
   for (const path of [
     frontendPath,
     compactFrontendPath,
+    libraryFrontendPath,
     mobileInlinePath,
     workerPath,
     openAiPath,
