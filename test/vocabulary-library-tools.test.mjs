@@ -13,7 +13,7 @@ const [tools, toolStyles, compact, loader] = await Promise.all([
 ]);
 
 test("Saved Words owns both lookup and Say it tools", () => {
-  assert.match(tools, /data-vocab-library-tool = tool/);
+  assert.match(tools, /button\.dataset\.vocabLibraryTool = tool/);
   assert.match(tools, /toolButton\("lookup", "Look up"/);
   assert.match(tools, /toolButton\("say", "Say it"/);
   assert.match(tools, /dialog\.insertBefore\(tools, status\)/);
@@ -33,7 +33,7 @@ test("lookup can save directly to Saved Words and Say it stays inline", () => {
 test("compact Vocabulary no longer exposes lookup or Say it outside the library", () => {
   assert.doesNotMatch(compact, /data-speaking-open/);
   assert.doesNotMatch(compact, /data-vocab-open-lookup/);
-  assert.match(compact, /aria-label="Open Saved Words"/);
+  assert.match(compact, /class="vocabulary-compact-topline" role="button" tabindex="0"/);
   assert.match(toolStyles, /\.vocabulary-widget \[data-speaking-open\]/);
   assert.match(toolStyles, /\.vocabulary-widget \[data-vocab-open-lookup\]/);
 });
