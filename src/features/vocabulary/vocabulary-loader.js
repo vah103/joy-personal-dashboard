@@ -12,6 +12,7 @@
   const SCRIPT_URL = "/project-data/vocabulary/vocabulary.js?v=joy-vocabulary-v2";
   const COMPACT_SCRIPT_URL = "/project-data/vocabulary/vocabulary-compact.js?v=joy-vocabulary-compact-v3";
   const LIBRARY_SCRIPT_URL = "/project-data/vocabulary/vocabulary-library.js?v=joy-vocabulary-library-v2&ui=readonly-doubleclick-delete-v1";
+  const LIBRARY_ADD_BUTTON_SCRIPT_URL = "/project-data/vocabulary/vocabulary-library-add-button.js?v=joy-vocabulary-library-add-button-v1";
   const LIBRARY_TOOLS_SCRIPT_URL = "/project-data/vocabulary/vocabulary-library-tools.js?v=joy-vocabulary-library-tools-v1";
   const MOBILE_SCRIPT_URL = "/project-data/vocabulary/vocabulary-mobile-inline.js?v=joy-vocabulary-mobile-inline-v3";
 
@@ -63,11 +64,29 @@
     document.body.append(script);
   }
 
+  function loadLibraryAddButton() {
+    const existing = document.querySelector('script[data-joy-vocabulary-library-add-button="true"]');
+    if (existing && existing.src.includes("joy-vocabulary-library-add-button-v1")) {
+      if (existing.dataset.loaded === "true") loadLibraryTools();
+      else existing.addEventListener("load", loadLibraryTools, { once: true });
+      return;
+    }
+    existing?.remove();
+
+    const script = document.createElement("script");
+    script.src = LIBRARY_ADD_BUTTON_SCRIPT_URL;
+    script.dataset.joyVocabularyLibraryAddButton = "true";
+    script.addEventListener("load", () => { script.dataset.loaded = "true"; }, { once: true });
+    script.addEventListener("load", loadLibraryTools, { once: true });
+    script.addEventListener("error", loadLibraryTools, { once: true });
+    document.body.append(script);
+  }
+
   function loadLibrary() {
     const existing = document.querySelector('script[data-joy-vocabulary-library="true"]');
     if (existing && existing.src.includes("joy-vocabulary-library-v2&ui=readonly-doubleclick-delete-v1")) {
-      if (existing.dataset.loaded === "true") loadLibraryTools();
-      else existing.addEventListener("load", loadLibraryTools, { once: true });
+      if (existing.dataset.loaded === "true") loadLibraryAddButton();
+      else existing.addEventListener("load", loadLibraryAddButton, { once: true });
       return;
     }
     existing?.remove();
@@ -76,8 +95,8 @@
     script.src = LIBRARY_SCRIPT_URL;
     script.dataset.joyVocabularyLibrary = "true";
     script.addEventListener("load", () => { script.dataset.loaded = "true"; }, { once: true });
-    script.addEventListener("load", loadLibraryTools, { once: true });
-    script.addEventListener("error", loadLibraryTools, { once: true });
+    script.addEventListener("load", loadLibraryAddButton, { once: true });
+    script.addEventListener("error", loadLibraryAddButton, { once: true });
     document.body.append(script);
   }
 
