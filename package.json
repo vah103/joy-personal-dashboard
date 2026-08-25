@@ -7,7 +7,7 @@
     "node": ">=24"
   },
   "scripts": {
-    "build": "node scripts/validate-ielts-sources.mjs && node scripts/build.mjs && node scripts/build-task-reminders.mjs && node scripts/sync-turtlebot-fallbacks.mjs dist && node scripts/version-turtlebot-assets.mjs dist && node scripts/sanitize-public-project-data.mjs && node scripts/build-i18n.mjs && node scripts/build-finance-bundle.mjs",
+    "build": "node scripts/validate-ielts-sources.mjs && node scripts/build.mjs && node scripts/build-notes-launcher.mjs && node scripts/build-task-reminders.mjs && node scripts/sync-turtlebot-fallbacks.mjs dist && node scripts/version-turtlebot-assets.mjs dist && node scripts/sanitize-public-project-data.mjs && node scripts/build-i18n.mjs && node scripts/build-finance-bundle.mjs",
     "test": "npm run i18n:check && node scripts/run-tests.mjs",
     "i18n:check": "node scripts/check-i18n-v2.mjs && node scripts/check-i18n-hardcoded-ui.mjs",
     "audit:prod": "npm audit --omit=dev --audit-level=high",

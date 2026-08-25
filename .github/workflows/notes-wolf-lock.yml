@@ -1,0 +1,32 @@
+name: Notes Wolf Lock
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: notes-wolf-lock-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  golden-lock:
+    name: Verify locked Notes wolf v1
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Verify Notes wolf golden files
+        run: node --test test/dashboard-notes-launcher.test.mjs

@@ -1,0 +1,10 @@
+{
+  "version": "notes-wolf-v1",
+  "origin": "joy/settings-in-profile-card @ e3d5938",
+  "policy": "Changing any locked SHA is an intentional visual change and requires updating this manifest in the same pull request.",
+  "files": {
+    "src/features/notes-launcher/notes-launcher.js": "9502f7e5b0dbccf8d2e8224a58a282ada2e03921",
+    "src/features/notes-launcher/notes-launcher.css": "2d60b9451308cb0e5a724deac8bac5213b91854f",
+    "project-data/notes-wolf.svg": "08a86673a886394020a38314df489001598c8439"
+  }
+}
