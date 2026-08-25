@@ -175,6 +175,63 @@
   background: rgba(219, 229, 232, 0.16);
 }
 
+.vocabulary-library-table tr.is-deleting td {
+  opacity: 0.58;
+  pointer-events: none;
+}
+
+.vocabulary-library-example-cell {
+  position: relative;
+}
+
+.vocabulary-library-table tr.is-editing-row .vocabulary-library-example-cell {
+  padding-right: 56px;
+}
+
+.vocabulary-library-delete {
+  position: absolute;
+  top: 14px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(154, 73, 73, 0.18);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #965252;
+  box-shadow: 0 6px 18px rgba(75, 54, 54, 0.08);
+  cursor: pointer;
+}
+
+.vocabulary-library-delete:hover,
+.vocabulary-library-delete:focus-visible {
+  border-color: rgba(154, 73, 73, 0.34);
+  background: rgba(251, 239, 238, 0.98);
+  color: #7f3f3f;
+}
+
+.vocabulary-library-delete:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(154, 73, 73, 0.12);
+}
+
+.vocabulary-library-delete:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.vocabulary-library-delete svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .vocabulary-library-empty-row td {
   padding: 42px 20px;
   color: #768286;
