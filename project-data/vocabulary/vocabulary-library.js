@@ -6,12 +6,15 @@
   let loading = false;
   let adding = false;
   let dirty = false;
+  let editingCell = null;
 
   const modal = createLibraryModal();
   document.body.append(modal);
 
   document.addEventListener("click", handleClick);
+  document.addEventListener("dblclick", handleDoubleClick);
   document.addEventListener("change", handleFieldChange);
+  document.addEventListener("focusout", handleFieldBlur);
   document.addEventListener("keydown", handleKeydown);
 
   function createLibraryModal() {
@@ -63,6 +66,7 @@
 
     const add = event.target.closest("[data-vocab-library-add]");
     if (add) {
+      editingCell = null;
       if (!adding) {
         adding = true;
         renderRows();
@@ -77,17 +81,61 @@
     await openLibrary();
   }
 
+  function handleDoubleClick(event) {
+    const display = event.target.closest("[data-vocab-display-field]");
+    if (!display || modal.hidden) return;
+    const row = display.closest("[data-vocab-library-row]");
+    const id = cleanText(row?.dataset.wordId);
+    const field = cleanText(display.dataset.vocabDisplayField);
+    if (!row || !id || !field) return;
+
+    editingCell = { id, field };
+    renderRows();
+    focusEditingCell(id, field);
+  }
+
   async function handleFieldChange(event) {
     const field = event.target.closest("[data-vocab-field]");
     if (!field || modal.hidden) return;
     const row = field.closest("[data-vocab-library-row]");
-    if (!row) return;
+    if (!row || !row.classList.contains("is-new")) return;
     await saveRow(row);
   }
 
+  async function handleFieldBlur(event) {
+    const field = event.target.closest("[data-vocab-field]");
+    if (!field || modal.hidden) return;
+    const row = field.closest("[data-vocab-library-row]");
+    if (!row || row.classList.contains("is-new")) return;
+
+    const id = cleanText(row.dataset.wordId);
+    const fieldName = cleanText(field.dataset.vocabField);
+    if (!editingCell || editingCell.id !== id || editingCell.field !== fieldName) return;
+
+    const saved = await saveRow(row);
+    if (!saved) return;
+    if (editingCell?.id === id && editingCell?.field === fieldName) {
+      editingCell = null;
+      renderRows();
+    }
+  }
+
   function handleKeydown(event) {
+    if (event.key === "Escape" && editingCell && !modal.hidden) {
+      event.preventDefault();
+      editingCell = null;
+      renderRows();
+      return;
+    }
+
     if (event.key === "Escape" && !modal.hidden) {
       closeLibrary();
+      return;
+    }
+
+    if (event.key === "Enter" && event.target.matches('input[data-vocab-field]') && !event.target.closest("tr.is-new")) {
+      event.preventDefault();
+      event.target.blur();
       return;
     }
 
@@ -102,6 +150,7 @@
     modal.hidden = false;
     document.body.classList.add("modal-open");
     adding = false;
+    editingCell = null;
     setStatus("Loading saved words…");
     renderRows();
     await loadWords();
@@ -110,6 +159,7 @@
   function closeLibrary() {
     modal.hidden = true;
     adding = false;
+    editingCell = null;
     releaseModalLock();
     if (dirty) window.location.reload();
   }
@@ -126,7 +176,7 @@
       const payload = await requestJson(API_ROOT);
       words = Array.isArray(payload.words) ? payload.words.map(normalizeWord).filter(Boolean) : [];
       saveLocalWords();
-      setStatus(`${words.length} saved ${words.length === 1 ? "word" : "words"}. Changes save automatically.`);
+      setStatus(`${words.length} saved ${words.length === 1 ? "word" : "words"}. Double-click a cell to edit. Changes save automatically.`);
     } catch (error) {
       words = loadLocalWords();
       setStatus(errorMessage(error.code || error.message));
@@ -166,23 +216,58 @@
       example: "",
     };
 
+    const editingEnglish = isNew || isEditing(item.id, "english");
+    const editingIpa = isNew || isEditing(item.id, "ipa");
+    const editingPronunciation = isNew || isEditing(item.id, "pronunciationVi");
+    const editingVietnamese = isNew || isEditing(item.id, "vietnamese");
+    const editingExample = isNew || isEditing(item.id, "example");
+
     return `
       <tr data-vocab-library-row data-word-id="${escapeHtml(item.id)}" class="${isNew ? "is-new" : ""}">
-        <td><input data-vocab-field="english" type="text" maxlength="80" value="${escapeHtml(item.english)}" placeholder="institution" aria-label="English word" required></td>
-        <td><input data-vocab-field="ipa" type="text" maxlength="100" value="${escapeHtml(item.ipa)}" placeholder="/ˌɪnstɪˈtuːʃən/" aria-label="IPA" required></td>
-        <td><input data-vocab-field="pronunciationVi" type="text" maxlength="100" value="${escapeHtml(item.pronunciationVi)}" placeholder="in-sti-tu-shần" aria-label="Vietnamese pronunciation" required></td>
-        <td><textarea data-vocab-field="vietnamese" maxlength="240" rows="2" placeholder="tổ chức; cơ quan" aria-label="Vietnamese meaning" required>${escapeHtml(item.vietnamese)}</textarea></td>
-        <td><textarea data-vocab-field="example" maxlength="260" rows="2" placeholder="The institution was founded in 1900." aria-label="English example" required>${escapeHtml(item.example)}</textarea></td>
+        <td>${editingEnglish
+          ? `<input data-vocab-field="english" type="text" maxlength="80" value="${escapeHtml(item.english)}" placeholder="institution" aria-label="English word" required>`
+          : displayMarkup("english", item.english, "English word")}</td>
+        <td>${editingIpa
+          ? `<input data-vocab-field="ipa" type="text" maxlength="100" value="${escapeHtml(item.ipa)}" placeholder="/ˌɪnstɪˈtuːʃən/" aria-label="IPA" required>`
+          : displayMarkup("ipa", item.ipa, "IPA")}</td>
+        <td>${editingPronunciation
+          ? `<input data-vocab-field="pronunciationVi" type="text" maxlength="100" value="${escapeHtml(item.pronunciationVi)}" placeholder="in-sti-tu-shần" aria-label="Vietnamese pronunciation" required>`
+          : displayMarkup("pronunciationVi", item.pronunciationVi, "Vietnamese pronunciation")}</td>
+        <td>${editingVietnamese
+          ? `<textarea data-vocab-field="vietnamese" maxlength="240" rows="2" placeholder="tổ chức; cơ quan" aria-label="Vietnamese meaning" required>${escapeHtml(item.vietnamese)}</textarea>`
+          : displayMarkup("vietnamese", item.vietnamese, "Vietnamese meaning", true)}</td>
+        <td>${editingExample
+          ? `<textarea data-vocab-field="example" maxlength="260" rows="2" placeholder="The institution was founded in 1900." aria-label="English example" required>${escapeHtml(item.example)}</textarea>`
+          : displayMarkup("example", item.example, "English example", true)}</td>
       </tr>
     `;
   }
 
+  function displayMarkup(field, value, label, multiline = false) {
+    const display = escapeHtml(value) || "—";
+    return `<div class="vocabulary-library-value${multiline ? " is-multiline" : ""}" data-vocab-display-field="${field}" aria-label="${escapeHtml(label)}. Double-click to edit." title="Double-click to edit">${display}</div>`;
+  }
+
+  function isEditing(id, field) {
+    return Boolean(id && editingCell?.id === id && editingCell?.field === field);
+  }
+
+  function focusEditingCell(id, field) {
+    window.setTimeout(() => {
+      const row = [...modal.querySelectorAll("[data-vocab-library-row]")]
+        .find((candidate) => candidate.dataset.wordId === id);
+      const editor = row?.querySelector(`[data-vocab-field="${field}"]`);
+      editor?.focus();
+      if (editor?.select) editor.select();
+    }, 0);
+  }
+
   async function saveRow(row) {
-    if (!row) return;
+    if (!row) return null;
 
     if (row.dataset.saving === "true") {
       row.dataset.saveAgain = "true";
-      return;
+      return null;
     }
 
     const id = cleanText(row.dataset.wordId);
@@ -200,7 +285,7 @@
 
     if (!word.english || !word.ipa || !word.pronunciationVi || !word.vietnamese || !word.example) {
       if (!id) setStatus("Complete all five columns and Joy will add the word automatically.");
-      return;
+      return null;
     }
 
     if (id) {
@@ -212,12 +297,13 @@
     row.classList.add("is-saving");
     setStatus(id ? "Saving changes…" : "Adding word…");
 
+    let saved = null;
     try {
       const payload = await requestJson(API_ROOT, {
         method: "POST",
         body: JSON.stringify(word),
       });
-      const saved = normalizeWord(payload.word);
+      saved = normalizeWord(payload.word);
       if (!saved) throw new Error("VOCABULARY_SAVE_FAILED");
 
       const index = words.findIndex((item) => item.id === saved.id || item.english === saved.english);
@@ -238,6 +324,7 @@
 
       setStatus(payload.updated ? "Changes saved automatically." : payload.created === false ? "This word was already saved." : "Word added automatically.");
     } catch (error) {
+      saved = null;
       setStatus(errorMessage(error.code || error.message));
     } finally {
       if (row.isConnected) {
@@ -249,10 +336,13 @@
         }
       }
     }
+    return saved;
   }
 
   function fieldValue(row, name) {
-    return cleanText(row.querySelector(`[data-vocab-field="${name}"]`)?.value);
+    const editor = row.querySelector(`[data-vocab-field="${name}"]`);
+    if (editor) return cleanText(editor.value);
+    return cleanText(row.querySelector(`[data-vocab-display-field="${name}"]`)?.textContent);
   }
 
   function focusNewRow() {
