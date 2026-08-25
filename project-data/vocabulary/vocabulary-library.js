@@ -7,12 +7,14 @@
   let adding = false;
   let dirty = false;
   let editingCell = null;
+  let deletingId = "";
 
   const modal = createLibraryModal();
   document.body.append(modal);
 
   document.addEventListener("click", handleClick);
   document.addEventListener("dblclick", handleDoubleClick);
+  document.addEventListener("mousedown", handleMouseDown);
   document.addEventListener("change", handleFieldChange);
   document.addEventListener("focusout", handleFieldBlur);
   document.addEventListener("keydown", handleKeydown);
@@ -57,10 +59,24 @@
     return element;
   }
 
+  function handleMouseDown(event) {
+    if (event.target.closest("[data-vocab-library-delete]")) {
+      event.preventDefault();
+    }
+  }
+
   async function handleClick(event) {
     const close = event.target.closest("[data-vocab-library-close]");
     if (close) {
       closeLibrary();
+      return;
+    }
+
+    const remove = event.target.closest("[data-vocab-library-delete]");
+    if (remove) {
+      event.preventDefault();
+      const row = remove.closest("[data-vocab-library-row]");
+      await deleteWord(row);
       return;
     }
 
@@ -151,6 +167,7 @@
     document.body.classList.add("modal-open");
     adding = false;
     editingCell = null;
+    deletingId = "";
     setStatus("Loading saved words…");
     renderRows();
     await loadWords();
@@ -160,6 +177,7 @@
     modal.hidden = true;
     adding = false;
     editingCell = null;
+    deletingId = "";
     releaseModalLock();
     if (dirty) window.location.reload();
   }
@@ -176,7 +194,7 @@
       const payload = await requestJson(API_ROOT);
       words = Array.isArray(payload.words) ? payload.words.map(normalizeWord).filter(Boolean) : [];
       saveLocalWords();
-      setStatus(`${words.length} saved ${words.length === 1 ? "word" : "words"}. Double-click a cell to edit. Changes save automatically.`);
+      setStatus(`${words.length} saved ${words.length === 1 ? "word" : "words"}. Double-click a cell to edit; the active row also shows delete. Changes save automatically.`);
     } catch (error) {
       words = loadLocalWords();
       setStatus(errorMessage(error.code || error.message));
@@ -221,9 +239,16 @@
     const editingPronunciation = isNew || isEditing(item.id, "pronunciationVi");
     const editingVietnamese = isNew || isEditing(item.id, "vietnamese");
     const editingExample = isNew || isEditing(item.id, "example");
+    const editingRow = !isNew && editingCell?.id === item.id;
+    const deleting = Boolean(item.id && deletingId === item.id);
+    const rowClasses = [
+      isNew ? "is-new" : "",
+      editingRow ? "is-editing-row" : "",
+      deleting ? "is-deleting" : "",
+    ].filter(Boolean).join(" ");
 
     return `
-      <tr data-vocab-library-row data-word-id="${escapeHtml(item.id)}" class="${isNew ? "is-new" : ""}">
+      <tr data-vocab-library-row data-word-id="${escapeHtml(item.id)}" class="${rowClasses}">
         <td>${editingEnglish
           ? `<input data-vocab-field="english" type="text" maxlength="80" value="${escapeHtml(item.english)}" placeholder="institution" aria-label="English word" required>`
           : displayMarkup("english", item.english, "English word")}</td>
@@ -236,10 +261,23 @@
         <td>${editingVietnamese
           ? `<textarea data-vocab-field="vietnamese" maxlength="240" rows="2" placeholder="tổ chức; cơ quan" aria-label="Vietnamese meaning" required>${escapeHtml(item.vietnamese)}</textarea>`
           : displayMarkup("vietnamese", item.vietnamese, "Vietnamese meaning", true)}</td>
-        <td>${editingExample
+        <td class="vocabulary-library-example-cell">${editingExample
           ? `<textarea data-vocab-field="example" maxlength="260" rows="2" placeholder="The institution was founded in 1900." aria-label="English example" required>${escapeHtml(item.example)}</textarea>`
-          : displayMarkup("example", item.example, "English example", true)}</td>
+          : displayMarkup("example", item.example, "English example", true)}
+          ${editingRow ? deleteButtonMarkup(item, deleting) : ""}
+        </td>
       </tr>
+    `;
+  }
+
+  function deleteButtonMarkup(item, deleting) {
+    const label = `Delete ${item.english || "saved word"}`;
+    return `
+      <button class="vocabulary-library-delete" type="button" data-vocab-library-delete aria-label="${escapeHtml(label)}" title="Delete saved word" ${deleting ? "disabled" : ""}>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13M10 11v5m4-5v5"/>
+        </svg>
+      </button>
     `;
   }
 
@@ -260,6 +298,41 @@
       editor?.focus();
       if (editor?.select) editor.select();
     }, 0);
+  }
+
+  async function deleteWord(row) {
+    const id = cleanText(row?.dataset.wordId);
+    if (!row || !id || deletingId) return;
+    const word = words.find((item) => item.id === id);
+    const english = cleanText(word?.english) || "this word";
+    if (!window.confirm(`Delete “${english}” from Saved Words?`)) return;
+
+    deletingId = id;
+    row.classList.add("is-deleting");
+    row.querySelector("[data-vocab-library-delete]")?.setAttribute("disabled", "");
+    setStatus(`Deleting “${english}”…`);
+
+    try {
+      await requestJson(API_ROOT, {
+        method: "POST",
+        body: JSON.stringify({ operation: "delete", id }),
+      });
+      words = words.filter((item) => item.id !== id);
+      editingCell = null;
+      dirty = true;
+      saveLocalWords();
+      updateVisibleCounts();
+      setStatus(`Deleted “${english}”.`);
+      renderRows();
+    } catch (error) {
+      setStatus(errorMessage(error.code || error.message, "delete"));
+    } finally {
+      deletingId = "";
+      if (row.isConnected) {
+        row.classList.remove("is-deleting");
+        row.querySelector("[data-vocab-library-delete]")?.removeAttribute("disabled");
+      }
+    }
   }
 
   async function saveRow(row) {
@@ -402,12 +475,12 @@
     if (status) status.textContent = message;
   }
 
-  function errorMessage(code) {
+  function errorMessage(code, action = "save") {
     if (code === "VOCABULARY_WORD_EXISTS") return "Another saved row already uses that English word or phrase.";
     if (code === "VOCABULARY_WORD_NOT_FOUND") return "That saved word no longer exists. Reopen the library to refresh it.";
     if (code === "VOCABULARY_RESULT_INVALID") return "Check the English word, IPA, Vietnamese reading, meaning, and example sentence.";
     if (code === "UNAUTHENTICATED") return "Your Joy session expired. Refresh and sign in again.";
-    return "Joy could not save this vocabulary row.";
+    return action === "delete" ? "Joy could not delete this vocabulary word." : "Joy could not save this vocabulary row.";
   }
 
   async function requestJson(path, options = {}) {
