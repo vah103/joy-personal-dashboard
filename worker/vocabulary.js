@@ -98,12 +98,8 @@ async function listVocabularyWords(email, env) {
 
 async function saveVocabularyWord(request, email, env) {
   const body = await readJson(request);
-  const word = normalizeVocabularyResult(body, { maxMeanings: 2, allowManual: true });
+  const word = normalizeVocabularyResult(body, { maxMeanings: 2 });
   if (!word) return json({ error: "VOCABULARY_RESULT_INVALID" }, 400);
-
-  if (body.operation === "update") {
-    return updateVocabularyWord(body, word, email, env);
-  }
 
   const existing = await env.DB.prepare(`
     SELECT id, english, vietnamese, ipa, pronunciation_vi, example,
@@ -146,54 +142,6 @@ async function saveVocabularyWord(request, email, env) {
     },
     created: true,
   }, 201);
-}
-
-async function updateVocabularyWord(body, word, email, env) {
-  const id = cleanText(body.id);
-  if (!id || id.length > 100) return json({ error: "VOCABULARY_WORD_NOT_FOUND" }, 404);
-
-  const conflict = await env.DB.prepare(`
-    SELECT id
-    FROM vocabulary_words
-    WHERE user_email = ? AND english_key = ? AND id <> ?
-    LIMIT 1
-  `).bind(email, word.english, id).first();
-  if (conflict) return json({ error: "VOCABULARY_WORD_EXISTS" }, 409);
-
-  const now = Date.now();
-  const result = await env.DB.prepare(`
-    UPDATE vocabulary_words
-    SET english_key = ?,
-        english = ?,
-        vietnamese = ?,
-        ipa = ?,
-        pronunciation_vi = ?,
-        example = ?,
-        updated_at = ?
-    WHERE user_email = ? AND id = ?
-  `).bind(
-    word.english,
-    word.english,
-    word.vietnamese,
-    word.ipa,
-    word.pronunciationVi,
-    serializeExample(word),
-    now,
-    email,
-    id,
-  ).run();
-
-  if (!Number(result.meta?.changes || 0)) return json({ error: "VOCABULARY_WORD_NOT_FOUND" }, 404);
-
-  const updated = await env.DB.prepare(`
-    SELECT id, english, vietnamese, ipa, pronunciation_vi, example,
-      review_count, correct_count, created_at, updated_at
-    FROM vocabulary_words
-    WHERE user_email = ? AND id = ?
-  `).bind(email, id).first();
-
-  if (!updated) return json({ error: "VOCABULARY_WORD_NOT_FOUND" }, 404);
-  return json({ word: mapWord(updated), created: false, updated: true });
 }
 
 async function lookupVocabularyWord(request, email, env) {
@@ -353,7 +301,7 @@ async function reviewVocabularyWord(request, email, env) {
   return json({ reviewed: true });
 }
 
-function normalizeVocabularyResult(value, { maxMeanings = 2, allowManual = false } = {}) {
+function normalizeVocabularyResult(value, { maxMeanings = 2 } = {}) {
   if (!value || typeof value !== "object") return null;
   const english = normalizeEnglishEntry(value.english);
   if (!english) return null;
@@ -365,10 +313,10 @@ function normalizeVocabularyResult(value, { maxMeanings = 2, allowManual = false
   const pronunciationVi = cleanText(value.pronunciationVi || value.pronunciation_vi).slice(0, 100);
   const partOfSpeech = cleanText(value.partOfSpeech || value.part_of_speech).toLowerCase().slice(0, 50);
   const example = oneSentence(value.example).slice(0, 260);
-  const exampleVietnameseText = cleanText(value.exampleVietnamese || value.example_vietnamese);
-  const exampleVietnamese = exampleVietnameseText ? oneSentence(exampleVietnameseText).slice(0, 260) : "";
-  if (!vietnamese || !ipa || !pronunciationVi || !example) return null;
-  if (!allowManual && (!partOfSpeech || !exampleVietnamese)) return null;
+  const exampleVietnamese = oneSentence(value.exampleVietnamese || value.example_vietnamese).slice(0, 260);
+  if (!vietnamese || !ipa || !pronunciationVi || !partOfSpeech || !example || !exampleVietnamese) {
+    return null;
+  }
 
   return {
     inputLanguage: value.inputLanguage === "vi" ? "vi" : "en",
