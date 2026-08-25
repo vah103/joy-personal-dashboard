@@ -28,7 +28,7 @@
 
     root.innerHTML = `
       <section class="vocabulary-compact-card" aria-label="Vocabulary">
-        <div class="vocabulary-compact-topline" role="button" tabindex="0" aria-label="Open Saved Words">
+        <div class="vocabulary-compact-topline" role="button" tabindex="0">
           <div class="vocabulary-compact-title">
             <strong>Words</strong>
             <span aria-label="${escapeHtml(count)} saved words">${escapeHtml(count)}</span>
@@ -44,9 +44,9 @@
             <span class="vocabulary-compact-arrow" aria-hidden="true">→</span>
           </button>
         ` : `
-          <div class="vocabulary-compact-empty" aria-label="Open Saved Words to add a word">
+          <div class="vocabulary-compact-empty">
             <span aria-hidden="true">Aa</span>
-            <small>Open Saved Words to add a word</small>
+            <small>Add a word</small>
           </div>
         `}
       </section>
