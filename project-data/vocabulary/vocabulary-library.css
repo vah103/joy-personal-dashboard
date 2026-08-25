@@ -108,16 +108,39 @@
 .vocabulary-library-table th:nth-child(4) { width: 22%; }
 .vocabulary-library-table th:nth-child(5) { width: 32%; }
 
+.vocabulary-library-value,
 .vocabulary-library-table input,
 .vocabulary-library-table textarea {
   width: 100%;
   min-width: 0;
+  color: #334247;
+  font: 750 17px/1.5 "Nunito", ui-rounded, system-ui, sans-serif;
+}
+
+.vocabulary-library-value {
+  min-height: 44px;
+  padding: 8px 9px;
+  border-radius: 9px;
+  cursor: default;
+  user-select: text;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.vocabulary-library-value.is-multiline {
+  min-height: 70px;
+}
+
+.vocabulary-library-value:hover {
+  background: rgba(255, 255, 255, 0.34);
+}
+
+.vocabulary-library-table input,
+.vocabulary-library-table textarea {
   border: 1px solid transparent;
   border-radius: 9px;
   background: transparent;
-  color: #334247;
   outline: none;
-  font: 750 17px/1.5 "Nunito", ui-rounded, system-ui, sans-serif;
 }
 
 .vocabulary-library-table input {
