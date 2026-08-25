@@ -109,6 +109,8 @@ test("Vocabulary top bar opens a clean five-column editable saved-word library",
   assert.match(libraryFrontend, /data-vocab-field="example"/);
   assert.match(libraryStyles, /min-width:\s*1020px/);
   assert.match(libraryStyles, /position:\s*sticky/);
+  assert.match(libraryStyles, /font:\s*750 17px\/1\.5/);
+  assert.match(libraryStyles, /font-size:\s*12px/);
   assert.doesNotMatch(libraryStyles, /vocabulary-library-row-actions/);
 });
 
@@ -181,7 +183,7 @@ test("Vocabulary save and review routes retain authenticated D1 storage", () => 
 test("Dashboard loader cache-busts all Vocabulary assets", () => {
   assert.match(loader, /vocabulary-openai\.css\?v=joy-vocabulary-openai-v2/);
   assert.match(loader, /vocabulary-compact\.css\?v=joy-vocabulary-compact-v2/);
-  assert.match(loader, /vocabulary-library\.css\?v=joy-vocabulary-library-v2/);
+  assert.match(loader, /vocabulary-library\.css\?v=joy-vocabulary-library-v3/);
   assert.match(loader, /vocabulary\.js\?v=joy-vocabulary-v2/);
   assert.match(loader, /vocabulary-compact\.js\?v=joy-vocabulary-compact-v2/);
   assert.match(loader, /vocabulary-library\.js\?v=joy-vocabulary-library-v2/);
