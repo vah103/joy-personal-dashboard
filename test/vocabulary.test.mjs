@@ -88,7 +88,7 @@ test("Vocabulary outside card clearly opens full practice in the popup", () => {
   assert.match(compactStyles, /-webkit-line-clamp:\s*2/);
 });
 
-test("Vocabulary top bar opens an editable saved-word library without hijacking action buttons", () => {
+test("Vocabulary top bar opens a clean five-column editable saved-word library", () => {
   assert.match(libraryFrontend, /\.vocabulary-compact-topline/);
   assert.match(libraryFrontend, /event\.target\.closest\("button"\)/);
   assert.match(libraryFrontend, /vocabulary-library-table/);
@@ -98,19 +98,26 @@ test("Vocabulary top bar opens an editable saved-word library without hijacking 
   assert.match(libraryFrontend, />Vietnamese meaning</);
   assert.match(libraryFrontend, />English example</);
   assert.match(libraryFrontend, /data-vocab-library-add/);
-  assert.match(libraryFrontend, /data-vocab-library-save-row/);
+  assert.doesNotMatch(libraryFrontend, /data-vocab-library-save-row/);
+  assert.doesNotMatch(libraryFrontend, />Save<\/button>/);
+  assert.match(libraryFrontend, /document\.addEventListener\("change", handleFieldChange\)/);
+  assert.match(libraryFrontend, /Changes save automatically/);
   assert.match(libraryFrontend, /data-vocab-field="english"/);
   assert.match(libraryFrontend, /data-vocab-field="ipa"/);
   assert.match(libraryFrontend, /data-vocab-field="pronunciationVi"/);
   assert.match(libraryFrontend, /data-vocab-field="vietnamese"/);
   assert.match(libraryFrontend, /data-vocab-field="example"/);
-  assert.match(libraryStyles, /min-width:\s*1080px/);
+  assert.match(libraryStyles, /min-width:\s*1020px/);
   assert.match(libraryStyles, /position:\s*sticky/);
+  assert.doesNotMatch(libraryStyles, /vocabulary-library-row-actions/);
 });
 
-test("Vocabulary library supports manual insert and persistent edits through the existing D1 route", () => {
+test("Vocabulary library auto-saves manual inserts and persistent edits through the existing D1 route", () => {
+  assert.match(libraryFrontend, /handleFieldChange/);
+  assert.match(libraryFrontend, /await saveRow\(row\)/);
   assert.match(libraryFrontend, /word\.operation = "update"/);
   assert.match(libraryFrontend, /method:\s*"POST"/);
+  assert.match(libraryFrontend, /row\.dataset\.saving/);
   assert.match(worker, /allowManual:\s*true/);
   assert.match(worker, /body\.operation === "update"/);
   assert.match(worker, /updateVocabularyWord/);
@@ -174,10 +181,10 @@ test("Vocabulary save and review routes retain authenticated D1 storage", () => 
 test("Dashboard loader cache-busts all Vocabulary assets", () => {
   assert.match(loader, /vocabulary-openai\.css\?v=joy-vocabulary-openai-v2/);
   assert.match(loader, /vocabulary-compact\.css\?v=joy-vocabulary-compact-v2/);
-  assert.match(loader, /vocabulary-library\.css\?v=joy-vocabulary-library-v1/);
+  assert.match(loader, /vocabulary-library\.css\?v=joy-vocabulary-library-v2/);
   assert.match(loader, /vocabulary\.js\?v=joy-vocabulary-v2/);
   assert.match(loader, /vocabulary-compact\.js\?v=joy-vocabulary-compact-v2/);
-  assert.match(loader, /vocabulary-library\.js\?v=joy-vocabulary-library-v1/);
+  assert.match(loader, /vocabulary-library\.js\?v=joy-vocabulary-library-v2/);
   assert.match(loader, /vocabulary-mobile-inline\.js\?v=joy-vocabulary-mobile-inline-v3/);
   assert.match(loader, /loadCompactCard/);
   assert.match(loader, /loadLibrary/);
