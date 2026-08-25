@@ -4,7 +4,6 @@
 
   let words = [];
   let loading = false;
-  let saving = false;
   let adding = false;
   let dirty = false;
 
@@ -12,6 +11,7 @@
   document.body.append(modal);
 
   document.addEventListener("click", handleClick);
+  document.addEventListener("change", handleFieldChange);
   document.addEventListener("keydown", handleKeydown);
 
   function createLibraryModal() {
@@ -41,7 +41,6 @@
                 <th scope="col">Vietnamese reading</th>
                 <th scope="col">Vietnamese meaning</th>
                 <th scope="col">English example</th>
-                <th scope="col"><span class="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody data-vocab-library-body></tbody>
@@ -64,23 +63,11 @@
 
     const add = event.target.closest("[data-vocab-library-add]");
     if (add) {
-      adding = true;
-      renderRows();
+      if (!adding) {
+        adding = true;
+        renderRows();
+      }
       focusNewRow();
-      return;
-    }
-
-    const cancel = event.target.closest("[data-vocab-library-cancel-new]");
-    if (cancel) {
-      adding = false;
-      renderRows();
-      setStatus("");
-      return;
-    }
-
-    const save = event.target.closest("[data-vocab-library-save-row]");
-    if (save) {
-      await saveRow(save.closest("tr"));
       return;
     }
 
@@ -88,6 +75,14 @@
     if (!topLine || event.target.closest("button")) return;
     event.preventDefault();
     await openLibrary();
+  }
+
+  async function handleFieldChange(event) {
+    const field = event.target.closest("[data-vocab-field]");
+    if (!field || modal.hidden) return;
+    const row = field.closest("[data-vocab-library-row]");
+    if (!row) return;
+    await saveRow(row);
   }
 
   function handleKeydown(event) {
@@ -131,7 +126,7 @@
       const payload = await requestJson(API_ROOT);
       words = Array.isArray(payload.words) ? payload.words.map(normalizeWord).filter(Boolean) : [];
       saveLocalWords();
-      setStatus(`${words.length} saved ${words.length === 1 ? "word" : "words"}. Edit any cell and press Save.`);
+      setStatus(`${words.length} saved ${words.length === 1 ? "word" : "words"}. Changes save automatically.`);
     } catch (error) {
       words = loadLocalWords();
       setStatus(errorMessage(error.code || error.message));
@@ -152,7 +147,7 @@
     if (!rows.length && !loading) {
       body.innerHTML = `
         <tr class="vocabulary-library-empty-row">
-          <td colspan="6">No saved words yet. Use “+ Add manually” or look up a word from the Vocabulary card.</td>
+          <td colspan="5">No saved words yet. Use “+ Add manually” or look up a word from the Vocabulary card.</td>
         </tr>
       `;
       return;
@@ -178,16 +173,18 @@
         <td><input data-vocab-field="pronunciationVi" type="text" maxlength="100" value="${escapeHtml(item.pronunciationVi)}" placeholder="in-sti-tu-shần" aria-label="Vietnamese pronunciation" required></td>
         <td><textarea data-vocab-field="vietnamese" maxlength="240" rows="2" placeholder="tổ chức; cơ quan" aria-label="Vietnamese meaning" required>${escapeHtml(item.vietnamese)}</textarea></td>
         <td><textarea data-vocab-field="example" maxlength="260" rows="2" placeholder="The institution was founded in 1900." aria-label="English example" required>${escapeHtml(item.example)}</textarea></td>
-        <td class="vocabulary-library-row-actions">
-          <button class="primary-button" type="button" data-vocab-library-save-row ${saving ? "disabled" : ""}>Save</button>
-          ${isNew ? '<button class="secondary-button" type="button" data-vocab-library-cancel-new>Cancel</button>' : ""}
-        </td>
       </tr>
     `;
   }
 
   async function saveRow(row) {
-    if (!row || saving) return;
+    if (!row) return;
+
+    if (row.dataset.saving === "true") {
+      row.dataset.saveAgain = "true";
+      return;
+    }
+
     const id = cleanText(row.dataset.wordId);
     const existing = id ? words.find((word) => word.id === id) : null;
     const word = {
@@ -202,7 +199,7 @@
     };
 
     if (!word.english || !word.ipa || !word.pronunciationVi || !word.vietnamese || !word.example) {
-      setStatus("Fill in all five vocabulary columns before saving.");
+      if (!id) setStatus("Complete all five columns and Joy will add the word automatically.");
       return;
     }
 
@@ -211,8 +208,8 @@
       word.operation = "update";
     }
 
-    saving = true;
-    renderRows();
+    row.dataset.saving = "true";
+    row.classList.add("is-saving");
     setStatus(id ? "Saving changes…" : "Adding word…");
 
     try {
@@ -227,16 +224,30 @@
       if (index >= 0) words.splice(index, 1, saved);
       else words.unshift(saved);
 
-      adding = false;
       dirty = true;
       saveLocalWords();
       updateVisibleCounts();
-      setStatus(payload.updated ? "Changes saved." : payload.created === false ? "This word was already saved." : "Word added.");
+
+      if (!id) {
+        adding = false;
+        renderRows();
+      } else {
+        row.dataset.wordId = saved.id;
+        row.classList.remove("is-new");
+      }
+
+      setStatus(payload.updated ? "Changes saved automatically." : payload.created === false ? "This word was already saved." : "Word added automatically.");
     } catch (error) {
       setStatus(errorMessage(error.code || error.message));
     } finally {
-      saving = false;
-      renderRows();
+      if (row.isConnected) {
+        row.dataset.saving = "false";
+        row.classList.remove("is-saving");
+        if (row.dataset.saveAgain === "true") {
+          row.dataset.saveAgain = "false";
+          saveRow(row);
+        }
+      }
     }
   }
 
