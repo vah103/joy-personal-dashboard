@@ -5,12 +5,12 @@
     "/project-data/vocabulary/vocabulary-result-size.css?v=joy-vocabulary-result-size-v1",
     "/project-data/vocabulary/vocabulary-modal-fit.css?v=joy-vocabulary-modal-fit-v1",
     "/project-data/vocabulary/vocabulary-compact.css?v=joy-vocabulary-compact-v2",
-    "/project-data/vocabulary/vocabulary-library.css?v=joy-vocabulary-library-v3&ui=readonly-doubleclick-v1",
+    "/project-data/vocabulary/vocabulary-library.css?v=joy-vocabulary-library-v3&ui=readonly-doubleclick-delete-v1",
   ];
   const BROWSER_SPEECH_SCRIPT_URL = "/project-data/shared/browser-speech.js?v=joy-browser-speech-v1";
   const SCRIPT_URL = "/project-data/vocabulary/vocabulary.js?v=joy-vocabulary-v2";
   const COMPACT_SCRIPT_URL = "/project-data/vocabulary/vocabulary-compact.js?v=joy-vocabulary-compact-v2";
-  const LIBRARY_SCRIPT_URL = "/project-data/vocabulary/vocabulary-library.js?v=joy-vocabulary-library-v2&ui=readonly-doubleclick-v1";
+  const LIBRARY_SCRIPT_URL = "/project-data/vocabulary/vocabulary-library.js?v=joy-vocabulary-library-v2&ui=readonly-doubleclick-delete-v1";
   const MOBILE_SCRIPT_URL = "/project-data/vocabulary/vocabulary-mobile-inline.js?v=joy-vocabulary-mobile-inline-v3";
 
   const loadSpeaking = () => window.JoySpeakingLoader?.load();
@@ -45,7 +45,7 @@
 
   function loadLibrary() {
     const existing = document.querySelector('script[data-joy-vocabulary-library="true"]');
-    if (existing && existing.src.includes("joy-vocabulary-library-v2&ui=readonly-doubleclick-v1")) {
+    if (existing && existing.src.includes("joy-vocabulary-library-v2&ui=readonly-doubleclick-delete-v1")) {
       if (existing.dataset.loaded === "true") loadMobileInline();
       else existing.addEventListener("load", loadMobileInline, { once: true });
       return;

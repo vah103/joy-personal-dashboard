@@ -98,6 +98,10 @@ async function listVocabularyWords(email, env) {
 
 async function saveVocabularyWord(request, email, env) {
   const body = await readJson(request);
+  if (body.operation === "delete") {
+    return deleteVocabularyWord(body, email, env);
+  }
+
   const word = normalizeVocabularyResult(body, { maxMeanings: 2, allowManual: true });
   if (!word) return json({ error: "VOCABULARY_RESULT_INVALID" }, 400);
 
@@ -146,6 +150,19 @@ async function saveVocabularyWord(request, email, env) {
     },
     created: true,
   }, 201);
+}
+
+async function deleteVocabularyWord(body, email, env) {
+  const id = cleanText(body.id);
+  if (!id || id.length > 100) return json({ error: "VOCABULARY_WORD_NOT_FOUND" }, 404);
+
+  const result = await env.DB.prepare(`
+    DELETE FROM vocabulary_words
+    WHERE user_email = ? AND id = ?
+  `).bind(email, id).run();
+
+  if (!Number(result.meta?.changes || 0)) return json({ error: "VOCABULARY_WORD_NOT_FOUND" }, 404);
+  return json({ deleted: true, id });
 }
 
 async function updateVocabularyWord(body, word, email, env) {
