@@ -13,7 +13,7 @@
 })();
 
 // Keep the locked Notes wolf launcher isolated from dashboard configuration.
-if (typeof document !== "undefined") {
+if (typeof document?.createElement === "function") {
   void import("/notes-launcher.js?v=joy-notes-launcher-v1");
 }
 
