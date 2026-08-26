@@ -2,7 +2,12 @@ import { json } from "./shared/http.js";
 import { getSession } from "./shared/session.js";
 
 export const FINANCE_GOLD_PRICE_ROUTE = "/api/finance/gold-price";
-export const GOLD_PRICE_SOURCE_URL = "https://baotinmanhhai.vn/vi/bang-gia-vang";
+export const GOLD_PRICE_SOURCE_URLS = [
+  "https://www.btmh.vn/",
+  "https://baotinmanhhai.vn/",
+  "https://baotinmanhhai.vn/vi/bang-gia-vang",
+];
+export const GOLD_PRICE_SOURCE_URL = GOLD_PRICE_SOURCE_URLS[0];
 export const GOLD_PRICE_PRODUCT = "Đồng vàng Kim Gia Bảo hoa sen";
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
@@ -83,12 +88,12 @@ export function isFinanceGoldPriceRoute(pathname) {
   return pathname === FINANCE_GOLD_PRICE_ROUTE;
 }
 
-async function fetchLiveQuote() {
+async function fetchQuoteFromSource(sourceUrl) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
-    const response = await fetch(GOLD_PRICE_SOURCE_URL, {
+    const response = await fetch(sourceUrl, {
       method: "GET",
       headers: {
         Accept: "text/html,application/xhtml+xml",
@@ -107,13 +112,28 @@ async function fetchLiveQuote() {
     return {
       ...quote,
       source: "Bảo Tín Mạnh Hải",
-      sourceUrl: GOLD_PRICE_SOURCE_URL,
+      sourceUrl,
       fetchedAt: Date.now(),
       stale: false,
     };
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function fetchLiveQuote() {
+  let lastError = null;
+
+  for (const sourceUrl of GOLD_PRICE_SOURCE_URLS) {
+    try {
+      return await fetchQuoteFromSource(sourceUrl);
+    } catch (error) {
+      lastError = error;
+      console.warn(`Joy Finance gold source failed: ${sourceUrl}`, error);
+    }
+  }
+
+  throw lastError || new Error("GOLD_PRICE_UNAVAILABLE");
 }
 
 async function getGoldQuote() {
