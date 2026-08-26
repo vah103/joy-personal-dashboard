@@ -6,10 +6,9 @@ import { readFile } from "node:fs/promises";
 const root = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, root), "utf8");
 
-const [performance, vocabulary, speaking, turtlebot, dashboard] = await Promise.all([
+const [performance, vocabulary, turtlebot, dashboard] = await Promise.all([
   read("src/features/project-hub/project-hub-performance.js"),
   read("src/features/vocabulary/vocabulary-loader.js"),
-  read("src/features/speaking/speaking-loader.js"),
   read("src/features/project-hub/turtlebot-plan-loader.js"),
   read("src/pages/dashboard/index.html"),
 ]);
@@ -31,6 +30,7 @@ test("Vocabulary loader owns the current language UI without legacy frontend lay
   assert.doesNotMatch(vocabulary, /project-plan-v3|project-hub-tabs-cleanup/);
 
   for (const removedPath of [
+    "src/features/speaking/speaking-loader.js",
     "project-data/speaking/speaking.js",
     "project-data/speaking/speaking.css",
     "project-data/speaking/speaking-openai.css",
@@ -43,13 +43,7 @@ test("Vocabulary loader owns the current language UI without legacy frontend lay
   }
 
   assert.match(dashboard, /vocabulary-loader\.js\?v=joy-vocabulary-loader-v2/);
-});
-
-test("Legacy speaking loader is inert and cannot resurrect removed speaking assets", () => {
-  assert.match(speaking, /JoySpeakingLoader/);
-  assert.match(speaking, /Legacy compatibility only/);
-  assert.doesNotMatch(speaking, /project-data\/speaking\/|document\.createElement|appendChild|append\(/);
-  assert.match(dashboard, /speaking-loader\.js\?v=joy-speaking-loader-v2/);
+  assert.doesNotMatch(dashboard, /speaking-loader\.js|JoySpeakingLoader/);
 });
 
 test("TurtleBot plan chain is isolated from language feature loading", () => {
