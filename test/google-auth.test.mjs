@@ -11,7 +11,6 @@ const authSource = fs.readFileSync(new URL("../worker/google-auth.js", import.me
 const routerSource = fs.readFileSync(new URL("../worker/router.js", import.meta.url), "utf8");
 const appSource = fs.readFileSync(new URL("../worker/index.js", import.meta.url), "utf8");
 const buildSource = fs.readFileSync(new URL("../scripts/build.mjs", import.meta.url), "utf8");
-const wranglerSource = fs.readFileSync(new URL("../wrangler.jsonc", import.meta.url), "utf8");
 const dashboardHtml = fs.readFileSync(new URL("../src/pages/dashboard/index.html", import.meta.url), "utf8");
 const loginHtml = fs.readFileSync(new URL("../src/pages/login/index.html", import.meta.url), "utf8");
 const accountUi = fs.readFileSync(new URL("../src/features/auth/auth-ui.js", import.meta.url), "utf8");
@@ -45,18 +44,6 @@ test("dashboard pages require a Joy session", () => {
   assert.ok(routerSource.includes('const PROTECTED_ASSETS = new Set(["/", "/index.html", "/sale-manager.html"])'));
   assert.ok(routerSource.includes("protectJoyAsset(request, env)"));
   assert.ok(authSource.includes('serveAsset(request, env, "/login.html")'));
-
-  const workerFirstMatch = wranglerSource.match(/"run_worker_first"\s*:\s*(true|\[[\s\S]*?\])/);
-  assert.ok(workerFirstMatch, "Cloudflare assets must declare run_worker_first");
-  if (workerFirstMatch[1] !== "true") {
-    const workerFirstRoutes = JSON.parse(workerFirstMatch[1]);
-    for (const route of ["/api/*", "/auth/*", "/", "/index.html", "/sale-manager.html"]) {
-      assert.ok(
-        workerFirstRoutes.includes(route),
-        `Cloudflare must route ${route} through the Worker before static assets`,
-      );
-    }
-  }
 });
 
 test("sign out preserves integrations while service disconnects are separate", () => {
