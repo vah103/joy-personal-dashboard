@@ -81,9 +81,10 @@
   function normalizeLibraryAddButton() {
     const button = document.querySelector("[data-vocab-library-add]");
     if (button) {
+      const accessibleLabel = button.textContent.replace(/^\s*\+\s*/, "").trim() || "Add";
       button.textContent = "+";
-      button.setAttribute("aria-label", "Add manually");
-      button.setAttribute("title", "Add manually");
+      button.setAttribute("aria-label", accessibleLabel);
+      button.setAttribute("title", accessibleLabel);
     }
     loadScript(SCRIPTS.libraryTools, loadMobileInline, { tolerateError: true });
   }
