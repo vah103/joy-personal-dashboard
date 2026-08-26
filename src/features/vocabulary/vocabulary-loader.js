@@ -2,8 +2,8 @@
   const STYLESHEET_URLS = [
     "/project-data/vocabulary/vocabulary.css?v=joy-vocabulary-v1",
     "/project-data/vocabulary/vocabulary-compact.css?v=joy-vocabulary-compact-v2&ui=minimal-word-v1",
-    "/project-data/vocabulary/vocabulary-practice-redesign.css?v=joy-vocabulary-practice-redesign-v2",
-    "/project-data/vocabulary/vocabulary-library.css?v=joy-vocabulary-library-v3&ui=readonly-doubleclick-delete-v1",
+    "/project-data/vocabulary/vocabulary-practice-redesign.css?v=joy-vocabulary-practice-redesign-v3",
+    "/project-data/vocabulary/vocabulary-library.css?v=joy-vocabulary-library-v4&ui=example-flashcards-v1",
     "/project-data/vocabulary/vocabulary-library-tools.css?v=joy-vocabulary-library-tools-v1",
   ];
 
@@ -15,8 +15,8 @@
     },
     vocabulary: {
       attribute: "data-joy-vocabulary",
-      url: "/project-data/vocabulary/vocabulary.js?v=joy-vocabulary-v2",
-      version: "joy-vocabulary-v2",
+      url: "/project-data/vocabulary/vocabulary.js?v=joy-vocabulary-v3",
+      version: "joy-vocabulary-v3",
     },
     practice: {
       attribute: "data-joy-vocabulary-practice-redesign",
@@ -25,13 +25,13 @@
     },
     compact: {
       attribute: "data-joy-vocabulary-compact",
-      url: "/project-data/vocabulary/vocabulary-compact.js?v=joy-vocabulary-compact-v3",
-      version: "joy-vocabulary-compact-v3",
+      url: "/project-data/vocabulary/vocabulary-compact.js?v=joy-vocabulary-compact-v4",
+      version: "joy-vocabulary-compact-v4",
     },
     library: {
       attribute: "data-joy-vocabulary-library",
-      url: "/project-data/vocabulary/vocabulary-library.js?v=joy-vocabulary-library-v2&ui=readonly-doubleclick-delete-v1",
-      version: "joy-vocabulary-library-v2",
+      url: "/project-data/vocabulary/vocabulary-library.js?v=joy-vocabulary-library-v3&ui=example-flashcards-v1",
+      version: "joy-vocabulary-library-v3",
     },
     libraryTools: {
       attribute: "data-joy-vocabulary-library-tools",
