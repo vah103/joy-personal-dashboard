@@ -52,7 +52,7 @@ test("returns no rain expected below 85 percent even with a large amount", () =>
     weather_code: [95, 95, 95],
   }, new Date("2026-07-23T17:00:00+07:00"));
 
-  assert.equal(result.state, "quiet");
+  assert.equal(result.state, "chill");
   assert.equal(result.text, "No rain is expected.");
 });
 
@@ -101,6 +101,42 @@ test("uses the API timestamp as the end of the hourly interval", () => {
   );
 });
 
+test("classifies clear daylight as sunny when no rain reaches the threshold", () => {
+  const result = summarizeRainForecast({
+    time: [
+      "2026-07-23T07:00",
+      "2026-07-23T08:00",
+      "2026-07-23T09:00",
+      "2026-07-23T10:00",
+      "2026-07-23T11:00",
+      "2026-07-23T12:00",
+    ],
+    precipitation_probability: [0, 5, 10, 5, 0, 10],
+    weather_code: [0, 1, 0, 1, 0, 1],
+  }, new Date("2026-07-23T12:30:00+07:00"));
+
+  assert.equal(result.state, "sunny");
+  assert.equal(result.text, "It’s a sunny day.");
+});
+
+test("classifies non-sunny daylight as chill when no rain reaches the threshold", () => {
+  const result = summarizeRainForecast({
+    time: [
+      "2026-07-23T07:00",
+      "2026-07-23T08:00",
+      "2026-07-23T09:00",
+      "2026-07-23T10:00",
+      "2026-07-23T11:00",
+      "2026-07-23T12:00",
+    ],
+    precipitation_probability: [0, 5, 10, 5, 0, 10],
+    weather_code: [3, 3, 2, 3, 2, 3],
+  }, new Date("2026-07-23T12:30:00+07:00"));
+
+  assert.equal(result.state, "chill");
+  assert.equal(result.text, "No rain is expected.");
+});
+
 test("weather keeps sunny and no-rain states while rain requires 85 percent", () => {
   const html = fs.readFileSync(
     new URL("../src/pages/dashboard/index.html", import.meta.url),
@@ -129,12 +165,13 @@ test("weather keeps sunny and no-rain states while rain requires 85 percent", ()
   assert.ok(build.includes('resolve(features, "weather", "weather-rain.js")'));
   assert.ok(html.includes("rain-threshold-85-v1"));
   assert.ok(html.includes("joy-rain-notice-v6"));
-  assert.match(statusUi, /RAIN_PROBABILITY_THRESHOLD = 85/);
-  assert.match(statusUi, /sunnyHours/);
-  assert.match(statusUi, /It’s a sunny day\./);
-  assert.match(statusUi, /No rain is expected\./);
-  assert.ok(statusUi.includes('.replace(/\\s*\\(\\d+%\\+\\)\\.?/gi, "")'));
-  assert.doesNotMatch(statusUi, /\(85%\+\)\./);
+  assert.match(statusUi, /visibleStates/);
+  assert.match(statusUi, /MutationObserver/);
+  assert.doesNotMatch(statusUi, /RAIN_PROBABILITY_THRESHOLD/);
+  assert.doesNotMatch(statusUi, /fetch\(/);
+  assert.doesNotMatch(statusUi, /setInterval/);
+  assert.doesNotMatch(statusUi, /visibilitychange/);
+  assert.doesNotMatch(statusUi, /summarizeWeather/);
   assert.match(push, /RAIN_PROBABILITY_THRESHOLD = 85/);
   assert.match(push, /\$\{RAIN_PROBABILITY_THRESHOLD\}%\+/);
   assert.match(push, /dailyKind: isSunny \? "sunny" : "chill"/);
