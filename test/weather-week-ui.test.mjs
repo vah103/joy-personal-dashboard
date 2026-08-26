@@ -31,6 +31,18 @@ test("weekly weather popup uses richer SVG weather art and Today detail data", (
   assert.match(weatherSource, /weekState\.current\.humidity/);
 });
 
+test("weekly weather popup animates open and close without changing its layout", () => {
+  assert.match(weatherSource, /joy-weather-week-backdrop\.is-open/);
+  assert.match(weatherSource, /transform:translateY\(10px\) scale\(\.985\)/);
+  assert.match(weatherSource, /transition-duration:180ms,220ms/);
+  assert.match(weatherSource, /void modal\.offsetWidth/);
+  assert.match(weatherSource, /modal\.classList\.add\("is-open"\)/);
+  assert.match(weatherSource, /modal\.classList\.remove\("is-open"\)/);
+  assert.match(weatherSource, /root\.setTimeout\(finishClose, 180\)/);
+  assert.match(weatherSource, /prefers-reduced-motion:reduce/);
+  assert.match(weatherSource, /reduceMotion/);
+});
+
 test("new weekly weather UI copy stays in the shared bilingual locale system", () => {
   for (const key of [
     "dynamic.weather.today",
