@@ -3,7 +3,7 @@
 }
 
 .vocabulary-library-modal {
-  width: min(1240px, calc(100vw - 32px));
+  width: min(1440px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
   overflow: hidden;
   display: grid;
@@ -66,7 +66,7 @@
 
 .vocabulary-library-table {
   width: 100%;
-  min-width: 1020px;
+  min-width: 1320px;
   border-collapse: separate;
   border-spacing: 0;
   table-layout: fixed;
@@ -102,11 +102,12 @@
   text-transform: uppercase;
 }
 
-.vocabulary-library-table th:nth-child(1) { width: 15%; }
-.vocabulary-library-table th:nth-child(2) { width: 15%; }
-.vocabulary-library-table th:nth-child(3) { width: 16%; }
-.vocabulary-library-table th:nth-child(4) { width: 22%; }
-.vocabulary-library-table th:nth-child(5) { width: 32%; }
+.vocabulary-library-table th:nth-child(1) { width: 12%; }
+.vocabulary-library-table th:nth-child(2) { width: 12%; }
+.vocabulary-library-table th:nth-child(3) { width: 13%; }
+.vocabulary-library-table th:nth-child(4) { width: 18%; }
+.vocabulary-library-table th:nth-child(5) { width: 22.5%; }
+.vocabulary-library-table th:nth-child(6) { width: 22.5%; }
 
 .vocabulary-library-value,
 .vocabulary-library-table input,
@@ -180,11 +181,11 @@
   pointer-events: none;
 }
 
-.vocabulary-library-example-cell {
+.vocabulary-library-example-vi-cell {
   position: relative;
 }
 
-.vocabulary-library-table tr.is-editing-row .vocabulary-library-example-cell {
+.vocabulary-library-table tr.is-editing-row .vocabulary-library-example-vi-cell {
   padding-right: 56px;
 }
 
@@ -268,7 +269,7 @@
   }
 
   .vocabulary-library-table {
-    min-width: 920px;
+    min-width: 1180px;
   }
 }
 
