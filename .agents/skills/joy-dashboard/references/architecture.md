@@ -62,7 +62,7 @@ replace them.
 
 Migrations under `migrations/` target Cloudflare D1. Add forward-only,
 data-safe migrations. Preserve existing tables and runtime compatibility.
-Avoid changing a migration that may already have been applied; create a new
+Avoid changing a migration that may already be applied; create a new
 corrective migration unless an explicitly reviewed repair requires otherwise.
 
 ## Test compatibility
