@@ -9,16 +9,12 @@
     loading: true,
     currentId: "",
     direction: "vi-en",
-    lookupResult: null,
-    lookupBusy: false,
-    saveBusy: false,
     reviewRecorded: false,
     nextTimer: null,
   };
 
-  const lookupModal = createLookupModal();
   const mobilePracticeModal = createMobilePracticeModal();
-  document.body.append(lookupModal, mobilePracticeModal);
+  document.body.append(mobilePracticeModal);
   addMobileNavigationButton();
 
   document.addEventListener("submit", handleSubmit);
@@ -27,36 +23,6 @@
 
   renderPracticeRoots();
   loadWords();
-
-  function createLookupModal() {
-    const modal = document.createElement("div");
-    modal.className = "modal-backdrop vocabulary-modal-backdrop";
-    modal.dataset.vocabLookupModal = "true";
-    modal.hidden = true;
-    modal.innerHTML = `
-      <section class="modal vocabulary-lookup-modal" role="dialog" aria-modal="true" aria-labelledby="vocabulary-lookup-title">
-        <div class="modal-heading">
-          <div><p class="section-kicker">Vocabulary</p><h2 id="vocabulary-lookup-title">Add a word or phrase</h2></div>
-          <button type="button" aria-label="Close vocabulary lookup" data-vocab-close-lookup>×</button>
-        </div>
-        <form class="vocabulary-lookup-form" data-vocab-lookup-form>
-          <label for="vocabulary-lookup-input">English or Vietnamese entry</label>
-          <input id="vocabulary-lookup-input" name="query" type="text" maxlength="80" autocomplete="off" placeholder="e.g. issue or vấn đề" required>
-          <label class="vocabulary-context-field" for="vocabulary-context-input">
-            <span>Context <small>optional · use this for the exact meaning</small></span>
-            <input id="vocabulary-context-input" name="context" type="text" maxlength="240" autocomplete="off" placeholder="e.g. The company issued a certificate.">
-          </label>
-          <button class="primary-button vocabulary-lookup-submit" type="submit">Look up</button>
-        </form>
-        <p class="vocabulary-lookup-status" data-vocab-lookup-status aria-live="polite"></p>
-        <div data-vocab-lookup-result></div>
-      </section>
-    `;
-    modal.addEventListener("mousedown", (event) => {
-      if (event.target === modal) closeLookupModal();
-    });
-    return modal;
-  }
 
   function createMobilePracticeModal() {
     const modal = document.createElement("div");
@@ -153,6 +119,18 @@
     if (!state.words.some((word) => word.id === state.currentId)) pickNextWord();
   }
 
+  function availableDirections(word) {
+    const directions = ["vi-en", "en-vi"];
+    if (word?.exampleVietnamese) directions.push("vi-example-en");
+    if (word?.example) directions.push("en-example-vi");
+    return directions;
+  }
+
+  function pickDirection(word) {
+    const directions = availableDirections(word);
+    return directions[Math.floor(Math.random() * directions.length)] || "vi-en";
+  }
+
   function pickNextWord() {
     window.clearTimeout(state.nextTimer);
     const candidates = state.words.length > 1
@@ -160,12 +138,50 @@
       : state.words;
     const next = candidates[Math.floor(Math.random() * candidates.length)] || state.words[0];
     state.currentId = next?.id || "";
-    state.direction = Math.random() < 0.5 ? "vi-en" : "en-vi";
+    state.direction = pickDirection(next);
     state.reviewRecorded = false;
   }
 
   function currentWord() {
     return state.words.find((word) => word.id === state.currentId) || null;
+  }
+
+  function practiceConfig(word) {
+    if (!word) return null;
+    if (state.direction === "vi-example-en" && word.exampleVietnamese) {
+      return {
+        prompt: word.exampleVietnamese,
+        expected: word.english,
+        label: "Vietnamese example → English word",
+        allowVietnameseWithoutMarks: false,
+        isExample: true,
+      };
+    }
+    if (state.direction === "en-example-vi" && word.example) {
+      return {
+        prompt: word.example,
+        expected: word.vietnamese,
+        label: "English example → Vietnamese word",
+        allowVietnameseWithoutMarks: true,
+        isExample: true,
+      };
+    }
+    if (state.direction === "en-vi") {
+      return {
+        prompt: word.english,
+        expected: word.vietnamese,
+        label: "English word → Vietnamese word",
+        allowVietnameseWithoutMarks: true,
+        isExample: false,
+      };
+    }
+    return {
+      prompt: word.vietnamese,
+      expected: word.english,
+      label: "Vietnamese word → English word",
+      allowVietnameseWithoutMarks: false,
+      isExample: false,
+    };
   }
 
   function practiceMarkup() {
@@ -179,31 +195,22 @@
 
     if (!count) {
       return `
-        <div class="vocabulary-widget-heading">
-          <div><strong>Vocabulary</strong><small>No saved words</small></div>
-          <button type="button" data-vocab-open-lookup>+ Add</button>
-        </div>
-        <div class="vocabulary-empty">
-          <span aria-hidden="true">Aa</span>
-          <p>Add your first word to start practicing.</p>
-          <button type="button" data-vocab-open-lookup>+ Add word</button>
-        </div>
+        <div class="vocabulary-widget-heading"><div><strong>Vocabulary</strong><small>No saved words</small></div></div>
+        <div class="vocabulary-empty"><span aria-hidden="true">Aa</span><p>Add a word from Saved Words to start practicing.</p></div>
       `;
     }
 
     const word = currentWord();
-    if (!word) return "";
-    const prompt = state.direction === "vi-en" ? word.vietnamese : word.english;
-    const target = state.direction === "vi-en" ? "English" : "Vietnamese";
+    const config = practiceConfig(word);
+    if (!word || !config) return "";
 
     return `
       <div class="vocabulary-widget-heading">
         <div><strong>Vocabulary</strong><small>${count} saved ${count === 1 ? "word" : "words"}</small></div>
-        <button type="button" data-vocab-open-lookup>+ Add</button>
       </div>
-      <div class="vocabulary-practice">
-        <small class="vocabulary-direction">Translate into ${target}</small>
-        <strong class="vocabulary-prompt">${escapeHtml(prompt)}</strong>
+      <div class="vocabulary-practice" data-vocab-practice-mode="${escapeHtml(state.direction)}">
+        <small class="vocabulary-direction">${escapeHtml(config.label)}</small>
+        <strong class="vocabulary-prompt${config.isExample ? " is-example" : ""}">${escapeHtml(config.prompt)}</strong>
         <form class="vocabulary-answer-form" data-vocab-practice-form>
           <input name="answer" type="text" autocomplete="off" placeholder="Your answer…" aria-label="Vocabulary answer" required>
           <button type="submit">Check</button>
@@ -223,47 +230,33 @@
     });
   }
 
-  async function handleSubmit(event) {
+  function handleSubmit(event) {
     const practiceForm = event.target.closest("[data-vocab-practice-form]");
-    if (practiceForm) {
-      event.preventDefault();
-      checkAnswer(practiceForm);
-      return;
-    }
-    const lookupForm = event.target.closest("[data-vocab-lookup-form]");
-    if (lookupForm) {
-      event.preventDefault();
-      await lookupWord(lookupForm);
-    }
+    if (!practiceForm) return;
+    event.preventDefault();
+    checkAnswer(practiceForm);
   }
 
-  async function handleClick(event) {
+  function handleClick(event) {
     const control = event.target.closest("button, [data-vocab-action]");
     if (!control) return;
-    if (control.matches("[data-vocab-open-lookup]")) openLookupModal();
-    if (control.matches("[data-vocab-close-lookup]")) closeLookupModal();
     if (control.matches("[data-vocab-open-practice]")) openPracticeModal();
     if (control.matches("[data-vocab-close-practice]")) closePracticeModal();
     if (control.matches("[data-vocab-show-answer]")) showAnswer(control);
     if (control.matches("[data-vocab-next]")) nextWord();
-    if (control.matches("[data-vocab-no-save]")) closeLookupModal();
-    if (control.matches("[data-vocab-save]")) await saveLookupResult();
-    if (control.matches("[data-vocab-speak]")) speakLookupResult();
   }
 
   function handleKeydown(event) {
-    if (event.key !== "Escape") return;
-    if (!lookupModal.hidden) closeLookupModal();
-    else if (!mobilePracticeModal.hidden) closePracticeModal();
+    if (event.key === "Escape" && !mobilePracticeModal.hidden) closePracticeModal();
   }
 
   function checkAnswer(form) {
     const word = currentWord();
-    if (!word) return;
+    const config = practiceConfig(word);
+    if (!word || !config) return;
     const input = form.elements.answer;
     const feedback = form.parentElement.querySelector("[data-vocab-feedback]");
-    const expected = state.direction === "vi-en" ? word.english : word.vietnamese;
-    const correct = answersMatch(input.value, expected, state.direction === "en-vi");
+    const correct = answersMatch(input.value, config.expected, config.allowVietnameseWithoutMarks);
     feedback.className = `vocabulary-feedback is-${correct ? "correct" : "wrong"}`;
     feedback.textContent = correct ? "Correct ✓" : "Try again";
     if (!state.reviewRecorded) {
@@ -280,13 +273,13 @@
 
   function showAnswer(control) {
     const word = currentWord();
-    if (!word) return;
+    const config = practiceConfig(word);
+    if (!word || !config) return;
     const root = control.closest("[data-vocab-practice-root]");
     const feedback = root?.querySelector("[data-vocab-feedback]");
     if (!feedback) return;
-    const expected = state.direction === "vi-en" ? word.english : word.vietnamese;
     feedback.className = "vocabulary-feedback is-answer";
-    feedback.textContent = `Answer: ${expected}`;
+    feedback.textContent = `Answer: ${config.expected}`;
   }
 
   function nextWord() {
@@ -312,24 +305,6 @@
     }
   }
 
-  function openLookupModal() {
-    mobilePracticeModal.hidden = true;
-    state.lookupResult = null;
-    renderLookupResult();
-    lookupModal.querySelector("[data-vocab-lookup-status]").textContent = "";
-    lookupModal.hidden = false;
-    document.body.classList.add("modal-open");
-    window.setTimeout(() => lookupModal.querySelector('input[name="query"]')?.focus(), 0);
-  }
-
-  function closeLookupModal() {
-    lookupModal.hidden = true;
-    lookupModal.querySelector("[data-vocab-lookup-form]")?.reset();
-    state.lookupResult = null;
-    renderLookupResult();
-    releaseModalLock();
-  }
-
   function openPracticeModal() {
     renderPracticeRoots();
     mobilePracticeModal.hidden = false;
@@ -346,138 +321,6 @@
     if (![...document.querySelectorAll(".modal-backdrop")].some((modal) => !modal.hidden)) {
       document.body.classList.remove("modal-open");
     }
-  }
-
-  async function lookupWord(form) {
-    if (state.lookupBusy) return;
-    const query = cleanText(form.elements.query.value);
-    const context = cleanText(form.elements.context.value);
-    if (!query) return;
-
-    state.lookupBusy = true;
-    state.lookupResult = null;
-    renderLookupResult();
-    const status = lookupModal.querySelector("[data-vocab-lookup-status]");
-    const button = form.querySelector('button[type="submit"]');
-    status.textContent = "Joy is checking saved and cached results…";
-    button.disabled = true;
-
-    try {
-      const payload = await requestJson(`${API_ROOT}/lookup`, {
-        method: "POST",
-        body: JSON.stringify({ query, context }),
-      });
-      state.lookupResult = normalizeWord(payload.word);
-      if (!state.lookupResult) throw new Error("INVALID_VOCABULARY_RESULT");
-      status.textContent = lookupStatus(payload);
-      renderLookupResult();
-    } catch (error) {
-      status.textContent = vocabularyErrorMessage(error.code || error.message);
-    } finally {
-      state.lookupBusy = false;
-      button.disabled = false;
-    }
-  }
-
-  function lookupStatus(payload) {
-    if (payload.cached && payload.provider === "saved") return "Already saved — no AI call used.";
-    if (payload.cached) return "Reused a previous result — no new AI call used.";
-    if (payload.provider === "openai") return "GPT found a concise dictionary result.";
-    return "Fallback result found.";
-  }
-
-  function renderLookupResult() {
-    const container = lookupModal.querySelector("[data-vocab-lookup-result]");
-    const word = state.lookupResult;
-    if (!container) return;
-    if (!word) {
-      container.innerHTML = "";
-      return;
-    }
-
-    container.innerHTML = `
-      <article class="vocabulary-result-card">
-        <div class="vocabulary-result-main">
-          <div>
-            <small>English${word.partOfSpeech ? ` · ${escapeHtml(word.partOfSpeech)}` : ""}</small>
-            <strong>${escapeHtml(word.english)}</strong>
-          </div>
-          <button type="button" data-vocab-speak aria-label="Hear the English entry">🔊</button>
-        </div>
-        <dl>
-          <div><dt>Vietnamese</dt><dd>${renderMeanings(word.vietnamese)}</dd></div>
-          <div><dt>IPA</dt><dd>${escapeHtml(word.ipa || "—")}</dd></div>
-          <div><dt>Vietnamese reading</dt><dd>${escapeHtml(word.pronunciationVi || "—")}</dd></div>
-          <div class="vocabulary-example">
-            <dt>Example</dt>
-            <dd><span>${escapeHtml(word.example || "—")}</span>${word.exampleVietnamese ? `<small>${escapeHtml(word.exampleVietnamese)}</small>` : ""}</dd>
-          </div>
-        </dl>
-        <p>Save this entry?</p>
-        <div class="modal-actions vocabulary-save-actions">
-          <button class="secondary-button" type="button" data-vocab-no-save>No</button>
-          <button class="primary-button" type="button" data-vocab-save ${state.saveBusy ? "disabled" : ""}>Yes</button>
-        </div>
-      </article>
-    `;
-  }
-
-  function renderMeanings(value) {
-    return cleanText(value)
-      .split(/\s*;\s*/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((meaning, index) => `<span class="vocabulary-meaning">${index + 1}. ${escapeHtml(meaning)}</span>`)
-      .join("");
-  }
-
-  async function saveLookupResult() {
-    if (!state.lookupResult || state.saveBusy) return;
-    state.saveBusy = true;
-    renderLookupResult();
-    const status = lookupModal.querySelector("[data-vocab-lookup-status]");
-    status.textContent = "Saving…";
-
-    try {
-      const payload = await requestJson(API_ROOT, {
-        method: "POST",
-        body: JSON.stringify(state.lookupResult),
-      });
-      const saved = normalizeWord(payload.word);
-      if (!saved) throw new Error("VOCABULARY_SAVE_FAILED");
-      const existingIndex = state.words.findIndex((word) => word.id === saved.id || word.english === saved.english);
-      if (existingIndex >= 0) state.words.splice(existingIndex, 1, saved);
-      else state.words.unshift(saved);
-      saveLocalWords();
-      state.currentId = saved.id;
-      state.direction = Math.random() < 0.5 ? "vi-en" : "en-vi";
-      renderPracticeRoots();
-      status.textContent = payload.created === false ? "This entry was already saved." : "Saved.";
-      window.setTimeout(closeLookupModal, 450);
-    } catch (error) {
-      status.textContent = vocabularyErrorMessage(error.code || error.message);
-    } finally {
-      state.saveBusy = false;
-      renderLookupResult();
-    }
-  }
-
-  function speakLookupResult() {
-    if (!state.lookupResult?.english || !("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(state.lookupResult.english);
-    utterance.lang = "en-US";
-    utterance.rate = 0.82;
-    window.speechSynthesis.speak(utterance);
-  }
-
-  function vocabularyErrorMessage(code) {
-    if (code === "INVALID_VOCABULARY_INPUT") return "Enter one English or Vietnamese word or short phrase.";
-    if (code === "INVALID_VOCABULARY_CONTEXT") return "Keep the optional context to one short sentence.";
-    if (code === "VOCABULARY_AI_UNAVAILABLE") return "Vocabulary lookup is temporarily unavailable.";
-    if (code === "VOCABULARY_RESULT_INVALID") return "Joy could not form a clear dictionary entry. Add a short context sentence.";
-    if (code === "UNAUTHENTICATED") return "Your Joy session expired. Refresh and sign in again.";
-    return "Joy could not complete this vocabulary request.";
   }
 
   async function requestJson(path, options = {}) {
@@ -519,7 +362,7 @@
   }
 
   function escapeHtml(value) {
-    return String(value)
+    return String(value ?? "")
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;")
