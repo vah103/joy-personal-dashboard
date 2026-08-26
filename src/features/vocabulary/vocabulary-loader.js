@@ -4,7 +4,7 @@
     "/project-data/vocabulary/vocabulary-openai.css?v=joy-vocabulary-openai-v2",
     "/project-data/vocabulary/vocabulary-result-size.css?v=joy-vocabulary-result-size-v1",
     "/project-data/vocabulary/vocabulary-modal-fit.css?v=joy-vocabulary-modal-fit-v1",
-    "/project-data/vocabulary/vocabulary-compact.css?v=joy-vocabulary-compact-v2",
+    "/project-data/vocabulary/vocabulary-compact.css?v=joy-vocabulary-compact-v2&ui=minimal-word-v1",
     "/project-data/vocabulary/vocabulary-library.css?v=joy-vocabulary-library-v3&ui=readonly-doubleclick-delete-v1",
     "/project-data/vocabulary/vocabulary-library-tools.css?v=joy-vocabulary-library-tools-v1",
   ];
