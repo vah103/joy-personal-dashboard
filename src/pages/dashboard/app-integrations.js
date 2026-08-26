@@ -61,14 +61,12 @@ async function initializeCloudGmail() {
       accountSync.connected = false;
       accountSync.email = "";
       gmail.status = "disconnected";
-      elements.scratchpadStatus.textContent = "Local";
       renderBrief();
       renderEmail();
       return;
     }
     accountSync.connected = true;
     accountSync.email = session.email || "";
-    await syncCloudScratchpad();
     await syncCloudProjects();
     await fetchCloudEmails();
   } catch {
@@ -326,9 +324,7 @@ async function disconnectGmail() {
       gmail.status = "disconnected";
       accountSync.connected = false;
       accountSync.email = "";
-      accountSync.scratchpadReady = false;
       accountSync.projectsReady = false;
-      elements.scratchpadStatus.textContent = "Local";
       state.gmailPinnedIds = [];
       saveState();
       renderBrief();

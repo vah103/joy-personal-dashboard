@@ -8,7 +8,6 @@ const modulePaths = [
   "src/pages/dashboard/app-config.js",
   "src/pages/dashboard/app-helpers.js",
   "src/pages/dashboard/app-state.js",
-  "src/pages/dashboard/app-scratchpad.js",
   "src/pages/dashboard/app-communication.js",
   "src/pages/dashboard/app-render.js",
   "src/pages/dashboard/app-integrations.js",
@@ -69,25 +68,22 @@ test("dashboard settings have one explicit owner", async () => {
   }
 });
 
-test("Scratchpad lifecycle has one frontend owner", async () => {
-  const sources = Object.fromEntries(await Promise.all(
-    modulePaths.map(async (path) => [path, await read(path)]),
-  ));
-  const scratchpad = sources["src/pages/dashboard/app-scratchpad.js"];
+test("retired Scratchpad does not participate in dashboard runtime", async () => {
+  const [html, state, integrations, bootstrap, worker, accountSync, styles, vocabulary] = await Promise.all([
+    read("src/pages/dashboard/index.html"),
+    read("src/pages/dashboard/app-state.js"),
+    read("src/pages/dashboard/app-integrations.js"),
+    read("src/pages/dashboard/app-bootstrap.js"),
+    read("worker/dashboard-data.js"),
+    read("worker/account-sync.js"),
+    read("src/pages/dashboard/styles.css"),
+    read("project-data/vocabulary/vocabulary.js"),
+  ]);
 
-  for (const functionName of [
-    "loadScratchpadMeta",
-    "saveScratchpadMeta",
-    "loadScratchpad",
-    "saveCloudScratchpad",
-    "queueScratchpadSave",
-    "syncCloudScratchpad",
-  ]) {
-    assert.match(scratchpad, new RegExp(`function ${functionName}\\b`));
-    for (const [path, source] of Object.entries(sources)) {
-      if (path.endsWith("app-scratchpad.js")) continue;
-      assert.doesNotMatch(source, new RegExp(`function ${functionName}\\b`), `${functionName} leaked into ${path}`);
-    }
+  assert.match(html, /data-vocabulary-widget/);
+  assert.match(html, /data-vocab-practice-root="desktop"/);
+  for (const [label, runtime] of Object.entries({ html, state, integrations, bootstrap, worker, accountSync, styles, vocabulary })) {
+    assert.doesNotMatch(runtime, /scratchpad/i, `Scratchpad leaked into ${label}`);
   }
 });
 

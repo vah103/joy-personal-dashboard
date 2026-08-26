@@ -115,7 +115,6 @@ const dashboardAppSourceFiles = [
   "app-config.js",
   "app-helpers.js",
   "app-state.js",
-  "app-scratchpad.js",
   "app-communication.js",
   "app-render.js",
   "app-integrations.js",

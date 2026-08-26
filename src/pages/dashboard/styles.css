@@ -1673,7 +1673,7 @@ h1 { color: #293033; }
   .joy-message #brief-copy { white-space: normal; }
 }
 
-/* Hey Joy sidebar: icon-only navigation and a local scratchpad */
+/* Hey Joy sidebar: icon-only navigation */
 .brand {
   padding-left: 10px;
   font-family: "Quicksand", "Instrument Sans", sans-serif;
@@ -1721,73 +1721,9 @@ h1 { color: #293033; }
   stroke-linejoin: round;
 }
 
-.scratchpad {
-  min-height: 260px;
-  margin-top: 20px;
-  padding: 13px;
-  display: flex;
-  flex-direction: column;
-  border: 1px solid rgba(255, 255, 255, 0.26);
-  border-radius: 19px;
-  background:
-    linear-gradient(rgba(242, 241, 235, 0.19), rgba(226, 231, 229, 0.13)),
-    rgba(84, 101, 106, 0.22);
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.18), 0 15px 34px rgba(42, 52, 55, 0.12);
-}
-.scratchpad-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 9px;
-}
-.scratchpad-heading p,
-.scratchpad-heading span { margin: 0; }
-.scratchpad-heading p {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.035em;
-}
-.scratchpad-heading span {
-  color: rgba(241, 245, 243, 0.58);
-  font-size: 8px;
-  font-weight: 500;
-}
-.scratchpad textarea {
-  width: 100%;
-  min-height: 205px;
-  flex: 1;
-  resize: none;
-  padding: 11px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.38);
-  border-radius: 13px;
-  outline: none;
-  background:
-    repeating-linear-gradient(
-      to bottom,
-      transparent 0,
-      transparent 25px,
-      rgba(72, 90, 95, 0.12) 25px,
-      rgba(72, 90, 95, 0.12) 26px
-    ),
-    rgba(241, 239, 231, 0.8);
-  color: #35484f;
-  font-family: "Instrument Sans", "Segoe UI", sans-serif;
-  font-size: 11px;
-  line-height: 26px;
-}
-.scratchpad textarea::placeholder { color: rgba(65, 81, 86, 0.58); }
-.scratchpad textarea:focus {
-  border-color: rgba(236, 240, 236, 0.72);
-  background-color: rgba(247, 244, 236, 0.9);
-  box-shadow: 0 0 0 3px rgba(224, 234, 235, 0.11);
-}
 .sidebar-footer { margin-top: auto; }
 
 @media (max-height: 780px) and (min-width: 761px) {
-  .scratchpad { min-height: 190px; }
-  .scratchpad textarea { min-height: 135px; }
   .profile-card { display: flex; padding: 10px 12px; }
 }
 

@@ -1,8 +1,8 @@
 (() => {
   const API_ROOT = "/api/vocabulary";
   const LOCAL_STORAGE_KEY = "joy-vocabulary-cache-v1";
-  const scratchpad = document.querySelector(".scratchpad");
-  if (!scratchpad) return;
+  const vocabularyWidget = document.querySelector("[data-vocabulary-widget]");
+  if (!vocabularyWidget) return;
 
   const state = {
     words: loadLocalWords(),
@@ -15,10 +15,6 @@
     reviewRecorded: false,
     nextTimer: null,
   };
-
-  scratchpad.className = "vocabulary-widget";
-  scratchpad.setAttribute("aria-label", "Vocabulary flashcards");
-  scratchpad.innerHTML = '<div data-vocab-practice-root="desktop"></div>';
 
   const lookupModal = createLookupModal();
   const mobilePracticeModal = createMobilePracticeModal();
@@ -300,7 +296,7 @@
     window.setTimeout(() => {
       const visibleRoot = !mobilePracticeModal.hidden
         ? mobilePracticeModal.querySelector("[data-vocab-practice-root]")
-        : scratchpad.querySelector("[data-vocab-practice-root]");
+        : vocabularyWidget.querySelector("[data-vocab-practice-root]");
       visibleRoot?.querySelector('input[name="answer"]')?.focus();
     }, 0);
   }

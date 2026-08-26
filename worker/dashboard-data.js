@@ -1,8 +1,6 @@
 import {
   normalizeProjectInput,
-  normalizeScratchpadInput,
   projectRowToApi,
-  scratchpadRowToApi,
 } from "./account-sync.js";
 import { isSameOrigin, json, readJson } from "./shared/http.js";
 import { getSession } from "./shared/session.js";
@@ -12,7 +10,6 @@ const DASHBOARD_DATA_ROUTES = new Set([
   "/api/projects",
   "/api/projects/import",
   "/api/projects/archive",
-  "/api/scratchpad",
   "/api/tasks",
   "/api/tasks/complete",
 ]);
@@ -34,8 +31,6 @@ export async function handleDashboardDataRequest(request, env) {
   if (url.pathname === "/api/projects" && request.method === "POST") return addProject(request, email, env);
   if (url.pathname === "/api/projects/import" && request.method === "POST") return importProjects(request, email, env);
   if (url.pathname === "/api/projects/archive" && request.method === "POST") return archiveProject(request, email, env);
-  if (url.pathname === "/api/scratchpad" && request.method === "GET") return getScratchpad(email, env);
-  if (url.pathname === "/api/scratchpad" && request.method === "PUT") return updateScratchpad(request, email, env);
   if (url.pathname === "/api/tasks" && request.method === "GET") return listTasks(email, env);
   if (url.pathname === "/api/tasks" && request.method === "POST") return addTask(request, email, env);
   if (url.pathname === "/api/tasks/complete" && request.method === "POST") return completeTask(request, email, env);
@@ -186,77 +181,4 @@ async function archiveProject(request, email, env) {
   `).bind(Date.now(), email, id).run();
   if (!Number(result.meta?.changes || 0)) return json({ error: "PROJECT_NOT_FOUND" }, 404);
   return json({ ok: true, id });
-}
-
-async function getScratchpad(email, env) {
-  const row = await env.DB.prepare(`
-    SELECT content, version, updated_at
-    FROM scratchpads WHERE user_email = ?
-  `).bind(email).first();
-  return json({ scratchpad: scratchpadRowToApi(row), fetchedAt: Date.now() });
-}
-
-async function updateScratchpad(request, email, env) {
-  const validation = normalizeScratchpadInput(await readJson(request));
-  if (!validation.ok) return json({ error: validation.error }, 400);
-  const { content, baseVersion } = validation.value;
-  const current = await env.DB.prepare(`
-    SELECT content, version, updated_at
-    FROM scratchpads WHERE user_email = ?
-  `).bind(email).first();
-
-  if (!current) {
-    if (baseVersion !== 0) {
-      return json({
-        error: "SCRATCHPAD_VERSION_CONFLICT",
-        scratchpad: scratchpadRowToApi(null),
-      }, 409);
-    }
-    const now = Date.now();
-    await env.DB.prepare(`
-      INSERT INTO scratchpads (user_email, content, version, updated_at)
-      VALUES (?, ?, 1, ?)
-    `).bind(email, content, now).run();
-    return json({
-      ok: true,
-      scratchpad: { exists: true, content, version: 1, updatedAt: now },
-    });
-  }
-
-  const currentVersion = Number(current.version || 0);
-  if (baseVersion !== currentVersion) {
-    return json({
-      error: "SCRATCHPAD_VERSION_CONFLICT",
-      scratchpad: scratchpadRowToApi(current),
-    }, 409);
-  }
-
-  const now = Date.now();
-  const nextVersion = currentVersion + 1;
-  await env.DB.batch([
-    env.DB.prepare(`
-      INSERT INTO scratchpad_revisions (user_email, content, version, created_at)
-      VALUES (?, ?, ?, ?)
-    `).bind(email, String(current.content || ""), currentVersion, now),
-    env.DB.prepare(`
-      UPDATE scratchpads SET content = ?, version = ?, updated_at = ?
-      WHERE user_email = ? AND version = ?
-    `).bind(content, nextVersion, now, email, currentVersion),
-  ]);
-
-  await env.DB.prepare(`
-    DELETE FROM scratchpad_revisions
-    WHERE user_email = ?
-      AND id NOT IN (
-        SELECT id FROM scratchpad_revisions
-        WHERE user_email = ?
-        ORDER BY created_at DESC
-        LIMIT 20
-      )
-  `).bind(email, email).run();
-
-  return json({
-    ok: true,
-    scratchpad: { exists: true, content, version: nextVersion, updatedAt: now },
-  });
 }
