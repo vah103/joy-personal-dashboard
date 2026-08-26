@@ -1,24 +1,49 @@
 (() => {
   const STYLESHEET_URLS = [
     "/project-data/vocabulary/vocabulary.css?v=joy-vocabulary-v1",
-    "/project-data/vocabulary/vocabulary-openai.css?v=joy-vocabulary-openai-v2",
-    "/project-data/vocabulary/vocabulary-result-size.css?v=joy-vocabulary-result-size-v1",
-    "/project-data/vocabulary/vocabulary-modal-fit.css?v=joy-vocabulary-modal-fit-v1",
     "/project-data/vocabulary/vocabulary-compact.css?v=joy-vocabulary-compact-v2&ui=minimal-word-v1",
     "/project-data/vocabulary/vocabulary-practice-redesign.css?v=joy-vocabulary-practice-redesign-v2",
     "/project-data/vocabulary/vocabulary-library.css?v=joy-vocabulary-library-v3&ui=readonly-doubleclick-delete-v1",
     "/project-data/vocabulary/vocabulary-library-tools.css?v=joy-vocabulary-library-tools-v1",
   ];
-  const BROWSER_SPEECH_SCRIPT_URL = "/project-data/shared/browser-speech.js?v=joy-browser-speech-v1";
-  const SCRIPT_URL = "/project-data/vocabulary/vocabulary.js?v=joy-vocabulary-v2";
-  const PRACTICE_REDESIGN_SCRIPT_URL = "/project-data/vocabulary/vocabulary-practice-redesign.js?v=joy-vocabulary-practice-redesign-v1";
-  const COMPACT_SCRIPT_URL = "/project-data/vocabulary/vocabulary-compact.js?v=joy-vocabulary-compact-v3";
-  const LIBRARY_SCRIPT_URL = "/project-data/vocabulary/vocabulary-library.js?v=joy-vocabulary-library-v2&ui=readonly-doubleclick-delete-v1";
-  const LIBRARY_ADD_BUTTON_SCRIPT_URL = "/project-data/vocabulary/vocabulary-library-add-button.js?v=joy-vocabulary-library-add-button-v1";
-  const LIBRARY_TOOLS_SCRIPT_URL = "/project-data/vocabulary/vocabulary-library-tools.js?v=joy-vocabulary-library-tools-v1";
-  const MOBILE_SCRIPT_URL = "/project-data/vocabulary/vocabulary-mobile-inline.js?v=joy-vocabulary-mobile-inline-v3";
 
-  const loadSpeaking = () => window.JoySpeakingLoader?.load();
+  const SCRIPTS = Object.freeze({
+    browserSpeech: {
+      attribute: "data-joy-browser-speech",
+      url: "/project-data/shared/browser-speech.js?v=joy-browser-speech-v1",
+      version: "joy-browser-speech-v1",
+    },
+    vocabulary: {
+      attribute: "data-joy-vocabulary",
+      url: "/project-data/vocabulary/vocabulary.js?v=joy-vocabulary-v2",
+      version: "joy-vocabulary-v2",
+    },
+    practice: {
+      attribute: "data-joy-vocabulary-practice-redesign",
+      url: "/project-data/vocabulary/vocabulary-practice-redesign.js?v=joy-vocabulary-practice-redesign-v1",
+      version: "joy-vocabulary-practice-redesign-v1",
+    },
+    compact: {
+      attribute: "data-joy-vocabulary-compact",
+      url: "/project-data/vocabulary/vocabulary-compact.js?v=joy-vocabulary-compact-v3",
+      version: "joy-vocabulary-compact-v3",
+    },
+    library: {
+      attribute: "data-joy-vocabulary-library",
+      url: "/project-data/vocabulary/vocabulary-library.js?v=joy-vocabulary-library-v2&ui=readonly-doubleclick-delete-v1",
+      version: "joy-vocabulary-library-v2",
+    },
+    libraryTools: {
+      attribute: "data-joy-vocabulary-library-tools",
+      url: "/project-data/vocabulary/vocabulary-library-tools.js?v=joy-vocabulary-library-tools-v1",
+      version: "joy-vocabulary-library-tools-v1",
+    },
+    mobile: {
+      attribute: "data-joy-vocabulary-mobile-inline",
+      url: "/project-data/vocabulary/vocabulary-mobile-inline.js?v=joy-vocabulary-mobile-inline-v3",
+      version: "joy-vocabulary-mobile-inline-v3",
+    },
+  });
 
   function loadStyles() {
     STYLESHEET_URLS.forEach((href) => {
@@ -31,144 +56,64 @@
     });
   }
 
+  function loadScript(config, next, { tolerateError = false } = {}) {
+    const selector = `script[${config.attribute}="true"]`;
+    const existing = document.querySelector(selector);
+    if (existing && existing.src.includes(config.version)) {
+      if (existing.dataset.loaded === "true") next?.();
+      else {
+        existing.addEventListener("load", next, { once: true });
+        if (tolerateError) existing.addEventListener("error", next, { once: true });
+      }
+      return;
+    }
+    existing?.remove();
+
+    const script = document.createElement("script");
+    script.src = config.url;
+    script.setAttribute(config.attribute, "true");
+    script.addEventListener("load", () => { script.dataset.loaded = "true"; }, { once: true });
+    if (next) script.addEventListener("load", next, { once: true });
+    if (next && tolerateError) script.addEventListener("error", next, { once: true });
+    document.body.append(script);
+  }
+
+  function normalizeLibraryAddButton() {
+    const button = document.querySelector("[data-vocab-library-add]");
+    if (button) {
+      button.textContent = "+";
+      button.setAttribute("aria-label", "Add manually");
+      button.setAttribute("title", "Add manually");
+    }
+    loadScript(SCRIPTS.libraryTools, loadMobileInline, { tolerateError: true });
+  }
+
   function loadMobileInline() {
-    const existing = document.querySelector('script[data-joy-vocabulary-mobile-inline="true"]');
-    if (existing && existing.src.includes("joy-vocabulary-mobile-inline-v3")) {
-      if (existing.dataset.loaded === "true") loadSpeaking();
-      else existing.addEventListener("load", loadSpeaking, { once: true });
-      return;
-    }
-    existing?.remove();
-
-    const script = document.createElement("script");
-    script.src = MOBILE_SCRIPT_URL;
-    script.dataset.joyVocabularyMobileInline = "true";
-    script.addEventListener("load", () => { script.dataset.loaded = "true"; }, { once: true });
-    script.addEventListener("load", loadSpeaking, { once: true });
-    document.body.append(script);
-  }
-
-  function loadLibraryTools() {
-    const existing = document.querySelector('script[data-joy-vocabulary-library-tools="true"]');
-    if (existing && existing.src.includes("joy-vocabulary-library-tools-v1")) {
-      if (existing.dataset.loaded === "true") loadMobileInline();
-      else existing.addEventListener("load", loadMobileInline, { once: true });
-      return;
-    }
-    existing?.remove();
-
-    const script = document.createElement("script");
-    script.src = LIBRARY_TOOLS_SCRIPT_URL;
-    script.dataset.joyVocabularyLibraryTools = "true";
-    script.addEventListener("load", () => { script.dataset.loaded = "true"; }, { once: true });
-    script.addEventListener("load", loadMobileInline, { once: true });
-    script.addEventListener("error", loadMobileInline, { once: true });
-    document.body.append(script);
-  }
-
-  function loadLibraryAddButton() {
-    const existing = document.querySelector('script[data-joy-vocabulary-library-add-button="true"]');
-    if (existing && existing.src.includes("joy-vocabulary-library-add-button-v1")) {
-      if (existing.dataset.loaded === "true") loadLibraryTools();
-      else existing.addEventListener("load", loadLibraryTools, { once: true });
-      return;
-    }
-    existing?.remove();
-
-    const script = document.createElement("script");
-    script.src = LIBRARY_ADD_BUTTON_SCRIPT_URL;
-    script.dataset.joyVocabularyLibraryAddButton = "true";
-    script.addEventListener("load", () => { script.dataset.loaded = "true"; }, { once: true });
-    script.addEventListener("load", loadLibraryTools, { once: true });
-    script.addEventListener("error", loadLibraryTools, { once: true });
-    document.body.append(script);
+    loadScript(SCRIPTS.mobile);
   }
 
   function loadLibrary() {
-    const existing = document.querySelector('script[data-joy-vocabulary-library="true"]');
-    if (existing && existing.src.includes("joy-vocabulary-library-v2&ui=readonly-doubleclick-delete-v1")) {
-      if (existing.dataset.loaded === "true") loadLibraryAddButton();
-      else existing.addEventListener("load", loadLibraryAddButton, { once: true });
-      return;
-    }
-    existing?.remove();
-
-    const script = document.createElement("script");
-    script.src = LIBRARY_SCRIPT_URL;
-    script.dataset.joyVocabularyLibrary = "true";
-    script.addEventListener("load", () => { script.dataset.loaded = "true"; }, { once: true });
-    script.addEventListener("load", loadLibraryAddButton, { once: true });
-    script.addEventListener("error", loadLibraryAddButton, { once: true });
-    document.body.append(script);
+    loadScript(SCRIPTS.library, normalizeLibraryAddButton, { tolerateError: true });
   }
 
   function loadCompactCard() {
-    const existing = document.querySelector('script[data-joy-vocabulary-compact="true"]');
-    if (existing && existing.src.includes("joy-vocabulary-compact-v3")) {
-      if (existing.dataset.loaded === "true") loadLibrary();
-      else existing.addEventListener("load", loadLibrary, { once: true });
-      return;
-    }
-    existing?.remove();
-
-    const script = document.createElement("script");
-    script.src = COMPACT_SCRIPT_URL;
-    script.dataset.joyVocabularyCompact = "true";
-    script.addEventListener("load", () => { script.dataset.loaded = "true"; }, { once: true });
-    script.addEventListener("load", loadLibrary, { once: true });
-    document.body.append(script);
+    loadScript(SCRIPTS.compact, loadLibrary);
   }
 
   function loadPracticeRedesign() {
-    const existing = document.querySelector('script[data-joy-vocabulary-practice-redesign="true"]');
-    if (existing && existing.src.includes("joy-vocabulary-practice-redesign-v1")) {
-      if (existing.dataset.loaded === "true") loadCompactCard();
-      else existing.addEventListener("load", loadCompactCard, { once: true });
-      return;
-    }
-    existing?.remove();
-
-    const script = document.createElement("script");
-    script.src = PRACTICE_REDESIGN_SCRIPT_URL;
-    script.dataset.joyVocabularyPracticeRedesign = "true";
-    script.addEventListener("load", () => { script.dataset.loaded = "true"; }, { once: true });
-    script.addEventListener("load", loadCompactCard, { once: true });
-    script.addEventListener("error", loadCompactCard, { once: true });
-    document.body.append(script);
+    loadScript(SCRIPTS.practice, loadCompactCard, { tolerateError: true });
   }
 
   function loadVocabulary() {
-    const existing = document.querySelector('script[data-joy-vocabulary="true"]');
-    if (existing && existing.src.includes("joy-vocabulary-v2")) {
-      if (window.JoyVocabulary) loadPracticeRedesign();
-      else existing.addEventListener("load", loadPracticeRedesign, { once: true });
-      return;
-    }
-    existing?.remove();
-
-    const script = document.createElement("script");
-    script.src = SCRIPT_URL;
-    script.dataset.joyVocabulary = "true";
-    script.addEventListener("load", loadPracticeRedesign, { once: true });
-    document.body.append(script);
+    loadScript(SCRIPTS.vocabulary, loadPracticeRedesign);
   }
 
   function loadBrowserSpeech() {
-    const existing = document.querySelector('script[data-joy-browser-speech="true"]');
-    if (existing && existing.src.includes("joy-browser-speech-v1")) {
-      if (existing.dataset.loaded === "true" || window.__joyBrowserSpeechInstalled) loadVocabulary();
-      else existing.addEventListener("load", loadVocabulary, { once: true });
+    if (window.__joyBrowserSpeechInstalled) {
+      loadVocabulary();
       return;
     }
-    existing?.remove();
-
-    const script = document.createElement("script");
-    script.src = BROWSER_SPEECH_SCRIPT_URL;
-    script.dataset.joyBrowserSpeech = "true";
-    script.addEventListener("load", () => { script.dataset.loaded = "true"; }, { once: true });
-    script.addEventListener("load", loadVocabulary, { once: true });
-    script.addEventListener("error", loadVocabulary, { once: true });
-    document.body.append(script);
+    loadScript(SCRIPTS.browserSpeech, loadVocabulary, { tolerateError: true });
   }
 
   function load() {
