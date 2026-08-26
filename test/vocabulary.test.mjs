@@ -75,7 +75,19 @@ test("Vocabulary outside card keeps Practice while lookup and Say it live in Sav
   assert.match(compactStyles, /-webkit-line-clamp:\s*2/);
 });
 
-test("Vocabulary top bar opens a clean five-column editable saved-word library", () => {
+test("Vocabulary practice rotates through word and example-context prompts while answers stay words", () => {
+  assert.match(frontend, /function availableDirections\(word\)/);
+  assert.match(frontend, /directions = \["vi-en", "en-vi"\]/);
+  assert.match(frontend, /directions\.push\("vi-example-en"\)/);
+  assert.match(frontend, /directions\.push\("en-example-vi"\)/);
+  assert.match(frontend, /Vietnamese example → English word/);
+  assert.match(frontend, /English example → Vietnamese word/);
+  assert.match(frontend, /prompt:\s*word\.exampleVietnamese[\s\S]*expected:\s*word\.english/);
+  assert.match(frontend, /prompt:\s*word\.example[\s\S]*expected:\s*word\.vietnamese/);
+  assert.match(frontend, /vocabulary-prompt\$\{config\.isExample \? " is-example" : ""\}/);
+});
+
+test("Vocabulary top bar opens a clean six-column editable saved-word library", () => {
   assert.match(libraryFrontend, /\.vocabulary-compact-topline/);
   assert.match(libraryFrontend, /event\.target\.closest\("button"\)/);
   assert.match(libraryFrontend, /vocabulary-library-table/);
@@ -84,6 +96,7 @@ test("Vocabulary top bar opens a clean five-column editable saved-word library",
   assert.match(libraryFrontend, />Vietnamese reading</);
   assert.match(libraryFrontend, />Vietnamese meaning</);
   assert.match(libraryFrontend, />English example</);
+  assert.match(libraryFrontend, />Vietnamese example</);
   assert.match(libraryFrontend, /data-vocab-library-add/);
   assert.doesNotMatch(libraryFrontend, /data-vocab-library-save-row/);
   assert.doesNotMatch(libraryFrontend, />Save<\/button>/);
@@ -94,7 +107,8 @@ test("Vocabulary top bar opens a clean five-column editable saved-word library",
   assert.match(libraryFrontend, /data-vocab-field="pronunciationVi"/);
   assert.match(libraryFrontend, /data-vocab-field="vietnamese"/);
   assert.match(libraryFrontend, /data-vocab-field="example"/);
-  assert.match(libraryStyles, /min-width:\s*1020px/);
+  assert.match(libraryFrontend, /data-vocab-field="exampleVietnamese"/);
+  assert.match(libraryStyles, /min-width:\s*1320px/);
   assert.match(libraryStyles, /position:\s*sticky/);
   assert.match(libraryStyles, /font:\s*750 17px\/1\.5/);
   assert.match(libraryStyles, /font-size:\s*12px/);
@@ -105,6 +119,8 @@ test("Vocabulary library auto-saves manual inserts and persistent edits through 
   assert.match(libraryFrontend, /handleFieldChange/);
   assert.match(libraryFrontend, /await saveRow\(row\)/);
   assert.match(libraryFrontend, /word\.operation = "update"/);
+  assert.match(libraryFrontend, /exampleVietnamese:\s*fieldValue\(row, "exampleVietnamese"\)/);
+  assert.match(libraryFrontend, /Complete all six columns/);
   assert.match(libraryFrontend, /method:\s*"POST"/);
   assert.match(libraryFrontend, /row\.dataset\.saving/);
   assert.match(worker, /allowManual:\s*true/);
@@ -114,7 +130,8 @@ test("Vocabulary library auto-saves manual inserts and persistent edits through 
   assert.match(worker, /english_key = \?/);
   assert.match(worker, /VOCABULARY_WORD_EXISTS/);
   assert.match(worker, /updated:\s*true/);
-  assert.match(worker, /if \(!allowManual && \(!partOfSpeech \|\| !exampleVietnamese\)\) return null/);
+  assert.match(worker, /serializeExample\(word\)/);
+  assert.match(worker, /parseStoredExample/);
 });
 
 test("Narrow layouts clone the compact launcher and preserve the real practice modal", () => {
@@ -167,12 +184,12 @@ test("Vocabulary save and review routes retain authenticated D1 storage", () => 
 
 test("Dashboard loader cache-busts the current Vocabulary assets only", () => {
   assert.match(loader, /vocabulary-compact\.css\?v=joy-vocabulary-compact-v2/);
-  assert.match(loader, /vocabulary-practice-redesign\.css\?v=joy-vocabulary-practice-redesign-v2/);
-  assert.match(loader, /vocabulary-library\.css\?v=joy-vocabulary-library-v3/);
+  assert.match(loader, /vocabulary-practice-redesign\.css\?v=joy-vocabulary-practice-redesign-v3/);
+  assert.match(loader, /vocabulary-library\.css\?v=joy-vocabulary-library-v4/);
   assert.match(loader, /vocabulary-library-tools\.css\?v=joy-vocabulary-library-tools-v1/);
-  assert.match(loader, /vocabulary\.js\?v=joy-vocabulary-v2/);
-  assert.match(loader, /vocabulary-compact\.js\?v=joy-vocabulary-compact-v3/);
-  assert.match(loader, /vocabulary-library\.js\?v=joy-vocabulary-library-v2/);
+  assert.match(loader, /vocabulary\.js\?v=joy-vocabulary-v3/);
+  assert.match(loader, /vocabulary-compact\.js\?v=joy-vocabulary-compact-v4/);
+  assert.match(loader, /vocabulary-library\.js\?v=joy-vocabulary-library-v3/);
   assert.match(loader, /vocabulary-library-tools\.js\?v=joy-vocabulary-library-tools-v1/);
   assert.match(loader, /vocabulary-mobile-inline\.js\?v=joy-vocabulary-mobile-inline-v3/);
   assert.doesNotMatch(loader, /vocabulary-openai|vocabulary-result-size|vocabulary-modal-fit|project-data\/speaking/);
