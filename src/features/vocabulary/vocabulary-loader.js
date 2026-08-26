@@ -92,10 +92,10 @@
         <div class="vocabulary-compact-topline" role="button" tabindex="0">
           <div class="vocabulary-compact-title">
             <strong>Words</strong>
-            <span class="vocabulary-compact-dynamic" data-vocab-compact-count aria-label="Loading saved words">…</span>
+            <span class="vocabulary-compact-dynamic" data-vocab-compact-count>…</span>
           </div>
         </div>
-        <button class="vocabulary-compact-preview" type="button" data-vocab-open-practice aria-label="Vocabulary is loading" disabled>
+        <button class="vocabulary-compact-preview" type="button" data-vocab-open-practice disabled>
           <strong class="vocabulary-compact-dynamic" data-vocab-compact-prompt>&nbsp;</strong>
         </button>
         <div class="vocabulary-compact-empty" data-vocab-compact-empty hidden>
