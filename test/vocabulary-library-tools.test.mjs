@@ -40,6 +40,6 @@ test("compact Vocabulary no longer exposes lookup or Say it outside the library"
 test("loader cache-busts and loads the inline library tools", () => {
   assert.match(loader, /vocabulary-library-tools\.css\?v=joy-vocabulary-library-tools-v1/);
   assert.match(loader, /vocabulary-library-tools\.js\?v=joy-vocabulary-library-tools-v1/);
-  assert.match(loader, /vocabulary-compact\.js\?v=joy-vocabulary-compact-v3/);
+  assert.match(loader, /vocabulary-compact\.js\?v=joy-vocabulary-compact-v4/);
   assert.match(loader, /loadScript\(SCRIPTS\.libraryTools, loadMobileInline/);
 });
