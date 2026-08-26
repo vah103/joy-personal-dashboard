@@ -1,9 +1,0 @@
-.vocabulary-result-main strong {
-  font-size: clamp(30px, 3vw, 36px);
-}
-
-@media (max-width: 900px) {
-  .vocabulary-result-main strong {
-    font-size: clamp(28px, 7vw, 34px);
-  }
-}
