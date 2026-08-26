@@ -1,6 +1,12 @@
-.vocabulary-widget {
+.sidebar .vocabulary-widget {
+  min-height: 116px;
   margin-top: 18px;
-  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(66, 72, 74, 0.14);
+  border-radius: 18px;
+  background: rgba(247, 246, 242, 0.5);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.52);
+  color: #34393b;
 }
 
 .vocabulary-widget > [data-vocab-practice-root="desktop"] {
@@ -74,6 +80,10 @@
   cursor: pointer;
 }
 
+.vocabulary-compact-preview:disabled {
+  cursor: default;
+}
+
 .vocabulary-compact-meta,
 .vocabulary-compact-arrow {
   display: none !important;
@@ -110,7 +120,18 @@
   font-weight: 850;
 }
 
-.vocabulary-compact-preview:hover,
+.vocabulary-compact-dynamic {
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 170ms ease, transform 170ms ease;
+}
+
+.vocabulary-compact-card.is-ready .vocabulary-compact-dynamic {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.vocabulary-compact-preview:hover:not(:disabled),
 .vocabulary-compact-empty:hover {
   background: rgba(255, 255, 255, 0.72);
 }
@@ -122,8 +143,13 @@
   box-shadow: 0 0 0 3px rgba(91, 119, 132, 0.15);
 }
 
+.vocabulary-compact-preview[hidden],
+.vocabulary-compact-empty[hidden] {
+  display: none !important;
+}
+
 @media (max-width: 760px) {
-  .vocabulary-widget {
+  .sidebar .vocabulary-widget {
     margin-top: 14px;
   }
 
@@ -140,5 +166,10 @@
 @media (prefers-reduced-motion: reduce) {
   .vocabulary-compact-card * {
     transition: none !important;
+  }
+
+  .vocabulary-compact-dynamic {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
