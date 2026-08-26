@@ -5,11 +5,13 @@
     "/project-data/vocabulary/vocabulary-result-size.css?v=joy-vocabulary-result-size-v1",
     "/project-data/vocabulary/vocabulary-modal-fit.css?v=joy-vocabulary-modal-fit-v1",
     "/project-data/vocabulary/vocabulary-compact.css?v=joy-vocabulary-compact-v2&ui=minimal-word-v1",
+    "/project-data/vocabulary/vocabulary-practice-redesign.css?v=joy-vocabulary-practice-redesign-v1",
     "/project-data/vocabulary/vocabulary-library.css?v=joy-vocabulary-library-v3&ui=readonly-doubleclick-delete-v1",
     "/project-data/vocabulary/vocabulary-library-tools.css?v=joy-vocabulary-library-tools-v1",
   ];
   const BROWSER_SPEECH_SCRIPT_URL = "/project-data/shared/browser-speech.js?v=joy-browser-speech-v1";
   const SCRIPT_URL = "/project-data/vocabulary/vocabulary.js?v=joy-vocabulary-v2";
+  const PRACTICE_REDESIGN_SCRIPT_URL = "/project-data/vocabulary/vocabulary-practice-redesign.js?v=joy-vocabulary-practice-redesign-v1";
   const COMPACT_SCRIPT_URL = "/project-data/vocabulary/vocabulary-compact.js?v=joy-vocabulary-compact-v3";
   const LIBRARY_SCRIPT_URL = "/project-data/vocabulary/vocabulary-library.js?v=joy-vocabulary-library-v2&ui=readonly-doubleclick-delete-v1";
   const LIBRARY_ADD_BUTTON_SCRIPT_URL = "/project-data/vocabulary/vocabulary-library-add-button.js?v=joy-vocabulary-library-add-button-v1";
@@ -117,11 +119,29 @@
     document.body.append(script);
   }
 
+  function loadPracticeRedesign() {
+    const existing = document.querySelector('script[data-joy-vocabulary-practice-redesign="true"]');
+    if (existing && existing.src.includes("joy-vocabulary-practice-redesign-v1")) {
+      if (existing.dataset.loaded === "true") loadCompactCard();
+      else existing.addEventListener("load", loadCompactCard, { once: true });
+      return;
+    }
+    existing?.remove();
+
+    const script = document.createElement("script");
+    script.src = PRACTICE_REDESIGN_SCRIPT_URL;
+    script.dataset.joyVocabularyPracticeRedesign = "true";
+    script.addEventListener("load", () => { script.dataset.loaded = "true"; }, { once: true });
+    script.addEventListener("load", loadCompactCard, { once: true });
+    script.addEventListener("error", loadCompactCard, { once: true });
+    document.body.append(script);
+  }
+
   function loadVocabulary() {
     const existing = document.querySelector('script[data-joy-vocabulary="true"]');
     if (existing && existing.src.includes("joy-vocabulary-v2")) {
-      if (window.JoyVocabulary) loadCompactCard();
-      else existing.addEventListener("load", loadCompactCard, { once: true });
+      if (window.JoyVocabulary) loadPracticeRedesign();
+      else existing.addEventListener("load", loadPracticeRedesign, { once: true });
       return;
     }
     existing?.remove();
@@ -129,7 +149,7 @@
     const script = document.createElement("script");
     script.src = SCRIPT_URL;
     script.dataset.joyVocabulary = "true";
-    script.addEventListener("load", loadCompactCard, { once: true });
+    script.addEventListener("load", loadPracticeRedesign, { once: true });
     document.body.append(script);
   }
 
