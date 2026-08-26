@@ -15,8 +15,8 @@
     },
     vocabulary: {
       attribute: "data-joy-vocabulary",
-      url: "/project-data/vocabulary/vocabulary.js?v=joy-vocabulary-v3",
-      version: "joy-vocabulary-v3",
+      url: "/project-data/vocabulary/vocabulary.js?v=joy-vocabulary-v4",
+      version: "joy-vocabulary-v4",
     },
     practice: {
       attribute: "data-joy-vocabulary-practice-redesign",
@@ -35,8 +35,8 @@
     },
     libraryTools: {
       attribute: "data-joy-vocabulary-library-tools",
-      url: "/project-data/vocabulary/vocabulary-library-tools.js?v=joy-vocabulary-library-tools-v1",
-      version: "joy-vocabulary-library-tools-v1",
+      url: "/project-data/vocabulary/vocabulary-library-tools.js?v=joy-vocabulary-library-tools-v2",
+      version: "joy-vocabulary-library-tools-v2",
     },
     mobile: {
       attribute: "data-joy-vocabulary-mobile-inline",
