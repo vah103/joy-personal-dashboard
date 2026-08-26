@@ -59,6 +59,7 @@
   min-height: 92px;
   margin: 20px 0 24px;
   color: #2f3639;
+  font-family: "Nunito", ui-rounded, system-ui, sans-serif;
   font-size: clamp(26px, 4vw, 34px);
   font-weight: 900;
   line-height: 1.15;
