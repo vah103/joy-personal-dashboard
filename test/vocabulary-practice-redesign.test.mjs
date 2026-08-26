@@ -21,13 +21,14 @@ test("Vocabulary practice modal uses the approved open flashcard layout", () => 
   assert.match(styles, /\[data-vocab-practice-root="mobile"\][\s\S]*border:\s*0/);
   assert.match(styles, /\.vocabulary-widget-heading[\s\S]*display:\s*none/);
   assert.match(styles, /\.vocabulary-answer-form[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\) 112px/);
+  assert.match(styles, /\.vocabulary-prompt[\s\S]*font-family:\s*"Nunito"/);
   assert.match(styles, /\.vocabulary-prompt[\s\S]*font-size:\s*clamp\(26px, 4vw, 34px\)/);
   assert.match(styles, /\.vocabulary-practice-actions[\s\S]*margin-top:\s*auto/);
   assert.doesNotMatch(styles, /Tap to open/i);
 });
 
 test("Dashboard loader cache-busts the practice redesign assets", () => {
-  assert.match(loader, /vocabulary-practice-redesign\.css\?v=joy-vocabulary-practice-redesign-v1/);
+  assert.match(loader, /vocabulary-practice-redesign\.css\?v=joy-vocabulary-practice-redesign-v2/);
   assert.match(loader, /vocabulary-practice-redesign\.js\?v=joy-vocabulary-practice-redesign-v1/);
   assert.match(loader, /loadPracticeRedesign/);
 });
