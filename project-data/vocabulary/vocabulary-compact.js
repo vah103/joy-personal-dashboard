@@ -23,7 +23,11 @@
     const countText = cleanText(heading.querySelector('small')?.textContent);
     const countMatch = countText.match(/\d+/);
     const count = countMatch ? countMatch[0] : root.querySelector('.vocabulary-empty') ? '0' : '…';
-    const route = /English/i.test(direction) ? 'VI → EN' : /Vietnamese/i.test(direction) ? 'EN → VI' : '';
+    const route = /→\s*English word/i.test(direction)
+      ? 'VI → EN'
+      : /→\s*Vietnamese word/i.test(direction)
+        ? 'EN → VI'
+        : '';
     const hasWords = Boolean(prompt);
 
     root.innerHTML = `

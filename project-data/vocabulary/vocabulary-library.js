@@ -46,6 +46,7 @@
                 <th scope="col">Vietnamese reading</th>
                 <th scope="col">Vietnamese meaning</th>
                 <th scope="col">English example</th>
+                <th scope="col">Vietnamese example</th>
               </tr>
             </thead>
             <tbody data-vocab-library-body></tbody>
@@ -60,9 +61,7 @@
   }
 
   function handleMouseDown(event) {
-    if (event.target.closest("[data-vocab-library-delete]")) {
-      event.preventDefault();
-    }
+    if (event.target.closest("[data-vocab-library-delete]")) event.preventDefault();
   }
 
   async function handleClick(event) {
@@ -75,8 +74,7 @@
     const remove = event.target.closest("[data-vocab-library-delete]");
     if (remove) {
       event.preventDefault();
-      const row = remove.closest("[data-vocab-library-row]");
-      await deleteWord(row);
+      await deleteWord(remove.closest("[data-vocab-library-row]"));
       return;
     }
 
@@ -215,7 +213,7 @@
     if (!rows.length && !loading) {
       body.innerHTML = `
         <tr class="vocabulary-library-empty-row">
-          <td colspan="5">No saved words yet. Use “+ Add manually” or look up a word from the Vocabulary card.</td>
+          <td colspan="6">No saved words yet. Use “+ Add manually” or Look up to add a word.</td>
         </tr>
       `;
       return;
@@ -232,6 +230,7 @@
       pronunciationVi: "",
       vietnamese: "",
       example: "",
+      exampleVietnamese: "",
     };
 
     const editingEnglish = isNew || isEditing(item.id, "english");
@@ -239,6 +238,7 @@
     const editingPronunciation = isNew || isEditing(item.id, "pronunciationVi");
     const editingVietnamese = isNew || isEditing(item.id, "vietnamese");
     const editingExample = isNew || isEditing(item.id, "example");
+    const editingExampleVietnamese = isNew || isEditing(item.id, "exampleVietnamese");
     const editingRow = !isNew && editingCell?.id === item.id;
     const deleting = Boolean(item.id && deletingId === item.id);
     const rowClasses = [
@@ -261,9 +261,12 @@
         <td>${editingVietnamese
           ? `<textarea data-vocab-field="vietnamese" maxlength="240" rows="2" placeholder="tổ chức; cơ quan" aria-label="Vietnamese meaning" required>${escapeHtml(item.vietnamese)}</textarea>`
           : displayMarkup("vietnamese", item.vietnamese, "Vietnamese meaning", true)}</td>
-        <td class="vocabulary-library-example-cell">${editingExample
+        <td>${editingExample
           ? `<textarea data-vocab-field="example" maxlength="260" rows="2" placeholder="The institution was founded in 1900." aria-label="English example" required>${escapeHtml(item.example)}</textarea>`
-          : displayMarkup("example", item.example, "English example", true)}
+          : displayMarkup("example", item.example, "English example", true)}</td>
+        <td class="vocabulary-library-example-vi-cell">${editingExampleVietnamese
+          ? `<textarea data-vocab-field="exampleVietnamese" maxlength="260" rows="2" placeholder="Tổ chức này được thành lập vào năm 1900." aria-label="Vietnamese example">${escapeHtml(item.exampleVietnamese)}</textarea>`
+          : displayMarkup("exampleVietnamese", item.exampleVietnamese, "Vietnamese example", true)}
           ${editingRow ? deleteButtonMarkup(item, deleting) : ""}
         </td>
       </tr>
@@ -337,7 +340,6 @@
 
   async function saveRow(row) {
     if (!row) return null;
-
     if (row.dataset.saving === "true") {
       row.dataset.saveAgain = "true";
       return null;
@@ -351,13 +353,15 @@
       pronunciationVi: fieldValue(row, "pronunciationVi"),
       vietnamese: fieldValue(row, "vietnamese"),
       example: fieldValue(row, "example"),
-      exampleVietnamese: existing?.exampleVietnamese || "",
+      exampleVietnamese: fieldValue(row, "exampleVietnamese"),
       partOfSpeech: existing?.partOfSpeech || "",
       inputLanguage: "en",
     };
 
-    if (!word.english || !word.ipa || !word.pronunciationVi || !word.vietnamese || !word.example) {
-      if (!id) setStatus("Complete all five columns and Joy will add the word automatically.");
+    const requiredBase = [word.english, word.ipa, word.pronunciationVi, word.vietnamese, word.example];
+    if (requiredBase.some((value) => !value) || (!id && !word.exampleVietnamese)) {
+      if (!id) setStatus("Complete all six columns and Joy will add the word automatically.");
+      else setStatus("English, IPA, Vietnamese reading, meaning, and English example are required.");
       return null;
     }
 
@@ -415,7 +419,8 @@
   function fieldValue(row, name) {
     const editor = row.querySelector(`[data-vocab-field="${name}"]`);
     if (editor) return cleanText(editor.value);
-    return cleanText(row.querySelector(`[data-vocab-display-field="${name}"]`)?.textContent);
+    const value = cleanText(row.querySelector(`[data-vocab-display-field="${name}"]`)?.textContent);
+    return value === "—" ? "" : value;
   }
 
   function focusNewRow() {
@@ -478,7 +483,7 @@
   function errorMessage(code, action = "save") {
     if (code === "VOCABULARY_WORD_EXISTS") return "Another saved row already uses that English word or phrase.";
     if (code === "VOCABULARY_WORD_NOT_FOUND") return "That saved word no longer exists. Reopen the library to refresh it.";
-    if (code === "VOCABULARY_RESULT_INVALID") return "Check the English word, IPA, Vietnamese reading, meaning, and example sentence.";
+    if (code === "VOCABULARY_RESULT_INVALID") return "Check the English word, IPA, Vietnamese reading, meaning, and example sentences.";
     if (code === "UNAUTHENTICATED") return "Your Joy session expired. Refresh and sign in again.";
     return action === "delete" ? "Joy could not delete this vocabulary word." : "Joy could not save this vocabulary row.";
   }
