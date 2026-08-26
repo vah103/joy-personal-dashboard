@@ -279,9 +279,11 @@
       .weather-card.joy-weather-week-trigger::after{content:"7 days ↗";position:absolute;right:11px;bottom:6px;color:#58717b;font-size:8px;font-weight:800;letter-spacing:.04em}
       .weather-card.joy-weather-week-trigger:hover{border-color:rgba(52,75,83,.34);transform:translateY(-1px)}
       .weather-card.joy-weather-week-trigger:focus-visible{outline:3px solid rgba(61,94,109,.28);outline-offset:3px}
-      .joy-weather-week-backdrop{position:fixed;inset:0;z-index:95;display:grid;place-items:center;padding:22px;background:rgba(18,21,23,.58);backdrop-filter:blur(14px)}
+      .joy-weather-week-backdrop{position:fixed;inset:0;z-index:95;display:grid;place-items:center;padding:22px;background:rgba(18,21,23,.58);backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity 160ms ease,backdrop-filter 160ms ease}
+      .joy-weather-week-backdrop.is-open{opacity:1;backdrop-filter:blur(14px);pointer-events:auto;transition-duration:180ms,180ms}
       .joy-weather-week-backdrop[hidden]{display:none!important}
-      .joy-weather-week-modal{width:min(1140px,100%);max-height:min(90vh,760px);overflow:auto;padding:27px 28px 26px;border:1px solid rgba(255,255,255,.16);border-radius:29px;background:radial-gradient(circle at 92% 0%,rgba(171,197,207,.24),transparent 26rem),linear-gradient(180deg,#f8f5f0 0%,#f1ede7 100%);box-shadow:0 36px 100px rgba(14,17,19,.34),inset 0 1px rgba(255,255,255,.76);color:#292f32;font-family:"Nunito",ui-rounded,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+      .joy-weather-week-modal{width:min(1140px,100%);max-height:min(90vh,760px);overflow:auto;padding:27px 28px 26px;border:1px solid rgba(255,255,255,.16);border-radius:29px;background:radial-gradient(circle at 92% 0%,rgba(171,197,207,.24),transparent 26rem),linear-gradient(180deg,#f8f5f0 0%,#f1ede7 100%);box-shadow:0 36px 100px rgba(14,17,19,.34),inset 0 1px rgba(255,255,255,.76);color:#292f32;font-family:"Nunito",ui-rounded,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;opacity:0;transform:translateY(10px) scale(.985);transform-origin:50% 50%;transition:opacity 140ms ease,transform 160ms cubic-bezier(.22,.8,.32,1)}
+      .joy-weather-week-backdrop.is-open .joy-weather-week-modal{opacity:1;transform:translateY(0) scale(1);transition-duration:180ms,220ms}
       .joy-weather-week-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:23px}.joy-weather-week-heading p,.joy-weather-week-heading h2,.joy-weather-week-heading span{margin:0}.joy-weather-week-heading p{color:#54727d;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}.joy-weather-week-heading h2{margin-top:4px;font-family:"Newsreader",Georgia,serif;font-size:34px;font-weight:500;letter-spacing:-.025em}.joy-weather-week-heading span{display:block;margin-top:5px;color:#7a8184;font-size:11px}.joy-weather-week-heading button{width:40px;height:40px;flex:0 0 40px;border:1px solid #d6d1ca;border-radius:12px;background:rgba(255,255,255,.58);color:#6f7478;font:inherit;font-size:22px;line-height:1;cursor:pointer;transition:background 160ms ease,transform 160ms ease}.joy-weather-week-heading button:hover{background:rgba(255,255,255,.88);transform:translateY(-1px)}
       .joy-weather-week-layout{display:grid;grid-template-columns:minmax(330px,.93fr) minmax(0,1.7fr);gap:17px;align-items:stretch}.joy-weather-today,.joy-weather-mini{border:1px solid rgba(81,95,99,.14);box-shadow:inset 0 1px rgba(255,255,255,.86),0 10px 24px rgba(76,92,98,.07)}
       .joy-weather-today{min-height:366px;padding:21px 22px 19px;display:grid;grid-template-rows:auto 1fr auto auto;gap:13px;border-color:rgba(79,110,122,.34);border-radius:24px;background:radial-gradient(circle at 10% 22%,rgba(255,255,255,.7),transparent 15rem),radial-gradient(circle at 93% 0%,rgba(158,186,198,.34),transparent 17rem),linear-gradient(150deg,rgba(244,249,250,.98),rgba(229,239,243,.93));box-shadow:inset 0 1px rgba(255,255,255,.92),0 18px 36px rgba(76,92,98,.11)}
@@ -295,7 +297,7 @@
       @media(max-width:920px){.joy-weather-week-layout{grid-template-columns:1fr}.joy-weather-today{min-height:330px}.joy-weather-secondary-grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:none}}
       @media(max-width:760px){.weather-card.joy-weather-week-trigger::after{content:"7d ↗"}.joy-weather-week-backdrop{align-items:end;padding:10px}.joy-weather-week-modal{width:100%;max-height:88vh;padding:18px 15px 20px;border-radius:24px}.joy-weather-week-heading{margin-bottom:16px}.joy-weather-week-heading h2{font-size:28px}.joy-weather-today{min-height:316px;padding:18px}.joy-weather-today-main{grid-template-columns:120px minmax(0,1fr)}.joy-weather-today .joy-weather-art-wrap{width:116px;height:116px}.joy-weather-today-temperature strong{font-size:54px}.joy-weather-today-temperature span{font-size:22px}.joy-weather-mini{min-height:168px}}
       @media(max-width:520px){.joy-weather-secondary-grid{grid-template-columns:1fr}.joy-weather-today-main{grid-template-columns:102px minmax(0,1fr);gap:6px}.joy-weather-today .joy-weather-art-wrap{width:96px;height:96px}.joy-weather-today-temperature strong{font-size:48px}.joy-weather-today-temperature span{font-size:19px}.joy-weather-today-stat{padding-inline:4px}}
-      @media(prefers-reduced-motion:reduce){.weather-card.joy-weather-week-trigger,.joy-weather-mini,.joy-weather-week-heading button{transition:none}}
+      @media(prefers-reduced-motion:reduce){.weather-card.joy-weather-week-trigger,.joy-weather-mini,.joy-weather-week-heading button,.joy-weather-week-backdrop,.joy-weather-week-modal{transition:none!important}}
     `;
     documentRef.head.append(style);
   }
@@ -402,6 +404,8 @@
     const modal = createWeekModal(documentRef);
     const content = modal.querySelector(".joy-weather-week-content");
     const closeButton = modal.querySelector(".joy-weather-week-heading button");
+    const reduceMotion = root.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
+    let closeTimer = 0;
 
     card.dataset.weatherWeekReady = "true";
     card.classList.add("joy-weather-week-trigger");
@@ -411,20 +415,36 @@
     card.setAttribute("aria-expanded", "false");
     card.title = translate("dynamic.weather.open", "Open the seven-day Hanoi weather overview");
 
-    const open = () => {
-      modal.hidden = false;
-      card.setAttribute("aria-expanded", "true");
-      documentRef.body.classList.add("modal-open");
-      loadWeek(content);
-      root.setTimeout(() => closeButton?.focus(), 0);
-    };
-    const close = () => {
+    const finishClose = () => {
+      closeTimer = 0;
       modal.hidden = true;
-      card.setAttribute("aria-expanded", "false");
       const anotherModalIsOpen = [...documentRef.querySelectorAll(".modal-backdrop, .joy-weather-week-backdrop")]
         .some((item) => item !== modal && !item.hidden);
       if (!anotherModalIsOpen) documentRef.body.classList.remove("modal-open");
       card.focus({ preventScroll: true });
+    };
+    const open = () => {
+      if (closeTimer) {
+        root.clearTimeout(closeTimer);
+        closeTimer = 0;
+      }
+      modal.hidden = false;
+      card.setAttribute("aria-expanded", "true");
+      documentRef.body.classList.add("modal-open");
+      loadWeek(content);
+      void modal.offsetWidth;
+      modal.classList.add("is-open");
+      root.setTimeout(() => closeButton?.focus(), 0);
+    };
+    const close = () => {
+      if (modal.hidden || closeTimer) return;
+      modal.classList.remove("is-open");
+      card.setAttribute("aria-expanded", "false");
+      if (reduceMotion) {
+        finishClose();
+        return;
+      }
+      closeTimer = root.setTimeout(finishClose, 180);
     };
 
     card.addEventListener("click", open);
