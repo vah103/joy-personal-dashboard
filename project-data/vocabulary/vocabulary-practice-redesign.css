@@ -1,0 +1,145 @@
+.vocabulary-mobile-modal {
+  width: min(600px, calc(100vw - 32px));
+  padding: 28px 30px 24px;
+  border-radius: 26px;
+}
+
+.vocabulary-mobile-modal > .modal-heading {
+  margin-bottom: 0;
+  align-items: flex-start;
+}
+
+.vocabulary-mobile-modal > .modal-heading .section-kicker {
+  margin-bottom: 6px;
+  color: #65737a;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.vocabulary-practice-modal-count {
+  margin: 0;
+  color: #7a8387;
+  font: 750 13px/1.35 "Nunito", ui-rounded, system-ui, sans-serif;
+}
+
+.vocabulary-mobile-modal > .modal-heading > button {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+}
+
+.vocabulary-mobile-modal [data-vocab-practice-root="mobile"] {
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.vocabulary-mobile-modal [data-vocab-practice-root="mobile"] > .vocabulary-widget-heading {
+  display: none;
+}
+
+.vocabulary-mobile-modal .vocabulary-practice {
+  min-height: 320px;
+  padding: 58px 0 0;
+  background: transparent;
+}
+
+.vocabulary-mobile-modal .vocabulary-direction {
+  align-self: flex-start;
+  color: #69767b;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.vocabulary-mobile-modal .vocabulary-prompt {
+  min-height: 92px;
+  margin: 20px 0 24px;
+  color: #2f3639;
+  font-size: clamp(26px, 4vw, 34px);
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.vocabulary-mobile-modal .vocabulary-answer-form {
+  min-height: 56px;
+  padding: 4px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px;
+  gap: 0;
+  border: 1px solid rgba(63, 70, 72, 0.16);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.42);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.62);
+}
+
+.vocabulary-mobile-modal .vocabulary-answer-form input {
+  height: 46px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  box-shadow: none;
+  font-size: 13px;
+}
+
+.vocabulary-mobile-modal .vocabulary-answer-form input:focus {
+  border: 0;
+  box-shadow: none;
+}
+
+.vocabulary-mobile-modal .vocabulary-answer-form button {
+  min-height: 46px;
+  border-radius: 11px;
+  background: #536d79;
+  font-size: 12px;
+}
+
+.vocabulary-mobile-modal .vocabulary-feedback {
+  min-height: 20px;
+  margin: 10px 0 0;
+  font-size: 11px;
+}
+
+.vocabulary-mobile-modal .vocabulary-practice-actions {
+  margin-top: auto;
+  padding-top: 28px;
+}
+
+.vocabulary-mobile-modal .vocabulary-practice-actions button {
+  padding: 6px 0;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+@media (max-width: 620px) {
+  .vocabulary-mobile-modal {
+    width: min(100%, calc(100vw - 20px));
+    padding: 22px 20px 20px;
+    border-radius: 22px;
+  }
+
+  .vocabulary-mobile-modal .vocabulary-practice {
+    min-height: 285px;
+    padding-top: 44px;
+  }
+
+  .vocabulary-mobile-modal .vocabulary-prompt {
+    min-height: 78px;
+    margin: 16px 0 20px;
+    font-size: clamp(23px, 7vw, 30px);
+  }
+
+  .vocabulary-mobile-modal .vocabulary-answer-form {
+    grid-template-columns: minmax(0, 1fr) 94px;
+  }
+}
+
+@media (max-width: 390px) {
+  .vocabulary-mobile-modal .vocabulary-answer-form {
+    grid-template-columns: minmax(0, 1fr) 84px;
+  }
+}
