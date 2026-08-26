@@ -279,11 +279,11 @@
       .weather-card.joy-weather-week-trigger::after{content:"7 days ↗";position:absolute;right:11px;bottom:6px;color:#58717b;font-size:8px;font-weight:800;letter-spacing:.04em}
       .weather-card.joy-weather-week-trigger:hover{border-color:rgba(52,75,83,.34);transform:translateY(-1px)}
       .weather-card.joy-weather-week-trigger:focus-visible{outline:3px solid rgba(61,94,109,.28);outline-offset:3px}
-      .joy-weather-week-backdrop{position:fixed;inset:0;z-index:95;display:grid;place-items:center;padding:22px;background:rgba(18,21,23,.58);backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity 160ms ease,backdrop-filter 160ms ease}
-      .joy-weather-week-backdrop.is-open{opacity:1;backdrop-filter:blur(14px);pointer-events:auto;transition-duration:180ms,180ms}
+      .joy-weather-week-backdrop{position:fixed;inset:0;z-index:95;display:grid;place-items:center;padding:22px;background:rgba(18,21,23,.58);backdrop-filter:blur(0);opacity:0;pointer-events:none;transition:opacity 200ms ease,backdrop-filter 220ms ease}
+      .joy-weather-week-backdrop.is-open{opacity:1;backdrop-filter:blur(14px);pointer-events:auto;transition-duration:240ms,260ms}
       .joy-weather-week-backdrop[hidden]{display:none!important}
-      .joy-weather-week-modal{width:min(1140px,100%);max-height:min(90vh,760px);overflow:auto;padding:27px 28px 26px;border:1px solid rgba(255,255,255,.16);border-radius:29px;background:radial-gradient(circle at 92% 0%,rgba(171,197,207,.24),transparent 26rem),linear-gradient(180deg,#f8f5f0 0%,#f1ede7 100%);box-shadow:0 36px 100px rgba(14,17,19,.34),inset 0 1px rgba(255,255,255,.76);color:#292f32;font-family:"Nunito",ui-rounded,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;opacity:0;transform:translateY(10px) scale(.985);transform-origin:50% 50%;transition:opacity 140ms ease,transform 160ms cubic-bezier(.22,.8,.32,1)}
-      .joy-weather-week-backdrop.is-open .joy-weather-week-modal{opacity:1;transform:translateY(0) scale(1);transition-duration:180ms,220ms}
+      .joy-weather-week-modal{width:min(1140px,100%);max-height:min(90vh,760px);overflow:auto;padding:27px 28px 26px;border:1px solid rgba(255,255,255,.16);border-radius:29px;background:radial-gradient(circle at 92% 0%,rgba(171,197,207,.24),transparent 26rem),linear-gradient(180deg,#f8f5f0 0%,#f1ede7 100%);box-shadow:0 36px 100px rgba(14,17,19,.34),inset 0 1px rgba(255,255,255,.76);color:#292f32;font-family:"Nunito",ui-rounded,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;opacity:0;transform:translateY(24px) scale(.96);transform-origin:50% 50%;transition:opacity 180ms ease,transform 220ms cubic-bezier(.4,0,.2,1)}
+      .joy-weather-week-backdrop.is-open .joy-weather-week-modal{opacity:1;transform:translateY(0) scale(1);transition-duration:240ms,300ms;transition-timing-function:ease,cubic-bezier(.16,1,.3,1)}
       .joy-weather-week-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:23px}.joy-weather-week-heading p,.joy-weather-week-heading h2,.joy-weather-week-heading span{margin:0}.joy-weather-week-heading p{color:#54727d;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}.joy-weather-week-heading h2{margin-top:4px;font-family:"Newsreader",Georgia,serif;font-size:34px;font-weight:500;letter-spacing:-.025em}.joy-weather-week-heading span{display:block;margin-top:5px;color:#7a8184;font-size:11px}.joy-weather-week-heading button{width:40px;height:40px;flex:0 0 40px;border:1px solid #d6d1ca;border-radius:12px;background:rgba(255,255,255,.58);color:#6f7478;font:inherit;font-size:22px;line-height:1;cursor:pointer;transition:background 160ms ease,transform 160ms ease}.joy-weather-week-heading button:hover{background:rgba(255,255,255,.88);transform:translateY(-1px)}
       .joy-weather-week-layout{display:grid;grid-template-columns:minmax(330px,.93fr) minmax(0,1.7fr);gap:17px;align-items:stretch}.joy-weather-today,.joy-weather-mini{border:1px solid rgba(81,95,99,.14);box-shadow:inset 0 1px rgba(255,255,255,.86),0 10px 24px rgba(76,92,98,.07)}
       .joy-weather-today{min-height:366px;padding:21px 22px 19px;display:grid;grid-template-rows:auto 1fr auto auto;gap:13px;border-color:rgba(79,110,122,.34);border-radius:24px;background:radial-gradient(circle at 10% 22%,rgba(255,255,255,.7),transparent 15rem),radial-gradient(circle at 93% 0%,rgba(158,186,198,.34),transparent 17rem),linear-gradient(150deg,rgba(244,249,250,.98),rgba(229,239,243,.93));box-shadow:inset 0 1px rgba(255,255,255,.92),0 18px 36px rgba(76,92,98,.11)}
@@ -444,7 +444,7 @@
         finishClose();
         return;
       }
-      closeTimer = root.setTimeout(finishClose, 180);
+      closeTimer = root.setTimeout(finishClose, 220);
     };
 
     card.addEventListener("click", open);
