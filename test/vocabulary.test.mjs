@@ -51,8 +51,8 @@ const [
 ]);
 
 test("Vocabulary keeps flashcards and Saved Words owns contextual lookup", () => {
-  assert.match(frontend, /document\.querySelector\("\.scratchpad"\)/);
-  assert.match(frontend, /scratchpad\.className = "vocabulary-widget"/);
+  assert.match(frontend, /document\.querySelector\("\[data-vocabulary-widget\]"\)/);
+  assert.doesNotMatch(frontend, /\.scratchpad|scratchpad\./i);
   assert.match(libraryTools, /name="context"/);
   assert.match(libraryTools, /Context <small>optional<\/small>/);
   assert.match(libraryTools, /renderMeanings/);
