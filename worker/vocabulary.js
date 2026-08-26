@@ -55,12 +55,13 @@ export async function handleVocabularyRequest(request, env) {
       return json({ error: "INVALID_ORIGIN" }, 403);
     }
 
+    if (env?.DB) await ensureVocabularySchema(env);
+
     if (pathname === VOCABULARY_LOOKUP_PATH && request.method === "POST") {
       return lookupVocabularyWord(request, email, env);
     }
 
     if (!env?.DB) return json({ error: "VOCABULARY_STORAGE_UNAVAILABLE" }, 503);
-    await ensureVocabularySchema(env);
 
     if (pathname === VOCABULARY_PATH && request.method === "GET") {
       return listVocabularyWords(email, env);
@@ -79,14 +80,37 @@ export async function handleVocabularyRequest(request, env) {
   }
 }
 
-async function ensureVocabularySchema() {
-  // vocabulary_words is provisioned by migrations/20260731_canonical_runtime_schema.sql.
+async function ensureVocabularySchema(env) {
+  const info = await env.DB.prepare("PRAGMA table_info(vocabulary_words)").all();
+  const columns = new Set((info.results || []).map((column) => String(column.name || "")));
+  await ensureVocabularyColumn(
+    env,
+    columns,
+    "part_of_speech",
+    "ALTER TABLE vocabulary_words ADD COLUMN part_of_speech TEXT",
+  );
+  await ensureVocabularyColumn(
+    env,
+    columns,
+    "example_vietnamese",
+    "ALTER TABLE vocabulary_words ADD COLUMN example_vietnamese TEXT",
+  );
+}
+
+async function ensureVocabularyColumn(env, columns, name, statement) {
+  if (columns.has(name)) return;
+  try {
+    await env.DB.prepare(statement).run();
+  } catch (error) {
+    if (!/duplicate column name/i.test(String(error?.message || error))) throw error;
+  }
+  columns.add(name);
 }
 
 async function listVocabularyWords(email, env) {
   const rows = await env.DB.prepare(`
-    SELECT id, english, vietnamese, ipa, pronunciation_vi, example,
-      review_count, correct_count, created_at, updated_at
+    SELECT id, english, part_of_speech, vietnamese, ipa, pronunciation_vi,
+      example, example_vietnamese, review_count, correct_count, created_at, updated_at
     FROM vocabulary_words
     WHERE user_email = ?
     ORDER BY updated_at DESC, created_at DESC
@@ -110,8 +134,8 @@ async function saveVocabularyWord(request, email, env) {
   }
 
   const existing = await env.DB.prepare(`
-    SELECT id, english, vietnamese, ipa, pronunciation_vi, example,
-      review_count, correct_count, created_at, updated_at
+    SELECT id, english, part_of_speech, vietnamese, ipa, pronunciation_vi,
+      example, example_vietnamese, review_count, correct_count, created_at, updated_at
     FROM vocabulary_words
     WHERE user_email = ? AND english_key = ?
   `).bind(email, word.english).first();
@@ -122,19 +146,21 @@ async function saveVocabularyWord(request, email, env) {
   const id = crypto.randomUUID();
   await env.DB.prepare(`
     INSERT INTO vocabulary_words (
-      user_email, id, english_key, english, vietnamese, ipa,
-      pronunciation_vi, example, review_count, correct_count,
+      user_email, id, english_key, english, part_of_speech, vietnamese, ipa,
+      pronunciation_vi, example, example_vietnamese, review_count, correct_count,
       created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)
   `).bind(
     email,
     id,
     word.english,
     word.english,
+    word.partOfSpeech,
     word.vietnamese,
     word.ipa,
     word.pronunciationVi,
-    serializeExample(word),
+    word.example,
+    word.exampleVietnamese,
     now,
     now,
   ).run();
@@ -182,19 +208,23 @@ async function updateVocabularyWord(body, word, email, env) {
     UPDATE vocabulary_words
     SET english_key = ?,
         english = ?,
+        part_of_speech = ?,
         vietnamese = ?,
         ipa = ?,
         pronunciation_vi = ?,
         example = ?,
+        example_vietnamese = ?,
         updated_at = ?
     WHERE user_email = ? AND id = ?
   `).bind(
     word.english,
     word.english,
+    word.partOfSpeech,
     word.vietnamese,
     word.ipa,
     word.pronunciationVi,
-    serializeExample(word),
+    word.example,
+    word.exampleVietnamese,
     now,
     email,
     id,
@@ -203,8 +233,8 @@ async function updateVocabularyWord(body, word, email, env) {
   if (!Number(result.meta?.changes || 0)) return json({ error: "VOCABULARY_WORD_NOT_FOUND" }, 404);
 
   const updated = await env.DB.prepare(`
-    SELECT id, english, vietnamese, ipa, pronunciation_vi, example,
-      review_count, correct_count, created_at, updated_at
+    SELECT id, english, part_of_speech, vietnamese, ipa, pronunciation_vi,
+      example, example_vietnamese, review_count, correct_count, created_at, updated_at
     FROM vocabulary_words
     WHERE user_email = ? AND id = ?
   `).bind(email, id).first();
@@ -344,8 +374,8 @@ async function findSavedVocabularyResult(email, query, context, env) {
   if (!englishKey) return null;
 
   const row = await env.DB.prepare(`
-    SELECT id, english, vietnamese, ipa, pronunciation_vi, example,
-      review_count, correct_count, created_at, updated_at
+    SELECT id, english, part_of_speech, vietnamese, ipa, pronunciation_vi,
+      example, example_vietnamese, review_count, correct_count, created_at, updated_at
     FROM vocabulary_words
     WHERE user_email = ? AND english_key = ?
   `).bind(email, englishKey).first();
@@ -423,15 +453,9 @@ function normalizeMeanings(value, maxMeanings) {
   return unique;
 }
 
-function serializeExample(word) {
-  return word.exampleVietnamese
-    ? `${word.example} — ${word.exampleVietnamese}`
-    : word.example;
-}
-
-function parseStoredExample(value) {
+function parseLegacyStoredExample(value) {
   const text = cleanText(value);
-  const separator = text.indexOf(" — ");
+  const separator = text.lastIndexOf(" — ");
   if (separator < 0) return { example: text, exampleVietnamese: "" };
   return {
     example: text.slice(0, separator).trim(),
@@ -470,12 +494,18 @@ function extractAiObject(result) {
 }
 
 function mapWord(row) {
-  const storedExample = parseStoredExample(row.example);
+  const hasSeparatedExample = row.example_vietnamese !== null && row.example_vietnamese !== undefined;
+  const storedExample = hasSeparatedExample
+    ? {
+      example: cleanText(row.example),
+      exampleVietnamese: cleanText(row.example_vietnamese),
+    }
+    : parseLegacyStoredExample(row.example);
   return {
     id: String(row.id || ""),
     inputLanguage: "en",
     english: String(row.english || ""),
-    partOfSpeech: "",
+    partOfSpeech: cleanText(row.part_of_speech),
     vietnamese: String(row.vietnamese || ""),
     ipa: String(row.ipa || ""),
     pronunciationVi: String(row.pronunciation_vi || ""),

@@ -20,6 +20,7 @@
   document.addEventListener("submit", handleSubmit);
   document.addEventListener("click", handleClick);
   document.addEventListener("keydown", handleKeydown);
+  window.addEventListener("joy:vocabulary-changed", handleVocabularyChanged);
 
   renderPracticeRoots();
   loadWords();
@@ -109,6 +110,10 @@
       ensureCurrentWord();
       renderPracticeRoots();
     }
+  }
+
+  function handleVocabularyChanged() {
+    void loadWords();
   }
 
   function ensureCurrentWord() {
@@ -370,5 +375,5 @@
       .replaceAll("'", "&#039;");
   }
 
-  window.JoyVocabulary = Object.freeze({ normalizeAnswer, answersMatch });
+  window.JoyVocabulary = Object.freeze({ normalizeAnswer, answersMatch, reload: loadWords });
 })();

@@ -293,6 +293,9 @@
         body: JSON.stringify(state.lookupResult),
       });
       setToolStatus("lookup", payload.created === false ? "This entry was already saved." : "Saved to Words.");
+      window.dispatchEvent(new CustomEvent("joy:vocabulary-changed", {
+        detail: { source: "lookup-save" },
+      }));
       window.setTimeout(refreshLibraryFromServer, 350);
     } catch (error) {
       setToolStatus("lookup", vocabularyErrorMessage(error.code || error.message));

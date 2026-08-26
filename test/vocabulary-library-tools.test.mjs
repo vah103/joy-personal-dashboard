@@ -28,6 +28,7 @@ test("lookup can save directly to Saved Words and Say it stays inline", () => {
   assert.match(tools, /Save to Words/);
   assert.match(tools, /data-vocab-library-speaking-copy/);
   assert.match(tools, /data-vocab-library-speaking-speak/);
+  assert.match(tools, /new CustomEvent\("joy:vocabulary-changed"/);
 });
 
 test("compact Vocabulary no longer exposes lookup or Say it outside the library", () => {
@@ -39,7 +40,7 @@ test("compact Vocabulary no longer exposes lookup or Say it outside the library"
 
 test("loader cache-busts and loads the inline library tools", () => {
   assert.match(loader, /vocabulary-library-tools\.css\?v=joy-vocabulary-library-tools-v1/);
-  assert.match(loader, /vocabulary-library-tools\.js\?v=joy-vocabulary-library-tools-v1/);
+  assert.match(loader, /vocabulary-library-tools\.js\?v=joy-vocabulary-library-tools-v2/);
   assert.match(loader, /vocabulary-compact\.js\?v=joy-vocabulary-compact-v4/);
   assert.match(loader, /loadScript\(SCRIPTS\.libraryTools, loadMobileInline/);
 });

@@ -75,6 +75,14 @@ test("Vocabulary outside card keeps Practice while lookup and Say it live in Sav
   assert.match(compactStyles, /-webkit-line-clamp:\s*2/);
 });
 
+test("Lookup saves refresh the live practice state without a page reload", () => {
+  assert.match(frontend, /window\.addEventListener\("joy:vocabulary-changed", handleVocabularyChanged\)/);
+  assert.match(frontend, /function handleVocabularyChanged\(\)[\s\S]*loadWords\(\)/);
+  assert.match(frontend, /reload:\s*loadWords/);
+  assert.match(libraryTools, /new CustomEvent\("joy:vocabulary-changed"/);
+  assert.match(libraryTools, /source:\s*"lookup-save"/);
+});
+
 test("Vocabulary practice rotates through word and example-context prompts while answers stay words", () => {
   assert.match(frontend, /function availableDirections\(word\)/);
   assert.match(frontend, /directions = \["vi-en", "en-vi"\]/);
@@ -130,8 +138,20 @@ test("Vocabulary library auto-saves manual inserts and persistent edits through 
   assert.match(worker, /english_key = \?/);
   assert.match(worker, /VOCABULARY_WORD_EXISTS/);
   assert.match(worker, /updated:\s*true/);
-  assert.match(worker, /serializeExample\(word\)/);
-  assert.match(worker, /parseStoredExample/);
+  assert.match(worker, /part_of_speech = \?/);
+  assert.match(worker, /example_vietnamese = \?/);
+  assert.doesNotMatch(worker, /serializeExample\(/);
+});
+
+test("Vocabulary upgrades D1 metadata columns safely and keeps legacy examples readable", () => {
+  assert.match(worker, /PRAGMA table_info\(vocabulary_words\)/);
+  assert.match(worker, /ALTER TABLE vocabulary_words ADD COLUMN part_of_speech TEXT/);
+  assert.match(worker, /ALTER TABLE vocabulary_words ADD COLUMN example_vietnamese TEXT/);
+  assert.match(worker, /duplicate column name/i);
+  assert.match(worker, /parseLegacyStoredExample/);
+  assert.match(worker, /lastIndexOf\(" — "\)/);
+  assert.match(worker, /row\.example_vietnamese !== null/);
+  assert.match(worker, /partOfSpeech:\s*cleanText\(row\.part_of_speech\)/);
 });
 
 test("Narrow layouts clone the compact launcher and preserve the real practice modal", () => {
@@ -187,10 +207,10 @@ test("Dashboard loader cache-busts the current Vocabulary assets only", () => {
   assert.match(loader, /vocabulary-practice-redesign\.css\?v=joy-vocabulary-practice-redesign-v3/);
   assert.match(loader, /vocabulary-library\.css\?v=joy-vocabulary-library-v4/);
   assert.match(loader, /vocabulary-library-tools\.css\?v=joy-vocabulary-library-tools-v1/);
-  assert.match(loader, /vocabulary\.js\?v=joy-vocabulary-v3/);
+  assert.match(loader, /vocabulary\.js\?v=joy-vocabulary-v4/);
   assert.match(loader, /vocabulary-compact\.js\?v=joy-vocabulary-compact-v4/);
   assert.match(loader, /vocabulary-library\.js\?v=joy-vocabulary-library-v3/);
-  assert.match(loader, /vocabulary-library-tools\.js\?v=joy-vocabulary-library-tools-v1/);
+  assert.match(loader, /vocabulary-library-tools\.js\?v=joy-vocabulary-library-tools-v2/);
   assert.match(loader, /vocabulary-mobile-inline\.js\?v=joy-vocabulary-mobile-inline-v3/);
   assert.doesNotMatch(loader, /vocabulary-openai|vocabulary-result-size|vocabulary-modal-fit|project-data\/speaking/);
 });
