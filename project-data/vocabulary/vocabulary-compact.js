@@ -9,10 +9,10 @@
         <div class="vocabulary-compact-topline" role="button" tabindex="0">
           <div class="vocabulary-compact-title">
             <strong>Words</strong>
-            <span class="vocabulary-compact-dynamic" data-vocab-compact-count aria-label="Loading saved words">…</span>
+            <span class="vocabulary-compact-dynamic" data-vocab-compact-count>…</span>
           </div>
         </div>
-        <button class="vocabulary-compact-preview" type="button" data-vocab-open-practice aria-label="Vocabulary is loading" disabled>
+        <button class="vocabulary-compact-preview" type="button" data-vocab-open-practice disabled>
           <strong class="vocabulary-compact-dynamic" data-vocab-compact-prompt>&nbsp;</strong>
         </button>
         <div class="vocabulary-compact-empty" data-vocab-compact-empty hidden>
@@ -54,25 +54,12 @@
     const preview = card.querySelector(".vocabulary-compact-preview");
     const empty = card.querySelector("[data-vocab-compact-empty]");
 
-    if (count) {
-      count.textContent = next.loading && !next.count ? "…" : String(next.count);
-      count.setAttribute(
-        "aria-label",
-        next.loading && !next.count
-          ? "Loading saved words"
-          : `${next.count} saved ${next.count === 1 ? "word" : "words"}`,
-      );
-    }
-
+    if (count) count.textContent = next.loading && !next.count ? "…" : String(next.count);
     if (prompt) prompt.textContent = next.hasWords ? next.prompt : "\u00a0";
 
     if (preview) {
       preview.hidden = !next.hasWords && !next.loading;
       preview.disabled = !next.hasWords;
-      preview.setAttribute(
-        "aria-label",
-        next.hasWords ? "Practice vocabulary and enter an answer" : "Vocabulary is loading",
-      );
     }
 
     if (empty) empty.hidden = next.hasWords || next.loading;
