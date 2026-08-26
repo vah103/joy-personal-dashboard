@@ -196,7 +196,7 @@
     if (!count) {
       return `
         <div class="vocabulary-widget-heading"><div><strong>Vocabulary</strong><small>No saved words</small></div></div>
-        <div class="vocabulary-empty"><span aria-hidden="true">Aa</span><p>Add a word from Saved Words to start practicing.</p></div>
+        <div class="vocabulary-empty"><span aria-hidden="true">Aa</span><p>Add your first word to start practicing.</p></div>
       `;
     }
 
