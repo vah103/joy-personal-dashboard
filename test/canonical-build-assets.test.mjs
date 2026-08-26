@@ -62,8 +62,8 @@ test("canonical dashboard HTML owns final production asset versions", () => {
     "finance-p1008-shopping-compact-v1.js?v=joy-finance-p1008-shopping-compact-v1",
     "task-english.js?v=joy-task-english-v7",
     "task-natural-input.js?v=joy-natural-reminders-v2",
-    "speaking-loader.js?v=joy-speaking-loader-v1",
-    "vocabulary-loader.js?v=joy-vocabulary-loader-v1",
+    "speaking-loader.js?v=joy-speaking-loader-v2",
+    "vocabulary-loader.js?v=joy-vocabulary-loader-v2",
     "project-hub-performance.js?v=turtlebot-hub-lifecycle-v1",
     "turtlebot-plan-loader.js?v=turtlebot-plan-loader-v2",
   ]) {
