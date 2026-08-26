@@ -12,7 +12,7 @@ const loader = await readFile(resolve(root, "src/features/vocabulary/vocabulary-
 test("Vocabulary practice modal removes the visible Vocabulary title and surfaces the saved-word count", () => {
   assert.match(script, /#vocabulary-mobile-title'\)\?\.remove\(\)/);
   assert.match(script, /setAttribute\('aria-label', 'Quick practice'\)/);
-  assert.match(script, /dataVocabPracticeCount/);
+  assert.match(script, /dataset\.vocabPracticeCount/);
   assert.match(script, /MutationObserver\(syncPracticeHeader\)/);
   assert.match(script, /\.vocabulary-widget-heading small/);
 });
