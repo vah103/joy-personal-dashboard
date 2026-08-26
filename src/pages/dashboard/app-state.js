@@ -2,9 +2,6 @@ const DASHBOARD_CONFIG = window.JoyDashboardConfig || {};
 const STORAGE_KEY = "joy-dashboard-sample";
 const TODO_STORAGE_KEY = "joy-dashboard-todos-v1";
 const TODO_PENDING_COMPLETIONS_KEY = "joy-dashboard-todo-pending-completions-v1";
-const SCRATCHPAD_KEY = "joy-dashboard-scratchpad";
-const SCRATCHPAD_META_KEY = "joy-dashboard-scratchpad-cloud-meta-v1";
-const SCRATCHPAD_CONFLICT_BACKUP_KEY = "joy-dashboard-scratchpad-conflict-backup-v1";
 const PROJECT_PENDING_ARCHIVES_KEY = "joy-dashboard-project-pending-archives-v1";
 const GOOGLE_CLIENT_ID = String(DASHBOARD_CONFIG.google?.clientId || "");
 const GMAIL_SCOPE = String(DASHBOARD_CONFIG.google?.gmailScope || "https://www.googleapis.com/auth/gmail.readonly");
@@ -61,15 +58,10 @@ const sales = {
 const accountSync = {
   connected: false,
   email: "",
-  scratchpadVersion: 0,
-  scratchpadUpdatedAt: 0,
-  scratchpadReady: false,
-  scratchpadSaving: false,
   projectsReady: false,
 };
 
 let toastTimer;
-let scratchSaveTimer;
 let gmailAutoRefreshTimer;
 let salesAutoRefreshTimer;
 let taskDayRefreshTimer;
@@ -87,8 +79,6 @@ const elements = {
   projectDeleteName: document.querySelector("#project-delete-name"),
   projectDeleteConfirm: document.querySelector("[data-action='confirm-delete-project']"),
   quickAddForm: document.querySelector("#quick-add-form"),
-  scratchpad: document.querySelector("#scratchpad-input"),
-  scratchpadStatus: document.querySelector("#scratchpad-status"),
   taskCount: document.querySelector("#task-count"),
   taskHistoryContent: document.querySelector("#task-history-content"),
   taskHistoryModal: document.querySelector("#task-history-modal"),

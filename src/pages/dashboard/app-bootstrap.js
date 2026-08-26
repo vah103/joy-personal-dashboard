@@ -31,8 +31,6 @@ elements.quickAddForm.addEventListener("submit", async (event) => {
   }
 });
 
-elements.scratchpad.addEventListener("input", queueScratchpadSave);
-
 elements.projectForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = new FormData(elements.projectForm);
@@ -185,7 +183,6 @@ if ("IntersectionObserver" in window) {
   sections.forEach((section) => observer.observe(section));
 }
 
-loadScratchpad();
 renderHeader();
 render();
 startTodoDayRefresh();
@@ -208,7 +205,6 @@ document.addEventListener("visibilitychange", () => {
   }
   if (CLOUD_BACKEND && document.visibilityState === "visible") {
     syncCloudTasks({ silent: true });
-    if (accountSync.connected) syncCloudScratchpad({ silent: true });
     if (accountSync.connected) syncCloudProjects({ silent: true });
   }
 });

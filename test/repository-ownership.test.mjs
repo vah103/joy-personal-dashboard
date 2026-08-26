@@ -108,13 +108,13 @@ test("dashboard data routes have one runtime owner", async () => {
   assert.match(router, /isDashboardDataRoute\(pathname\)/);
   for (const route of [
     "/api/projects",
-    "/api/scratchpad",
     "/api/tasks",
   ]) {
     const pattern = new RegExp(route.replaceAll("/", "\\/"));
     assert.match(module, pattern);
     assert.doesNotMatch(legacy, pattern);
   }
+  assert.doesNotMatch(module, /\/api\/scratchpad/);
   assert.doesNotMatch(legacy, /function (?:list|add|import|archive)Project|function (?:get|update)Scratchpad|function (?:list|add|complete)Task/);
   assert.doesNotMatch(legacy, /from "\.\/todos\.js"|from "\.\/account-sync\.js"/);
 });
