@@ -44,6 +44,7 @@ test("frontend build has one canonical HTML owner", () => {
   assert.match(build, /readFile\(resolve\(dashboardPage, "index\.html"\), "utf8"\)/);
   assert.match(build, /dashboardBackendAnchor/);
   assert.doesNotMatch(build, /const projectHubHead =|const dashboardFeatureScripts =/);
+  assert.doesNotMatch(build, /speaking-loader\.js/);
   for (const path of removedPatches) {
     assert.equal(fs.existsSync(new URL(path, root)), false, `${path} must remain removed`);
   }
@@ -62,13 +63,13 @@ test("canonical dashboard HTML owns final production asset versions", () => {
     "finance-p1008-shopping-compact-v1.js?v=joy-finance-p1008-shopping-compact-v1",
     "task-english.js?v=joy-task-english-v7",
     "task-natural-input.js?v=joy-natural-reminders-v2",
-    "speaking-loader.js?v=joy-speaking-loader-v2",
     "vocabulary-loader.js?v=joy-vocabulary-loader-v2",
     "project-hub-performance.js?v=turtlebot-hub-lifecycle-v1",
     "turtlebot-plan-loader.js?v=turtlebot-plan-loader-v2",
   ]) {
     assert.match(dashboard, new RegExp(reference.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
+  assert.doesNotMatch(dashboard, /speaking-loader\.js/);
 });
 
 test("Finance presentation overlays are absorbed into canonical bundles", () => {
