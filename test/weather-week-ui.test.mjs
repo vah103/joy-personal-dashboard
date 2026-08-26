@@ -33,12 +33,13 @@ test("weekly weather popup uses richer SVG weather art and Today detail data", (
 
 test("weekly weather popup animates open and close without changing its layout", () => {
   assert.match(weatherSource, /joy-weather-week-backdrop\.is-open/);
-  assert.match(weatherSource, /transform:translateY\(10px\) scale\(\.985\)/);
-  assert.match(weatherSource, /transition-duration:180ms,220ms/);
+  assert.match(weatherSource, /transform:translateY\(24px\) scale\(\.96\)/);
+  assert.match(weatherSource, /transition-duration:240ms,300ms/);
+  assert.match(weatherSource, /cubic-bezier\(\.16,1,\.3,1\)/);
   assert.match(weatherSource, /void modal\.offsetWidth/);
   assert.match(weatherSource, /modal\.classList\.add\("is-open"\)/);
   assert.match(weatherSource, /modal\.classList\.remove\("is-open"\)/);
-  assert.match(weatherSource, /root\.setTimeout\(finishClose, 180\)/);
+  assert.match(weatherSource, /root\.setTimeout\(finishClose, 220\)/);
   assert.match(weatherSource, /prefers-reduced-motion:reduce/);
   assert.match(weatherSource, /reduceMotion/);
 });
