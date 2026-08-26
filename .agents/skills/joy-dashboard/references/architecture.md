@@ -11,10 +11,7 @@ Joy is a Cloudflare-first personal dashboard:
 - `scripts/build.mjs` and related build scripts produce the ignored `dist/`
   deployment assets.
 - `worker/router.js` is the Cloudflare Worker entry point.
-- Worker routes run before static assets for `/api/*`, `/auth/*`, and the
-  protected dashboard entry paths `/`, `/index.html`, and
-  `/sale-manager.html` so session checks cannot be bypassed by direct static
-  asset delivery.
+- Worker routes run before static assets for `/api/*` and `/auth/*`.
 - Cloudflare D1 provides persistent storage.
 - `project-data/` contains stable public runtime data and project assets.
 - `test/` contains regression coverage; `.github/workflows/ci.yml` runs the
@@ -65,7 +62,7 @@ replace them.
 
 Migrations under `migrations/` target Cloudflare D1. Add forward-only,
 data-safe migrations. Preserve existing tables and runtime compatibility.
-Avoid changing a migration that may already be applied; create a new
+Avoid changing a migration that may already have been applied; create a new
 corrective migration unless an explicitly reviewed repair requires otherwise.
 
 ## Test compatibility
