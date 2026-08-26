@@ -19,7 +19,7 @@ test("Saved Words only exposes delete while a saved row is being edited", () => 
   assert.match(frontend, /data-vocab-library-delete/);
   assert.match(frontend, /window\.confirm\(`Delete/);
   assert.match(styles, /\.vocabulary-library-delete/);
-  assert.match(styles, /tr\.is-editing-row \.vocabulary-library-example-cell/);
+  assert.match(styles, /tr\.is-editing-row \.vocabulary-library-example-vi-cell/);
 });
 
 test("Saved Words deletion removes only the authenticated user's D1 row", () => {
@@ -32,5 +32,6 @@ test("Saved Words deletion removes only the authenticated user's D1 row", () => 
 });
 
 test("Saved Words delete UI is cache-busted", () => {
-  assert.match(loader, /readonly-doubleclick-delete-v1/);
+  assert.match(loader, /vocabulary-library\.css\?v=joy-vocabulary-library-v4&ui=example-flashcards-v1/);
+  assert.match(loader, /vocabulary-library\.js\?v=joy-vocabulary-library-v3&ui=example-flashcards-v1/);
 });
