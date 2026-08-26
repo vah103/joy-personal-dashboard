@@ -9,7 +9,6 @@
     days: [],
     current: { apparentTemperature: Number.NaN, humidity: Number.NaN },
     fetchedAt: 0,
-    error: "",
   };
 
   function translate(key, fallback, values = {}) {
@@ -66,30 +65,42 @@
     const probabilities = Array.isArray(hourly?.precipitation_probability)
       ? hourly.precipitation_probability
       : [];
-    if (!times.length) return { state: "quiet", text: "No rain is expected." };
+    const weatherCodes = Array.isArray(hourly?.weather_code) ? hourly.weather_code : [];
+    if (!times.length) return { state: "chill", text: "No rain is expected." };
 
     const current = vietnamClock(now);
     const currentMinute = current.hour * 60 + current.minute;
     const rainHours = [];
+    const daylightHours = [];
     times.forEach((time, index) => {
       const value = String(time || "");
       if (!value.startsWith(current.dateKey)) return;
       const endHour = Number(value.slice(11, 13));
       if (!Number.isInteger(endHour) || endHour <= 0) return;
+      const startHour = endHour - 1;
+      const weatherCode = Number(weatherCodes[index]);
+      if (startHour >= 6 && startHour < 18) daylightHours.push({ startHour, endHour, weatherCode });
+      if (endHour * 60 <= currentMinute) return;
       const entry = {
-        startHour: endHour - 1,
+        startHour,
         endHour,
         probability: Number(probabilities[index] || 0),
       };
-      if (endHour * 60 <= currentMinute) return;
       if (hasRainSignal(entry)) rainHours.push(entry);
     });
 
-    if (!rainHours.length) return { state: "quiet", text: "No rain is expected." };
-    return {
-      state: "rain",
-      text: `Rain is expected in Hanoi at ${groupRainWindows(rainHours).join(" and ")}.`,
-    };
+    if (rainHours.length) {
+      return {
+        state: "rain",
+        text: `Rain is expected in Hanoi at ${groupRainWindows(rainHours).join(" and ")}.`,
+      };
+    }
+
+    const sunnyHours = daylightHours.filter(({ weatherCode }) => weatherCode === 0 || weatherCode === 1).length;
+    const isSunny = daylightHours.length >= 4 && sunnyHours >= Math.ceil(daylightHours.length / 2);
+    return isSunny
+      ? { state: "sunny", text: "It’s a sunny day." }
+      : { state: "chill", text: "No rain is expected." };
   }
 
   function weatherDetails(code) {
@@ -377,11 +388,9 @@
       weekState.days = days;
       weekState.current = normalizeCurrentWeather(payload);
       weekState.fetchedAt = Date.now();
-      weekState.error = "";
     } catch (error) {
       console.error("Joy seven-day weather failed", error);
       weekState.status = "error";
-      weekState.error = String(error?.message || "WEATHER_WEEK_FAILED");
     }
     renderWeek(content);
   }
