@@ -75,6 +75,22 @@ test("Vocabulary outside card keeps Practice while lookup and Say it live in Sav
   assert.match(compactStyles, /-webkit-line-clamp:\s*2/);
 });
 
+test("Vocabulary desktop entry reserves one compact shell and hydrates it instead of replacing layouts", () => {
+  assert.match(loader, /installCompactCriticalStyle/);
+  assert.match(loader, /installCompactShell/);
+  assert.match(loader, /data-vocab-compact-shell/);
+  assert.match(frontend, /PRACTICE_UPDATE_EVENT = "joy:vocabulary-practice-updated"/);
+  assert.match(frontend, /root\.dataset\.vocabPracticeRoot === "desktop"/);
+  assert.match(frontend, /getPracticeSnapshot:\s*practiceSnapshot/);
+  assert.match(compactFrontend, /window\.addEventListener\(UPDATE_EVENT/);
+  assert.match(compactFrontend, /getPracticeSnapshot/);
+  assert.match(compactFrontend, /requestAnimationFrame/);
+  assert.doesNotMatch(compactFrontend, /MutationObserver/);
+  assert.match(compactStyles, /\.vocabulary-compact-dynamic[\s\S]*opacity:\s*0/);
+  assert.match(compactStyles, /\.vocabulary-compact-card\.is-ready \.vocabulary-compact-dynamic[\s\S]*opacity:\s*1/);
+  assert.match(compactStyles, /transition:\s*opacity 170ms ease, transform 170ms ease/);
+});
+
 test("Lookup saves refresh the live practice state without a page reload", () => {
   assert.match(frontend, /window\.addEventListener\("joy:vocabulary-changed", handleVocabularyChanged\)/);
   assert.match(frontend, /function handleVocabularyChanged\(\)[\s\S]*loadWords\(\)/);
@@ -203,12 +219,12 @@ test("Vocabulary save and review routes retain authenticated D1 storage", () => 
 });
 
 test("Dashboard loader cache-busts the current Vocabulary assets only", () => {
-  assert.match(loader, /vocabulary-compact\.css\?v=joy-vocabulary-compact-v2/);
+  assert.match(loader, /vocabulary-compact\.css\?v=joy-vocabulary-compact-v3/);
   assert.match(loader, /vocabulary-practice-redesign\.css\?v=joy-vocabulary-practice-redesign-v3/);
   assert.match(loader, /vocabulary-library\.css\?v=joy-vocabulary-library-v4/);
   assert.match(loader, /vocabulary-library-tools\.css\?v=joy-vocabulary-library-tools-v1/);
-  assert.match(loader, /vocabulary\.js\?v=joy-vocabulary-v4/);
-  assert.match(loader, /vocabulary-compact\.js\?v=joy-vocabulary-compact-v4/);
+  assert.match(loader, /vocabulary\.js\?v=joy-vocabulary-v5/);
+  assert.match(loader, /vocabulary-compact\.js\?v=joy-vocabulary-compact-v5/);
   assert.match(loader, /vocabulary-library\.js\?v=joy-vocabulary-library-v3/);
   assert.match(loader, /vocabulary-library-tools\.js\?v=joy-vocabulary-library-tools-v2/);
   assert.match(loader, /vocabulary-mobile-inline\.js\?v=joy-vocabulary-mobile-inline-v3/);
