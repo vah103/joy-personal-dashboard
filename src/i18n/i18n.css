@@ -26,6 +26,40 @@
   color:inherit;
 }
 
+/* Dashboard: Settings lives in the Joy account popup, not in the sidebar. */
+.joy-account-heading-actions > .joy-settings-trigger-account{
+  width:34px;
+  min-width:34px;
+  height:34px;
+  min-height:34px;
+  margin:0;
+  padding:0;
+  display:grid;
+  place-items:center;
+  gap:0;
+  border:1px solid #d8d4cd;
+  border-radius:10px;
+  background:#fbfaf7;
+  color:#747b7d;
+  font:700 15px/1 "Nunito","Instrument Sans",Arial,sans-serif;
+  flex:0 0 auto;
+}
+.joy-account-heading-actions > .joy-settings-trigger-account:hover{
+  background:#f3f1ec;
+  border-color:#c9c4bc;
+  color:#5f686b;
+}
+.joy-account-heading-actions > .joy-settings-trigger-account:focus-visible{
+  outline:2px solid rgba(69,105,116,.52);
+  outline-offset:2px;
+}
+.joy-account-heading-actions > .joy-settings-trigger-account [data-joy-settings-label]{display:none}
+.joy-account-heading-actions > .joy-settings-trigger-account > span[aria-hidden="true"]{
+  display:block;
+  font-size:15px;
+  line-height:1;
+}
+
 .header-avatar[role="button"]{cursor:pointer}
 .header-avatar[role="button"]:focus-visible{
   outline:2px solid rgba(69,105,116,.52);
