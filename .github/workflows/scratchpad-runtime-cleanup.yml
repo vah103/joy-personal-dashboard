@@ -18,7 +18,10 @@ jobs:
           fetch-depth: 0
 
       - name: Remove retired Scratchpad runtime
-        run: python scripts/remove-scratchpad-runtime.py
+        run: |
+          python scripts/fix-scratchpad-cleanup.py
+          rm scripts/fix-scratchpad-cleanup.py
+          python scripts/remove-scratchpad-runtime.py
 
       - name: Commit cleanup
         run: |
