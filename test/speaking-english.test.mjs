@@ -62,7 +62,7 @@ test("Say it preserves Workers AI as a one-call fallback", () => {
 });
 
 test("Vocabulary loader loads the Saved Words Say it implementation without standalone Speaking assets", () => {
-  assert.match(vocabularyLoader, /vocabulary-library-tools\.js\?v=joy-vocabulary-library-tools-v1/);
+  assert.match(vocabularyLoader, /vocabulary-library-tools\.js\?v=joy-vocabulary-library-tools-v2/);
   assert.doesNotMatch(vocabularyLoader, /JoySpeakingLoader|project-data\/speaking\//);
 });
 
