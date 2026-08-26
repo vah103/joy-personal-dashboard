@@ -11,7 +11,10 @@ Joy is a Cloudflare-first personal dashboard:
 - `scripts/build.mjs` and related build scripts produce the ignored `dist/`
   deployment assets.
 - `worker/router.js` is the Cloudflare Worker entry point.
-- Worker routes run before static assets for `/api/*` and `/auth/*`.
+- Worker routes run before static assets for `/api/*`, `/auth/*`, and the
+  protected dashboard entry paths `/`, `/index.html`, and
+  `/sale-manager.html` so session checks cannot be bypassed by direct static
+  asset delivery.
 - Cloudflare D1 provides persistent storage.
 - `project-data/` contains stable public runtime data and project assets.
 - `test/` contains regression coverage; `.github/workflows/ci.yml` runs the
