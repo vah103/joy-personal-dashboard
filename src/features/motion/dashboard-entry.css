@@ -1,29 +1,30 @@
 /* Dashboard entry motion is isolated from Finance so feature changes cannot remove it. */
+/* Keep the existing choreography, but restrict entry motion to compositor-friendly properties. */
 @keyframes joy-enter-left {
-  from { opacity: 0; transform: translateX(-34px); filter: blur(4px); }
-  to { opacity: 1; transform: translateX(0); filter: blur(0); }
+  from { opacity: 0; transform: translate3d(-34px, 0, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 
 @keyframes joy-enter-up {
-  from { opacity: 0; transform: translateY(18px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translate3d(0, 18px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 
 @keyframes joy-enter-soft {
-  from { opacity: 0; transform: translateY(26px) scale(.965); filter: blur(5px); }
-  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  from { opacity: 0; transform: translate3d(0, 26px, 0) scale(.965); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
 }
 
 @keyframes joy-greeting-run {
-  0% { opacity: 0; transform: translate3d(-72px,10px,0); filter: blur(9px); }
-  68% { opacity: 1; transform: translate3d(7px,0,0); filter: blur(0); }
-  84% { transform: translate3d(-2px,0,0); }
-  100% { opacity: 1; transform: translate3d(0,0,0); filter: blur(0); }
+  0% { opacity: 0; transform: translate3d(-72px, 10px, 0); }
+  68% { opacity: 1; transform: translate3d(7px, 0, 0); }
+  84% { transform: translate3d(-2px, 0, 0); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 
 @keyframes joy-label-drop {
-  from { opacity: 0; transform: translateY(-10px); letter-spacing: .28em; }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translate3d(0, -10px, 0); letter-spacing: .28em; }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 
 @keyframes joy-avatar-pop {
@@ -33,9 +34,9 @@
 }
 
 @keyframes joy-character-arrive {
-  0% { opacity: 0; transform: translate3d(-14px,16px,0) rotate(-3deg); filter: blur(4px); }
-  72% { opacity: 1; transform: translate3d(2px,-1px,0) rotate(.35deg); filter: blur(0); }
-  100% { opacity: 1; transform: translate3d(0,0,0) rotate(0); filter: blur(0); }
+  0% { opacity: 0; transform: translate3d(-14px, 16px, 0) rotate(-3deg); }
+  72% { opacity: 1; transform: translate3d(2px, -1px, 0) rotate(.35deg); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) rotate(0); }
 }
 
 @keyframes joy-finance-draw {
@@ -58,7 +59,6 @@
 .joy-motion-character {
   display: inline-block;
   opacity: 0;
-  will-change: transform, opacity, filter;
   animation: joy-character-arrive 680ms cubic-bezier(.2,.82,.25,1) both;
   animation-delay: calc(240ms + var(--joy-character-index) * 58ms);
 }
@@ -103,6 +103,5 @@
   .joy-motion-character {
     opacity: 1;
     transform: none;
-    filter: none;
   }
 }

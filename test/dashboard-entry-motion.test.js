@@ -22,6 +22,16 @@ test("dashboard entry transitions cover greeting and main cards", () => {
   assert.match(motionCss, /\.email-panel/);
 });
 
+test("entry motion keeps the existing choreography on compositor-friendly properties", () => {
+  assert.match(motionCss, /joy-character-arrive 680ms/);
+  assert.match(motionCss, /240ms \+ var\(--joy-character-index\) \* 58ms/);
+  assert.match(motionCss, /projects-panel \{ animation: joy-enter-soft 620ms 280ms/);
+  assert.match(motionCss, /email-panel \{ animation: joy-enter-soft 620ms 520ms/);
+  assert.match(motionCss, /translate3d/);
+  assert.doesNotMatch(motionCss, /filter\s*:/);
+  assert.doesNotMatch(motionCss, /will-change\s*:/);
+});
+
 test("Cloudflare build copies and dashboard HTML loads the entry motion module", () => {
   assert.match(dashboardHtml, /dashboard-entry\.css\?v=joy-entry-motion-v1/);
   assert.match(dashboardHtml, /dashboard-entry\.js\?v=joy-entry-motion-v1/);
