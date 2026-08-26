@@ -9,10 +9,10 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const frontendPath = resolve(root, "project-data/vocabulary/vocabulary.js");
 const compactFrontendPath = resolve(root, "project-data/vocabulary/vocabulary-compact.js");
 const libraryFrontendPath = resolve(root, "project-data/vocabulary/vocabulary-library.js");
+const libraryToolsPath = resolve(root, "project-data/vocabulary/vocabulary-library-tools.js");
 const mobileInlinePath = resolve(root, "project-data/vocabulary/vocabulary-mobile-inline.js");
 const compactStylesPath = resolve(root, "project-data/vocabulary/vocabulary-compact.css");
 const libraryStylesPath = resolve(root, "project-data/vocabulary/vocabulary-library.css");
-const extraStylesPath = resolve(root, "project-data/vocabulary/vocabulary-openai.css");
 const workerPath = resolve(root, "worker/vocabulary.js");
 const openAiPath = resolve(root, "worker/shared/openai-responses.js");
 const routerPath = resolve(root, "worker/router.js");
@@ -24,10 +24,10 @@ const [
   frontend,
   compactFrontend,
   libraryFrontend,
+  libraryTools,
   mobileInline,
   compactStyles,
   libraryStyles,
-  extraStyles,
   worker,
   openAi,
   router,
@@ -38,10 +38,10 @@ const [
   readFile(frontendPath, "utf8"),
   readFile(compactFrontendPath, "utf8"),
   readFile(libraryFrontendPath, "utf8"),
+  readFile(libraryToolsPath, "utf8"),
   readFile(mobileInlinePath, "utf8"),
   readFile(compactStylesPath, "utf8"),
   readFile(libraryStylesPath, "utf8"),
-  readFile(extraStylesPath, "utf8"),
   readFile(workerPath, "utf8"),
   readFile(openAiPath, "utf8"),
   readFile(routerPath, "utf8"),
@@ -50,39 +50,26 @@ const [
   readFile(wranglerPath, "utf8"),
 ]);
 
-test("Vocabulary keeps flashcards and adds optional context", () => {
+test("Vocabulary keeps flashcards and Saved Words owns contextual lookup", () => {
   assert.match(frontend, /document\.querySelector\("\.scratchpad"\)/);
   assert.match(frontend, /scratchpad\.className = "vocabulary-widget"/);
-  assert.match(frontend, /name="context"/);
-  assert.match(frontend, /optional · use this for the exact meaning/);
-  assert.match(frontend, /renderMeanings/);
-  assert.match(extraStyles, /\.vocabulary-context-field/);
-});
-
-test("Vocabulary lookup uses a wide readable two-column workspace", () => {
-  assert.match(extraStyles, /width:\s*min\(1120px, calc\(100vw - 48px\)\)/);
-  assert.match(extraStyles, /grid-template-columns:\s*minmax\(320px, 0\.8fr\) minmax\(0, 1\.2fr\)/);
-  assert.match(extraStyles, /grid-template-areas:[\s\S]*"form status"[\s\S]*"form result"/);
-  assert.match(extraStyles, /font-family:\s*"Nunito"/);
-  assert.match(extraStyles, /font-size:\s*clamp\(29px, 3vw, 38px\)/);
-  assert.match(extraStyles, /font-size:\s*clamp\(34px, 4vw, 46px\)/);
-  assert.match(extraStyles, /Your vocabulary result will appear here/);
-  assert.match(extraStyles, /@media \(max-width: 900px\)/);
-  assert.match(extraStyles, /grid-template-areas:[\s\S]*"heading"[\s\S]*"form"[\s\S]*"status"[\s\S]*"result"/);
+  assert.match(libraryTools, /name="context"/);
+  assert.match(libraryTools, /Context <small>optional<\/small>/);
+  assert.match(libraryTools, /renderMeanings/);
 });
 
 test("Vocabulary outside card keeps Practice while lookup and Say it live in Saved Words", () => {
   assert.match(compactFrontend, /data-vocab-practice-root="desktop"/);
   assert.match(compactFrontend, /vocabulary-compact-card/);
   assert.match(compactFrontend, /data-vocab-open-practice/);
-  assert.match(compactFrontend, />Practice</);
-  assert.match(compactFrontend, /Practice vocabulary and enter an answer/);
   assert.doesNotMatch(compactFrontend, /data-vocab-open-lookup/);
   assert.doesNotMatch(compactFrontend, /data-speaking-open/);
   assert.doesNotMatch(compactFrontend, /data-vocab-practice-form|Your answer|Show answer|Check/);
   assert.match(frontend, /data-vocab-practice-root="mobile"/);
   assert.match(frontend, /data-vocab-practice-form/);
   assert.match(frontend, /data-vocab-show-answer/);
+  assert.match(libraryTools, /toolButton\("lookup", "Look up"/);
+  assert.match(libraryTools, /toolButton\("say", "Say it"/);
   assert.match(compactStyles, /\.vocabulary-compact-meta/);
   assert.match(compactStyles, /cursor:\s*pointer/);
   assert.match(compactStyles, /-webkit-line-clamp:\s*2/);
@@ -161,8 +148,6 @@ test("Vocabulary returns one contextual meaning or at most two common meanings",
   assert.match(worker, /one or two most useful meanings, separated only by a semicolon/);
   assert.match(worker, /exactly one meaning that fits the supplied context/);
   assert.match(worker, /exampleVietnamese/);
-  assert.match(frontend, /split\(\/\\s\*;\\s\*\//);
-  assert.match(frontend, /\.slice\(0, 2\)/);
 });
 
 test("Vocabulary uses saved data first and Workers AI only as fallback", () => {
@@ -180,9 +165,9 @@ test("Vocabulary save and review routes retain authenticated D1 storage", () => 
   assert.match(migration, /UNIQUE \(user_email, english_key\)/);
 });
 
-test("Dashboard loader cache-busts all Vocabulary assets", () => {
-  assert.match(loader, /vocabulary-openai\.css\?v=joy-vocabulary-openai-v2/);
+test("Dashboard loader cache-busts the current Vocabulary assets only", () => {
   assert.match(loader, /vocabulary-compact\.css\?v=joy-vocabulary-compact-v2/);
+  assert.match(loader, /vocabulary-practice-redesign\.css\?v=joy-vocabulary-practice-redesign-v2/);
   assert.match(loader, /vocabulary-library\.css\?v=joy-vocabulary-library-v3/);
   assert.match(loader, /vocabulary-library-tools\.css\?v=joy-vocabulary-library-tools-v1/);
   assert.match(loader, /vocabulary\.js\?v=joy-vocabulary-v2/);
@@ -190,9 +175,7 @@ test("Dashboard loader cache-busts all Vocabulary assets", () => {
   assert.match(loader, /vocabulary-library\.js\?v=joy-vocabulary-library-v2/);
   assert.match(loader, /vocabulary-library-tools\.js\?v=joy-vocabulary-library-tools-v1/);
   assert.match(loader, /vocabulary-mobile-inline\.js\?v=joy-vocabulary-mobile-inline-v3/);
-  assert.match(loader, /loadCompactCard/);
-  assert.match(loader, /loadLibrary/);
-  assert.match(loader, /loadLibraryTools/);
+  assert.doesNotMatch(loader, /vocabulary-openai|vocabulary-result-size|vocabulary-modal-fit|project-data\/speaking/);
 });
 
 test("Vocabulary JavaScript files pass syntax checks", () => {
@@ -200,6 +183,7 @@ test("Vocabulary JavaScript files pass syntax checks", () => {
     frontendPath,
     compactFrontendPath,
     libraryFrontendPath,
+    libraryToolsPath,
     mobileInlinePath,
     workerPath,
     openAiPath,

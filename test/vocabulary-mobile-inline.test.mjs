@@ -35,12 +35,13 @@ test("The compact Practice control opens the preserved modal instead of an inlin
   assert.doesNotMatch(mobile, /data-vocab-practice-inline/);
 });
 
-test("Vocabulary mobile enhancement loads before the Say it integration", () => {
+test("Vocabulary mobile enhancement loads after the Saved Words tools", () => {
+  const toolsIndex = loader.indexOf("vocabulary-library-tools.js");
   const mobileIndex = loader.indexOf("vocabulary-mobile-inline.js");
-  const speakingIndex = loader.indexOf("loadSpeaking", mobileIndex);
-  assert.ok(mobileIndex >= 0);
-  assert.ok(speakingIndex > mobileIndex);
-  assert.match(loader, /JoySpeakingLoader\?\.load/);
+  assert.ok(toolsIndex >= 0);
+  assert.ok(mobileIndex > toolsIndex);
+  assert.match(loader, /loadScript\(SCRIPTS\.libraryTools, loadMobileInline/);
+  assert.doesNotMatch(loader, /JoySpeakingLoader|loadSpeaking/);
 });
 
 test("Vocabulary mobile JavaScript files pass syntax checks", () => {

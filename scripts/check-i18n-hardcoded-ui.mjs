@@ -34,7 +34,6 @@ const DYNAMIC_HTML_AUDIT = new Set([
   "project-data/finance/finance-p1008-shopping-tables-v1.js",
   "project-data/finance/finance-p1008-shopping-v1.js",
   "project-data/finance/finance-p1008.js",
-  "project-data/speaking/speaking.js",
   "project-data/vocabulary/vocabulary-compact.js",
   "project-data/vocabulary/vocabulary.js",
 ]);

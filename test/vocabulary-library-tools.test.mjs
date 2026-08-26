@@ -34,7 +34,6 @@ test("compact Vocabulary no longer exposes lookup or Say it outside the library"
   assert.doesNotMatch(compact, /data-speaking-open/);
   assert.doesNotMatch(compact, /data-vocab-open-lookup/);
   assert.match(compact, /class="vocabulary-compact-topline" role="button" tabindex="0"/);
-  assert.match(toolStyles, /\.vocabulary-widget \[data-speaking-open\]/);
   assert.match(toolStyles, /\.vocabulary-widget \[data-vocab-open-lookup\]/);
 });
 
@@ -42,5 +41,5 @@ test("loader cache-busts and loads the inline library tools", () => {
   assert.match(loader, /vocabulary-library-tools\.css\?v=joy-vocabulary-library-tools-v1/);
   assert.match(loader, /vocabulary-library-tools\.js\?v=joy-vocabulary-library-tools-v1/);
   assert.match(loader, /vocabulary-compact\.js\?v=joy-vocabulary-compact-v3/);
-  assert.match(loader, /loadLibraryTools/);
+  assert.match(loader, /loadScript\(SCRIPTS\.libraryTools, loadMobileInline/);
 });

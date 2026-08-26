@@ -14,10 +14,8 @@ const [speech, loader] = await Promise.all([
   readFile(loaderPath, "utf8"),
 ]);
 
-test("Browser speech handles both Vocabulary and Say it controls", () => {
+test("Browser speech handles Vocabulary pronunciation controls", () => {
   assert.match(speech, /data-vocab-speak/);
-  assert.match(speech, /data-speaking-speak/);
-  assert.match(speech, /stopImmediatePropagation/);
   assert.match(speech, /speechSynthesis/);
   assert.match(speech, /SpeechSynthesisUtterance/);
 });
@@ -37,8 +35,7 @@ test("Vocabulary loader cache-busts and loads browser speech before Vocabulary",
   assert.match(loader, /browser-speech\.js\?v=joy-browser-speech-v1/);
   assert.match(loader, /function loadBrowserSpeech\(\)/);
   assert.match(loader, /loadBrowserSpeech\(\);/);
-  assert.match(loader, /script\.addEventListener\("load", loadVocabulary/);
-  assert.match(loader, /script\.addEventListener\("error", loadVocabulary/);
+  assert.match(loader, /loadScript\(SCRIPTS\.browserSpeech, loadVocabulary/);
 });
 
 test("Browser speech and loader JavaScript pass syntax checks", () => {

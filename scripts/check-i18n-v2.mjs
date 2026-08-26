@@ -88,7 +88,7 @@ const auditedSurfaceCopy = [
   ["project-data/finance/finance-p1008.js", ["Chia tiền nhà", "Tổng dịch vụ", "Đang đồng bộ…"]],
   ["project-data/finance/finance-p1008-shopping-v1.js", ["Không tính Hưng", "Đủ 6 người"]],
   ["project-data/vocabulary/vocabulary.js", ["Vocabulary", "Show answer", "Correct ✓"]],
-  ["project-data/speaking/speaking.js", ["How do I say this?", "Make it English", "Try another"]],
+  ["project-data/vocabulary/vocabulary-library-tools.js", ["How do I say this?", "Make it English", "Copy"]],
   ["src/features/finance/finance.js", ["Actual balance", "Monthly finance", "Save transaction"]],
   ["src/features/project-hub/project-hub-render.js", ["Overall progress", "Completion gate", "Recommended next action"]],
   ["src/pages/sale/sale-manager.js", ["No matching deals in this month.", "Edit closed room", "Saving…"]],
