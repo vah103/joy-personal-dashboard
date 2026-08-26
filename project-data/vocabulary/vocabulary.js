@@ -1,6 +1,7 @@
 (() => {
   const API_ROOT = "/api/vocabulary";
   const LOCAL_STORAGE_KEY = "joy-vocabulary-cache-v1";
+  const PRACTICE_UPDATE_EVENT = "joy:vocabulary-practice-updated";
   const vocabularyWidget = document.querySelector("[data-vocabulary-widget]");
   if (!vocabularyWidget) return;
 
@@ -22,6 +23,7 @@
   document.addEventListener("keydown", handleKeydown);
   window.addEventListener("joy:vocabulary-changed", handleVocabularyChanged);
 
+  ensureCurrentWord();
   renderPracticeRoots();
   loadWords();
 
@@ -189,6 +191,17 @@
     };
   }
 
+  function practiceSnapshot() {
+    const word = currentWord();
+    const config = practiceConfig(word);
+    return {
+      loading: state.loading,
+      count: state.words.length,
+      prompt: config?.prompt || "",
+      direction: config?.label || "",
+    };
+  }
+
   function practiceMarkup() {
     const count = state.words.length;
     if (state.loading && !count) {
@@ -231,8 +244,10 @@
 
   function renderPracticeRoots() {
     document.querySelectorAll("[data-vocab-practice-root]").forEach((root) => {
+      if (root.dataset.vocabPracticeRoot === "desktop") return;
       root.innerHTML = practiceMarkup();
     });
+    window.dispatchEvent(new CustomEvent(PRACTICE_UPDATE_EVENT, { detail: practiceSnapshot() }));
   }
 
   function handleSubmit(event) {
@@ -375,5 +390,10 @@
       .replaceAll("'", "&#039;");
   }
 
-  window.JoyVocabulary = Object.freeze({ normalizeAnswer, answersMatch, reload: loadWords });
+  window.JoyVocabulary = Object.freeze({
+    normalizeAnswer,
+    answersMatch,
+    reload: loadWords,
+    getPracticeSnapshot: practiceSnapshot,
+  });
 })();
