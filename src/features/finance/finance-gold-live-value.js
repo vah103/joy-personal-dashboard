@@ -75,12 +75,12 @@
     setDisplayedValue(value, formatGoldHolding());
     asset.title = lastError
       ? "Could not update the gold price. Click to try again."
-      : "Click to show the current buy-back value from Bảo Tín Mạnh Hải";
+      : "Click to convert 0.05 tael using the current Bảo Tín Mạnh Hải buy-back price";
     asset.setAttribute(
       "aria-label",
       lastError
         ? "Gold holding 0.05 tael. Price update failed. Click to try again."
-        : "Gold holding 0.05 tael. Click to show the current value.",
+        : "Gold holding 0.05 tael. Click to convert it to VND using the current Bảo Tín Mạnh Hải buy-back price.",
     );
   }
 
