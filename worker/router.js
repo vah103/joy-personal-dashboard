@@ -25,6 +25,11 @@ import {
   isFinanceP1008ShoppingRoute,
 } from "./finance-p1008-shopping.js";
 import {
+  handleGmailRuntimeRequest,
+  isGmailRuntimeRoute,
+  runGmailRuntimeSchedule,
+} from "./gmail-runtime.js";
+import {
   handleGoogleDocsAuthRequest,
   isGoogleDocsAuthRoute,
 } from "./google-docs-auth.js";
@@ -100,6 +105,7 @@ import {
 
 const PROTECTED_ASSETS = new Set(["/", "/index.html", "/sale-manager.html"]);
 const DASHBOARD_HEADING_STYLESHEET = "dashboard-openai-headings.css?v=joy-openai-headings-v3";
+const GMAIL_SCHEDULE_INTERVAL_MINUTES = 5;
 
 function scheduleIndependentJob(ctx, label, job) {
   ctx.waitUntil(
@@ -109,6 +115,11 @@ function scheduleIndependentJob(ctx, label, job) {
         console.error(`Joy ${label} scheduled job failed`, error);
       }),
   );
+}
+
+function shouldRunGmailSchedule(controller) {
+  const scheduledAt = Number(controller?.scheduledTime || Date.now());
+  return new Date(scheduledAt).getUTCMinutes() % GMAIL_SCHEDULE_INTERVAL_MINUTES === 0;
 }
 
 function noStoreResponse(response) {
@@ -205,6 +216,11 @@ export default {
       if (isGoogleAuthRoute(pathname)) {
         return handleGoogleAuthRequest(request, env);
       }
+      if (isGmailRuntimeRoute(pathname)) {
+        const denied = await guardGoogleIntegration(request, env, "gmail");
+        if (denied) return denied;
+        return handleGmailRuntimeRequest(request, env);
+      }
       if (PROTECTED_ASSETS.has(pathname) && request.method === "GET") {
         return withDashboardHeadingAssetVersion(await protectJoyAsset(request, env));
       }
@@ -256,14 +272,13 @@ export default {
   },
 
   scheduled(controller, env, ctx) {
-    scheduleIndependentJob(ctx, "Gmail", async () => {
-      if (
-        typeof app.scheduled === "function"
-        && await hasEnabledGmailIntegration(env)
-      ) {
-        await app.scheduled(controller, env, ctx);
-      }
-    });
+    if (shouldRunGmailSchedule(controller)) {
+      scheduleIndependentJob(ctx, "Gmail", async () => {
+        if (await hasEnabledGmailIntegration(env)) {
+          await runGmailRuntimeSchedule(env);
+        }
+      });
+    }
 
     scheduleIndependentJob(ctx, "weather", () => runRainPushSchedule(env));
     scheduleIndependentJob(ctx, "reminder", () => runReliableReminderSchedule(env));
