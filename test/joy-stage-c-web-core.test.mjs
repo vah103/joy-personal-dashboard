@@ -25,7 +25,32 @@ const authenticated = {
 test("recognizes only signed-in Joy Core web routes", () => {
   assert.equal(isJoyCoreWebRoute("/api/joy-core/v1/projects"), true);
   assert.equal(isJoyCoreWebRoute("/api/joy-core/v1/projects/turtlebot4"), true);
+  assert.equal(isJoyCoreWebRoute("/api/joy-core/v1/compatibility/promote"), true);
   assert.equal(isJoyCoreWebRoute("/api/joy/v1/projects"), false);
+});
+
+test("owner can explicitly promote legacy Joy data through the web API", async () => {
+  let receivedContext = null;
+  const response = await handleJoyCoreWebRequest(
+    request("/api/joy-core/v1/compatibility/promote", { method: "POST" }),
+    {},
+    {
+      getSession: async () => ({ user_email: "owner@example.com" }),
+      service: {
+        async promoteLegacyData(_env, context) {
+          receivedContext = context;
+          return { projectsUpdated: ["ielts"], tasksCreated: ["task-legacy-1"] };
+        },
+      },
+    },
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(receivedContext.role, "owner");
+  assert.deepEqual(await response.json(), {
+    projectsUpdated: ["ielts"],
+    tasksCreated: ["task-legacy-1"],
+  });
 });
 
 test("requires a Joy session for dashboard Joy Core reads", async () => {
