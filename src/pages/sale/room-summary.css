@@ -280,13 +280,13 @@
   cursor: pointer;
 }
 .sale-room-capture[hidden] { display: none; }
-.sale-room-capture-card { width: min(100%, 560px); }
+.sale-room-capture-card {
+  width: min(100%, 560px);
+  max-width: 100%;
+}
 .sale-room-capture .room-share-card {
   width: 100%;
-  min-height: 0;
-  height: auto;
   margin: 0;
-  box-shadow: 0 18px 42px rgba(38, 50, 54, .13);
 }
 .sale-room-capture-open { overflow: hidden; }
 
@@ -325,11 +325,6 @@
   .sale-room-capture {
     padding: 10px;
     align-items: start;
-  }
-  .sale-room-capture .room-share-card {
-    min-height: 0;
-    height: auto;
-    border-radius: 16px;
   }
 }
 
