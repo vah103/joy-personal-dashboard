@@ -98,12 +98,13 @@ test("the approved sample bolds only top-level labels", () => {
 });
 
 test("Sale Assistant owns the literal screenshot formatter while Sale Manager stays deal-only", async () => {
-  const [managerHtml, assistant, source, build, bootstrap] = await Promise.all([
+  const [managerHtml, assistant, source, build, bootstrap, i18n] = await Promise.all([
     readFile(new URL("../src/pages/sale/index.html", import.meta.url), "utf8"),
     readFile(new URL("../src/features/sales/sales-assistant.js", import.meta.url), "utf8"),
     readFile(new URL("../src/pages/sale/room-summary.js", import.meta.url), "utf8"),
     readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8"),
     readFile(new URL("../src/pages/dashboard/app-bootstrap.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/i18n/index.js", import.meta.url), "utf8"),
   ]);
 
   assert.match(assistant, /id="room-summary-input"/);
@@ -112,6 +113,8 @@ test("Sale Assistant owns the literal screenshot formatter while Sale Manager st
   assert.doesNotMatch(managerHtml, /id="room-summary-input"/);
   assert.match(source, /LEADING_LABEL_PATTERN/);
   assert.match(source, /room-share-plain-line/);
+  assert.match(source, /container\.dataset\.i18nSkip = "true"/);
+  assert.match(i18n, /\[data-i18n-skip\]/);
   assert.doesNotMatch(source, /extractServices|normalizePrice|stripInternalDetails/);
   assert.doesNotMatch(bootstrap, /SALE_ROOM_SUMMARY_AI_ENDPOINT|runSaleRoomAiPolish|room-summary\/polish/);
   assert.match(build, /room-summary\.js/);
