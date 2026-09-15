@@ -16,6 +16,13 @@ function ensureI18nStyle(doc = globalThis.document) {
   doc.head.append(link);
 }
 
+function normalizeSaleManageButton(doc = globalThis.document) {
+  const button = doc?.querySelector?.('#sales .panel-heading [data-action="open-sale-manager"]:last-child');
+  if (!button) return;
+  button.textContent = button.textContent.replace(/\s+2026\s*↗?\s*$/, "");
+  button.classList.add("sales-assistant-heading-button");
+}
+
 async function ensureSharedI18n(doc = globalThis.document) {
   if (sharedI18n()) return sharedI18n();
   ensureI18nStyle(doc);
@@ -45,8 +52,12 @@ export async function installSaleEnglishUi(doc = globalThis.document) {
   if (!doc?.body || doc.body.dataset.saleLanguageAdapter === "true") return;
   doc.body.dataset.saleLanguageAdapter = "true";
   ensureI18nStyle(doc);
+  normalizeSaleManageButton(doc);
 
-  const sync = () => translateSaleUiRoot(doc.body);
+  const sync = () => {
+    normalizeSaleManageButton(doc);
+    translateSaleUiRoot(doc.body);
+  };
   globalThis.window?.addEventListener?.("joy:i18n-ready", sync);
   globalThis.window?.addEventListener?.("joy:locale-changed", sync);
   await ensureSharedI18n(doc);
