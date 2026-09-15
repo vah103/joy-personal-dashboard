@@ -53,6 +53,7 @@ function renderRoomSummaryLine(line, editable) {
 }
 
 export function renderRoomSummary(container, summary, { editable = true } = {}) {
+  container.dataset.i18nSkip = "true";
   container.replaceChildren();
   container.classList.toggle("is-empty", summary.isEmpty);
 
