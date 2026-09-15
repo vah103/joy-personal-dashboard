@@ -43,7 +43,7 @@
 
         <div class="sale-status" id="sale-status" hidden></div>
 
-        <section class="sale-summary" aria-label="Selected month summary">
+        <section class="sale-summary" aria-label="Selected month summary" style="grid-template-columns: 1.25fr 1fr;">
           <article class="sale-summary-card total-card">
             <small>Total commission</small>
             <strong id="sale-total">0 ₫</strong>
@@ -54,17 +54,8 @@
             <strong id="sale-count">0</strong>
             <span>Recorded deals</span>
           </article>
-          <article class="sale-summary-card">
-            <small>Average commission</small>
-            <strong id="sale-average">0 ₫</strong>
-            <span>Per closed room</span>
-          </article>
-          <article class="sale-summary-card compact-card">
-            <small>Data source</small>
-            <strong>Sale</strong>
-            <span>2026 | Vanh</span>
-          </article>
         </section>
+        <span id="sale-average" hidden></span>
 
         <nav class="sale-months" id="sale-months" aria-label="Months in 2026"></nav>
 
