@@ -22,6 +22,35 @@ export function splitRoomSummaryLine(line) {
   return { label: match[1], rest: match[2] };
 }
 
+export function formatRoomSummaryDisplayLines(lines) {
+  const source = Array.isArray(lines) ? lines.map((line) => String(line ?? "")) : [];
+  const output = [];
+
+  for (let index = 0; index < source.length;) {
+    const line = source[index];
+    if (line.trim()) {
+      output.push(line);
+      index += 1;
+      continue;
+    }
+
+    let nextIndex = index;
+    while (nextIndex < source.length && !source[nextIndex].trim()) nextIndex += 1;
+
+    const previous = output.at(-1) || "";
+    const next = source[nextIndex] || "";
+    const previousIsBold = Boolean(splitRoomSummaryLine(formatRoomSummaryDisplayLine(previous)).label);
+    const nextIsBold = Boolean(splitRoomSummaryLine(formatRoomSummaryDisplayLine(next)).label);
+
+    if (!(previousIsBold && next && !nextIsBold)) {
+      output.push(...source.slice(index, nextIndex));
+    }
+    index = nextIndex;
+  }
+
+  return output;
+}
+
 function renderEmptyRoomSummary(container) {
   const empty = document.createElement("div");
   empty.className = "room-share-empty";
@@ -71,7 +100,9 @@ export function renderRoomSummary(container, summary, { editable = true } = {}) 
 
   const body = document.createElement("div");
   body.className = "room-share-plain-text";
-  for (const line of summary.lines) body.append(renderRoomSummaryLine(line, editable));
+  for (const line of formatRoomSummaryDisplayLines(summary.lines)) {
+    body.append(renderRoomSummaryLine(line, editable));
+  }
   container.append(body);
 }
 
