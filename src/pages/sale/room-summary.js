@@ -105,6 +105,11 @@ function initializeRoomSummary() {
     const clone = output.cloneNode(true);
     clone.removeAttribute("id");
     clone.querySelectorAll("[contenteditable]").forEach((node) => node.removeAttribute("contenteditable"));
+
+    const previewWidth = output.getBoundingClientRect().width;
+    if (previewWidth > 0) captureCard.style.width = `${previewWidth}px`;
+    else captureCard.style.removeProperty("width");
+
     captureCard.replaceChildren(clone);
     captureLayer.hidden = false;
     document.body.classList.add("sale-room-capture-open");
