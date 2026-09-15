@@ -39,7 +39,7 @@ test("Sale Assistant directly owns its locale-aware copy", async () => {
   assert.doesNotMatch(assistant, /const ASSISTANT_HTML/);
 });
 
-test("build keeps the generic Sale adapter while shared i18n preserves one canonical HTML owner", async () => {
+test("build keeps the generic Sale adapter for Assistant while Sale Manager stays independent", async () => {
   const [build, i18nBuild, bootstrap, salePage, adapter, history] = await Promise.all([
     readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8"),
     readFile(new URL("../scripts/build-i18n.mjs", import.meta.url), "utf8"),
@@ -54,7 +54,7 @@ test("build keeps the generic Sale adapter while shared i18n preserves one canon
   assert.doesNotMatch(i18nBuild, /writeFile|inject\(/);
   assert.match(adapter, /\/i18n\/index\.js/);
   assert.match(bootstrap, /sale-english-ui\.js\?v=joy-sale-english-ui-v1/);
-  assert.match(salePage, /sale-english-ui\.js\?v=joy-sale-english-ui-v1/);
+  assert.doesNotMatch(salePage, /sale-english-ui\.js\?v=joy-sale-english-ui-v1/);
   assert.match(history, /Delete the appointment for/);
   assert.match(history, /Close deal/);
 });
