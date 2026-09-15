@@ -9,6 +9,12 @@ export function summarizeRoomListing(rawInput) {
   };
 }
 
+export function formatRoomSummaryDisplayLine(line) {
+  const value = String(line ?? "");
+  if (value === "*" || /^\*\s/u.test(value)) return `•${value.slice(1)}`;
+  return value;
+}
+
 export function splitRoomSummaryLine(line) {
   const value = String(line ?? "");
   const match = value.match(LEADING_LABEL_PATTERN);
@@ -35,14 +41,15 @@ function renderRoomSummaryLine(line, editable) {
   row.contentEditable = String(editable);
   row.spellcheck = false;
 
-  if (!line) {
+  const displayLine = formatRoomSummaryDisplayLine(line);
+  if (!displayLine) {
     row.append(document.createElement("br"));
     return row;
   }
 
-  const { label, rest } = splitRoomSummaryLine(line);
+  const { label, rest } = splitRoomSummaryLine(displayLine);
   if (!label) {
-    row.textContent = line;
+    row.textContent = displayLine;
     return row;
   }
 
