@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import {
   formatRoomSummaryDisplayLine,
+  formatRoomSummaryDisplayLines,
   splitRoomSummaryLine,
   summarizeRoomListing,
 } from "../src/pages/sale/room-summary.js";
@@ -53,6 +54,42 @@ test("Room Summary renders leading asterisk markers as round bullets only", () =
   assert.equal(formatRoomSummaryDisplayLine("*"), "•");
   assert.equal(formatRoomSummaryDisplayLine("Giá: 3tr9*2"), "Giá: 3tr9*2");
   assert.equal(formatRoomSummaryDisplayLine("  * Điện: 4k/số"), "  * Điện: 4k/số");
+});
+
+test("Room Summary removes blank lines only between a bold line and the following normal line", () => {
+  assert.deepEqual(
+    formatRoomSummaryDisplayLines([
+      "Địa chỉ: A",
+      "",
+      "Phòng trống: 101",
+      "",
+      "Nội thất: Điều hòa",
+      "",
+      "* Thêm máy giặt: 300k/tháng",
+      "",
+      "Dịch vụ:",
+      "",
+      "* Điện: 4k/số",
+      "",
+      "Lưu ý:",
+      "",
+      "* Đóng 1 cọc 1",
+    ]),
+    [
+      "Địa chỉ: A",
+      "",
+      "Phòng trống: 101",
+      "",
+      "Nội thất: Điều hòa",
+      "* Thêm máy giặt: 300k/tháng",
+      "",
+      "Dịch vụ:",
+      "* Điện: 4k/số",
+      "",
+      "Lưu ý:",
+      "* Đóng 1 cọc 1",
+    ],
+  );
 });
 
 test("only a label beginning at the absolute start of a line is a bold candidate", () => {
@@ -122,6 +159,7 @@ test("Sale Assistant owns the literal screenshot formatter while Sale Manager st
   assert.match(source, /LEADING_LABEL_PATTERN/);
   assert.match(source, /room-share-plain-line/);
   assert.match(source, /formatRoomSummaryDisplayLine/);
+  assert.match(source, /formatRoomSummaryDisplayLines/);
   assert.match(source, /container\.dataset\.i18nSkip = "true"/);
   assert.match(i18n, /\[data-i18n-skip\]/);
   assert.doesNotMatch(source, /extractServices|normalizePrice|stripInternalDetails/);
