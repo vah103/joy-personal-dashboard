@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import {
+  formatRoomSummaryDisplayLine,
   splitRoomSummaryLine,
   summarizeRoomListing,
 } from "../src/pages/sale/room-summary.js";
@@ -45,6 +46,13 @@ test("Room Summary normalizes only CRLF line endings", () => {
 
   assert.equal(summary.text, "Địa chỉ: A\n\n* Điện: 4k/số\nSĐT: 0987654321");
   assert.match(summary.text, /0987654321/);
+});
+
+test("Room Summary renders leading asterisk markers as round bullets only", () => {
+  assert.equal(formatRoomSummaryDisplayLine("* Điện: 4k/số"), "• Điện: 4k/số");
+  assert.equal(formatRoomSummaryDisplayLine("*"), "•");
+  assert.equal(formatRoomSummaryDisplayLine("Giá: 3tr9*2"), "Giá: 3tr9*2");
+  assert.equal(formatRoomSummaryDisplayLine("  * Điện: 4k/số"), "  * Điện: 4k/số");
 });
 
 test("only a label beginning at the absolute start of a line is a bold candidate", () => {
@@ -113,6 +121,7 @@ test("Sale Assistant owns the literal screenshot formatter while Sale Manager st
   assert.doesNotMatch(managerHtml, /id="room-summary-input"/);
   assert.match(source, /LEADING_LABEL_PATTERN/);
   assert.match(source, /room-share-plain-line/);
+  assert.match(source, /formatRoomSummaryDisplayLine/);
   assert.match(source, /container\.dataset\.i18nSkip = "true"/);
   assert.match(i18n, /\[data-i18n-skip\]/);
   assert.doesNotMatch(source, /extractServices|normalizePrice|stripInternalDetails/);
