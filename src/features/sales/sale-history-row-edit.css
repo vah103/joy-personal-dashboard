@@ -12,11 +12,11 @@
 }
 
 .sales-history-workspace {
-  padding: 8px 22px 16px;
+  padding: 16px 22px 22px;
 }
 
 .sales-history-heading {
-  margin: 0 0 6px;
+  margin: 0 0 8px;
   padding: 0 2px;
   min-height: 0;
   align-items: baseline;
@@ -213,43 +213,6 @@
 .sales-history-close-button:disabled {
   cursor: default;
   opacity: .62;
-}
-
-@media (min-width: 701px) {
-  .sales-assistant-modal:has([data-assistant-mode="history"].active) .sales-assistant-heading {
-    padding: 12px 26px;
-  }
-
-  .sales-assistant-modal:has([data-assistant-mode="history"].active) .sales-assistant-heading > div > span {
-    display: none;
-  }
-
-  .sales-assistant-modal:has([data-assistant-mode="history"].active) .sales-assistant-tabs {
-    padding-top: 4px;
-    padding-bottom: 4px;
-    gap: 4px;
-  }
-
-  .sales-assistant-modal:has([data-assistant-mode="history"].active) .sales-assistant-tabs button {
-    min-height: 34px;
-    padding-left: 13px;
-    padding-right: 13px;
-  }
-
-  .sales-history-table thead th {
-    padding-top: 10px;
-    padding-bottom: 10px;
-  }
-
-  .sales-history-table tbody tr:not(.sales-history-edit-row):not(.sales-history-month-group):not(.sales-history-day-group) > td {
-    padding-top: 10px;
-    padding-bottom: 10px;
-  }
-
-  .sales-history-day-group > td {
-    padding: 5px 18px !important;
-    line-height: 1.42 !important;
-  }
 }
 
 @media (max-width: 700px) {
