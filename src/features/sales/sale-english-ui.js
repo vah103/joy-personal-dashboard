@@ -26,10 +26,11 @@ function ensureHistoryTypographyStyle(doc = globalThis.document) {
       font-size: 13px !important;
       font-weight: 700 !important;
       letter-spacing: 0 !important;
+      text-align: right !important;
     }
     .sales-history-day-group > td {
       font-family: "Nunito", ui-rounded, system-ui, sans-serif !important;
-      font-size: 10px !important;
+      font-size: 8px !important;
       font-weight: 700 !important;
       letter-spacing: 0 !important;
     }
