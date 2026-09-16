@@ -61,6 +61,7 @@
 
 .sales-history-table {
   min-width: 940px;
+  table-layout: fixed;
 }
 
 .sales-history-table th:nth-child(1),
@@ -70,17 +71,17 @@
 
 .sales-history-table th:nth-child(2),
 .sales-history-table td:nth-child(2) {
-  width: 17%;
+  width: 18%;
 }
 
 .sales-history-table th:nth-child(3),
 .sales-history-table td:nth-child(3) {
-  width: 14%;
+  width: 18%;
 }
 
 .sales-history-table th:nth-child(4),
 .sales-history-table td:nth-child(4) {
-  width: 25%;
+  width: 24%;
 }
 
 .sales-history-table tbody tr:not(.sales-history-edit-row) > td:nth-child(4) {
@@ -96,10 +97,10 @@
 
 .sales-history-table th:nth-child(6),
 .sales-history-table td:nth-child(6) {
-  width: 17%;
-  min-width: 138px;
-  padding-left: 16px;
-  padding-right: 18px;
+  width: 13%;
+  min-width: 120px;
+  padding-left: 14px;
+  padding-right: 14px;
   text-align: center;
   white-space: nowrap;
 }
