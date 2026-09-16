@@ -2,11 +2,12 @@ import {
   formatVietnamViewingTime,
   parseSaleAppointmentInput,
 } from "./sale-appointment.js";
-import { t, translateText } from "/i18n/index.js?v=joy-i18n-v1";
+import { getBrowserLocale, t, translateText } from "/i18n/index.js?v=joy-i18n-v1";
 
 let historyLoaded = false;
 let viewingHistory = [];
 let editingViewingId = "";
+const HISTORY_COLUMN_COUNT = 8;
 
 function assistantHtml() {
   return `
@@ -208,6 +209,77 @@ function formatViewingTime(value) {
   return translateText(formatVietnamViewingTime(value));
 }
 
+function historyDateMeta(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return { monthKey: "unknown", dayKey: "unknown", monthLabel: "—", dayLabel: "—", timeLabel: "—" };
+  }
+  const keyParts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const part = (type) => keyParts.find((item) => item.type === type)?.value || "";
+  const year = part("year");
+  const month = part("month");
+  const day = part("day");
+  const locale = getBrowserLocale();
+  return {
+    monthKey: `${year}-${month}`,
+    dayKey: `${year}-${month}-${day}`,
+    monthLabel: new Intl.DateTimeFormat(locale, {
+      timeZone: "Asia/Ho_Chi_Minh",
+      month: "long",
+      year: "numeric",
+    }).format(date),
+    dayLabel: new Intl.DateTimeFormat(locale, {
+      timeZone: "Asia/Ho_Chi_Minh",
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    }).format(date),
+    timeLabel: new Intl.DateTimeFormat(locale, {
+      timeZone: "Asia/Ho_Chi_Minh",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(date),
+  };
+}
+
+function renderHistoryGroupRow(label, kind) {
+  const row = document.createElement("tr");
+  row.className = `sales-history-${kind}-group`;
+  const cell = document.createElement("td");
+  cell.colSpan = HISTORY_COLUMN_COUNT;
+  cell.textContent = label;
+  cell.style.position = "static";
+  cell.style.boxShadow = "none";
+  cell.style.textDecoration = "none";
+  cell.style.opacity = "1";
+  cell.style.whiteSpace = "nowrap";
+  if (kind === "month") {
+    cell.style.padding = "18px 18px 10px";
+    cell.style.color = "#294852";
+    cell.style.background = "#eef3f2";
+    cell.style.fontSize = "15px";
+    cell.style.fontWeight = "900";
+    cell.style.letterSpacing = ".01em";
+    cell.style.borderBottom = "1px solid rgba(78, 95, 101, .12)";
+  } else {
+    cell.style.padding = "10px 18px";
+    cell.style.color = "#61767c";
+    cell.style.background = "#f8faf9";
+    cell.style.fontSize = "11px";
+    cell.style.fontWeight = "850";
+    cell.style.letterSpacing = ".035em";
+    cell.style.borderBottom = "1px solid rgba(78, 95, 101, .08)";
+  }
+  row.append(cell);
+  return row;
+}
+
 function showAppointmentStatus(message, state = "") {
   const status = document.querySelector("#sale-appointment-status");
   if (!status) return;
@@ -349,7 +421,7 @@ function renderHistoryDisplayRow(viewing) {
   const row = document.createElement("tr");
   row.dataset.status = viewing.status;
   [
-    formatViewingTime(viewing.viewingAt),
+    historyDateMeta(viewing.viewingAt).timeLabel,
     viewing.customerName || "—",
     viewing.phone || "—",
     viewing.viewingAddress || "—",
@@ -467,7 +539,19 @@ function renderViewingHistory(history) {
   head.append(headRow);
 
   const body = document.createElement("tbody");
+  let activeMonth = "";
+  let activeDay = "";
   viewingHistory.forEach((viewing) => {
+    const meta = historyDateMeta(viewing.viewingAt);
+    if (meta.monthKey !== activeMonth) {
+      activeMonth = meta.monthKey;
+      activeDay = "";
+      body.append(renderHistoryGroupRow(meta.monthLabel, "month"));
+    }
+    if (meta.dayKey !== activeDay) {
+      activeDay = meta.dayKey;
+      body.append(renderHistoryGroupRow(meta.dayLabel, "day"));
+    }
     body.append(
       viewing.id === editingViewingId
         ? renderHistoryEditRow(viewing)
