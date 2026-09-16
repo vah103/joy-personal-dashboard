@@ -34,6 +34,7 @@ test("dashboard HTML loads the visible Sale Assistant", async () => {
   assert.match(styles, /\.sales-history-table th:last-child,[\s\S]*position:\s*sticky;[\s\S]*right:\s*0;/);
 
   assert.match(rowEditStyles, /\.sales-assistant-heading\s*\{[^}]*padding:\s*18px 26px;[^}]*margin-bottom:\s*0;/s);
+  assert.match(rowEditStyles, /\.sales-assistant-tabs button\s*\{[^}]*font-size:\s*14px;/s);
   assert.match(rowEditStyles, /\.sales-history-workspace\s*\{[^}]*padding:\s*16px 22px 22px;/s);
   assert.match(rowEditStyles, /\.sales-history-heading > div\s*\{[^}]*justify-content:\s*space-between;/s);
   assert.match(rowEditStyles, /\.sales-history-table\s*\{[^}]*min-width:\s*940px;[^}]*table-layout:\s*fixed;/s);
