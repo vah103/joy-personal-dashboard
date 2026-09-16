@@ -21,12 +21,8 @@ function ensureHistoryTypographyStyle(doc = globalThis.document) {
   const style = doc.createElement("style");
   style.dataset.saleHistoryTypography = "true";
   style.textContent = `
-    .sales-history-month-group > td {
-      font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
-      font-size: 13px !important;
-      font-weight: 700 !important;
-      letter-spacing: 0 !important;
-      text-align: right !important;
+    .sales-history-month-group {
+      display: none !important;
     }
     .sales-history-day-group > td {
       font-family: "Nunito", ui-rounded, system-ui, sans-serif !important;
