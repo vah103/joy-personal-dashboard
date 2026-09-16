@@ -42,10 +42,10 @@ test("Sale history keeps compact edit controls and commission stages", async () 
   assert.match(styles, /data-commission-state=\"pending\"[\s\S]*?#fff3cf/);
   assert.match(styles, /data-commission-state=\"received\"[\s\S]*?#d8efd9/);
   assert.match(styles, /grid-template-columns:\s*auto auto auto/);
-  assert.match(styles, /min-width:\s*960px/);
-  assert.match(styles, /th:nth-child\(4\)[\s\S]*?width:\s*28%/);
-  assert.match(styles, /th:nth-child\(5\)[\s\S]*?width:\s*12%[\s\S]*?text-align:\s*center/);
-  assert.match(styles, /th:nth-child\(6\)[\s\S]*?width:\s*14%[\s\S]*?min-width:\s*132px[\s\S]*?text-align:\s*center/);
+  assert.match(styles, /min-width:\s*940px/);
+  assert.match(styles, /th:nth-child\(4\)[\s\S]*?width:\s*25%/);
+  assert.match(styles, /th:nth-child\(5\)[\s\S]*?width:\s*13%[\s\S]*?text-align:\s*center/);
+  assert.match(styles, /th:nth-child\(6\)[\s\S]*?width:\s*17%[\s\S]*?min-width:\s*138px[\s\S]*?text-align:\s*center/);
 
   assert.match(endpoint, /DELETE FROM sale_viewings/);
   assert.match(endpoint, /DELETE FROM sale_viewing_commissions/);
