@@ -30,7 +30,7 @@ test("Sale adapter no longer owns a private translation dictionary", async () =>
 
 test("Sale Assistant directly owns its locale-aware copy", async () => {
   const assistant = await readFile(new URL("../src/features/sales/sales-assistant.js", import.meta.url), "utf8");
-  assert.match(assistant, /import \{ t, translateText \} from "\/i18n\/index\.js\?v=joy-i18n-v1"/);
+  assert.match(assistant, /import \{ getBrowserLocale, t, translateText \} from "\/i18n\/index\.js\?v=joy-i18n-v1"/);
   assert.match(assistant, /assistantHtml\(\)/);
   assert.match(assistant, /t\("saleAssistant\.appointments"\)/);
   assert.match(assistant, /t\("saleAssistant\.roomSummary"\)/);
