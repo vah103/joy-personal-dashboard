@@ -28,9 +28,9 @@ function ensureHistoryTypographyStyle(doc = globalThis.document) {
       letter-spacing: 0 !important;
     }
     .sales-history-day-group > td {
-      font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
+      font-family: "Nunito", ui-rounded, system-ui, sans-serif !important;
       font-size: 10px !important;
-      font-weight: 600 !important;
+      font-weight: 700 !important;
       letter-spacing: 0 !important;
     }
   `;
