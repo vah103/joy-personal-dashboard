@@ -3,11 +3,13 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 test("dashboard HTML loads the visible Sale Assistant", async () => {
-  const [dashboard, build, script, styles] = await Promise.all([
+  const [dashboard, build, script, styles, rowEditStyles, saleEnglishUi] = await Promise.all([
     readFile(new URL("../src/pages/dashboard/index.html", import.meta.url), "utf8"),
     readFile(new URL("../scripts/build.mjs", import.meta.url), "utf8"),
     readFile(new URL("../src/features/sales/sales-assistant.js", import.meta.url), "utf8"),
     readFile(new URL("../src/features/sales/sales-assistant.css", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/sale-history-row-edit.css", import.meta.url), "utf8"),
+    readFile(new URL("../src/features/sales/sale-english-ui.js", import.meta.url), "utf8"),
   ]);
 
   assert.match(dashboard, /sales-assistant\.css\?v=joy-dashboard-sales-assistant-v6/);
@@ -30,6 +32,15 @@ test("dashboard HTML loads the visible Sale Assistant", async () => {
   assert.match(styles, /\.sales-history-table\s*\{[^}]*font-size:\s*13px;/s);
   assert.match(styles, /\.sales-history-table td:nth-child\(2\)[\s\S]*font-weight:\s*850;/);
   assert.match(styles, /\.sales-history-table th:last-child,[\s\S]*position:\s*sticky;[\s\S]*right:\s*0;/);
+
+  assert.match(rowEditStyles, /\.sales-assistant-heading\s*\{[^}]*padding:\s*18px 26px;/s);
+  assert.match(rowEditStyles, /\.sales-history-workspace\s*\{[^}]*padding:\s*16px 22px 22px;/s);
+  assert.match(rowEditStyles, /\.sales-history-heading > div\s*\{[^}]*justify-content:\s*space-between;/s);
+  assert.match(rowEditStyles, /\.sales-history-table th:nth-child\(4\),[\s\S]*width:\s*25%;/);
+  assert.match(rowEditStyles, /\.sales-history-table th:nth-child\(6\),[\s\S]*width:\s*17%;/);
+  assert.match(saleEnglishUi, /\.sales-history-month-group\s*\{\s*display:\s*none !important;/s);
+  assert.match(saleEnglishUi, /\.sales-history-day-group > td\s*\{[\s\S]*font-size:\s*14px !important;/);
+  assert.match(saleEnglishUi, /@media \(max-width:\s*700px\)[\s\S]*font-size:\s*8px !important;/);
 });
 
 test("Sale Assistant owns locale-aware UI instead of relying on a Vietnamese-source patch", async () => {
