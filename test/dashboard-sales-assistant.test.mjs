@@ -36,8 +36,13 @@ test("dashboard HTML loads the visible Sale Assistant", async () => {
   assert.match(rowEditStyles, /\.sales-assistant-heading\s*\{[^}]*padding:\s*18px 26px;[^}]*margin-bottom:\s*0;/s);
   assert.match(rowEditStyles, /\.sales-history-workspace\s*\{[^}]*padding:\s*16px 22px 22px;/s);
   assert.match(rowEditStyles, /\.sales-history-heading > div\s*\{[^}]*justify-content:\s*space-between;/s);
-  assert.match(rowEditStyles, /\.sales-history-table th:nth-child\(4\),[\s\S]*width:\s*25%;/);
-  assert.match(rowEditStyles, /\.sales-history-table th:nth-child\(6\),[\s\S]*width:\s*17%;/);
+  assert.match(rowEditStyles, /\.sales-history-table\s*\{[^}]*min-width:\s*940px;[^}]*table-layout:\s*fixed;/s);
+  assert.match(rowEditStyles, /\.sales-history-table th:nth-child\(1\),[\s\S]*width:\s*14%;/);
+  assert.match(rowEditStyles, /\.sales-history-table th:nth-child\(2\),[\s\S]*width:\s*18%;/);
+  assert.match(rowEditStyles, /\.sales-history-table th:nth-child\(3\),[\s\S]*width:\s*18%;/);
+  assert.match(rowEditStyles, /\.sales-history-table th:nth-child\(4\),[\s\S]*width:\s*24%;/);
+  assert.match(rowEditStyles, /\.sales-history-table th:nth-child\(5\),[\s\S]*width:\s*13%;/);
+  assert.match(rowEditStyles, /\.sales-history-table th:nth-child\(6\),[\s\S]*width:\s*13%;/);
   assert.match(rowEditStyles, /@media \(min-width:\s*701px\)[\s\S]*\.sales-assistant-tabs\s*\{[\s\S]*padding-top:\s*4px;[\s\S]*padding-bottom:\s*4px;/);
   assert.match(rowEditStyles, /@media \(min-width:\s*701px\)[\s\S]*\.sales-assistant-tabs button\s*\{[\s\S]*min-height:\s*34px;/);
   assert.doesNotMatch(rowEditStyles, /@media \(min-width:\s*701px\)[\s\S]*\.sales-assistant-tabs\s*\{[^}]*width:\s*fit-content;/);
