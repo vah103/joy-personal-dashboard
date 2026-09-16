@@ -158,6 +158,8 @@
 
 .sales-history-table tbody tr.sales-history-edit-row > .sales-history-actions-cell {
   min-width: 196px;
+  padding-left: 6px !important;
+  padding-right: 6px !important;
 }
 
 .sales-history-edit-row .sales-history-cancel-button {
@@ -166,6 +168,7 @@
 
 .sales-history-edit-row .sales-history-edit-controls {
   grid-template-columns: auto auto auto;
+  gap: 5px;
   justify-content: end;
 }
 
@@ -219,6 +222,16 @@
 .sales-history-close-button:disabled {
   cursor: default;
   opacity: .62;
+}
+
+.sales-history-edit-row .sales-history-edit-controls > button {
+  min-width: 0;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.sales-history-edit-row .sales-history-edit-input[type="datetime-local"] {
+  min-width: 0;
 }
 
 @media (min-width: 701px) {
