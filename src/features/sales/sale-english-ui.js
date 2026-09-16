@@ -16,6 +16,27 @@ function ensureI18nStyle(doc = globalThis.document) {
   doc.head.append(link);
 }
 
+function ensureHistoryTypographyStyle(doc = globalThis.document) {
+  if (!doc?.head || doc.querySelector('style[data-sale-history-typography="true"]')) return;
+  const style = doc.createElement("style");
+  style.dataset.saleHistoryTypography = "true";
+  style.textContent = `
+    .sales-history-month-group > td {
+      font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
+      font-size: 13px !important;
+      font-weight: 700 !important;
+      letter-spacing: 0 !important;
+    }
+    .sales-history-day-group > td {
+      font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
+      font-size: 10px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0 !important;
+    }
+  `;
+  doc.head.append(style);
+}
+
 function normalizeSaleManageButton(doc = globalThis.document) {
   const button = doc?.querySelector?.('#sales .panel-heading [data-action="open-sale-manager"]:last-child');
   if (!button) return;
@@ -52,6 +73,7 @@ export async function installSaleEnglishUi(doc = globalThis.document) {
   if (!doc?.body || doc.body.dataset.saleLanguageAdapter === "true") return;
   doc.body.dataset.saleLanguageAdapter = "true";
   ensureI18nStyle(doc);
+  ensureHistoryTypographyStyle(doc);
   normalizeSaleManageButton(doc);
 
   const sync = () => {
