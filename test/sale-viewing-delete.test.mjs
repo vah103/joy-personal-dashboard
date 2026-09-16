@@ -43,9 +43,10 @@ test("Sale history keeps compact edit controls and commission stages", async () 
   assert.match(styles, /data-commission-state=\"received\"[\s\S]*?#d8efd9/);
   assert.match(styles, /grid-template-columns:\s*auto auto auto/);
   assert.match(styles, /min-width:\s*940px/);
-  assert.match(styles, /th:nth-child\(4\)[\s\S]*?width:\s*25%/);
+  assert.match(styles, /table-layout:\s*fixed/);
+  assert.match(styles, /th:nth-child\(4\)[\s\S]*?width:\s*24%/);
   assert.match(styles, /th:nth-child\(5\)[\s\S]*?width:\s*13%[\s\S]*?text-align:\s*center/);
-  assert.match(styles, /th:nth-child\(6\)[\s\S]*?width:\s*17%[\s\S]*?min-width:\s*138px[\s\S]*?text-align:\s*center/);
+  assert.match(styles, /th:nth-child\(6\)[\s\S]*?width:\s*13%[\s\S]*?min-width:\s*120px[\s\S]*?text-align:\s*center/);
 
   assert.match(endpoint, /DELETE FROM sale_viewings/);
   assert.match(endpoint, /DELETE FROM sale_viewing_commissions/);
