@@ -38,8 +38,8 @@ test("dashboard HTML loads the visible Sale Assistant", async () => {
   assert.match(rowEditStyles, /\.sales-history-heading > div\s*\{[^}]*justify-content:\s*space-between;/s);
   assert.match(rowEditStyles, /\.sales-history-table th:nth-child\(4\),[\s\S]*width:\s*25%;/);
   assert.match(rowEditStyles, /\.sales-history-table th:nth-child\(6\),[\s\S]*width:\s*17%;/);
-  assert.match(rowEditStyles, /@media \(min-width:\s*701px\)[\s\S]*\.sales-assistant-tabs\s*\{[\s\S]*width:\s*fit-content;[\s\S]*margin:\s*10px 22px;[\s\S]*border-bottom:\s*0;/);
-  assert.match(rowEditStyles, /@media \(min-width:\s*701px\)[\s\S]*\.sales-assistant-tabs button\s*\{[\s\S]*min-height:\s*36px;[\s\S]*padding:\s*0 14px;[\s\S]*border:\s*1px solid/);
+  assert.match(rowEditStyles, /@media \(min-width:\s*701px\)[\s\S]*\.sales-assistant-tabs\s*\{[\s\S]*width:\s*fit-content;[\s\S]*margin:\s*6px 22px;[\s\S]*border-bottom:\s*0;/);
+  assert.match(rowEditStyles, /@media \(min-width:\s*701px\)[\s\S]*\.sales-assistant-tabs button\s*\{[\s\S]*min-height:\s*34px;[\s\S]*padding:\s*0 14px;[\s\S]*border:\s*1px solid/);
   assert.match(rowEditStyles, /@media \(max-width:\s*700px\)[\s\S]*\.sales-assistant-tabs\s*\{[\s\S]*width:\s*auto;[\s\S]*margin:\s*0;/);
   assert.match(saleEnglishUi, /\.sales-history-month-group\s*\{\s*display:\s*none !important;/s);
   assert.match(saleEnglishUi, /\.sales-history-day-group > td\s*\{[\s\S]*font-size:\s*14px !important;/);
