@@ -26,7 +26,7 @@ function ensureHistoryTypographyStyle(doc = globalThis.document) {
     }
     .sales-history-day-group > td {
       font-family: "Nunito", ui-rounded, system-ui, sans-serif !important;
-      font-size: 15px !important;
+      font-size: 14px !important;
       font-weight: 700 !important;
       letter-spacing: 0 !important;
     }
