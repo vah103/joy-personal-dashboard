@@ -225,20 +225,23 @@ function historyDateMeta(value) {
   const month = part("month");
   const day = part("day");
   const locale = getBrowserLocale();
+  const weekday = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    weekday: "long",
+  }).format(date);
+  const monthShort = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    month: "short",
+  }).format(date);
   return {
     monthKey: `${year}-${month}`,
     dayKey: `${year}-${month}-${day}`,
-    monthLabel: new Intl.DateTimeFormat(locale, {
+    monthLabel: new Intl.DateTimeFormat("en-US", {
       timeZone: "Asia/Ho_Chi_Minh",
       month: "long",
       year: "numeric",
     }).format(date),
-    dayLabel: new Intl.DateTimeFormat(locale, {
-      timeZone: "Asia/Ho_Chi_Minh",
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-    }).format(date),
+    dayLabel: `${weekday}, ${Number(day)}th ${monthShort}`,
     timeLabel: new Intl.DateTimeFormat(locale, {
       timeZone: "Asia/Ho_Chi_Minh",
       hour: "2-digit",
@@ -260,20 +263,22 @@ function renderHistoryGroupRow(label, kind) {
   cell.style.opacity = "1";
   cell.style.whiteSpace = "nowrap";
   if (kind === "month") {
-    cell.style.padding = "18px 18px 10px";
+    cell.style.padding = "16px 18px 9px";
     cell.style.color = "#294852";
     cell.style.background = "#eef3f2";
-    cell.style.fontSize = "15px";
-    cell.style.fontWeight = "900";
-    cell.style.letterSpacing = ".01em";
+    cell.style.fontFamily = '"Open Sans", "Instrument Sans", Arial, sans-serif';
+    cell.style.fontSize = "14px";
+    cell.style.fontWeight = "800";
+    cell.style.letterSpacing = "0";
     cell.style.borderBottom = "1px solid rgba(78, 95, 101, .12)";
   } else {
-    cell.style.padding = "10px 18px";
+    cell.style.padding = "9px 18px";
     cell.style.color = "#61767c";
     cell.style.background = "#f8faf9";
-    cell.style.fontSize = "11px";
-    cell.style.fontWeight = "850";
-    cell.style.letterSpacing = ".035em";
+    cell.style.fontFamily = '"Open Sans", "Instrument Sans", Arial, sans-serif';
+    cell.style.fontSize = "10px";
+    cell.style.fontWeight = "700";
+    cell.style.letterSpacing = "0";
     cell.style.borderBottom = "1px solid rgba(78, 95, 101, .08)";
   }
   row.append(cell);
