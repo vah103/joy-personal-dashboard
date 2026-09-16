@@ -30,9 +30,14 @@ function ensureHistoryTypographyStyle(doc = globalThis.document) {
     }
     .sales-history-day-group > td {
       font-family: "Nunito", ui-rounded, system-ui, sans-serif !important;
-      font-size: 8px !important;
+      font-size: 10px !important;
       font-weight: 700 !important;
       letter-spacing: 0 !important;
+    }
+    @media (max-width: 700px) {
+      .sales-history-day-group > td {
+        font-size: 8px !important;
+      }
     }
   `;
   doc.head.append(style);
