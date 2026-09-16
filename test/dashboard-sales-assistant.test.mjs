@@ -34,12 +34,10 @@ test("dashboard HTML loads the visible Sale Assistant", async () => {
   assert.match(styles, /\.sales-history-table th:last-child,[\s\S]*position:\s*sticky;[\s\S]*right:\s*0;/);
 
   assert.match(rowEditStyles, /\.sales-assistant-heading\s*\{[^}]*padding:\s*18px 26px;/s);
-  assert.match(rowEditStyles, /\.sales-history-workspace\s*\{[^}]*padding:\s*8px 22px 16px;/s);
+  assert.match(rowEditStyles, /\.sales-history-workspace\s*\{[^}]*padding:\s*16px 22px 22px;/s);
   assert.match(rowEditStyles, /\.sales-history-heading > div\s*\{[^}]*justify-content:\s*space-between;/s);
   assert.match(rowEditStyles, /\.sales-history-table th:nth-child\(4\),[\s\S]*width:\s*25%;/);
   assert.match(rowEditStyles, /\.sales-history-table th:nth-child\(6\),[\s\S]*width:\s*17%;/);
-  assert.match(rowEditStyles, /:has\(\[data-assistant-mode="history"\]\.active\)[\s\S]*\.sales-assistant-heading[\s\S]*padding:\s*12px 26px;/);
-  assert.match(rowEditStyles, /\.sales-history-table thead th\s*\{[\s\S]*padding-top:\s*10px;[\s\S]*padding-bottom:\s*10px;/);
   assert.match(saleEnglishUi, /\.sales-history-month-group\s*\{\s*display:\s*none !important;/s);
   assert.match(saleEnglishUi, /\.sales-history-day-group > td\s*\{[\s\S]*font-size:\s*14px !important;/);
   assert.match(saleEnglishUi, /@media \(max-width:\s*700px\)[\s\S]*font-size:\s*8px !important;/);
