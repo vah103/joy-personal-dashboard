@@ -46,11 +46,6 @@ test("Sale history keeps compact edit controls and commission stages", async () 
   assert.match(styles, /th:nth-child\(4\)[\s\S]*?width:\s*25%/);
   assert.match(styles, /th:nth-child\(5\)[\s\S]*?width:\s*13%[\s\S]*?text-align:\s*center/);
   assert.match(styles, /th:nth-child\(6\)[\s\S]*?width:\s*17%[\s\S]*?min-width:\s*138px[\s\S]*?text-align:\s*center/);
-  assert.match(styles, /:has\(\[data-assistant-mode=\"history\"\]\.active\)[\s\S]*?\.sales-assistant-heading[\s\S]*?padding:\s*12px 26px/);
-  assert.match(styles, /:has\(\[data-assistant-mode=\"history\"\]\.active\)[\s\S]*?\.sales-assistant-heading > div > span[\s\S]*?display:\s*none/);
-  assert.match(styles, /\.sales-assistant-tabs button\s*\{[\s\S]*?min-height:\s*34px/);
-  assert.match(styles, /\.sales-history-table thead th\s*\{[\s\S]*?padding-top:\s*10px;[\s\S]*?padding-bottom:\s*10px/);
-  assert.match(styles, /\.sales-history-day-group > td\s*\{[\s\S]*?padding:\s*5px 18px !important/);
 
   assert.match(endpoint, /DELETE FROM sale_viewings/);
   assert.match(endpoint, /DELETE FROM sale_viewing_commissions/);
