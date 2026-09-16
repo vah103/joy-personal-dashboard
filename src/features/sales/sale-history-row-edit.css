@@ -12,6 +12,10 @@
   padding-bottom: 7px;
 }
 
+.sales-assistant-tabs button {
+  font-size: 14px;
+}
+
 .sales-history-workspace {
   padding: 16px 22px 22px;
 }
