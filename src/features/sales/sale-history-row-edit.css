@@ -1,5 +1,22 @@
+.sales-assistant-heading {
+  padding: 18px 26px;
+}
+
+.sales-assistant-heading > div > span {
+  margin-top: 3px;
+}
+
+.sales-assistant-tabs {
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+
+.sales-history-workspace {
+  padding: 16px 22px 22px;
+}
+
 .sales-history-heading {
-  margin: 0 0 10px;
+  margin: 0 0 8px;
   padding: 0 2px;
   min-height: 0;
   align-items: baseline;
@@ -10,9 +27,11 @@
 }
 
 .sales-history-heading > div {
+  width: 100%;
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 12px;
   min-width: 0;
 }
 
@@ -23,8 +42,8 @@
 
 #sales-history-count {
   margin: 0;
-  color: #536970;
-  font-size: 12px;
+  color: #465f68;
+  font-size: 13px;
   font-weight: 850;
   line-height: 1.35;
 }
@@ -32,24 +51,25 @@
 .sales-history-edit-hint {
   display: inline;
   margin: 0;
-  color: #8a979b;
-  font-size: 10px;
-  font-weight: 650;
+  color: #71848a;
+  font-size: 10.5px;
+  font-weight: 700;
   line-height: 1.35;
+  text-align: right;
 }
 
 .sales-history-table {
-  min-width: 960px;
+  min-width: 940px;
 }
 
 .sales-history-table th:nth-child(1),
 .sales-history-table td:nth-child(1) {
-  width: 17%;
+  width: 14%;
 }
 
 .sales-history-table th:nth-child(2),
 .sales-history-table td:nth-child(2) {
-  width: 15%;
+  width: 17%;
 }
 
 .sales-history-table th:nth-child(3),
@@ -59,7 +79,7 @@
 
 .sales-history-table th:nth-child(4),
 .sales-history-table td:nth-child(4) {
-  width: 28%;
+  width: 25%;
 }
 
 .sales-history-table tbody tr:not(.sales-history-edit-row) > td:nth-child(4) {
@@ -68,17 +88,17 @@
 
 .sales-history-table th:nth-child(5),
 .sales-history-table td:nth-child(5) {
-  width: 12%;
-  min-width: 112px;
+  width: 13%;
+  min-width: 104px;
   text-align: center;
 }
 
 .sales-history-table th:nth-child(6),
 .sales-history-table td:nth-child(6) {
-  width: 14%;
-  min-width: 132px;
-  padding-left: 18px;
-  padding-right: 22px;
+  width: 17%;
+  min-width: 138px;
+  padding-left: 16px;
+  padding-right: 18px;
   text-align: center;
   white-space: nowrap;
 }
@@ -196,6 +216,23 @@
 }
 
 @media (max-width: 700px) {
+  .sales-assistant-heading {
+    padding: 14px 16px;
+  }
+
+  .sales-assistant-tabs {
+    padding-top: 7px;
+    padding-bottom: 7px;
+  }
+
+  .sales-history-workspace {
+    padding: 12px 14px 14px;
+  }
+
+  .sales-history-heading {
+    margin-bottom: 7px;
+  }
+
   .sales-history-heading > div {
     flex-wrap: wrap;
     gap: 4px 8px;
@@ -203,5 +240,6 @@
 
   .sales-history-edit-hint {
     font-size: 10px;
+    text-align: left;
   }
 }
