@@ -146,7 +146,7 @@ async function confirmProjectDelete() {
       return;
     }
 
-    showToast(`${project.name} removed here · will sync when offline`);
+    showToast(`${project.name} removed here · will sync when online`);
   }
 }
 
