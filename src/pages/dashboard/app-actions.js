@@ -166,4 +166,4 @@ function closeSalesModal() {
   ) document.body.classList.remove("modal-open");
 }
 
-import("/daily-day.js?v=joy-daily-day-v15").catch(() => {});
+import("/daily-day.js?v=joy-daily-day-v16").catch(() => {});
