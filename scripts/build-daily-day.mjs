@@ -100,16 +100,83 @@ if (builtScript.includes('<div class="dd-note"><strong>${esc(t("dailyDay.templat
 await writeFile(scriptTarget, builtScript);
 await cp(styleSource, styleTarget);
 
-// Let Template schedule use the vertical space freed by the removed cards.
+// Let Template schedule use the vertical space freed by the removed cards,
+// and present every checklist item on its own line like the Daily day doc.
 await appendFile(styleTarget, `
 #daily-day-templates-modal .dd-detail > .dd-section {
   margin-top: 10px !important;
-  margin-bottom: 8px !important;
+  margin-bottom: 10px !important;
 }
 
 #daily-day-templates-modal .dd-timeline {
   flex: 1 1 auto;
   min-height: 0;
+  gap: 10px;
+}
+
+#daily-day-templates-modal .dd-timeline-row {
+  min-height: 64px;
+  padding: 12px 14px;
+  grid-template-columns: 68px minmax(150px, 220px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+#daily-day-templates-modal .dd-timeline-row::before {
+  top: 24px;
+  transform: none;
+}
+
+#daily-day-templates-modal .dd-timeline-row > strong:first-child {
+  margin-top: 0;
+}
+
+#daily-day-templates-modal .dd-timeline-row > strong:nth-child(2) {
+  padding-top: 5px;
+  line-height: 1.35;
+}
+
+#daily-day-templates-modal .dd-template-items {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  color: #60757d;
+  font-size: 10px;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+#daily-day-templates-modal .dd-template-items span {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  white-space: normal;
+}
+
+#daily-day-templates-modal .dd-template-items span::before {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  margin-right: 6px;
+}
+
+@media (max-width: 980px) {
+  #daily-day-templates-modal .dd-timeline-row {
+    grid-template-columns: 62px minmax(125px, 180px) minmax(0, 1fr);
+    gap: 12px;
+  }
+}
+
+@media (max-width: 760px) {
+  #daily-day-templates-modal .dd-timeline-row {
+    grid-template-columns: 58px minmax(0, 1fr);
+    padding: 12px;
+    gap: 10px;
+  }
+
+  #daily-day-templates-modal .dd-template-items {
+    grid-column: 1 / -1;
+    padding-left: 68px;
+  }
 }
 `);
 
@@ -118,10 +185,10 @@ await appendFile(scriptTarget, `
   if (typeof document === "undefined" || document.querySelector('link[data-joy-daily-day-design="true"]')) return;
   const link = document.createElement("link");
   link.rel = "stylesheet";
-  link.href = "/daily-day-design.css?v=joy-daily-day-design-v4";
+  link.href = "/daily-day-design.css?v=joy-daily-day-design-v5";
   link.dataset.joyDailyDayDesign = "true";
   document.head.append(link);
 })();
 `);
 
-console.log("Joy Daily Day frontend, exact Sunday document template, focused template schedule, and approved mockup styling copied to dist");
+console.log("Joy Daily Day frontend, exact Sunday document template, expanded one-item-per-line schedule, and approved mockup styling copied to dist");
