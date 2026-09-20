@@ -34,10 +34,18 @@ const syncScript = String.raw`
 
   const applyState = (data) => {
     const source = data && typeof data === "object" ? data : {};
-    localStorage.setItem(CORE_KEY, JSON.stringify(source.core && typeof source.core === "object" ? source.core : {}));
-    localStorage.setItem(WORKOUT_KEY, JSON.stringify(source.workoutValues && typeof source.workoutValues === "object" ? source.workoutValues : {}));
-    localStorage.setItem(STREAK_KEY, JSON.stringify(source.streak && typeof source.streak === "object" ? source.streak : {}));
+    const nextCore = JSON.stringify(source.core && typeof source.core === "object" ? source.core : {});
+    const nextWorkout = JSON.stringify(source.workoutValues && typeof source.workoutValues === "object" ? source.workoutValues : {});
+    const nextStreak = JSON.stringify(source.streak && typeof source.streak === "object" ? source.streak : {});
+    const changed = localStorage.getItem(CORE_KEY) !== nextCore
+      || localStorage.getItem(WORKOUT_KEY) !== nextWorkout
+      || localStorage.getItem(STREAK_KEY) !== nextStreak;
+    if (!changed) return false;
+    localStorage.setItem(CORE_KEY, nextCore);
+    localStorage.setItem(WORKOUT_KEY, nextWorkout);
+    localStorage.setItem(STREAK_KEY, nextStreak);
     window.dispatchEvent(new CustomEvent("joy:daily-day-cloud-applied"));
+    return true;
   };
 
   const request = async (method, body) => {
@@ -197,6 +205,8 @@ const syncScript = String.raw`
     if (WATCHED_KEYS.has(event.key)) pull({ force: true });
   });
 
+  // Poll silently while the modal is visible. Unchanged cloud data no longer
+  // rewrites localStorage or rerenders the modal, so background sync is invisible.
   window.setInterval(() => {
     if (document.visibilityState !== "visible") return;
     const modal = document.querySelector("#daily-day-modal");
