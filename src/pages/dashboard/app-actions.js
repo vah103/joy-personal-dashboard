@@ -44,7 +44,7 @@ async function dismissEmail(id) {
     try {
       await backendRequest("/api/emails/dismiss", {
         method: "POST",
-        body: JSON.stringify({ id: emailId }),
+        body: JSON.stringify({ id }),
       });
     } catch {
       showToast("Read status could not be saved");
@@ -166,4 +166,4 @@ function closeSalesModal() {
   ) document.body.classList.remove("modal-open");
 }
 
-import("/daily-day.js?v=joy-daily-day-v2").catch(() => {});
+import("/daily-day.js?v=joy-daily-day-v3").catch(() => {});
