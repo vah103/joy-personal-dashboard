@@ -49,8 +49,8 @@ const streakScript = String.raw`
     const style = document.createElement("style");
     style.id = "joy-daily-day-streak-styles-v1";
     style.textContent = [
-      "#daily-day-modal .dd-streak{grid-template-columns:26px minmax(0,1fr) auto 76px;gap:9px;align-items:center}",
-      "#daily-day-modal .dd-streak-check{width:24px;height:24px;padding:0;display:grid;place-items:center;border:2px solid #83a4a3;border-radius:50%;background:#fffefa;color:transparent;font:800 14px/1 Nunito,system-ui,sans-serif;cursor:pointer;transition:background .16s ease,border-color .16s ease,transform .16s ease}",
+      "#daily-day-modal .dd-streak{grid-template-columns:22px minmax(0,1fr) auto 76px;gap:9px;align-items:center}",
+      "#daily-day-modal .dd-streak-check{width:20px;height:20px;padding:0;display:grid;place-items:center;border:1.5px solid #83a4a3;border-radius:50%;background:#fffefa;color:transparent;font:800 12px/1 Nunito,system-ui,sans-serif;cursor:pointer;transition:background .16s ease,border-color .16s ease,transform .16s ease}",
       "#daily-day-modal .dd-streak-check:hover{transform:translateY(-1px);border-color:#5f8d8c}",
       "#daily-day-modal .dd-streak-check.checked{border-color:#648f8e;background:#648f8e;color:#fff}",
       "#daily-day-modal .dd-streak-check:focus-visible{outline:3px solid rgba(100,143,142,.22);outline-offset:2px}",
