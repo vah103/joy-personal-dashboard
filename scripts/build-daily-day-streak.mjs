@@ -48,48 +48,15 @@ const streakScript = String.raw`
     if (document.querySelector("#joy-daily-day-streak-styles-v1")) return;
     const style = document.createElement("style");
     style.id = "joy-daily-day-streak-styles-v1";
-    style.textContent = `
-      #daily-day-modal .dd-streak {
-        grid-template-columns: 26px minmax(0,1fr) auto 76px;
-        gap: 9px;
-        align-items: center;
-      }
-      #daily-day-modal .dd-streak-check {
-        width: 24px;
-        height: 24px;
-        padding: 0;
-        display: grid;
-        place-items: center;
-        border: 2px solid #83a4a3;
-        border-radius: 50%;
-        background: #fffefa;
-        color: transparent;
-        font: 800 14px/1 Nunito, system-ui, sans-serif;
-        cursor: pointer;
-        transition: background .16s ease, border-color .16s ease, transform .16s ease;
-      }
-      #daily-day-modal .dd-streak-check:hover {
-        transform: translateY(-1px);
-        border-color: #5f8d8c;
-      }
-      #daily-day-modal .dd-streak-check.checked {
-        border-color: #648f8e;
-        background: #648f8e;
-        color: #fff;
-      }
-      #daily-day-modal .dd-streak-check:focus-visible {
-        outline: 3px solid rgba(100,143,142,.22);
-        outline-offset: 2px;
-      }
-      #daily-day-modal .dd-streak strong {
-        min-width: 0;
-      }
-      #daily-day-modal .dd-streak small {
-        min-width: 46px;
-        text-align: right;
-        font-variant-numeric: tabular-nums;
-      }
-    `;
+    style.textContent = [
+      "#daily-day-modal .dd-streak{grid-template-columns:26px minmax(0,1fr) auto 76px;gap:9px;align-items:center}",
+      "#daily-day-modal .dd-streak-check{width:24px;height:24px;padding:0;display:grid;place-items:center;border:2px solid #83a4a3;border-radius:50%;background:#fffefa;color:transparent;font:800 14px/1 Nunito,system-ui,sans-serif;cursor:pointer;transition:background .16s ease,border-color .16s ease,transform .16s ease}",
+      "#daily-day-modal .dd-streak-check:hover{transform:translateY(-1px);border-color:#5f8d8c}",
+      "#daily-day-modal .dd-streak-check.checked{border-color:#648f8e;background:#648f8e;color:#fff}",
+      "#daily-day-modal .dd-streak-check:focus-visible{outline:3px solid rgba(100,143,142,.22);outline-offset:2px}",
+      "#daily-day-modal .dd-streak strong{min-width:0}",
+      "#daily-day-modal .dd-streak small{min-width:46px;text-align:right;font-variant-numeric:tabular-nums}",
+    ].join("");
     document.head.append(style);
   };
 
@@ -107,10 +74,10 @@ const streakScript = String.raw`
       const checked = isChecked(data, dateKey, streak.id);
       const current = streak.base + completedFor(data, streak.id);
       const percent = streak.target ? Math.min(100, Math.round(current / streak.target * 100)) : 0;
-      const signature = `${dateKey}|${streak.id}|${checked ? 1 : 0}|${current}|${streak.target}`;
+      const signature = [dateKey, streak.id, checked ? 1 : 0, current, streak.target].join("|");
       if (row.dataset.ddStreakSignature === signature) return;
       row.dataset.ddStreakSignature = signature;
-      row.innerHTML = `<button type="button" class="dd-streak-check ${checked ? "checked" : ""}" data-dd-streak-check="${streak.id}" aria-pressed="${checked}" aria-label="${checked ? "Bỏ tích" : "Tích"} ${streak.label} cho ${dateKey}">${checked ? "✓" : ""}</button><strong>${streak.label}</strong><small>${current}/${streak.target}</small><span class="dd-track"><i style="width:${percent}%"></i></span>`;
+      row.innerHTML = '<button type="button" class="dd-streak-check ' + (checked ? "checked" : "") + '" data-dd-streak-check="' + streak.id + '" aria-pressed="' + checked + '" aria-label="' + (checked ? "Bỏ tích" : "Tích") + ' ' + streak.label + ' cho ' + dateKey + '">' + (checked ? "✓" : "") + '</button><strong>' + streak.label + '</strong><small>' + current + '/' + streak.target + '</small><span class="dd-track"><i style="width:' + percent + '%"></i></span>';
     });
   };
 
