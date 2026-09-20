@@ -7,6 +7,9 @@ const styleTarget = resolve(root, "dist", "daily-day-design.css");
 
 const editorScript = String.raw`
 ;(() => {
+  const designLink = document.querySelector('link[data-joy-daily-day-design="true"]');
+  if (designLink) designLink.href = "/daily-day-design.css?v=joy-daily-day-design-v11";
+
   const STORAGE_KEY = "joy-daily-day-workout-values-v1";
   const read = () => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch { return {}; } };
   const write = (data) => localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -96,6 +99,33 @@ const editorStyles = String.raw`
 @media(max-width:760px){#daily-day-modal .dd-exercise-editor{grid-template-columns:1fr 1fr}#daily-day-modal .dd-exercise-save,#daily-day-modal .dd-exercise-reset{width:100%}}
 `;
 
+const typographyStyles = String.raw`
+/* Daily Day typography v19: raise the main popup by about 3px, keeping the Daily Day title unchanged. */
+#daily-day-modal .dd-sub{font-size:15px}
+#daily-day-modal .dd-progress strong{font-size:14px}
+#daily-day-modal .dd-week button,
+#daily-day-modal .dd-button,
+#daily-day-modal .dd-select{font-size:13.5px}
+#daily-day-modal .dd-templatebar label{font-size:13.5px}
+#daily-day-modal .dd-section{font-size:16px}
+#daily-day-modal .dd-time{font-size:13px}
+#daily-day-modal .dd-block-title strong{font-size:15px}
+#daily-day-modal .dd-blockhead small{font-size:12.5px}
+#daily-day-modal .dd-check{font-size:13.5px}
+#daily-day-modal .dd-workout-subheading{font-size:14.5px}
+#daily-day-modal .dd-workout-tabs button{font-size:13.5px}
+#daily-day-modal .dd-stat span{font-size:12px}
+#daily-day-modal .dd-stat strong{font-size:14.5px}
+#daily-day-modal .dd-streak strong,
+#daily-day-modal .dd-streak small{font-size:12.5px}
+#daily-day-modal .dd-notes{font-size:12.5px}
+#daily-day-modal .dd-exercise-field{font-size:12px}
+#daily-day-modal .dd-exercise-field input{font-size:14px}
+#daily-day-modal .dd-exercise-save,
+#daily-day-modal .dd-exercise-reset{font-size:13px}
+`;
+
 await appendFile(scriptTarget, editorScript);
 await appendFile(styleTarget, editorStyles);
-console.log("Daily Day per-date workout weight/reps editor appended");
+await appendFile(styleTarget, typographyStyles);
+console.log("Daily Day per-date workout weight/reps editor and larger popup typography appended");
