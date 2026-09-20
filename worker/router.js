@@ -5,6 +5,10 @@ import {
   runDailyBriefSchedule,
 } from "./daily-brief-budget.js";
 import {
+  handleDailyDaySyncRequest,
+  isDailyDaySyncRoute,
+} from "./daily-day-sync.js";
+import {
   handleDashboardDataRequest,
   isDashboardDataRoute,
 } from "./dashboard-data.js";
@@ -173,6 +177,9 @@ export default {
       }
       if (isDailyBriefRoute(pathname)) {
         return handleDailyBriefRequest(request, env, ctx);
+      }
+      if (isDailyDaySyncRoute(pathname)) {
+        return handleDailyDaySyncRequest(request, env);
       }
       if (isDashboardDataRoute(pathname)) {
         return handleDashboardDataRequest(request, env);
