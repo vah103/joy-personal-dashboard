@@ -101,7 +101,8 @@ await writeFile(scriptTarget, builtScript);
 await cp(styleSource, styleTarget);
 
 // Let Template schedule use the vertical space freed by the removed cards,
-// and present every checklist item on its own line like the Daily day doc.
+// keep every checklist item on its own line, and make each time block grow
+// naturally to fit all of its tasks instead of allowing content to overlap.
 await appendFile(styleTarget, `
 #daily-day-templates-modal .dd-detail > .dd-section {
   margin-top: 10px !important;
@@ -111,15 +112,24 @@ await appendFile(styleTarget, `
 #daily-day-templates-modal .dd-timeline {
   flex: 1 1 auto;
   min-height: 0;
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  overflow-y: auto;
 }
 
 #daily-day-templates-modal .dd-timeline-row {
+  flex: 0 0 auto;
+  width: 100%;
+  box-sizing: border-box;
   min-height: 64px;
-  padding: 12px 14px;
+  height: auto;
+  padding: 13px 14px;
   grid-template-columns: 68px minmax(150px, 220px) minmax(0, 1fr);
   gap: 14px;
   align-items: start;
+  overflow: visible;
 }
 
 #daily-day-templates-modal .dd-timeline-row::before {
@@ -137,12 +147,16 @@ await appendFile(styleTarget, `
 }
 
 #daily-day-templates-modal .dd-template-items {
+  min-width: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 6px;
+  grid-auto-rows: max-content;
+  align-content: start;
+  align-self: start;
+  gap: 7px;
   color: #60757d;
   font-size: 10px;
-  line-height: 1.4;
+  line-height: 1.45;
   font-weight: 600;
 }
 
@@ -151,6 +165,7 @@ await appendFile(styleTarget, `
   display: flex;
   align-items: flex-start;
   white-space: normal;
+  overflow: visible;
 }
 
 #daily-day-templates-modal .dd-template-items span::before {
@@ -185,10 +200,10 @@ await appendFile(scriptTarget, `
   if (typeof document === "undefined" || document.querySelector('link[data-joy-daily-day-design="true"]')) return;
   const link = document.createElement("link");
   link.rel = "stylesheet";
-  link.href = "/daily-day-design.css?v=joy-daily-day-design-v5";
+  link.href = "/daily-day-design.css?v=joy-daily-day-design-v6";
   link.dataset.joyDailyDayDesign = "true";
   document.head.append(link);
 })();
 `);
 
-console.log("Joy Daily Day frontend, exact Sunday document template, expanded one-item-per-line schedule, and approved mockup styling copied to dist");
+console.log("Joy Daily Day frontend, exact Sunday document template, auto-growing checklist rows, and approved mockup styling copied to dist");
