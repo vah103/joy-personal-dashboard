@@ -166,7 +166,7 @@ function closeSalesModal() {
   ) document.body.classList.remove("modal-open");
 }
 
-import("/daily-day.js?v=joy-daily-day-v11").then(() => {
+import("/daily-day.js?v=joy-daily-day-v12").then(() => {
   document.querySelector("#joy-daily-day-columns-v1")?.remove();
   document.querySelector("#joy-daily-day-layout-v2")?.remove();
 
@@ -174,6 +174,11 @@ import("/daily-day.js?v=joy-daily-day-v11").then(() => {
   style.id = "joy-daily-day-layout-v2";
   style.textContent = `
     /* Template schedule: three stable reading zones, aligned from the top. */
+    #daily-day-templates-modal .dd-detail > .dd-section,
+    #daily-day-templates-modal .dd-detail .dd-timeline {
+      font-family: "Nunito", sans-serif !important;
+    }
+
     #daily-day-templates-modal .dd-detail > .dd-section {
       margin: 10px 0 10px !important;
       font-size: 15px !important;
