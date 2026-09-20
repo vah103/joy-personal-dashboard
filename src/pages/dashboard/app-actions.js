@@ -166,7 +166,7 @@ function closeSalesModal() {
   ) document.body.classList.remove("modal-open");
 }
 
-import("/daily-day.js?v=joy-daily-day-v13").then(() => {
+import("/daily-day.js?v=joy-daily-day-v14").then(() => {
   document.querySelector("#joy-daily-day-columns-v1")?.remove();
   document.querySelector("#joy-daily-day-layout-v2")?.remove();
 
@@ -365,6 +365,32 @@ import("/daily-day.js?v=joy-daily-day-v13").then(() => {
       align-items: center !important;
       line-height: 1.35 !important;
       font-weight: 600 !important;
+    }
+
+    /* Desktop compacting: use the space more efficiently without changing
+       the mobile layout or the two-column checklist rule. */
+    @media (min-width: 981px) {
+      #daily-day-templates-modal .dd-library {
+        width: min(1040px, calc(100vw - 64px)) !important;
+      }
+
+      #daily-day-templates-modal .dd-library-grid {
+        grid-template-columns: 286px minmax(0, 1fr) !important;
+        gap: 14px !important;
+      }
+
+      #daily-day-templates-modal .dd-library-head > div:first-child {
+        min-width: 290px !important;
+      }
+
+      #daily-day-templates-modal .dd-detail .dd-timeline-row {
+        grid-template-columns: 64px 100px minmax(0, 1fr) !important;
+        column-gap: 12px !important;
+      }
+
+      #daily-day-templates-modal .dd-detail .dd-template-items:has(> span:nth-of-type(5)) {
+        column-gap: 22px !important;
+      }
     }
 
     @media (max-width: 980px) {
