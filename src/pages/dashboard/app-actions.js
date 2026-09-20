@@ -166,58 +166,155 @@ function closeSalesModal() {
   ) document.body.classList.remove("modal-open");
 }
 
-import("/daily-day.js?v=joy-daily-day-v9").then(() => {
-  if (document.querySelector("#joy-daily-day-columns-v1")) return;
+import("/daily-day.js?v=joy-daily-day-v10").then(() => {
+  document.querySelector("#joy-daily-day-columns-v1")?.remove();
+  document.querySelector("#joy-daily-day-layout-v2")?.remove();
+
   const style = document.createElement("style");
-  style.id = "joy-daily-day-columns-v1";
+  style.id = "joy-daily-day-layout-v2";
   style.textContent = `
-    /* Keep short schedules left aligned. Long schedules (>4 items) split into
-       two ordered vertical columns with one quiet divider between them. */
-    #daily-day-templates-modal .dd-template-items:has(> span:nth-of-type(5)) {
+    /* Template schedule: three stable reading zones, aligned from the top. */
+    #daily-day-templates-modal .dd-detail > .dd-section {
+      margin: 10px 0 10px !important;
+    }
+
+    #daily-day-templates-modal .dd-detail .dd-timeline {
+      gap: 10px !important;
+      padding-left: 16px !important;
+      padding-right: 6px !important;
+    }
+
+    #daily-day-templates-modal .dd-detail .dd-timeline::before {
+      left: 4px !important;
+      top: 22px !important;
+      bottom: 22px !important;
+    }
+
+    #daily-day-templates-modal .dd-detail .dd-timeline-row {
+      min-height: 76px !important;
+      height: auto !important;
+      padding: 12px 14px !important;
+      grid-template-columns: 68px 132px minmax(0, 1fr) !important;
+      column-gap: 14px !important;
+      align-items: start !important;
+      border-radius: 12px !important;
+      overflow: visible !important;
+    }
+
+    #daily-day-templates-modal .dd-detail .dd-timeline-row::before {
+      left: -16px !important;
+      top: 25px !important;
+      transform: none !important;
+    }
+
+    #daily-day-templates-modal .dd-detail .dd-timeline-row > strong:first-child {
+      min-width: 52px !important;
+      margin-top: 0 !important;
+      padding: 5px 8px !important;
+      line-height: 1.25 !important;
+    }
+
+    #daily-day-templates-modal .dd-detail .dd-timeline-row > strong:nth-child(2) {
+      padding-top: 5px !important;
+      color: #2c4a5b !important;
+      font-size: 11.5px !important;
+      line-height: 1.35 !important;
+      font-weight: 800 !important;
+    }
+
+    /* Short schedules stay as one clean left-aligned column. */
+    #daily-day-templates-modal .dd-detail .dd-template-items {
+      min-width: 0 !important;
+      padding-top: 3px !important;
+      display: grid !important;
+      grid-template-columns: minmax(0, 1fr) !important;
+      gap: 7px !important;
+      align-content: start !important;
+      color: #5f737c !important;
+      font-size: 10px !important;
+      line-height: 1.35 !important;
+    }
+
+    #daily-day-templates-modal .dd-detail .dd-template-items > span {
+      min-width: 0 !important;
+      min-height: 18px !important;
+      width: 100% !important;
+      display: flex !important;
+      align-items: center !important;
+      white-space: normal !important;
+      break-inside: avoid-column !important;
+      -webkit-column-break-inside: avoid !important;
+      margin: 0 !important;
+    }
+
+    #daily-day-templates-modal .dd-detail .dd-template-items > span::before {
+      flex: 0 0 auto !important;
+      margin: 0 6px 0 0 !important;
+    }
+
+    /* Five or more items become two ordered vertical columns. The browser
+       fills the left column first, then continues in the right column. */
+    #daily-day-templates-modal .dd-detail .dd-template-items:has(> span:nth-of-type(5)) {
       display: block !important;
-      column-count: 2;
-      column-gap: 30px;
-      column-rule: 1px solid #d5e0e0;
-      column-fill: balance;
+      column-count: 2 !important;
+      column-fill: balance !important;
+      column-gap: 28px !important;
+      column-rule: 1px solid #d9e2e1 !important;
     }
 
-    #daily-day-templates-modal .dd-template-items:has(> span:nth-of-type(5)) > .dd-workout-wrap {
-      column-span: all;
+    #daily-day-templates-modal .dd-detail .dd-template-items:has(> span:nth-of-type(5)) > span {
+      margin: 0 0 7px !important;
     }
 
-    #daily-day-templates-modal .dd-template-items > span {
-      width: 100%;
-      box-sizing: border-box;
-      break-inside: avoid;
-      -webkit-column-break-inside: avoid;
-      margin-bottom: 7px;
+    #daily-day-templates-modal .dd-detail .dd-workout-wrap {
+      column-span: all !important;
     }
 
-    #daily-day-templates-modal .dd-template-items > span:last-child {
-      margin-bottom: 0;
-    }
-
-    #daily-day-modal .dd-items:has(> .dd-check:nth-child(5)) {
+    /* Apply the same reading rhythm to the main Daily Day view. */
+    #daily-day-modal .dd-items:has(> .dd-check:nth-of-type(5)) {
       display: block !important;
-      column-count: 2;
-      column-gap: 30px;
-      column-rule: 1px solid #d5e0e0;
-      column-fill: balance;
+      column-count: 2 !important;
+      column-fill: balance !important;
+      column-gap: 28px !important;
+      column-rule: 1px solid #d9e2e1 !important;
     }
 
-    #daily-day-modal .dd-items:has(> .dd-check:nth-child(5)) > .dd-check {
-      width: 100%;
-      box-sizing: border-box;
-      break-inside: avoid;
-      -webkit-column-break-inside: avoid;
-      margin-bottom: 7px;
+    #daily-day-modal .dd-items:has(> .dd-check:nth-of-type(5)) > .dd-check {
+      width: 100% !important;
+      box-sizing: border-box !important;
+      margin: 0 0 7px !important;
+      break-inside: avoid-column !important;
+      -webkit-column-break-inside: avoid !important;
+    }
+
+    #daily-day-modal .dd-check {
+      align-items: center !important;
+      line-height: 1.35 !important;
+    }
+
+    @media (max-width: 980px) {
+      #daily-day-templates-modal .dd-detail .dd-timeline-row {
+        grid-template-columns: 62px 112px minmax(0, 1fr) !important;
+        column-gap: 12px !important;
+      }
     }
 
     @media (max-width: 760px) {
-      #daily-day-templates-modal .dd-template-items:has(> span:nth-of-type(5)),
-      #daily-day-modal .dd-items:has(> .dd-check:nth-child(5)) {
-        column-count: 1;
-        column-rule: 0;
+      #daily-day-templates-modal .dd-detail .dd-timeline-row {
+        grid-template-columns: 58px minmax(0, 1fr) !important;
+        min-height: 70px !important;
+        padding: 12px !important;
+      }
+
+      #daily-day-templates-modal .dd-detail .dd-template-items {
+        grid-column: 1 / -1 !important;
+        padding: 4px 0 0 68px !important;
+      }
+
+      #daily-day-templates-modal .dd-detail .dd-template-items:has(> span:nth-of-type(5)),
+      #daily-day-modal .dd-items:has(> .dd-check:nth-of-type(5)) {
+        column-count: 1 !important;
+        column-rule: 0 !important;
       }
     }
   `;
