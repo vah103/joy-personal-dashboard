@@ -29,6 +29,46 @@ builtScript = builtScript.replace(
   'event.target.closest?.("[data-dd-open-library]")',
 );
 
+// Sunday must mirror the user's Daily day document instead of the generic
+// placeholder schedule. Keep the original Vietnamese wording from the doc.
+const oldSunday = `    sunday: [
+      ["08:30", "dailyDay.block.morningRoutine", ["dailyDay.item.hygiene", "dailyDay.item.breakfast", "dailyDay.item.prepareDay"]],
+      ["09:00", "dailyDay.block.work", ["dailyDay.item.mainWork", "dailyDay.item.progressNote"]],
+      ["10:00", "dailyDay.block.lunch", ["dailyDay.item.lunch", "dailyDay.item.prepareTomorrow"]],
+      ["11:00", "dailyDay.block.work", ["dailyDay.item.mainWork", "dailyDay.item.checkLog"]],
+      ["14:00", "dailyDay.block.exercise", ["dailyDay.item.warmup", "dailyDay.item.workout", "dailyDay.item.stretch"]],
+      ["18:00", "dailyDay.block.english", ["dailyDay.item.englishReview", "dailyDay.item.shadowing"]],
+      ["19:00", "dailyDay.block.evening", ["dailyDay.item.planTomorrow"]],
+      ["22:00", "dailyDay.block.rest", ["dailyDay.item.relax"]],
+    ],`;
+const sundayFromDocs = `    sunday: [
+      ["08:30", "dậy", ["luộc trứng", "đánh răng", "ăn trứng", "pha trà", "cho quần áo giặt", "ngâm nồi cơm", "chuẩn bị thức ăn định nấu"]],
+      ["09:00", "", ["uống trà", "cắm cơm", "nghiên cứu phòng"]],
+      ["10:00", "", ["nấu thức ăn", "ăn", "phơi quần áo"]],
+      ["11:00", "làm đồ án", ["ngâm nồi cơm", "uống dht"]],
+      ["12:00", "làm đồ án", []],
+      ["13:00", "làm đồ án", []],
+      ["14:00", "đi tập", ["Chest-day", "Warmup : bec deck + đẩy tạ đơn 17.5", "Đẩy tạ đơn 22.5x2 (7)", "Đẩy máy smith 25x3 (6)", "Bec deck 130x3 (8)", "Đẩy vai trước 60x3 (8)", "Bay vai 12.5x3 (10)", "Back day", "Warm-up : kéo xà x2 (6)", "Kéo dây 36x2 (10)", "Kéo lat 110x4 (8)", "Kéo trap 120x4 (8)", "Vai sau 100x3 (8)", "Leg day", "Calf raise 40x4", "Tập bụng 90x4", "Hack Squad …x3", "Leg Extension 120x3 (8)", "Leg Curl 90x3 (7)"]],
+      ["15:30", "đi về", ["cắm cơm", "tắm gội", "rửa mặt", "uống finas"]],
+      ["16:30", "", ["đi mua rau", "đi bộ", "nấu rau", "nấu thức ăn", "ăn"]],
+      ["18:00", "học tiếng anh qua AI", []],
+      ["19:00", "làm đồ án", ["soạn schedule", "xịt minoxidil", "rã đông thịt"]],
+      ["20:00", "làm đồ án", []],
+      ["21:00", "làm đồ án", []],
+      ["22:00", "giải trí", []],
+      ["23:00", "đi ngủ", []],
+    ],`;
+builtScript = builtScript.replace(oldSunday, sundayFromDocs);
+
+// Literal schedule content from the document must stay literal even when the
+// rest of Joy is using another UI locale. Translation keys still use JoyI18n.
+builtScript = builtScript.replace(
+  'const t = (key, values = {}) => window.JoyI18n?.t?.(key, values) || key;',
+  'const t = (key, values = {}) => window.JoyI18n?.t?.(key, values) || key;\n  const scheduleText = (value) => String(value).startsWith("dailyDay.") ? t(value) : value;',
+);
+builtScript = builtScript.replaceAll('esc(t(block[1]))', 'esc(scheduleText(block[1]))');
+builtScript = builtScript.replaceAll('esc(t(item))', 'esc(scheduleText(item))');
+
 // Keep the current template-library iteration focused on the schedule itself.
 // Remove the two secondary explanatory cards requested from the mockup review:
 // the history/future info banner and the optional template note card.
@@ -43,6 +83,12 @@ builtScript = builtScript.replace(
 
 if (!builtScript.includes("data-dd-library-root") || !builtScript.includes("data-dd-open-library")) {
   throw new Error("Daily Day library wiring transform did not apply");
+}
+if (!builtScript.includes('["23:00", "đi ngủ", []]') || builtScript.includes('["08:30", "dailyDay.block.morningRoutine"')) {
+  throw new Error("Daily Day Sunday document template transform did not apply");
+}
+if (!builtScript.includes("const scheduleText =")) {
+  throw new Error("Daily Day literal schedule text transform did not apply");
 }
 if (builtScript.includes('<div class="dd-info">• ${esc(t("dailyDay.noteFuture"))}')) {
   throw new Error("Daily Day template info banner removal did not apply");
@@ -78,4 +124,4 @@ await appendFile(scriptTarget, `
 })();
 `);
 
-console.log("Joy Daily Day frontend, focused template schedule, and approved mockup styling copied to dist");
+console.log("Joy Daily Day frontend, exact Sunday document template, focused template schedule, and approved mockup styling copied to dist");
