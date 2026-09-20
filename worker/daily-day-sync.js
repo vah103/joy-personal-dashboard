@@ -4,6 +4,7 @@ import { getSession } from "./shared/session.js";
 const DAILY_DAY_PATH = "/api/daily-day";
 const DAILY_DAY_STORAGE_ID = "__daily_day_state__";
 const MAX_STATE_BYTES = 350_000;
+const MAX_WRITE_RETRIES = 5;
 const TEMPLATE_IDS = new Set(["morning", "afternoon", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]);
 const WORKOUT_VARIANTS = new Set(["chest", "back", "leg"]);
 const STREAK_IDS = new Set(["no-snacks", "no-masturbate", "finasteride"]);
@@ -139,20 +140,49 @@ async function readRow(email, env) {
   `).bind(email, DAILY_DAY_STORAGE_ID).first();
 }
 
-async function storeState(email, env, state, currentVersion = 0) {
-  const prepared = serializedState(state);
-  if (!prepared) return null;
-  const version = Number(currentVersion || 0) + 1;
-  const updatedAt = Date.now();
-  await env.DB.prepare(`
-    INSERT INTO project_hubs (user_email, project_id, data_json, version, updated_at)
-    VALUES (?, ?, ?, ?, ?)
-    ON CONFLICT(user_email, project_id) DO UPDATE SET
-      data_json = excluded.data_json,
-      version = excluded.version,
-      updated_at = excluded.updated_at
-  `).bind(email, DAILY_DAY_STORAGE_ID, prepared.serialized, version, updatedAt).run();
-  return { data: prepared.normalized, version, updatedAt };
+function changes(result) {
+  return Number(result?.meta?.changes || 0);
+}
+
+async function optimisticWrite(email, env, transform) {
+  for (let attempt = 0; attempt < MAX_WRITE_RETRIES; attempt += 1) {
+    const current = await readRow(email, env);
+    const currentVersion = Number(current?.version || 0);
+    const nextState = transform(parseStored(current?.data_json));
+    if (!nextState) return { invalid: true };
+    const prepared = serializedState(nextState);
+    if (!prepared) return { tooLarge: true };
+    const version = currentVersion + 1;
+    const updatedAt = Date.now();
+
+    if (!current) {
+      const inserted = await env.DB.prepare(`
+        INSERT OR IGNORE INTO project_hubs (user_email, project_id, data_json, version, updated_at)
+        VALUES (?, ?, ?, ?, ?)
+      `).bind(email, DAILY_DAY_STORAGE_ID, prepared.serialized, version, updatedAt).run();
+      if (changes(inserted) === 1) {
+        return { data: prepared.normalized, version, updatedAt };
+      }
+      continue;
+    }
+
+    const updated = await env.DB.prepare(`
+      UPDATE project_hubs
+      SET data_json = ?, version = ?, updated_at = ?
+      WHERE user_email = ? AND project_id = ? AND version = ?
+    `).bind(
+      prepared.serialized,
+      version,
+      updatedAt,
+      email,
+      DAILY_DAY_STORAGE_ID,
+      currentVersion,
+    ).run();
+    if (changes(updated) === 1) {
+      return { data: prepared.normalized, version, updatedAt };
+    }
+  }
+  return { conflict: true };
 }
 
 export async function handleDailyDaySyncRequest(request, env) {
@@ -168,9 +198,8 @@ export async function handleDailyDaySyncRequest(request, env) {
     }
 
     const email = session.user_email;
-    const current = await readRow(email, env);
-
     if (request.method === "GET") {
+      const current = await readRow(email, env);
       return json({
         data: parseStored(current?.data_json),
         exists: Boolean(current),
@@ -180,20 +209,16 @@ export async function handleDailyDaySyncRequest(request, env) {
     }
 
     const body = await readJson(request);
-    const currentState = parseStored(current?.data_json);
+    const stored = request.method === "PUT"
+      ? await optimisticWrite(email, env, (currentState) => {
+          const incoming = normalizeState(body?.data);
+          return body?.merge ? mergeState(currentState, incoming) : incoming;
+        })
+      : await optimisticWrite(email, env, (currentState) => applyMutation(currentState, body?.mutation));
 
-    if (request.method === "PUT") {
-      const incoming = normalizeState(body?.data);
-      const state = body?.merge ? mergeState(currentState, incoming) : incoming;
-      const stored = await storeState(email, env, state, Number(current?.version || 0));
-      if (!stored) return json({ error: "DAILY_DAY_STATE_TOO_LARGE" }, 413);
-      return json({ ok: true, exists: true, ...stored });
-    }
-
-    const state = applyMutation(currentState, body?.mutation);
-    if (!state) return json({ error: "INVALID_DAILY_DAY_MUTATION" }, 400);
-    const stored = await storeState(email, env, state, Number(current?.version || 0));
-    if (!stored) return json({ error: "DAILY_DAY_STATE_TOO_LARGE" }, 413);
+    if (stored.invalid) return json({ error: "INVALID_DAILY_DAY_MUTATION" }, 400);
+    if (stored.tooLarge) return json({ error: "DAILY_DAY_STATE_TOO_LARGE" }, 413);
+    if (stored.conflict) return json({ error: "DAILY_DAY_SYNC_CONFLICT" }, 409);
     return json({ ok: true, exists: true, ...stored });
   } catch (error) {
     console.error("Joy Daily Day sync failed", error);
