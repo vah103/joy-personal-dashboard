@@ -166,22 +166,74 @@ function closeSalesModal() {
   ) document.body.classList.remove("modal-open");
 }
 
-import("/daily-day.js?v=joy-daily-day-v12").then(() => {
+import("/daily-day.js?v=joy-daily-day-v13").then(() => {
   document.querySelector("#joy-daily-day-columns-v1")?.remove();
   document.querySelector("#joy-daily-day-layout-v2")?.remove();
 
   const style = document.createElement("style");
   style.id = "joy-daily-day-layout-v2";
   style.textContent = `
+    @font-face {
+      font-family: "Nunito";
+      font-style: normal;
+      font-display: swap;
+      font-weight: 400;
+      src: url("/fonts/nunito-vietnamese-400-normal.woff2") format("woff2");
+      unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+    }
+    @font-face {
+      font-family: "Nunito";
+      font-style: normal;
+      font-display: swap;
+      font-weight: 400;
+      src: url("/fonts/nunito-latin-400-normal.woff2") format("woff2");
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    @font-face {
+      font-family: "Nunito";
+      font-style: normal;
+      font-display: swap;
+      font-weight: 600;
+      src: url("/fonts/nunito-vietnamese-600-normal.woff2") format("woff2");
+      unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+    }
+    @font-face {
+      font-family: "Nunito";
+      font-style: normal;
+      font-display: swap;
+      font-weight: 600;
+      src: url("/fonts/nunito-latin-600-normal.woff2") format("woff2");
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    @font-face {
+      font-family: "Nunito";
+      font-style: normal;
+      font-display: swap;
+      font-weight: 700;
+      src: url("/fonts/nunito-vietnamese-700-normal.woff2") format("woff2");
+      unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+    }
+    @font-face {
+      font-family: "Nunito";
+      font-style: normal;
+      font-display: swap;
+      font-weight: 700;
+      src: url("/fonts/nunito-latin-700-normal.woff2") format("woff2");
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+
     /* Template schedule: three stable reading zones, aligned from the top. */
     #daily-day-templates-modal .dd-detail > .dd-section,
-    #daily-day-templates-modal .dd-detail .dd-timeline {
-      font-family: "Nunito", sans-serif !important;
+    #daily-day-templates-modal .dd-detail .dd-timeline,
+    #daily-day-modal .dd-items,
+    #daily-day-modal .dd-check {
+      font-family: "Nunito", ui-rounded, system-ui, sans-serif !important;
     }
 
     #daily-day-templates-modal .dd-detail > .dd-section {
       margin: 10px 0 10px !important;
       font-size: 15px !important;
+      font-weight: 700 !important;
     }
 
     #daily-day-templates-modal .dd-detail .dd-timeline {
@@ -219,6 +271,7 @@ import("/daily-day.js?v=joy-daily-day-v12").then(() => {
       padding: 5px 8px !important;
       font-size: 12.5px !important;
       line-height: 1.25 !important;
+      font-weight: 700 !important;
     }
 
     #daily-day-templates-modal .dd-detail .dd-timeline-row > strong:nth-child(2) {
@@ -226,7 +279,7 @@ import("/daily-day.js?v=joy-daily-day-v12").then(() => {
       color: #2c4a5b !important;
       font-size: 13.5px !important;
       line-height: 1.35 !important;
-      font-weight: 800 !important;
+      font-weight: 700 !important;
     }
 
     /* Short schedules stay as one clean left-aligned column. */
@@ -240,6 +293,7 @@ import("/daily-day.js?v=joy-daily-day-v12").then(() => {
       color: #5f737c !important;
       font-size: 12px !important;
       line-height: 1.4 !important;
+      font-weight: 600 !important;
     }
 
     #daily-day-templates-modal .dd-detail .dd-template-items > span {
@@ -261,11 +315,15 @@ import("/daily-day.js?v=joy-daily-day-v12").then(() => {
     }
 
     #daily-day-templates-modal .dd-detail .dd-workout-subheading {
+      font-family: "Nunito", ui-rounded, system-ui, sans-serif !important;
       font-size: 13px !important;
+      font-weight: 700 !important;
     }
 
     #daily-day-templates-modal .dd-detail .dd-workout-tabs button {
+      font-family: "Nunito", ui-rounded, system-ui, sans-serif !important;
       font-size: 11.5px !important;
+      font-weight: 700 !important;
     }
 
     /* Five or more items become two ordered vertical columns. The browser
@@ -306,6 +364,7 @@ import("/daily-day.js?v=joy-daily-day-v12").then(() => {
     #daily-day-modal .dd-check {
       align-items: center !important;
       line-height: 1.35 !important;
+      font-weight: 600 !important;
     }
 
     @media (max-width: 980px) {
