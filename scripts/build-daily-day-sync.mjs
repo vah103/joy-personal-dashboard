@@ -137,6 +137,9 @@ const syncScript = String.raw`
     return Boolean(data?.days?.[date]?.[streakId]);
   };
 
+  // Daily Day rerenders its markup synchronously after a local interaction.
+  // Observe interactions during capture so the sync layer sees the original
+  // input/button before that node is detached from #daily-day-modal.
   document.addEventListener("change", (event) => {
     const check = event.target.closest?.("#daily-day-modal input[data-dd-check]");
     if (check) {
@@ -150,7 +153,7 @@ const syncScript = String.raw`
       const date = selectedDate();
       if (date) patch({ type: "core-template", date, templateId: select.value });
     }
-  });
+  }, true);
 
   document.addEventListener("click", (event) => {
     const workout = event.target.closest?.("#daily-day-modal [data-dd-workout]");
@@ -184,7 +187,7 @@ const syncScript = String.raw`
     if (event.target.closest?.("#todo-title,[data-dd-today]")) {
       setTimeout(() => pull({ force: true }), 0);
     }
-  });
+  }, true);
 
   window.addEventListener("focus", () => pull({ force: true }));
   document.addEventListener("visibilitychange", () => {
