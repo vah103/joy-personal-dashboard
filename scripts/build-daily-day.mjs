@@ -29,22 +29,53 @@ builtScript = builtScript.replace(
   'event.target.closest?.("[data-dd-open-library]")',
 );
 
+// Keep the current template-library iteration focused on the schedule itself.
+// Remove the two secondary explanatory cards requested from the mockup review:
+// the history/future info banner and the optional template note card.
+builtScript = builtScript.replace(
+  '<div class="dd-info">• ${esc(t("dailyDay.noteFuture"))}<br>• ${esc(t("dailyDay.noteHistory"))}</div>',
+  '',
+);
+builtScript = builtScript.replace(
+  '<div class="dd-note"><strong>${esc(t("dailyDay.templateNote"))}</strong><p>${esc(t("dailyDay.templateNoteCopy"))}</p></div>',
+  '',
+);
+
 if (!builtScript.includes("data-dd-library-root") || !builtScript.includes("data-dd-open-library")) {
   throw new Error("Daily Day library wiring transform did not apply");
+}
+if (builtScript.includes('<div class="dd-info">• ${esc(t("dailyDay.noteFuture"))}')) {
+  throw new Error("Daily Day template info banner removal did not apply");
+}
+if (builtScript.includes('<div class="dd-note"><strong>${esc(t("dailyDay.templateNote"))}')) {
+  throw new Error("Daily Day template note removal did not apply");
 }
 
 await writeFile(scriptTarget, builtScript);
 await cp(styleSource, styleTarget);
+
+// Let Template schedule use the vertical space freed by the removed cards.
+await appendFile(styleTarget, `
+#daily-day-templates-modal .dd-detail > .dd-section {
+  margin-top: 10px !important;
+  margin-bottom: 8px !important;
+}
+
+#daily-day-templates-modal .dd-timeline {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+`);
 
 await appendFile(scriptTarget, `
 ;(() => {
   if (typeof document === "undefined" || document.querySelector('link[data-joy-daily-day-design="true"]')) return;
   const link = document.createElement("link");
   link.rel = "stylesheet";
-  link.href = "/daily-day-design.css?v=joy-daily-day-design-v3";
+  link.href = "/daily-day-design.css?v=joy-daily-day-design-v4";
   link.dataset.joyDailyDayDesign = "true";
   document.head.append(link);
 })();
 `);
 
-console.log("Joy Daily Day frontend, library wiring fix, and approved mockup styling copied to dist");
+console.log("Joy Daily Day frontend, focused template schedule, and approved mockup styling copied to dist");
