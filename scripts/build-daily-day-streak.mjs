@@ -8,9 +8,9 @@ const streakScript = String.raw`
 ;(() => {
   const STORAGE_KEY = "joy-daily-day-streak-v1";
   const STREAKS = Object.freeze([
-    { id: "no-snacks", label: "No snacks", base: 4, target: 14 },
-    { id: "no-masturbate", label: "No Masturbate", base: 4, target: 14 },
-    { id: "finasteride", label: "Finasteride", base: 6, target: 100 },
+    { id: "no-snacks", label: "No snacks", base: 0, target: 14 },
+    { id: "no-masturbate", label: "No Masturbate", base: 0, target: 14 },
+    { id: "finasteride", label: "Finasteride", base: 2, target: 100 },
   ]);
 
   const read = () => {
@@ -27,9 +27,9 @@ const streakScript = String.raw`
   const selectedDate = () =>
     document.querySelector("#daily-day-modal .dd-week button.active[data-dd-date]")?.dataset.ddDate || "";
 
-  const completedFor = (data, streakId) =>
-    Object.values(data.days || {}).reduce(
-      (total, day) => total + Number(Boolean(day && day[streakId])),
+  const completedFor = (data, streakId, throughDate) =>
+    Object.entries(data.days || {}).reduce(
+      (total, [dateKey, day]) => total + Number(dateKey <= throughDate && Boolean(day && day[streakId])),
       0,
     );
 
@@ -72,7 +72,7 @@ const streakScript = String.raw`
       const row = rows[index];
       if (!row) return;
       const checked = isChecked(data, dateKey, streak.id);
-      const current = streak.base + completedFor(data, streak.id);
+      const current = streak.base + completedFor(data, streak.id, dateKey);
       const percent = streak.target ? Math.min(100, Math.round(current / streak.target * 100)) : 0;
       const signature = [dateKey, streak.id, checked ? 1 : 0, current, streak.target].join("|");
       if (row.dataset.ddStreakSignature === signature) return;
@@ -101,4 +101,4 @@ const streakScript = String.raw`
 `;
 
 await appendFile(scriptTarget, streakScript);
-console.log("Daily Day per-date streak check-ins appended");
+console.log("Daily Day per-date streak check-ins appended with historical counts");
