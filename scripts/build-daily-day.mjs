@@ -211,11 +211,27 @@ const newStats = `  function stats(dateKey, templateId) {
   }`;
 builtScript = builtScript.replace(oldStats, newStats);
 
-// Main Daily Day: show Chest/Back/Leg as one selectable sub-heading and render
-// only the exercises for the selected workout.
+// Main Daily Day: keep the document data, but present each block more like
+// the approved mockup with a small contextual icon and balanced item layout.
 const oldMainRows = '    const rows = dayBlocks.map((block, bi) => { const done = block[2].reduce((sum, _, ii) => sum + Number(checked(view.date, itemId(templateId, bi, ii))), 0); return `<article class="dd-block" style="animation-delay:${Math.min(bi * 45, 280)}ms"><time class="dd-time">${esc(block[0])}</time><div class="dd-body"><div class="dd-blockhead"><strong>${esc(scheduleText(block[1]))}</strong><small>${done}/${block[2].length}</small><span class="dd-track"><i style="width:${block[2].length ? Math.round(done / block[2].length * 100) : 0}%"></i></span></div><div class="dd-items">${block[2].map((item, ii) => { const id = itemId(templateId, bi, ii); return `<label class="dd-check"><input type="checkbox" data-dd-check="${id}" ${checked(view.date, id) ? "checked" : ""}><span>${esc(scheduleText(item))}</span></label>`; }).join("")}</div></div></article>`; }).join("");';
-const newMainRows = '    const rows = dayBlocks.map((block, bi) => { const visibleItems = visibleBlockItems(view.date, templateId, block); const done = visibleItems.reduce((sum, entry) => sum + Number(checked(view.date, itemId(templateId, bi, entry.index))), 0); const workout = isWorkoutBlock(templateId, block); return `<article class="dd-block ${workout ? "dd-workout-block" : ""}" style="animation-delay:${Math.min(bi * 45, 280)}ms"><time class="dd-time">${esc(block[0])}</time><div class="dd-body"><div class="dd-blockhead"><strong>${esc(scheduleText(block[1]))}</strong><small>${done}/${visibleItems.length}</small><span class="dd-track"><i style="width:${visibleItems.length ? Math.round(done / visibleItems.length * 100) : 0}%"></i></span></div>${workout ? workoutSwitch(view.date) : ""}<div class="dd-items ${workout ? "dd-workout-items" : ""}">${visibleItems.map(({ item, index }) => { const id = itemId(templateId, bi, index); return `<label class="dd-check"><input type="checkbox" data-dd-check="${id}" ${checked(view.date, id) ? "checked" : ""}><span>${esc(scheduleText(item))}</span></label>`; }).join("")}</div></div></article>`; }).join("");';
+const newMainRows = '    const rows = dayBlocks.map((block, bi) => { const visibleItems = visibleBlockItems(view.date, templateId, block); const done = visibleItems.reduce((sum, entry) => sum + Number(checked(view.date, itemId(templateId, bi, entry.index))), 0); const workout = isWorkoutBlock(templateId, block); const label = scheduleText(block[1]); const text = String(label || "").toLocaleLowerCase(); const blockIcon = text.includes("dậy") ? "☀" : text.includes("tập") ? "◈" : text.includes("đồ án") || text.includes("xem đồ án") ? "▣" : text.includes("tiếng anh") || text.includes("writing") ? "◫" : text.includes("ăn") ? "◇" : text.includes("ngủ") ? "☾" : text.includes("giải trí") ? "♪" : "•"; const many = visibleItems.length >= 5; return `<article class="dd-block ${workout ? "dd-workout-block" : ""}" style="animation-delay:${Math.min(bi * 45, 280)}ms"><time class="dd-time">${esc(block[0])}</time><div class="dd-body"><div class="dd-blockhead"><div class="dd-block-title"><span class="dd-block-icon">${esc(blockIcon)}</span><strong>${esc(label)}</strong></div><small>${done}/${visibleItems.length}</small><span class="dd-track"><i style="width:${visibleItems.length ? Math.round(done / visibleItems.length * 100) : 0}%"></i></span></div>${workout ? workoutSwitch(view.date) : ""}<div class="dd-items ${workout ? "dd-workout-items " : ""}${many ? "is-many" : ""}">${visibleItems.map(({ item, index }) => { const id = itemId(templateId, bi, index); return `<label class="dd-check"><input type="checkbox" data-dd-check="${id}" ${checked(view.date, id) ? "checked" : ""}><span>${esc(scheduleText(item))}</span></label>`; }).join("")}</div></div></article>`; }).join("");';
 builtScript = builtScript.replace(oldMainRows, newMainRows);
+
+// Use the actual streak names from Daily day and add lightweight visual marks.
+builtScript = builtScript.replace(
+  '    const streaks = [[t("dailyDay.streak.one"), 0, 14], [t("dailyDay.streak.two"), 0, 14], [t("dailyDay.streak.three"), 0, 100]];',
+  '    const streaks = [["No snacks", 0, 14, "◒"], ["No Masturbate", 0, 14, "⊘"], ["Finasteride", 0, 100, "◆"]];',
+);
+
+builtScript = builtScript.replace(
+  '<div class="dd-summary"><div class="dd-stat"><span>${esc(t("dailyDay.done"))}</span><strong>${summary.complete} ${esc(t("dailyDay.items"))}</strong></div><div class="dd-stat"><span>${esc(t("dailyDay.remaining"))}</span><strong>${summary.remaining} ${esc(t("dailyDay.items"))}</strong></div><div class="dd-stat"><span>${esc(t("dailyDay.templateUsing"))}</span><strong>${esc(t(templateKey(templateId)))}</strong></div></div>',
+  '<div class="dd-summary"><div class="dd-stat"><i class="dd-stat-icon">✓</i><span>${esc(t("dailyDay.done"))}</span><strong>${summary.complete} ${esc(t("dailyDay.items"))}</strong></div><div class="dd-stat"><i class="dd-stat-icon">◷</i><span>${esc(t("dailyDay.remaining"))}</span><strong>${summary.remaining} ${esc(t("dailyDay.items"))}</strong></div><div class="dd-stat"><i class="dd-stat-icon">▤</i><span>${esc(t("dailyDay.templateUsing"))}</span><strong>${esc(t(templateKey(templateId)))}</strong></div></div>',
+);
+
+builtScript = builtScript.replace(
+  '${streaks.map(([label, current, target]) => `<div class="dd-streak"><strong>${esc(label)}</strong><small>${current}/${target}</small><span class="dd-track"><i style="width:${Math.round(current / target * 100)}%"></i></span></div>`).join("")}',
+  '${streaks.map(([label, current, target, mark]) => `<div class="dd-streak"><i class="dd-streak-icon">${esc(mark)}</i><strong>${esc(label)}</strong><small>${current}/${target}</small><span class="dd-track"><i style="width:${Math.round(current / target * 100)}%"></i></span></div>`).join("")}',
+);
 
 // Template preview uses the same workout selector and hides unselected groups.
 const oldTimeline = '    const timeline = selectedBlocks.map((block) => `<div class="dd-timeline-row"><strong>${esc(block[0])}</strong><strong>${esc(scheduleText(block[1]))}</strong><div class="dd-template-items">${block[2].map((item) => `<span>${esc(scheduleText(item))}</span>`).join("")}</div></div>`).join("");';
@@ -255,6 +271,9 @@ if (!builtScript.includes("const scheduleText =") || !builtScript.includes("cons
 }
 if (!builtScript.includes("workouts: data.workouts || {}") || !builtScript.includes("visibleBlockItems(view.date")) {
   throw new Error("Daily Day per-day workout persistence/render transform did not apply");
+}
+if (!builtScript.includes("dd-block-title") || !builtScript.includes("dd-stat-icon") || !builtScript.includes("No snacks")) {
+  throw new Error("Daily Day main popup visual/content transform did not apply");
 }
 if (builtScript.includes('<div class="dd-info">• ${esc(t("dailyDay.noteFuture"))}')) {
   throw new Error("Daily Day template info banner removal did not apply");
@@ -389,25 +408,481 @@ await appendFile(styleTarget, `
   gap: 7px;
 }
 
-@media (max-width: 760px) {
-  #daily-day-templates-modal .dd-timeline-row {
-    grid-template-columns: 58px minmax(0, 1fr);
-    padding: 12px;
-    gap: 10px;
+/* Main Daily Day popup: closer to the approved mockup while keeping current logic. */
+#daily-day-modal.dd-backdrop {
+  padding: 20px;
+  background: rgba(28, 34, 35, 0.58);
+  backdrop-filter: blur(13px);
+}
+
+#daily-day-modal .dd-shell {
+  width: min(1080px, calc(100vw - 44px));
+  max-height: min(760px, calc(100vh - 40px));
+  border: 1px solid rgba(110, 132, 132, 0.18);
+  border-radius: 24px;
+  background: #f7f4ef;
+  box-shadow: 0 28px 82px rgba(18, 27, 30, 0.34);
+  font-family: "Nunito", ui-rounded, system-ui, sans-serif;
+}
+
+#daily-day-modal .dd-scroll {
+  box-sizing: border-box;
+  max-height: min(760px, calc(100vh - 40px));
+  padding: 22px 24px 18px;
+  scrollbar-width: thin;
+}
+
+#daily-day-modal .dd-head {
+  align-items: flex-start;
+}
+
+#daily-day-modal .dd-title {
+  color: #273947;
+  font-size: clamp(34px, 3.2vw, 40px);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-weight: 800;
+}
+
+#daily-day-modal .dd-sub {
+  margin-top: 8px;
+  color: #70818a;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+#daily-day-modal .dd-head-side {
+  align-items: flex-start;
+}
+
+#daily-day-modal .dd-progress {
+  min-width: 166px;
+  padding: 11px 13px;
+  border-color: #d9dfdc;
+  border-radius: 14px;
+  background: #fdfcf9;
+}
+
+#daily-day-modal .dd-progress strong {
+  margin-bottom: 7px;
+  color: #344b57;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+#daily-day-modal .dd-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  background: #ebf1ef;
+  color: #4e6b74;
+}
+
+#daily-day-modal .dd-toolbar {
+  margin-top: 16px;
+  gap: 10px;
+}
+
+#daily-day-modal .dd-week {
+  gap: 8px;
+}
+
+#daily-day-modal .dd-week button,
+#daily-day-modal .dd-button,
+#daily-day-modal .dd-select {
+  min-height: 38px;
+  border-color: #d8dfdc;
+  border-radius: 11px;
+  background: #fbfcfa;
+  color: #566b74;
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+#daily-day-modal .dd-week button.active,
+#daily-day-modal .dd-button.primary {
+  border-color: #648d8d;
+  background: #648d8d;
+  color: #ffffff;
+}
+
+#daily-day-modal .dd-templatebar {
+  margin-top: 11px;
+  padding: 9px 11px;
+  grid-template-columns: auto minmax(190px, 1fr) auto auto;
+  gap: 9px;
+  border-color: #dce2de;
+  border-radius: 13px;
+  background: #fcfbf8;
+}
+
+#daily-day-modal .dd-templatebar label {
+  color: #314954;
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+#daily-day-modal .dd-content {
+  margin-top: 14px;
+  grid-template-columns: minmax(0, 1.62fr) 352px;
+  gap: 14px;
+  align-items: start;
+}
+
+#daily-day-modal .dd-card {
+  border-color: #dce2de;
+  border-radius: 16px;
+  background: #fdfcf9;
+}
+
+#daily-day-modal .dd-pad {
+  padding: 15px;
+}
+
+#daily-day-modal .dd-section {
+  margin-bottom: 13px;
+  color: #2c4654;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 800;
+}
+
+#daily-day-modal .dd-list {
+  gap: 10px;
+}
+
+#daily-day-modal .dd-list::before {
+  left: 7px;
+  top: 19px;
+  bottom: 19px;
+  background: #c7d8d5;
+}
+
+#daily-day-modal .dd-block {
+  grid-template-columns: 62px minmax(0, 1fr);
+  gap: 10px;
+  padding-left: 18px;
+  align-items: start;
+}
+
+#daily-day-modal .dd-block::before {
+  left: 3px;
+  top: 16px;
+  width: 9px;
+  height: 9px;
+  background: #6e9999;
+  box-shadow: 0 0 0 4px #f7f4ef;
+}
+
+#daily-day-modal .dd-time {
+  align-self: start;
+  width: auto;
+  height: auto;
+  min-height: 0;
+  margin-top: 0;
+  padding: 6px 7px;
+  border-radius: 10px;
+  background: #e7efee;
+  color: #355a68;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 800;
+}
+
+#daily-day-modal .dd-body {
+  padding: 10px 12px;
+  border-color: #dfe4df;
+  border-radius: 13px;
+  background: #fffefa;
+}
+
+#daily-day-modal .dd-blockhead {
+  grid-template-columns: minmax(0, 1fr) auto 54px;
+  gap: 9px;
+  align-items: center;
+}
+
+#daily-day-modal .dd-block-title {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+#daily-day-modal .dd-block-icon {
+  width: 29px;
+  height: 29px;
+  flex: 0 0 29px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #edf3f1;
+  color: #527a82;
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+#daily-day-modal .dd-block-title strong {
+  min-width: 0;
+  color: #294857;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 800;
+}
+
+#daily-day-modal .dd-block-title strong:empty {
+  display: none;
+}
+
+#daily-day-modal .dd-blockhead small {
+  color: #708087;
+  font-size: 9.5px;
+  font-weight: 700;
+}
+
+#daily-day-modal .dd-blockhead .dd-track {
+  height: 7px;
+}
+
+#daily-day-modal .dd-items {
+  margin-top: 9px;
+  display: flex !important;
+  flex-wrap: wrap;
+  column-count: auto !important;
+  column-rule: 0 !important;
+  gap: 8px 16px;
+}
+
+#daily-day-modal .dd-items.is-many,
+#daily-day-modal .dd-workout-items {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-count: auto !important;
+  column-rule: 0 !important;
+  gap: 8px 16px;
+}
+
+#daily-day-modal .dd-items > .dd-check,
+#daily-day-modal .dd-items:has(> .dd-check:nth-of-type(5)) > .dd-check {
+  width: auto;
+  margin: 0;
+  break-inside: auto;
+}
+
+#daily-day-modal .dd-check {
+  min-width: 0;
+  gap: 6px;
+  color: #62757d;
+  font-size: 10.5px;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+#daily-day-modal .dd-check input {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 13px;
+}
+
+#daily-day-modal .dd-workout-wrap {
+  margin: 9px 0 8px;
+  padding: 9px 10px;
+  border-radius: 11px;
+  background: #eef5f4;
+}
+
+#daily-day-modal .dd-workout-subheading {
+  margin-bottom: 7px;
+  color: #2e5260;
+  font-size: 11.5px;
+}
+
+#daily-day-modal .dd-workout-tabs {
+  gap: 7px;
+}
+
+#daily-day-modal .dd-workout-tabs button {
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 10.5px;
+}
+
+#daily-day-modal .dd-side {
+  gap: 11px;
+}
+
+#daily-day-modal .dd-summary {
+  gap: 7px;
+}
+
+#daily-day-modal .dd-stat {
+  min-height: 94px;
+  padding: 10px;
+  border: 1px solid #e1e6e2;
+  border-radius: 13px;
+  background: #f0f4f1;
+  align-content: start;
+  gap: 5px;
+}
+
+#daily-day-modal .dd-stat-icon {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 2px;
+  border-radius: 999px;
+  background: #e2ece9;
+  color: #557f7f;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+#daily-day-modal .dd-stat span {
+  color: #708087;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+#daily-day-modal .dd-stat strong {
+  margin-top: auto;
+  color: #314854;
+  font-size: 11.5px;
+  line-height: 1.25;
+  font-weight: 800;
+}
+
+#daily-day-modal .dd-streak {
+  grid-template-columns: 22px minmax(0, 1fr) auto 70px;
+  gap: 7px;
+  margin-top: 9px;
+}
+
+#daily-day-modal .dd-streak-icon {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  color: #668f8f;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+#daily-day-modal .dd-streak strong,
+#daily-day-modal .dd-streak small {
+  font-size: 9.5px;
+}
+
+#daily-day-modal .dd-streak strong {
+  color: #334d59;
+  font-weight: 700;
+}
+
+#daily-day-modal .dd-streak small {
+  color: #718087;
+  font-weight: 700;
+}
+
+#daily-day-modal .dd-note-card .dd-section::before {
+  content: "▤";
+  margin-right: 7px;
+  color: #5d8588;
+}
+
+#daily-day-modal .dd-notes {
+  color: #687980;
+  font-size: 9.5px;
+  line-height: 1.55;
+  font-weight: 600;
+}
+
+#daily-day-modal .dd-footer {
+  position: sticky;
+  bottom: -18px;
+  z-index: 4;
+  margin: 13px -24px -18px;
+  padding: 11px 24px 12px;
+  border-top: 1px solid #dde3df;
+  background: rgba(247, 244, 239, 0.96);
+  backdrop-filter: blur(8px);
+}
+
+#daily-day-modal .dd-footer .dd-button {
+  min-width: 104px;
+}
+
+#daily-day-modal .dd-footer .dd-button.primary {
+  min-width: 134px;
+}
+
+@media (max-width: 980px) {
+  #daily-day-modal .dd-content {
+    grid-template-columns: minmax(0, 1fr) 310px;
+  }
+}
+
+@media (max-width: 820px) {
+  #daily-day-modal .dd-content {
+    grid-template-columns: 1fr;
   }
 
-  #daily-day-templates-modal .dd-template-items {
+  #daily-day-modal .dd-side {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  #daily-day-modal .dd-note-card {
     grid-column: 1 / -1;
-    padding-left: 68px;
+  }
+}
+
+@media (max-width: 760px) {
+  #daily-day-modal.dd-backdrop {
+    padding: 0;
+    align-items: stretch;
   }
 
-  .dd-workout-tabs {
+  #daily-day-modal .dd-shell {
+    width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  #daily-day-modal .dd-scroll {
+    max-height: 100vh;
+    padding: 16px;
+  }
+
+  #daily-day-modal .dd-toolbar,
+  #daily-day-modal .dd-templatebar,
+  #daily-day-modal .dd-side {
+    grid-template-columns: 1fr;
+  }
+
+  #daily-day-modal .dd-templatebar {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
   }
 
-  .dd-workout-tabs button {
-    padding: 0 6px;
+  #daily-day-modal .dd-block {
+    grid-template-columns: 56px minmax(0, 1fr);
+  }
+
+  #daily-day-modal .dd-items.is-many,
+  #daily-day-modal .dd-workout-items {
+    grid-template-columns: 1fr;
+  }
+
+  #daily-day-modal .dd-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  #daily-day-modal .dd-footer {
+    bottom: -16px;
+    margin: 12px -16px -16px;
+    padding: 11px 16px;
   }
 }
 `);
@@ -417,10 +892,10 @@ await appendFile(scriptTarget, `
   if (typeof document === "undefined" || document.querySelector('link[data-joy-daily-day-design="true"]')) return;
   const link = document.createElement("link");
   link.rel = "stylesheet";
-  link.href = "/daily-day-design.css?v=joy-daily-day-design-v9";
+  link.href = "/daily-day-design.css?v=joy-daily-day-design-v10";
   link.dataset.joyDailyDayDesign = "true";
   document.head.append(link);
 })();
 `);
 
-console.log("Joy Daily Day frontend and all nine exact document templates copied to dist");
+console.log("Joy Daily Day frontend, main popup visual refinement, and all nine exact document templates copied to dist");
