@@ -166,7 +166,7 @@ function closeSalesModal() {
   ) document.body.classList.remove("modal-open");
 }
 
-import("/daily-day.js?v=joy-daily-day-v10").then(() => {
+import("/daily-day.js?v=joy-daily-day-v11").then(() => {
   document.querySelector("#joy-daily-day-columns-v1")?.remove();
   document.querySelector("#joy-daily-day-layout-v2")?.remove();
 
@@ -176,6 +176,7 @@ import("/daily-day.js?v=joy-daily-day-v10").then(() => {
     /* Template schedule: three stable reading zones, aligned from the top. */
     #daily-day-templates-modal .dd-detail > .dd-section {
       margin: 10px 0 10px !important;
+      font-size: 15px !important;
     }
 
     #daily-day-templates-modal .dd-detail .dd-timeline {
@@ -211,13 +212,14 @@ import("/daily-day.js?v=joy-daily-day-v10").then(() => {
       min-width: 52px !important;
       margin-top: 0 !important;
       padding: 5px 8px !important;
+      font-size: 12.5px !important;
       line-height: 1.25 !important;
     }
 
     #daily-day-templates-modal .dd-detail .dd-timeline-row > strong:nth-child(2) {
       padding-top: 5px !important;
       color: #2c4a5b !important;
-      font-size: 11.5px !important;
+      font-size: 13.5px !important;
       line-height: 1.35 !important;
       font-weight: 800 !important;
     }
@@ -231,13 +233,13 @@ import("/daily-day.js?v=joy-daily-day-v10").then(() => {
       gap: 7px !important;
       align-content: start !important;
       color: #5f737c !important;
-      font-size: 10px !important;
-      line-height: 1.35 !important;
+      font-size: 12px !important;
+      line-height: 1.4 !important;
     }
 
     #daily-day-templates-modal .dd-detail .dd-template-items > span {
       min-width: 0 !important;
-      min-height: 18px !important;
+      min-height: 20px !important;
       width: 100% !important;
       display: flex !important;
       align-items: center !important;
@@ -250,6 +252,15 @@ import("/daily-day.js?v=joy-daily-day-v10").then(() => {
     #daily-day-templates-modal .dd-detail .dd-template-items > span::before {
       flex: 0 0 auto !important;
       margin: 0 6px 0 0 !important;
+      font-size: 12px !important;
+    }
+
+    #daily-day-templates-modal .dd-detail .dd-workout-subheading {
+      font-size: 13px !important;
+    }
+
+    #daily-day-templates-modal .dd-detail .dd-workout-tabs button {
+      font-size: 11.5px !important;
     }
 
     /* Five or more items become two ordered vertical columns. The browser
