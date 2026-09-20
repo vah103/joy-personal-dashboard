@@ -93,7 +93,19 @@ const syncScript = String.raw`
 
   const initialize = async () => {
     try {
-      const cloud = await request("GET");
+      let cloud = await request("GET");
+      const historyBackfill = window.__JOY_DAILY_DAY_HISTORY_BACKFILL__;
+      const cloudHasHistory = Boolean(
+        historyBackfill?.id
+        && cloud?.data?.core?.backfills?.[historyBackfill.id],
+      );
+
+      if (historyBackfill?.data && !cloudHasHistory) {
+        const backfilled = await request("PUT", { data: historyBackfill.data, merge: true });
+        cloud = { ...backfilled, exists: true };
+        applyState(backfilled.data);
+      }
+
       const migrated = localStorage.getItem(MIGRATION_KEY) === "1";
       if (!migrated) {
         const merged = await request("PUT", { data: localState(), merge: true });
