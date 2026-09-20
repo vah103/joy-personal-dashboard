@@ -11,10 +11,8 @@ const styleTarget = resolve(root, "dist", "daily-day-design.css");
 const source = await readFile(scriptSource, "utf8");
 
 // The v1 markup reused data-dd-library for both the modal render root and
-// the two buttons that open the template library. document.querySelector()
-// therefore selected the first button and rendered the whole library inside
-// that button, which is why the UI looked like a small nested panel.
-// Keep source compatibility for now and correct the public build wiring here.
+// the two buttons that open the template library. Keep source compatibility
+// and correct the public build wiring here.
 let builtScript = source.replace(
   'data-dd-library></div></section>\'; document.body.append(modal);',
   'data-dd-library-root></div></section>\'; document.body.append(modal);',
@@ -29,36 +27,123 @@ builtScript = builtScript.replace(
   'event.target.closest?.("[data-dd-open-library]")',
 );
 
-// Sunday must mirror the user's Daily day document instead of the generic
-// placeholder schedule. Keep the original Vietnamese wording from the doc.
-const oldSunday = `    sunday: [
-      ["08:30", "dailyDay.block.morningRoutine", ["dailyDay.item.hygiene", "dailyDay.item.breakfast", "dailyDay.item.prepareDay"]],
-      ["09:00", "dailyDay.block.work", ["dailyDay.item.mainWork", "dailyDay.item.progressNote"]],
-      ["10:00", "dailyDay.block.lunch", ["dailyDay.item.lunch", "dailyDay.item.prepareTomorrow"]],
-      ["11:00", "dailyDay.block.work", ["dailyDay.item.mainWork", "dailyDay.item.checkLog"]],
-      ["14:00", "dailyDay.block.exercise", ["dailyDay.item.warmup", "dailyDay.item.workout", "dailyDay.item.stretch"]],
-      ["18:00", "dailyDay.block.english", ["dailyDay.item.englishReview", "dailyDay.item.shadowing"]],
-      ["19:00", "dailyDay.block.evening", ["dailyDay.item.planTomorrow"]],
-      ["22:00", "dailyDay.block.rest", ["dailyDay.item.relax"]],
-    ],`;
-const sundayFromDocs = `    sunday: [
+// Replace every generic template with the literal schedules from Daily day.
+// These are the nine canonical Default day templates: tập sáng, tập chiều,
+// Monday through Sunday.
+const docsTemplateSource = `  const earlyRoutine = Object.freeze(["luộc trứng", "đánh răng", "ăn trứng", "pha trà", "cho quần áo giặt", "ngâm nồi cơm"]);
+  const afterGym = Object.freeze(["uống trà", "cắm cơm", "tắm gội", "chuẩn bị thức ăn", "phơi quần áo"]);
+  const eatingRoutine = Object.freeze(["không xem gì khi ăn", "uống dht", "đánh răng", "ngâm nồi cơm"]);
+  const eveningReturn = Object.freeze(["cắm cơm", "đi bộ mua rau", "chuẩn bị đồ ăn", "tắm gội", "rửa mặt", "ăn"]);
+  const projectEvening = Object.freeze(["soạn schedule", "xịt minoxidil", "rã đông thịt"]);
+  const workoutItems = Object.freeze([
+    "Chest-day",
+    "Warmup : bec deck + đẩy tạ đơn 17.5",
+    "Đẩy tạ đơn 22.5x2 (7)",
+    "Đẩy máy smith 25x3 (6)",
+    "Bec deck 130x3 (8)",
+    "Đẩy vai trước 60x3 (8)",
+    "Bay vai 12.5x3 (10)",
+    "Back day",
+    "Warm-up : kéo xà x2 (6)",
+    "Kéo dây 36x2 (10)",
+    "Kéo lat 110x4 (8)",
+    "Kéo trap 120x4 (8)",
+    "Vai sau 100x3 (8)",
+    "Leg day",
+    "Calf raise 40x4",
+    "Tập bụng 90x4",
+    "Hack Squad …x3",
+    "Leg Extension 120x3 (8)",
+    "Leg Curl 90x3 (7)",
+  ]);
+  const weekdayTemplate = (endTitle, endItems = [], includeSleep = true) => {
+    const rows = [
+      ["07:00", "dậy", [...earlyRoutine]],
+      ["07:30", "đi tập", [...workoutItems]],
+      ["09:00", "về", [...afterGym]],
+      ["10:30", "ăn", [...eatingRoutine]],
+      ["11:30", "làm đồ án", []],
+      ["13:00", "", []],
+      ["14:00", "", []],
+      ["15:00", "", []],
+      ["16:30", "về đến nhà", [...eveningReturn]],
+      ["18:00", "học tiếng anh qua AI", []],
+      ["19:00", "làm đồ án", [...projectEvening]],
+      ["20:00", "làm đồ án", []],
+      ["21:00", "làm đồ án", []],
+      ["22:00", endTitle, [...endItems]],
+    ];
+    if (includeSleep) rows.push(["23:00", "đi ngủ", []]);
+    return rows;
+  };
+  const templates = Object.freeze({
+    morning: [
+      ["07:00", "dậy", [...earlyRoutine]],
+      ["07:30", "đi tập", [...workoutItems]],
+      ["09:00", "về", [...afterGym]],
+      ["10:30", "ăn", [...eatingRoutine]],
+      ["11:30", "đến trường làm đồ án", []],
+      ["13:00", "", []],
+      ["14:00", "", []],
+      ["15:00", "", []],
+      ["16:30", "về đến nhà", [...eveningReturn]],
+      ["18:00", "học tiếng anh qua AI", []],
+      ["19:00", "học ngoại khoá (tuỳ chọn)", ["soạn timeline cho ngày mai", "Uống finas", "xịt minoxidil", "rã đông thịt"]],
+      ["22:00", "giải trí", []],
+    ],
+    afternoon: [
+      ["07:00", "dậy", [...earlyRoutine, "chuẩn bị thức ăn định nấu"]],
+      ["08:30", "xem đồ án", ["uống trà", "cắm cơm"]],
+      ["09:00", "về", [...afterGym]],
+      ["10:30", "ăn", [...eatingRoutine]],
+      ["11:00", "làm đồ án", []],
+      ["12:00", "làm đồ án", []],
+      ["13:00", "làm đồ án", []],
+      ["14:00", "đi tập", [...workoutItems]],
+      ["15:30", "đi về", ["cắm cơm", "tắm gội", "rửa mặt", "uống finas"]],
+      ["16:30", "", ["đi mua rau", "đi bộ", "nấu rau", "nấu thức ăn", "ăn"]],
+      ["18:00", "học tiếng anh qua AI", []],
+      ["19:00", "làm đồ án", [...projectEvening]],
+      ["20:00", "làm đồ án", []],
+      ["21:00", "làm đồ án", []],
+      ["22:00", "giải trí", []],
+      ["23:00", "đi ngủ", []],
+    ],
+    monday: weekdayTemplate("học writing ielts"),
+    tuesday: weekdayTemplate(""),
+    wednesday: weekdayTemplate("học writing ielts"),
+    thursday: weekdayTemplate("học writing ielts"),
+    friday: weekdayTemplate("giải trí"),
+    saturday: weekdayTemplate("giải trí", ["Xem THSH", "Ngủ muộn"], false),
+    sunday: [
       ["08:30", "dậy", ["luộc trứng", "đánh răng", "ăn trứng", "pha trà", "cho quần áo giặt", "ngâm nồi cơm", "chuẩn bị thức ăn định nấu"]],
       ["09:00", "", ["uống trà", "cắm cơm", "nghiên cứu phòng"]],
       ["10:00", "", ["nấu thức ăn", "ăn", "phơi quần áo"]],
       ["11:00", "làm đồ án", ["ngâm nồi cơm", "uống dht"]],
       ["12:00", "làm đồ án", []],
       ["13:00", "làm đồ án", []],
-      ["14:00", "đi tập", ["Chest-day", "Warmup : bec deck + đẩy tạ đơn 17.5", "Đẩy tạ đơn 22.5x2 (7)", "Đẩy máy smith 25x3 (6)", "Bec deck 130x3 (8)", "Đẩy vai trước 60x3 (8)", "Bay vai 12.5x3 (10)", "Back day", "Warm-up : kéo xà x2 (6)", "Kéo dây 36x2 (10)", "Kéo lat 110x4 (8)", "Kéo trap 120x4 (8)", "Vai sau 100x3 (8)", "Leg day", "Calf raise 40x4", "Tập bụng 90x4", "Hack Squad …x3", "Leg Extension 120x3 (8)", "Leg Curl 90x3 (7)"]],
+      ["14:00", "đi tập", [...workoutItems]],
       ["15:30", "đi về", ["cắm cơm", "tắm gội", "rửa mặt", "uống finas"]],
       ["16:30", "", ["đi mua rau", "đi bộ", "nấu rau", "nấu thức ăn", "ăn"]],
       ["18:00", "học tiếng anh qua AI", []],
-      ["19:00", "làm đồ án", ["soạn schedule", "xịt minoxidil", "rã đông thịt"]],
+      ["19:00", "làm đồ án", [...projectEvening]],
       ["20:00", "làm đồ án", []],
       ["21:00", "làm đồ án", []],
       ["22:00", "giải trí", []],
       ["23:00", "đi ngủ", []],
-    ],`;
-builtScript = builtScript.replace(oldSunday, sundayFromDocs);
+    ],
+  });
+`;
+const templateStart = builtScript.indexOf("  const weekdayBlocks = [");
+const templateEnd = builtScript.indexOf("  const todayKey =", templateStart);
+if (templateStart < 0 || templateEnd < 0) {
+  throw new Error("Daily Day template source range could not be located");
+}
+builtScript = `${builtScript.slice(0, templateStart)}${docsTemplateSource}${builtScript.slice(templateEnd)}`;
+builtScript = builtScript.replace(
+  '  const blocks = (id) => templates[id] || (id === "saturday" ? weekdayBlocks.map((block, index) => index === 0 ? ["08:00", block[1], block[2]] : block) : weekdayBlocks);',
+  '  const blocks = (id) => templates[id] || [];',
+);
 
 // Literal schedule content from the document must stay literal even when the
 // rest of Joy is using another UI locale. Translation keys still use JoyI18n.
@@ -69,7 +154,7 @@ builtScript = builtScript.replace(
   const WORKOUT_VARIANTS = Object.freeze(["chest", "back", "leg"]);
   const WORKOUT_MARKERS = Object.freeze({ "Chest-day": "chest", "Back day": "back", "Leg day": "leg" });
   const WORKOUT_LABELS = Object.freeze({ chest: "Chest-day", back: "Back day", leg: "Leg day" });
-  const isWorkoutBlock = (templateId, block) => templateId === "sunday" && block?.[0] === "14:00";
+  const isWorkoutBlock = (_templateId, block) => Array.isArray(block?.[2]) && block[2].some((item) => Boolean(WORKOUT_MARKERS[item]));
   const workoutGroups = (items = []) => {
     const groups = { chest: [], back: [], leg: [] };
     let current = "";
@@ -126,28 +211,24 @@ const newStats = `  function stats(dateKey, templateId) {
   }`;
 builtScript = builtScript.replace(oldStats, newStats);
 
-// Main Daily Day: show Chest/Back/Leg as a sub-heading selector and render
+// Main Daily Day: show Chest/Back/Leg as one selectable sub-heading and render
 // only the exercises for the selected workout.
 const oldMainRows = '    const rows = dayBlocks.map((block, bi) => { const done = block[2].reduce((sum, _, ii) => sum + Number(checked(view.date, itemId(templateId, bi, ii))), 0); return `<article class="dd-block" style="animation-delay:${Math.min(bi * 45, 280)}ms"><time class="dd-time">${esc(block[0])}</time><div class="dd-body"><div class="dd-blockhead"><strong>${esc(scheduleText(block[1]))}</strong><small>${done}/${block[2].length}</small><span class="dd-track"><i style="width:${block[2].length ? Math.round(done / block[2].length * 100) : 0}%"></i></span></div><div class="dd-items">${block[2].map((item, ii) => { const id = itemId(templateId, bi, ii); return `<label class="dd-check"><input type="checkbox" data-dd-check="${id}" ${checked(view.date, id) ? "checked" : ""}><span>${esc(scheduleText(item))}</span></label>`; }).join("")}</div></div></article>`; }).join("");';
 const newMainRows = '    const rows = dayBlocks.map((block, bi) => { const visibleItems = visibleBlockItems(view.date, templateId, block); const done = visibleItems.reduce((sum, entry) => sum + Number(checked(view.date, itemId(templateId, bi, entry.index))), 0); const workout = isWorkoutBlock(templateId, block); return `<article class="dd-block ${workout ? "dd-workout-block" : ""}" style="animation-delay:${Math.min(bi * 45, 280)}ms"><time class="dd-time">${esc(block[0])}</time><div class="dd-body"><div class="dd-blockhead"><strong>${esc(scheduleText(block[1]))}</strong><small>${done}/${visibleItems.length}</small><span class="dd-track"><i style="width:${visibleItems.length ? Math.round(done / visibleItems.length * 100) : 0}%"></i></span></div>${workout ? workoutSwitch(view.date) : ""}<div class="dd-items ${workout ? "dd-workout-items" : ""}">${visibleItems.map(({ item, index }) => { const id = itemId(templateId, bi, index); return `<label class="dd-check"><input type="checkbox" data-dd-check="${id}" ${checked(view.date, id) ? "checked" : ""}><span>${esc(scheduleText(item))}</span></label>`; }).join("")}</div></div></article>`; }).join("");';
 builtScript = builtScript.replace(oldMainRows, newMainRows);
 
-// Template preview: keep the same selector, but do not show the two unselected
-// workout groups or their exercises.
+// Template preview uses the same workout selector and hides unselected groups.
 const oldTimeline = '    const timeline = selectedBlocks.map((block) => `<div class="dd-timeline-row"><strong>${esc(block[0])}</strong><strong>${esc(scheduleText(block[1]))}</strong><div class="dd-template-items">${block[2].map((item) => `<span>${esc(scheduleText(item))}</span>`).join("")}</div></div>`).join("");';
 const newTimeline = '    const timeline = selectedBlocks.map((block) => { const workout = isWorkoutBlock(selected, block); const visibleItems = visibleBlockItems(view.date, selected, block); return `<div class="dd-timeline-row ${workout ? "dd-workout-row" : ""}"><strong>${esc(block[0])}</strong><strong>${esc(scheduleText(block[1]))}</strong><div class="dd-template-items">${workout ? workoutSwitch(view.date, true) : ""}${visibleItems.map(({ item }) => `<span>${esc(scheduleText(item))}</span>`).join("")}</div></div>`; }).join("");';
 builtScript = builtScript.replace(oldTimeline, newTimeline);
 
-// A workout choice is a per-day setting, so switching it immediately rerenders
-// both the Daily Day view and the open template preview.
+// Workout selection is per date and rerenders both surfaces immediately.
 builtScript = builtScript.replace(
   'const template = event.target.closest?.("[data-dd-template]"); if (template) { view.libraryTemplate = template.dataset.ddTemplate; renderLibrary(); return; }',
   'const workout = event.target.closest?.("[data-dd-workout]"); if (workout) { setWorkoutChoice(view.date, workout.dataset.ddWorkout); renderMain(); if (!document.querySelector(`#${LIBRARY_ID}`)?.hidden) renderLibrary(); return; }\n    const template = event.target.closest?.("[data-dd-template]"); if (template) { view.libraryTemplate = template.dataset.ddTemplate; renderLibrary(); return; }',
 );
 
-// Keep the current template-library iteration focused on the schedule itself.
-// Remove the two secondary explanatory cards requested from the mockup review:
-// the history/future info banner and the optional template note card.
+// Keep the template library focused on the schedule itself.
 builtScript = builtScript.replace(
   '<div class="dd-info">• ${esc(t("dailyDay.noteFuture"))}<br>• ${esc(t("dailyDay.noteHistory"))}</div>',
   '',
@@ -160,8 +241,14 @@ builtScript = builtScript.replace(
 if (!builtScript.includes("data-dd-library-root") || !builtScript.includes("data-dd-open-library")) {
   throw new Error("Daily Day library wiring transform did not apply");
 }
-if (!builtScript.includes('["23:00", "đi ngủ", []]') || builtScript.includes('["08:30", "dailyDay.block.morningRoutine"')) {
-  throw new Error("Daily Day Sunday document template transform did not apply");
+if (!builtScript.includes('monday: weekdayTemplate("học writing ielts")') || !builtScript.includes('saturday: weekdayTemplate("giải trí", ["Xem THSH", "Ngủ muộn"], false)')) {
+  throw new Error("Daily Day weekday document templates did not apply");
+}
+if (!builtScript.includes('["08:30", "xem đồ án", ["uống trà", "cắm cơm"]]') || !builtScript.includes('["19:00", "học ngoại khoá (tuỳ chọn)"')) {
+  throw new Error("Daily Day morning/afternoon document templates did not apply");
+}
+if (!builtScript.includes('["23:00", "đi ngủ", []]') || builtScript.includes('weekdayBlocks')) {
+  throw new Error("Daily Day document template replacement is incomplete");
 }
 if (!builtScript.includes("const scheduleText =") || !builtScript.includes("const workoutSwitch =")) {
   throw new Error("Daily Day literal text or workout selector transform did not apply");
@@ -179,9 +266,7 @@ if (builtScript.includes('<div class="dd-note"><strong>${esc(t("dailyDay.templat
 await writeFile(scriptTarget, builtScript);
 await cp(styleSource, styleTarget);
 
-// Let Template schedule use the vertical space freed by the removed cards,
-// keep every checklist item on its own line, make each time block grow naturally,
-// and present the workout split as one selectable sub-heading at a time.
+// Preserve the established auto-growing schedule rows and workout selector.
 await appendFile(styleTarget, `
 #daily-day-templates-modal .dd-detail > .dd-section {
   margin-top: 10px !important;
@@ -205,7 +290,6 @@ await appendFile(styleTarget, `
   min-height: 64px;
   height: auto;
   padding: 13px 14px;
-  grid-template-columns: 68px minmax(150px, 220px) minmax(0, 1fr);
   gap: 14px;
   align-items: start;
   overflow: visible;
@@ -234,9 +318,7 @@ await appendFile(styleTarget, `
   align-self: start;
   gap: 7px;
   color: #60757d;
-  font-size: 10px;
   line-height: 1.45;
-  font-weight: 600;
 }
 
 #daily-day-templates-modal .dd-template-items span {
@@ -264,9 +346,8 @@ await appendFile(styleTarget, `
 .dd-workout-subheading {
   margin-bottom: 8px;
   color: #294e59;
-  font-size: 11px;
   line-height: 1.2;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .dd-workout-tabs {
@@ -283,8 +364,7 @@ await appendFile(styleTarget, `
   background: #ffffff;
   color: #587078;
   font: inherit;
-  font-size: 9.5px;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -307,13 +387,6 @@ await appendFile(styleTarget, `
   display: grid;
   grid-template-columns: 1fr;
   gap: 7px;
-}
-
-@media (max-width: 980px) {
-  #daily-day-templates-modal .dd-timeline-row {
-    grid-template-columns: 62px minmax(125px, 180px) minmax(0, 1fr);
-    gap: 12px;
-  }
 }
 
 @media (max-width: 760px) {
@@ -344,10 +417,10 @@ await appendFile(scriptTarget, `
   if (typeof document === "undefined" || document.querySelector('link[data-joy-daily-day-design="true"]')) return;
   const link = document.createElement("link");
   link.rel = "stylesheet";
-  link.href = "/daily-day-design.css?v=joy-daily-day-design-v7";
+  link.href = "/daily-day-design.css?v=joy-daily-day-design-v9";
   link.dataset.joyDailyDayDesign = "true";
   document.head.append(link);
 })();
 `);
 
-console.log("Joy Daily Day frontend, exact Sunday template, per-day workout sub-heading selector, and auto-growing rows copied to dist");
+console.log("Joy Daily Day frontend and all nine exact document templates copied to dist");
