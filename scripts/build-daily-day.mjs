@@ -64,10 +64,86 @@ builtScript = builtScript.replace(oldSunday, sundayFromDocs);
 // rest of Joy is using another UI locale. Translation keys still use JoyI18n.
 builtScript = builtScript.replace(
   'const t = (key, values = {}) => window.JoyI18n?.t?.(key, values) || key;',
-  'const t = (key, values = {}) => window.JoyI18n?.t?.(key, values) || key;\n  const scheduleText = (value) => String(value).startsWith("dailyDay.") ? t(value) : value;',
+  `const t = (key, values = {}) => window.JoyI18n?.t?.(key, values) || key;
+  const scheduleText = (value) => String(value).startsWith("dailyDay.") ? t(value) : value;
+  const WORKOUT_VARIANTS = Object.freeze(["chest", "back", "leg"]);
+  const WORKOUT_MARKERS = Object.freeze({ "Chest-day": "chest", "Back day": "back", "Leg day": "leg" });
+  const WORKOUT_LABELS = Object.freeze({ chest: "Chest-day", back: "Back day", leg: "Leg day" });
+  const isWorkoutBlock = (templateId, block) => templateId === "sunday" && block?.[0] === "14:00";
+  const workoutGroups = (items = []) => {
+    const groups = { chest: [], back: [], leg: [] };
+    let current = "";
+    items.forEach((item, index) => {
+      const marker = WORKOUT_MARKERS[item];
+      if (marker) { current = marker; return; }
+      if (current) groups[current].push({ item, index });
+    });
+    return groups;
+  };
+  const workoutChoice = (dateKey) => {
+    const value = String(load().workouts?.[dateKey] || "chest");
+    return WORKOUT_VARIANTS.includes(value) ? value : "chest";
+  };
+  const setWorkoutChoice = (dateKey, variant) => {
+    if (!WORKOUT_VARIANTS.includes(variant)) return;
+    const data = load();
+    data.workouts ||= {};
+    data.workouts[dateKey] = variant;
+    save(data);
+  };
+  const visibleBlockItems = (dateKey, templateId, block) => {
+    if (!isWorkoutBlock(templateId, block)) return block[2].map((item, index) => ({ item, index }));
+    return workoutGroups(block[2])[workoutChoice(dateKey)] || [];
+  };
+  const workoutSwitch = (dateKey, compact = false) => {
+    const active = workoutChoice(dateKey);
+    return \`<div class="dd-workout-wrap \${compact ? "compact" : ""}"><div class="dd-workout-subheading">\${esc(WORKOUT_LABELS[active])}</div><div class="dd-workout-tabs" role="group" aria-label="Chọn buổi tập">\${WORKOUT_VARIANTS.map((variant) => \`<button type="button" class="\${variant === active ? "active" : ""}" data-dd-workout="\${variant}">\${esc(WORKOUT_LABELS[variant])}</button>\`).join("")}</div></div>\`;
+  };`,
 );
 builtScript = builtScript.replaceAll('esc(t(block[1]))', 'esc(scheduleText(block[1]))');
 builtScript = builtScript.replaceAll('esc(t(item))', 'esc(scheduleText(item))');
+
+// Persist the selected workout split independently for every date.
+builtScript = builtScript.replace(
+  'return data && typeof data === "object" ? { overrides: data.overrides || {}, checks: data.checks || {} } : { overrides: {}, checks: {} };',
+  'return data && typeof data === "object" ? { overrides: data.overrides || {}, checks: data.checks || {}, workouts: data.workouts || {} } : { overrides: {}, checks: {}, workouts: {} };',
+);
+builtScript = builtScript.replace(
+  'catch { return { overrides: {}, checks: {} }; }',
+  'catch { return { overrides: {}, checks: {}, workouts: {} }; }',
+);
+
+// Progress only counts the exercises for the workout selected for that day.
+const oldStats = `  function stats(dateKey, templateId) {
+    let total = 0; let complete = 0;
+    blocks(templateId).forEach((block, blockIndex) => block[2].forEach((_, itemIndex) => { total += 1; if (checked(dateKey, itemId(templateId, blockIndex, itemIndex))) complete += 1; }));
+    return { total, complete, remaining: total - complete };
+  }`;
+const newStats = `  function stats(dateKey, templateId) {
+    let total = 0; let complete = 0;
+    blocks(templateId).forEach((block, blockIndex) => visibleBlockItems(dateKey, templateId, block).forEach(({ index }) => { total += 1; if (checked(dateKey, itemId(templateId, blockIndex, index))) complete += 1; }));
+    return { total, complete, remaining: total - complete };
+  }`;
+builtScript = builtScript.replace(oldStats, newStats);
+
+// Main Daily Day: show Chest/Back/Leg as a sub-heading selector and render
+// only the exercises for the selected workout.
+const oldMainRows = '    const rows = dayBlocks.map((block, bi) => { const done = block[2].reduce((sum, _, ii) => sum + Number(checked(view.date, itemId(templateId, bi, ii))), 0); return `<article class="dd-block" style="animation-delay:${Math.min(bi * 45, 280)}ms"><time class="dd-time">${esc(block[0])}</time><div class="dd-body"><div class="dd-blockhead"><strong>${esc(scheduleText(block[1]))}</strong><small>${done}/${block[2].length}</small><span class="dd-track"><i style="width:${block[2].length ? Math.round(done / block[2].length * 100) : 0}%"></i></span></div><div class="dd-items">${block[2].map((item, ii) => { const id = itemId(templateId, bi, ii); return `<label class="dd-check"><input type="checkbox" data-dd-check="${id}" ${checked(view.date, id) ? "checked" : ""}><span>${esc(scheduleText(item))}</span></label>`; }).join("")}</div></div></article>`; }).join("");';
+const newMainRows = '    const rows = dayBlocks.map((block, bi) => { const visibleItems = visibleBlockItems(view.date, templateId, block); const done = visibleItems.reduce((sum, entry) => sum + Number(checked(view.date, itemId(templateId, bi, entry.index))), 0); const workout = isWorkoutBlock(templateId, block); return `<article class="dd-block ${workout ? "dd-workout-block" : ""}" style="animation-delay:${Math.min(bi * 45, 280)}ms"><time class="dd-time">${esc(block[0])}</time><div class="dd-body"><div class="dd-blockhead"><strong>${esc(scheduleText(block[1]))}</strong><small>${done}/${visibleItems.length}</small><span class="dd-track"><i style="width:${visibleItems.length ? Math.round(done / visibleItems.length * 100) : 0}%"></i></span></div>${workout ? workoutSwitch(view.date) : ""}<div class="dd-items ${workout ? "dd-workout-items" : ""}">${visibleItems.map(({ item, index }) => { const id = itemId(templateId, bi, index); return `<label class="dd-check"><input type="checkbox" data-dd-check="${id}" ${checked(view.date, id) ? "checked" : ""}><span>${esc(scheduleText(item))}</span></label>`; }).join("")}</div></div></article>`; }).join("");';
+builtScript = builtScript.replace(oldMainRows, newMainRows);
+
+// Template preview: keep the same selector, but do not show the two unselected
+// workout groups or their exercises.
+const oldTimeline = '    const timeline = selectedBlocks.map((block) => `<div class="dd-timeline-row"><strong>${esc(block[0])}</strong><strong>${esc(scheduleText(block[1]))}</strong><div class="dd-template-items">${block[2].map((item) => `<span>${esc(scheduleText(item))}</span>`).join("")}</div></div>`).join("");';
+const newTimeline = '    const timeline = selectedBlocks.map((block) => { const workout = isWorkoutBlock(selected, block); const visibleItems = visibleBlockItems(view.date, selected, block); return `<div class="dd-timeline-row ${workout ? "dd-workout-row" : ""}"><strong>${esc(block[0])}</strong><strong>${esc(scheduleText(block[1]))}</strong><div class="dd-template-items">${workout ? workoutSwitch(view.date, true) : ""}${visibleItems.map(({ item }) => `<span>${esc(scheduleText(item))}</span>`).join("")}</div></div>`; }).join("");';
+builtScript = builtScript.replace(oldTimeline, newTimeline);
+
+// A workout choice is a per-day setting, so switching it immediately rerenders
+// both the Daily Day view and the open template preview.
+builtScript = builtScript.replace(
+  'const template = event.target.closest?.("[data-dd-template]"); if (template) { view.libraryTemplate = template.dataset.ddTemplate; renderLibrary(); return; }',
+  'const workout = event.target.closest?.("[data-dd-workout]"); if (workout) { setWorkoutChoice(view.date, workout.dataset.ddWorkout); renderMain(); if (!document.querySelector(`#${LIBRARY_ID}`)?.hidden) renderLibrary(); return; }\n    const template = event.target.closest?.("[data-dd-template]"); if (template) { view.libraryTemplate = template.dataset.ddTemplate; renderLibrary(); return; }',
+);
 
 // Keep the current template-library iteration focused on the schedule itself.
 // Remove the two secondary explanatory cards requested from the mockup review:
@@ -87,8 +163,11 @@ if (!builtScript.includes("data-dd-library-root") || !builtScript.includes("data
 if (!builtScript.includes('["23:00", "đi ngủ", []]') || builtScript.includes('["08:30", "dailyDay.block.morningRoutine"')) {
   throw new Error("Daily Day Sunday document template transform did not apply");
 }
-if (!builtScript.includes("const scheduleText =")) {
-  throw new Error("Daily Day literal schedule text transform did not apply");
+if (!builtScript.includes("const scheduleText =") || !builtScript.includes("const workoutSwitch =")) {
+  throw new Error("Daily Day literal text or workout selector transform did not apply");
+}
+if (!builtScript.includes("workouts: data.workouts || {}") || !builtScript.includes("visibleBlockItems(view.date")) {
+  throw new Error("Daily Day per-day workout persistence/render transform did not apply");
 }
 if (builtScript.includes('<div class="dd-info">• ${esc(t("dailyDay.noteFuture"))}')) {
   throw new Error("Daily Day template info banner removal did not apply");
@@ -101,8 +180,8 @@ await writeFile(scriptTarget, builtScript);
 await cp(styleSource, styleTarget);
 
 // Let Template schedule use the vertical space freed by the removed cards,
-// keep every checklist item on its own line, and make each time block grow
-// naturally to fit all of its tasks instead of allowing content to overlap.
+// keep every checklist item on its own line, make each time block grow naturally,
+// and present the workout split as one selectable sub-heading at a time.
 await appendFile(styleTarget, `
 #daily-day-templates-modal .dd-detail > .dd-section {
   margin-top: 10px !important;
@@ -174,6 +253,62 @@ await appendFile(styleTarget, `
   margin-right: 6px;
 }
 
+.dd-workout-wrap {
+  margin: 9px 0 8px;
+  padding: 10px 11px;
+  border: 1px solid #d9e6e5;
+  border-radius: 11px;
+  background: #f1f7f6;
+}
+
+.dd-workout-subheading {
+  margin-bottom: 8px;
+  color: #294e59;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.dd-workout-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dd-workout-tabs button {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid #cfdedd;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #587078;
+  font: inherit;
+  font-size: 9.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.dd-workout-tabs button.active {
+  border-color: #5e9291;
+  background: #5e9291;
+  color: #ffffff;
+}
+
+#daily-day-templates-modal .dd-workout-wrap.compact {
+  margin: 0 0 4px;
+  padding: 8px 9px;
+}
+
+#daily-day-templates-modal .dd-workout-wrap.compact + span {
+  margin-top: 2px;
+}
+
+#daily-day-modal .dd-workout-items {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 7px;
+}
+
 @media (max-width: 980px) {
   #daily-day-templates-modal .dd-timeline-row {
     grid-template-columns: 62px minmax(125px, 180px) minmax(0, 1fr);
@@ -192,6 +327,15 @@ await appendFile(styleTarget, `
     grid-column: 1 / -1;
     padding-left: 68px;
   }
+
+  .dd-workout-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .dd-workout-tabs button {
+    padding: 0 6px;
+  }
 }
 `);
 
@@ -200,10 +344,10 @@ await appendFile(scriptTarget, `
   if (typeof document === "undefined" || document.querySelector('link[data-joy-daily-day-design="true"]')) return;
   const link = document.createElement("link");
   link.rel = "stylesheet";
-  link.href = "/daily-day-design.css?v=joy-daily-day-design-v6";
+  link.href = "/daily-day-design.css?v=joy-daily-day-design-v7";
   link.dataset.joyDailyDayDesign = "true";
   document.head.append(link);
 })();
 `);
 
-console.log("Joy Daily Day frontend, exact Sunday document template, auto-growing checklist rows, and approved mockup styling copied to dist");
+console.log("Joy Daily Day frontend, exact Sunday template, per-day workout sub-heading selector, and auto-growing rows copied to dist");
