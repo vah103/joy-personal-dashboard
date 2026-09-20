@@ -166,4 +166,60 @@ function closeSalesModal() {
   ) document.body.classList.remove("modal-open");
 }
 
-import("/daily-day.js?v=joy-daily-day-v8").catch(() => {});
+import("/daily-day.js?v=joy-daily-day-v9").then(() => {
+  if (document.querySelector("#joy-daily-day-columns-v1")) return;
+  const style = document.createElement("style");
+  style.id = "joy-daily-day-columns-v1";
+  style.textContent = `
+    /* Keep short schedules left aligned. Long schedules (>4 items) split into
+       two ordered vertical columns with one quiet divider between them. */
+    #daily-day-templates-modal .dd-template-items:has(> span:nth-of-type(5)) {
+      display: block !important;
+      column-count: 2;
+      column-gap: 30px;
+      column-rule: 1px solid #d5e0e0;
+      column-fill: balance;
+    }
+
+    #daily-day-templates-modal .dd-template-items:has(> span:nth-of-type(5)) > .dd-workout-wrap {
+      column-span: all;
+    }
+
+    #daily-day-templates-modal .dd-template-items > span {
+      width: 100%;
+      box-sizing: border-box;
+      break-inside: avoid;
+      -webkit-column-break-inside: avoid;
+      margin-bottom: 7px;
+    }
+
+    #daily-day-templates-modal .dd-template-items > span:last-child {
+      margin-bottom: 0;
+    }
+
+    #daily-day-modal .dd-items:has(> .dd-check:nth-child(5)) {
+      display: block !important;
+      column-count: 2;
+      column-gap: 30px;
+      column-rule: 1px solid #d5e0e0;
+      column-fill: balance;
+    }
+
+    #daily-day-modal .dd-items:has(> .dd-check:nth-child(5)) > .dd-check {
+      width: 100%;
+      box-sizing: border-box;
+      break-inside: avoid;
+      -webkit-column-break-inside: avoid;
+      margin-bottom: 7px;
+    }
+
+    @media (max-width: 760px) {
+      #daily-day-templates-modal .dd-template-items:has(> span:nth-of-type(5)),
+      #daily-day-modal .dd-items:has(> .dd-check:nth-child(5)) {
+        column-count: 1;
+        column-rule: 0;
+      }
+    }
+  `;
+  document.head.append(style);
+}).catch(() => {});
