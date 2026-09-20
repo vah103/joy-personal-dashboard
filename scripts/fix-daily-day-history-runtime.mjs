@@ -27,9 +27,9 @@ execFileSync(process.execPath, ["--check", scriptTarget], { stdio: "inherit" });
 
 let app = await readFile(appTarget, "utf8");
 const oldLoader = 'import("/daily-day.js?v=joy-daily-day-v25").catch(() => {});';
-const newLoader = 'import("/daily-day.js?v=joy-daily-day-v26").catch(() => {});';
+const newLoader = 'import("/daily-day.js?v=joy-daily-day-v27").catch(() => {});';
 if (!app.includes(oldLoader)) throw new Error("Daily Day runtime fix: v25 loader anchor missing");
 app = app.replace(oldLoader, newLoader);
 await writeFile(appTarget, app);
 
-console.log("Daily Day history runtime syntax fixed, validated, and cache bumped to v26");
+console.log("Daily Day history runtime syntax fixed, validated, and cache bumped to v27");
