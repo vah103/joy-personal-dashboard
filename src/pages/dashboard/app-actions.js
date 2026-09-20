@@ -146,7 +146,7 @@ async function confirmProjectDelete() {
       return;
     }
 
-    showToast(`${project.name} removed here · will sync when online`);
+    showToast(`${project.name} removed here · will sync when offline`);
   }
 }
 
@@ -166,4 +166,4 @@ function closeSalesModal() {
   ) document.body.classList.remove("modal-open");
 }
 
-import("/daily-day.js?v=joy-daily-day-v19").catch(() => {});
+import("/daily-day.js?v=joy-daily-day-v20").catch(() => {});
