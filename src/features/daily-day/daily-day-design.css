@@ -1,0 +1,548 @@
+/* Daily Day template library visual refinement — follows the approved desktop mockup. */
+#daily-day-templates-modal.dd-library-layer {
+  padding: 24px;
+  background: rgba(25, 31, 33, 0.48);
+  backdrop-filter: blur(14px);
+}
+
+#daily-day-templates-modal .dd-library {
+  width: min(1180px, calc(100vw - 48px));
+  height: min(720px, calc(100vh - 48px));
+  max-height: none;
+  border: 1px solid rgba(111, 137, 139, 0.18);
+  border-radius: 22px;
+  background: #f8faf9;
+  box-shadow: 0 24px 70px rgba(21, 34, 38, 0.28);
+  overflow: hidden;
+}
+
+#daily-day-templates-modal .dd-library > .dd-scroll {
+  box-sizing: border-box;
+  height: 100%;
+  max-height: none;
+  padding: 20px 22px 14px;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 12px;
+}
+
+#daily-day-templates-modal .dd-library-head {
+  min-height: 58px;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+#daily-day-templates-modal .dd-library-head > div:first-child {
+  min-width: 330px;
+  margin-right: auto;
+}
+
+#daily-day-templates-modal .dd-library-head h2 {
+  margin: 0;
+  color: #263e52;
+  font-size: 28px;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+  font-weight: 800;
+}
+
+#daily-day-templates-modal .dd-library-head p {
+  margin: 5px 0 0;
+  color: #6e828d;
+  font-size: 12px;
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+#daily-day-templates-modal .dd-search {
+  width: 220px;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid #d9e1e2;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #344f5d;
+  font-size: 12px;
+  box-shadow: none;
+}
+
+#daily-day-templates-modal .dd-library-head .dd-button {
+  min-height: 42px;
+  padding: 0 16px;
+  border-color: #d8e0e1;
+  background: #f7fbfb;
+  color: #3c5969;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+#daily-day-templates-modal .dd-library-head .dd-icon {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  border-radius: 12px;
+  background: #eef4f5;
+  color: #34576a;
+  font-size: 20px;
+}
+
+#daily-day-templates-modal .dd-library-grid {
+  min-height: 0;
+  margin-top: 0;
+  display: grid;
+  grid-template-columns: 326px minmax(0, 1fr);
+  gap: 18px;
+  overflow: hidden;
+}
+
+#daily-day-templates-modal .dd-template-list {
+  min-height: 0;
+  padding-right: 2px;
+  display: grid;
+  grid-auto-rows: minmax(52px, auto);
+  align-content: start;
+  gap: 6px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+#daily-day-templates-modal .dd-template-row {
+  position: relative;
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 11px;
+  grid-template-columns: 40px minmax(0, 1fr) 18px;
+  gap: 10px;
+  border: 1px solid #dde4e5;
+  border-radius: 11px;
+  background: #ffffff;
+  color: #334e60;
+  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+
+#daily-day-templates-modal .dd-template-row:hover {
+  border-color: #bbcdcf;
+  background: #fbfdfd;
+}
+
+#daily-day-templates-modal .dd-template-row.active {
+  border-color: #87b8b8;
+  background: #e9f6f4;
+  box-shadow: inset 3px 0 0 #5f9797;
+}
+
+#daily-day-templates-modal .dd-template-row i {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: #eef5f5;
+  color: #3f7180;
+  font-size: 18px;
+  line-height: 1;
+}
+
+#daily-day-templates-modal .dd-template-row:nth-child(2) i {
+  background: #fff2e7;
+  color: #ef8c40;
+}
+
+#daily-day-templates-modal .dd-template-row strong {
+  color: #29465a;
+  font-size: 12.5px;
+  line-height: 1.1;
+  font-weight: 800;
+}
+
+#daily-day-templates-modal .dd-template-row small {
+  margin-top: 3px;
+  color: #70848e;
+  font-size: 9.5px;
+  line-height: 1.15;
+  font-weight: 600;
+}
+
+#daily-day-templates-modal .dd-template-row b {
+  align-self: center;
+  color: #527384;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+#daily-day-templates-modal .dd-template-row.active b {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #5f9091;
+  color: transparent;
+  font-size: 0;
+}
+
+#daily-day-templates-modal .dd-template-row.active b::after {
+  content: "✓";
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+#daily-day-templates-modal .dd-detail {
+  min-height: 0;
+  padding: 14px 16px 12px;
+  border: 1px solid #dce5e5;
+  border-radius: 14px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#daily-day-templates-modal .dd-template-head {
+  min-height: 54px;
+  align-items: center;
+  padding-bottom: 2px;
+}
+
+#daily-day-templates-modal .dd-template-head > div {
+  position: relative;
+  padding-left: 50px;
+  min-width: 0;
+}
+
+#daily-day-templates-modal .dd-template-head > div::before {
+  content: "☀";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #edf5f5;
+  color: #416f7e;
+  font-size: 21px;
+}
+
+#daily-day-templates-modal .dd-template-head h3 {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 0;
+  color: #27465d;
+  font-size: 21px;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  font-weight: 800;
+}
+
+#daily-day-templates-modal .dd-template-head p {
+  margin: 5px 0 0;
+  color: #718791;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+#daily-day-templates-modal .dd-template-head .dd-icon {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  border: 1px solid #e2e8e8;
+  border-radius: 11px;
+  background: #ffffff;
+  color: #456a78;
+  font-size: 16px;
+}
+
+#daily-day-templates-modal .dd-badge {
+  margin-left: 0;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #e6f1f6;
+  color: #5b7c8b;
+  font-size: 9.5px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+#daily-day-templates-modal .dd-info {
+  position: relative;
+  margin-top: 10px;
+  min-height: 50px;
+  padding: 10px 14px 10px 48px;
+  border-radius: 11px;
+  background: #eaf4f7;
+  color: #557483;
+  font-size: 10.5px;
+  line-height: 1.55;
+  font-weight: 600;
+}
+
+#daily-day-templates-modal .dd-info::before {
+  content: "i";
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #89aeba;
+  color: #ffffff;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+#daily-day-templates-modal .dd-detail > .dd-section {
+  margin: 12px 0 8px !important;
+  color: #2e4a5c;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 800;
+}
+
+#daily-day-templates-modal .dd-timeline {
+  position: relative;
+  min-height: 0;
+  margin-top: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+#daily-day-templates-modal .dd-timeline::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 24px;
+  bottom: 24px;
+  width: 2px;
+  border-radius: 2px;
+  background: #bfd3d2;
+}
+
+#daily-day-templates-modal .dd-timeline-row {
+  position: relative;
+  min-height: 51px;
+  padding: 7px 10px;
+  display: grid;
+  grid-template-columns: 58px minmax(125px, 0.72fr) minmax(0, 1.65fr);
+  gap: 10px;
+  align-items: center;
+  border: 1px solid #e0e7e6;
+  border-radius: 11px;
+  background: #fbfcfb;
+}
+
+#daily-day-templates-modal .dd-timeline-row::before {
+  content: "";
+  position: absolute;
+  left: -18px;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: #6f9fa0;
+  box-shadow: 0 0 0 4px #f8faf9;
+}
+
+#daily-day-templates-modal .dd-timeline-row > strong:first-child {
+  width: fit-content;
+  min-width: 50px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #e8f1f1;
+  color: #345a68;
+  text-align: center;
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+#daily-day-templates-modal .dd-timeline-row > strong:nth-child(2) {
+  color: #2f4d5d;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+#daily-day-templates-modal .dd-template-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 12px;
+  color: #60757d;
+  font-size: 9.5px;
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+#daily-day-templates-modal .dd-template-items span::before {
+  margin-right: 4px;
+  color: #5c8b8c;
+  font-size: 10px;
+}
+
+#daily-day-templates-modal .dd-note {
+  position: relative;
+  margin-top: 10px;
+  padding: 10px 14px 10px 48px;
+  border: 1px solid #dce7e8;
+  border-radius: 11px;
+  background: #eef6f8;
+  color: #5a7480;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+#daily-day-templates-modal .dd-note::before {
+  content: "▤";
+  position: absolute;
+  left: 16px;
+  top: 12px;
+  color: #4f7b88;
+  font-size: 18px;
+}
+
+#daily-day-templates-modal .dd-note strong {
+  display: block;
+  margin-bottom: 2px;
+  color: #3d5c69;
+  font-size: 11px;
+}
+
+#daily-day-templates-modal .dd-note p {
+  margin: 0;
+  color: #68808a;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+#daily-day-templates-modal .dd-footer {
+  margin-top: 0;
+  padding-top: 10px;
+  border-top: 1px solid #e1e8e8;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  background: #f8faf9;
+}
+
+#daily-day-templates-modal .dd-footer .dd-button {
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: 11px;
+  border-color: #d7e0e1;
+  background: #f1f6f7;
+  color: #456271;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+#daily-day-templates-modal .dd-footer .dd-button.primary {
+  min-width: 150px;
+  border-color: #5b8586;
+  background: #5b8586;
+  color: #ffffff;
+}
+
+@media (max-width: 980px) {
+  #daily-day-templates-modal .dd-library {
+    width: min(900px, calc(100vw - 32px));
+    height: min(760px, calc(100vh - 32px));
+  }
+
+  #daily-day-templates-modal .dd-library-grid {
+    grid-template-columns: 270px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  #daily-day-templates-modal .dd-library-head > div:first-child {
+    min-width: 250px;
+  }
+
+  #daily-day-templates-modal .dd-search {
+    width: 180px;
+  }
+
+  #daily-day-templates-modal .dd-timeline-row {
+    grid-template-columns: 54px minmax(105px, .7fr) minmax(0, 1.4fr);
+  }
+}
+
+@media (max-width: 760px) {
+  #daily-day-templates-modal.dd-library-layer {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  #daily-day-templates-modal .dd-library {
+    width: 100%;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  #daily-day-templates-modal .dd-library > .dd-scroll {
+    padding: 16px;
+    overflow-y: auto;
+    display: block;
+  }
+
+  #daily-day-templates-modal .dd-library-head {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 8px;
+  }
+
+  #daily-day-templates-modal .dd-library-head > div:first-child,
+  #daily-day-templates-modal .dd-search {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+  }
+
+  #daily-day-templates-modal .dd-library-grid {
+    margin-top: 12px;
+    display: block;
+    overflow: visible;
+  }
+
+  #daily-day-templates-modal .dd-template-list {
+    max-height: 230px;
+    margin-bottom: 12px;
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+
+  #daily-day-templates-modal .dd-detail {
+    overflow: visible;
+  }
+
+  #daily-day-templates-modal .dd-timeline {
+    max-height: none;
+    overflow: visible;
+  }
+
+  #daily-day-templates-modal .dd-timeline-row {
+    grid-template-columns: 58px minmax(0, 1fr);
+  }
+
+  #daily-day-templates-modal .dd-template-items {
+    grid-column: 1 / -1;
+    padding-left: 0;
+  }
+
+  #daily-day-templates-modal .dd-footer {
+    position: sticky;
+    bottom: -16px;
+    margin: 12px -16px -16px;
+    padding: 12px 16px;
+    z-index: 3;
+  }
+}
