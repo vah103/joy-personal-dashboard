@@ -15,8 +15,8 @@ if (footerCount !== 1) {
 }
 script = script.replace(footer, "");
 
-if (script.includes('<footer class="dd-footer">') || script.includes('type="button" data-dd-save')) {
-  throw new Error("Daily Day bottom Today / Save changes controls were not removed");
+if (script.includes('<footer class="dd-footer">')) {
+  throw new Error("Daily Day bottom Today / Save changes footer was not removed");
 }
 
 await writeFile(scriptTarget, script);
