@@ -65,6 +65,20 @@ function validKey(value, max = 180) {
   return Boolean(key) && key.length <= max;
 }
 
+function normalizeTemplateBlocks(value) {
+  if (!Array.isArray(value) || value.length > 48) return null;
+  const blocks = [];
+  for (const rawBlock of value) {
+    if (!Array.isArray(rawBlock) || rawBlock.length < 3) return null;
+    const time = String(rawBlock[0] ?? "").slice(0, 16);
+    const title = String(rawBlock[1] ?? "").slice(0, 160);
+    if (!Array.isArray(rawBlock[2]) || rawBlock[2].length > 80) return null;
+    const items = rawBlock[2].map((item) => String(item ?? "").trim().slice(0, 220)).filter(Boolean);
+    blocks.push([time, title, items]);
+  }
+  return blocks;
+}
+
 function applyMutation(state, mutation) {
   const next = normalizeState(state);
   const type = String(mutation?.type || "");
@@ -93,6 +107,24 @@ function applyMutation(state, mutation) {
     if (!WORKOUT_VARIANTS.has(variant)) return null;
     next.core.workouts = plainObject(next.core.workouts);
     next.core.workouts[date] = variant;
+    return next;
+  }
+
+  if (type === "template-version") {
+    const templateId = String(mutation.templateId || "");
+    if (!TEMPLATE_IDS.has(templateId)) return null;
+    const blocks = normalizeTemplateBlocks(mutation.blocks);
+    if (!blocks) return null;
+    next.core.templateVersions = plainObject(next.core.templateVersions);
+    const existing = Array.isArray(next.core.templateVersions[templateId])
+      ? next.core.templateVersions[templateId]
+      : [];
+    next.core.templateVersions[templateId] = [
+      ...existing.filter((entry) => validDateKey(entry?.effectiveFrom) && entry.effectiveFrom !== date),
+      { effectiveFrom: date, blocks },
+    ]
+      .sort((a, b) => String(a.effectiveFrom).localeCompare(String(b.effectiveFrom)))
+      .slice(-120);
     return next;
   }
 
