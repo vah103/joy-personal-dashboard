@@ -175,25 +175,19 @@ script = script.replace(
   'if (document.querySelector("#daily-day-modal .dd-exercise-line.editing, #daily-day-templates-modal .dd-template-inline")) return;',
 );
 
-const refreshAnchor = `  const refreshVisibleUi = () => {
-    const modal = document.querySelector("#daily-day-modal");
-    if (!modal || modal.hidden) return;
-    const activeDate = modal.querySelector(".dd-week button.active[data-dd-date]");
-    if (activeDate) activeDate.click();
-  };`;
-const refreshReplacement = `  const refreshVisibleUi = () => {
-    const modal = document.querySelector("#daily-day-modal");
-    if (modal && !modal.hidden) {
-      const activeDate = modal.querySelector(".dd-week button.active[data-dd-date]");
-      if (activeDate) activeDate.click();
-    }
+// Cloud sync no longer simulates an active-date click. Refresh only the
+// template library when effective template versions actually changed remotely.
+script += `
+;(() => {
+  window.addEventListener("joy:daily-day-cloud-applied", (event) => {
+    if (!event.detail?.templateVersionsChanged) return;
     const library = document.querySelector("#daily-day-templates-modal");
     if (library && !library.hidden && !library.querySelector(".dd-template-inline")) {
       library.querySelector(".dd-template-row.active[data-dd-template]")?.click();
     }
-  };`;
-if (!script.includes(refreshAnchor)) throw new Error("Daily Day template editor: cloud refresh anchor missing");
-script = script.replace(refreshAnchor, refreshReplacement);
+  });
+})();
+`;
 
 for (const required of [
   "templateVersions",
