@@ -27,21 +27,21 @@ builtScript = builtScript.replace(
   'event.target.closest?.("[data-dd-open-library]")',
 );
 
-// Replace every generic template with the literal schedules from Daily day.
-// These are the nine canonical Default day templates: tập sáng, tập chiều,
-// Monday through Sunday.
-const docsTemplateSource = `  const earlyRoutine = Object.freeze(["luộc trứng", "đánh răng", "ăn trứng", "pha trà", "cho quần áo giặt", "ngâm nồi cơm"]);
-  const afterGym = Object.freeze(["uống trà", "cắm cơm", "tắm gội", "chuẩn bị thức ăn", "phơi quần áo"]);
-  const eatingRoutine = Object.freeze(["không xem gì khi ăn", "uống dht", "đánh răng", "ngâm nồi cơm"]);
+// Replace the generic source templates with the three canonical Default day
+// schedules from the current Daily day document. The Daily Day UI stays the
+// same; only the template set and schedule data change.
+const docsTemplateSource = `  const earlyRoutine = Object.freeze(["làm đồ ăn sáng", "đánh răng", "ăn sáng", "pha trà", "cho quần áo giặt", "ngâm nồi cơm", "chuẩn bị thức ăn định nấu"]);
+  const afterMorning = Object.freeze(["uống trà", "cắm cơm", "tắm gội", "chuẩn bị thức ăn", "phơi quần áo"]);
+  const eatingRoutine = Object.freeze(["ăn", "uống dht", "đánh răng", "ngâm nồi cơm"]);
   const eveningReturn = Object.freeze(["cắm cơm", "đi bộ mua rau", "chuẩn bị đồ ăn", "tắm gội", "rửa mặt", "ăn"]);
-  const projectEvening = Object.freeze(["soạn schedule", "xịt minoxidil", "rã đông thịt"]);
+  const eveningTasks = Object.freeze(["soạn schedule", "xịt morr f5", "rã đông thịt"]);
   const workoutItems = Object.freeze([
     "Chest-day",
-    "Warmup : bec deck + đẩy tạ đơn 17.5",
-    "Đẩy tạ đơn 22.5x2 (7)",
-    "Đẩy máy smith 25x3 (6)",
+    "Warmup : bec-deck x2 (10)",
+    "Đẩy tạ đơn 22.5x3 (7)",
+    "Đẩy máy smith 25x2 (6)",
     "Bec deck 130x3 (8)",
-    "Đẩy vai trước 60x3 (8)",
+    "Đẩy vai trước 70x3 (8)",
     "Bay vai 12.5x3 (10)",
     "Back day",
     "Warm-up : kéo xà x2 (6)",
@@ -56,79 +56,44 @@ const docsTemplateSource = `  const earlyRoutine = Object.freeze(["luộc trứn
     "Leg Extension 120x3 (8)",
     "Leg Curl 90x3 (7)",
   ]);
-  const weekdayTemplate = (endTitle, endItems = [], includeSleep = true) => {
-    const rows = [
-      ["07:00", "dậy", [...earlyRoutine]],
-      ["07:30", "đi tập", [...workoutItems]],
-      ["09:00", "về", [...afterGym]],
-      ["10:30", "ăn", [...eatingRoutine]],
-      ["11:30", "làm đồ án", []],
-      ["13:00", "", []],
-      ["14:00", "", []],
-      ["15:00", "", []],
-      ["16:30", "về đến nhà", [...eveningReturn]],
-      ["18:00", "học tiếng anh qua AI", []],
-      ["19:00", "làm đồ án", [...projectEvening]],
-      ["20:00", "làm đồ án", []],
-      ["21:00", "làm đồ án", []],
-      ["22:00", endTitle, [...endItems]],
-    ];
-    if (includeSleep) rows.push(["23:00", "đi ngủ", []]);
-    return rows;
-  };
   const templates = Object.freeze({
     morning: [
       ["07:00", "dậy", [...earlyRoutine]],
       ["07:30", "đi tập", [...workoutItems]],
-      ["09:00", "về", [...afterGym]],
+      ["09:00", "", [...afterMorning]],
       ["10:30", "ăn", [...eatingRoutine]],
-      ["11:30", "đến trường làm đồ án", []],
-      ["13:00", "", []],
-      ["14:00", "", []],
-      ["15:00", "", []],
-      ["16:30", "về đến nhà", [...eveningReturn]],
+      ["11:30", "làm đồ án", []],
+      ["16:30", "", [...eveningReturn]],
       ["18:00", "học tiếng anh qua AI", []],
-      ["19:00", "học ngoại khoá (tuỳ chọn)", ["soạn timeline cho ngày mai", "Uống finas", "xịt minoxidil", "rã đông thịt"]],
-      ["22:00", "giải trí", []],
-    ],
-    afternoon: [
-      ["07:00", "dậy", [...earlyRoutine, "chuẩn bị thức ăn định nấu"]],
-      ["08:30", "xem đồ án", ["uống trà", "cắm cơm"]],
-      ["09:00", "về", [...afterGym]],
-      ["10:30", "ăn", [...eatingRoutine]],
-      ["11:00", "làm đồ án", []],
-      ["12:00", "làm đồ án", []],
-      ["13:00", "làm đồ án", []],
-      ["14:00", "đi tập", [...workoutItems]],
-      ["15:30", "đi về", ["cắm cơm", "tắm gội", "rửa mặt", "uống finas"]],
-      ["16:30", "", ["đi mua rau", "đi bộ", "nấu rau", "nấu thức ăn", "ăn"]],
-      ["18:00", "học tiếng anh qua AI", []],
-      ["19:00", "làm đồ án", [...projectEvening]],
-      ["20:00", "làm đồ án", []],
-      ["21:00", "làm đồ án", []],
+      ["19:00", "", [...eveningTasks]],
+      ["19:30", "", []],
       ["22:00", "giải trí", []],
       ["23:00", "đi ngủ", []],
     ],
-    monday: weekdayTemplate("học writing ielts"),
-    tuesday: weekdayTemplate(""),
-    wednesday: weekdayTemplate("học writing ielts"),
-    thursday: weekdayTemplate("học writing ielts"),
-    friday: weekdayTemplate("giải trí"),
-    saturday: weekdayTemplate("giải trí", ["Xem THSH", "Ngủ muộn"], false),
-    sunday: [
-      ["08:30", "dậy", ["luộc trứng", "đánh răng", "ăn trứng", "pha trà", "cho quần áo giặt", "ngâm nồi cơm", "chuẩn bị thức ăn định nấu"]],
-      ["09:00", "", ["uống trà", "cắm cơm", "nghiên cứu phòng"]],
-      ["10:00", "", ["nấu thức ăn", "ăn", "phơi quần áo"]],
-      ["11:00", "làm đồ án", ["ngâm nồi cơm", "uống dht"]],
-      ["12:00", "làm đồ án", []],
-      ["13:00", "làm đồ án", []],
-      ["14:00", "đi tập", [...workoutItems]],
-      ["15:30", "đi về", ["cắm cơm", "tắm gội", "rửa mặt", "uống finas"]],
-      ["16:30", "", ["đi mua rau", "đi bộ", "nấu rau", "nấu thức ăn", "ăn"]],
+    afternoon: [
+      ["07:00", "dậy", [...earlyRoutine]],
+      ["07:30", "làm đồ án", []],
+      ["09:00", "", [...afterMorning]],
+      ["10:30", "ăn", [...eatingRoutine]],
+      ["11:30", "làm đồ án", []],
+      ["15:00", "đi tập", [...workoutItems]],
+      ["16:30", "", [...eveningReturn]],
       ["18:00", "học tiếng anh qua AI", []],
-      ["19:00", "làm đồ án", [...projectEvening]],
-      ["20:00", "làm đồ án", []],
-      ["21:00", "làm đồ án", []],
+      ["19:00", "làm đồ án", [...eveningTasks]],
+      ["19:30", "", []],
+      ["22:00", "giải trí", []],
+      ["23:00", "đi ngủ", []],
+    ],
+    no_workout: [
+      ["07:00", "dậy", [...earlyRoutine]],
+      ["07:30", "làm đồ án", []],
+      ["09:00", "", [...afterMorning]],
+      ["10:30", "ăn", [...eatingRoutine]],
+      ["11:30", "làm đồ án", []],
+      ["16:30", "", [...eveningReturn]],
+      ["18:00", "học tiếng anh qua AI", []],
+      ["19:00", "", [...eveningTasks]],
+      ["19:30", "", []],
       ["22:00", "giải trí", []],
       ["23:00", "đi ngủ", []],
     ],
@@ -141,8 +106,8 @@ if (templateStart < 0 || templateEnd < 0) {
 }
 builtScript = `${builtScript.slice(0, templateStart)}${docsTemplateSource}${builtScript.slice(templateEnd)}`;
 builtScript = builtScript.replace(
-  '  const blocks = (id) => templates[id] || (id === "saturday" ? weekdayBlocks.map((block, index) => index === 0 ? ["08:00", block[1], block[2]] : block) : weekdayBlocks);',
-  '  const blocks = (id) => templates[id] || [];',
+  '  const blocks = (id) => templates[id] || templates.no_workout || [];',
+  '  const blocks = (id) => templates[id] || templates.no_workout || [];',
 );
 
 // Literal schedule content from the document must stay literal even when the
@@ -257,11 +222,11 @@ builtScript = builtScript.replace(
 if (!builtScript.includes("data-dd-library-root") || !builtScript.includes("data-dd-open-library")) {
   throw new Error("Daily Day library wiring transform did not apply");
 }
-if (!builtScript.includes('monday: weekdayTemplate("học writing ielts")') || !builtScript.includes('saturday: weekdayTemplate("giải trí", ["Xem THSH", "Ngủ muộn"], false)')) {
-  throw new Error("Daily Day weekday document templates did not apply");
+if (!builtScript.includes('no_workout: [') || builtScript.includes('monday:') || builtScript.includes('sunday:')) {
+  throw new Error("Daily Day three-template document source did not apply");
 }
-if (!builtScript.includes('["08:30", "xem đồ án", ["uống trà", "cắm cơm"]]') || !builtScript.includes('["19:00", "học ngoại khoá (tuỳ chọn)"')) {
-  throw new Error("Daily Day morning/afternoon document templates did not apply");
+if (!builtScript.includes('"Warmup : bec-deck x2 (10)"') || !builtScript.includes('"Đẩy vai trước 70x3 (8)"') || !builtScript.includes('"xịt morr f5"')) {
+  throw new Error("Daily Day current document schedule did not apply");
 }
 if (!builtScript.includes('["23:00", "đi ngủ", []]') || builtScript.includes('weekdayBlocks')) {
   throw new Error("Daily Day document template replacement is incomplete");
