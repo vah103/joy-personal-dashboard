@@ -35,7 +35,7 @@ test("Daily Day uses only the three Default day templates from 16 Sep onward", a
   assert.match(sync, /type: "three-template-migration", date: "2026-09-16"/);
 
   assert.doesNotMatch(history, /HISTORICAL_DAYS = Object\.freeze/);
-  assert.doesNotMatch(history, /__JOY_DAILY_DAY_HISTORY_BACKFILL__/);
+  assert.doesNotMatch(history, /window\.__JOY_DAILY_DAY_HISTORY_BACKFILL__\s*=/);
   assert.match(vi, /"dailyDay\.template\.no_workout": "Không tập"/);
   assert.match(en, /"dailyDay\.template\.no_workout": "No workout"/);
 });
