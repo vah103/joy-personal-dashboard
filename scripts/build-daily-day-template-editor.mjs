@@ -29,6 +29,11 @@ const blocksReplacement = `  const cloneTemplateBlocks = (value) => Array.isArra
 if (!script.includes(blocksAnchor)) throw new Error("Daily Day template editor: blocks anchor missing");
 script = script.replace(blocksAnchor, blocksReplacement);
 
+const statsBlocksAnchor = "    blocks(templateId).forEach((block, blockIndex) => visibleBlockItems(dateKey, templateId, block).forEach(({ index }) => { total += 1; if (checked(dateKey, itemId(templateId, blockIndex, index))) complete += 1; }));";
+const statsBlocksReplacement = "    effectiveTemplateBlocks(templateId, dateKey).forEach((block, blockIndex) => visibleBlockItems(dateKey, templateId, block).forEach(({ index }) => { total += 1; if (checked(dateKey, itemId(templateId, blockIndex, index))) complete += 1; }));";
+if (!script.includes(statsBlocksAnchor)) throw new Error("Daily Day template editor: date-aware stats anchor missing");
+script = script.replace(statsBlocksAnchor, statsBlocksReplacement);
+
 const loadAnchor = 'return data && typeof data === "object" ? { overrides: data.overrides || {}, checks: data.checks || {}, workouts: data.workouts || {} } : { overrides: {}, checks: {}, workouts: {} };';
 const loadReplacement = 'return data && typeof data === "object" ? { overrides: data.overrides || {}, checks: data.checks || {}, workouts: data.workouts || {}, templateVersions: data.templateVersions || {} } : { overrides: {}, checks: {}, workouts: {}, templateVersions: {} };';
 if (!script.includes(loadAnchor)) throw new Error("Daily Day template editor: load anchor missing");
@@ -193,6 +198,7 @@ script = script.replace(refreshAnchor, refreshReplacement);
 for (const required of [
   "templateVersions",
   "effectiveTemplateBlocks",
+  "effectiveTemplateBlocks(templateId, dateKey)",
   "data-dd-template-cell",
   "beginTemplateInlineEdit",
   'type: "template-version"',
