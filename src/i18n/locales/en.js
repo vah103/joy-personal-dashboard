@@ -27,6 +27,8 @@ export default Object.freeze({
   "dailyDay.title": "Daily Day",
   "dailyDay.open": "Open Daily Day",
   "dailyDay.weekNavigation": "Daily Day week navigation",
+  "dailyDay.previousMonth": "Previous month",
+  "dailyDay.nextMonth": "Next month",
   "dailyDay.defaultDay": "Default day",
   "dailyDay.changeTemplate": "Change template for this day",
   "dailyDay.editDefaultDay": "Edit default day",
