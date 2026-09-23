@@ -38,11 +38,6 @@ script = script.replace(
   'catch { return { overrides: {}, checks: {}, workouts: {}, templateVersions: {} }; }',
 );
 
-const historyAnchor = '  const blocksForDate = (dateKey, templateId) => historicalDay(dateKey)?.blocks || blocks(templateId);';
-const historyReplacement = '  const blocksForDate = (dateKey, templateId) => historicalDay(dateKey)?.blocks || effectiveTemplateBlocks(templateId, dateKey);';
-if (!script.includes(historyAnchor)) throw new Error("Daily Day template editor: history fallback anchor missing");
-script = script.replace(historyAnchor, historyReplacement);
-
 const timelineStart = script.indexOf('    const timeline = selectedBlocks.map((block) => {');
 const timelineEnd = script.indexOf('\n    root.innerHTML =', timelineStart);
 if (timelineStart < 0 || timelineEnd < 0) throw new Error("Daily Day template editor: library timeline anchor missing");
