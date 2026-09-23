@@ -3,8 +3,8 @@
   const STORAGE_KEY = "joy-daily-day-v1";
   const MODAL_ID = "daily-day-modal";
   const LIBRARY_ID = "daily-day-templates-modal";
-  const TEMPLATE_IDS = ["morning", "afternoon", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
-  const WEEKDAY_TEMPLATE = Object.freeze({ 0: "sunday", 1: "monday", 2: "tuesday", 3: "wednesday", 4: "thursday", 5: "friday", 6: "saturday" });
+  const TEMPLATE_IDS = ["morning", "afternoon", "no_workout"];
+  const THREE_TEMPLATE_START = "2026-09-16";
   // Keep committed blueprints neutral: private Daily day details belong in protected runtime storage, not this public repo.
   const weekdayBlocks = [
     ["07:00", "dailyDay.block.morningRoutine", ["dailyDay.item.hygiene", "dailyDay.item.breakfast", "dailyDay.item.prepareDay"]],
@@ -36,14 +36,13 @@
       ["19:00", "dailyDay.block.evening", ["dailyDay.item.planTomorrow", "dailyDay.item.prepareTomorrow"]],
       ["22:00", "dailyDay.block.rest", ["dailyDay.item.relax"]],
     ],
-    sunday: [
-      ["08:30", "dailyDay.block.morningRoutine", ["dailyDay.item.hygiene", "dailyDay.item.breakfast", "dailyDay.item.prepareDay"]],
-      ["09:00", "dailyDay.block.work", ["dailyDay.item.mainWork", "dailyDay.item.progressNote"]],
-      ["10:00", "dailyDay.block.lunch", ["dailyDay.item.lunch", "dailyDay.item.prepareTomorrow"]],
-      ["11:00", "dailyDay.block.work", ["dailyDay.item.mainWork", "dailyDay.item.checkLog"]],
-      ["14:00", "dailyDay.block.exercise", ["dailyDay.item.warmup", "dailyDay.item.workout", "dailyDay.item.stretch"]],
-      ["18:00", "dailyDay.block.english", ["dailyDay.item.englishReview", "dailyDay.item.shadowing"]],
-      ["19:00", "dailyDay.block.evening", ["dailyDay.item.planTomorrow"]],
+    no_workout: [
+      ["07:00", "dailyDay.block.morningRoutine", ["dailyDay.item.hygiene", "dailyDay.item.breakfast", "dailyDay.item.prepareDay"]],
+      ["07:30", "dailyDay.block.work", ["dailyDay.item.mainWork"]],
+      ["10:30", "dailyDay.block.lunch", ["dailyDay.item.lunch", "dailyDay.item.shortRest"]],
+      ["11:30", "dailyDay.block.work", ["dailyDay.item.mainWork", "dailyDay.item.progressNote"]],
+      ["18:00", "dailyDay.block.english", ["dailyDay.item.speaking", "dailyDay.item.shadowing"]],
+      ["19:00", "dailyDay.block.evening", ["dailyDay.item.planTomorrow", "dailyDay.item.prepareTomorrow"]],
       ["22:00", "dailyDay.block.rest", ["dailyDay.item.relax"]],
     ],
   });
@@ -60,7 +59,7 @@
   const weekday = (value) => date(value).getUTCDay();
   const weekStart = (value) => addDays(value, -(weekday(value) === 0 ? 6 : weekday(value) - 1));
   const templateKey = (id) => `dailyDay.template.${id}`;
-  const blocks = (id) => templates[id] || (id === "saturday" ? weekdayBlocks.map((block, index) => index === 0 ? ["08:00", block[1], block[2]] : block) : weekdayBlocks);
+  const blocks = (id) => templates[id] || templates.no_workout || [];
   const itemId = (templateId, blockIndex, itemIndex) => `${templateId}:${blockIndex}:${itemIndex}`;
 
   function load() {
@@ -70,7 +69,7 @@
     } catch { return { overrides: {}, checks: {} }; }
   }
   function save(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
-  function resolvedTemplate(dateKey) { const id = String(load().overrides[dateKey] || ""); return TEMPLATE_IDS.includes(id) ? id : WEEKDAY_TEMPLATE[weekday(dateKey)]; }
+  function resolvedTemplate(dateKey) { const id = String(load().overrides[dateKey] || ""); if (TEMPLATE_IDS.includes(id)) return id; return dateKey >= THREE_TEMPLATE_START ? "no_workout" : "no_workout"; }
   function checked(dateKey, id) { return Boolean(load().checks[dateKey]?.[id]); }
   function setCheck(dateKey, id, done) { const data = load(); data.checks[dateKey] ||= {}; data.checks[dateKey][id] = Boolean(done); save(data); }
   function setTemplate(dateKey, templateId) { if (!TEMPLATE_IDS.includes(templateId)) return; const data = load(); data.overrides[dateKey] = templateId; save(data); }

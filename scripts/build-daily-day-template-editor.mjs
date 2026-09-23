@@ -9,11 +9,11 @@ const appTarget = resolve(root, "dist", "app.js");
 
 let script = await readFile(scriptTarget, "utf8");
 
-const blocksAnchor = '  const blocks = (id) => templates[id] || [];';
+const blocksAnchor = '  const blocks = (id) => templates[id] || templates.no_workout || [];';
 const blocksReplacement = `  const cloneTemplateBlocks = (value) => Array.isArray(value)
     ? value.map((block) => [String(block?.[0] ?? ""), String(block?.[1] ?? ""), Array.isArray(block?.[2]) ? block[2].map((item) => String(item)) : []])
     : [];
-  const baseBlocks = (id) => templates[id] || [];
+  const baseBlocks = (id) => templates[id] || templates.no_workout || [];
   const effectiveTemplateBlocks = (id, dateKey = view.date) => {
     const versions = Array.isArray(load().templateVersions?.[id]) ? load().templateVersions[id] : [];
     let selectedVersion = null;
@@ -37,11 +37,6 @@ script = script.replace(
   'catch { return { overrides: {}, checks: {}, workouts: {} }; }',
   'catch { return { overrides: {}, checks: {}, workouts: {}, templateVersions: {} }; }',
 );
-
-const historyAnchor = '  const blocksForDate = (dateKey, templateId) => historicalDay(dateKey)?.blocks || blocks(templateId);';
-const historyReplacement = '  const blocksForDate = (dateKey, templateId) => historicalDay(dateKey)?.blocks || effectiveTemplateBlocks(templateId, dateKey);';
-if (!script.includes(historyAnchor)) throw new Error("Daily Day template editor: history fallback anchor missing");
-script = script.replace(historyAnchor, historyReplacement);
 
 const timelineStart = script.indexOf('    const timeline = selectedBlocks.map((block) => {');
 const timelineEnd = script.indexOf('\n    root.innerHTML =', timelineStart);

@@ -66,6 +66,7 @@ export default Object.freeze({
 
   "dailyDay.template.morning": "Morning workout",
   "dailyDay.template.afternoon": "Afternoon workout",
+  "dailyDay.template.no_workout": "No workout",
   "dailyDay.template.monday": "Monday",
   "dailyDay.template.tuesday": "Tuesday",
   "dailyDay.template.wednesday": "Wednesday",

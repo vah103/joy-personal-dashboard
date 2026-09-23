@@ -5,7 +5,9 @@ const DAILY_DAY_PATH = "/api/daily-day";
 const DAILY_DAY_STORAGE_ID = "__daily_day_state__";
 const MAX_STATE_BYTES = 350_000;
 const MAX_WRITE_RETRIES = 5;
-const TEMPLATE_IDS = new Set(["morning", "afternoon", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]);
+const TEMPLATE_IDS = new Set(["morning", "afternoon", "no_workout"]);
+const THREE_TEMPLATE_START = "2026-09-16";
+const THREE_TEMPLATE_MIGRATION_ID = "daily-day-three-template-20260916-v1";
 const WORKOUT_VARIANTS = new Set(["chest", "back", "leg"]);
 const STREAK_IDS = new Set(["no-snacks", "no-masturbate", "finasteride"]);
 
@@ -84,6 +86,24 @@ function applyMutation(state, mutation) {
   const type = String(mutation?.type || "");
   const date = String(mutation?.date || "");
   if (!validDateKey(date)) return null;
+
+  if (type === "three-template-migration") {
+    if (date !== THREE_TEMPLATE_START) return null;
+    next.core.migrations = plainObject(next.core.migrations);
+    if (next.core.migrations[THREE_TEMPLATE_MIGRATION_ID]) return next;
+
+    const keepBeforeCutoff = (value) => Object.fromEntries(
+      Object.entries(plainObject(value)).filter(([dateKey]) => validDateKey(dateKey) && dateKey < date),
+    );
+
+    next.core.checks = keepBeforeCutoff(next.core.checks);
+    next.core.overrides = keepBeforeCutoff(next.core.overrides);
+    next.core.workouts = keepBeforeCutoff(next.core.workouts);
+    next.core.templateVersions = {};
+    next.core.backfills = {};
+    next.core.migrations[THREE_TEMPLATE_MIGRATION_ID] = true;
+    return next;
+  }
 
   if (type === "core-check") {
     const id = String(mutation.id || "");
