@@ -148,16 +148,53 @@
     return `<section class="dd-calendar-popover" role="dialog" aria-label="${esc(monthLabel)}"><header class="dd-calendar-head"><button type="button" class="dd-calendar-nav" data-dd-calendar-prev aria-label="${esc(t("dailyDay.previousMonth"))}">‹</button><strong>${esc(monthLabel)}</strong><button type="button" class="dd-calendar-nav" data-dd-calendar-next aria-label="${esc(t("dailyDay.nextMonth"))}">›</button></header><div class="dd-calendar-weekdays">${weekdayLabels.map((label) => `<span>${label}</span>`).join("")}</div><div class="dd-calendar-grid">${cells.join("")}</div><div class="dd-calendar-legend" aria-hidden="true">${[0,25,50,75,100].map((value) => `<span><i><b style="width:${value}%"></b></i><small>${value}%</small></span>`).join("")}</div></section>`;
   };
 
+  function refreshCheckProgress(checkbox) {
+    const root = document.querySelector("[data-dd-main]");
+    if (!root) return;
+
+    const block = checkbox?.closest?.(".dd-block");
+    if (block) {
+      const boxes = [...block.querySelectorAll('input[data-dd-check]')];
+      const done = boxes.reduce((sum, input) => sum + Number(input.checked), 0);
+      const count = block.querySelector("[data-dd-block-count]");
+      const track = block.querySelector("[data-dd-block-progress]");
+      if (count) count.textContent = `${done}/${boxes.length}`;
+      if (track) track.style.width = `${boxes.length ? Math.round(done / boxes.length * 100) : 0}%`;
+    }
+
+    const templateId = resolvedTemplate(view.date);
+    const summary = stats(view.date, templateId);
+    const percent = summary.total ? Math.round(summary.complete / summary.total * 100) : 0;
+    const completed = root.querySelector("[data-dd-completed]");
+    const overall = root.querySelector("[data-dd-overall-progress]");
+    const done = root.querySelector("[data-dd-done]");
+    const remaining = root.querySelector("[data-dd-remaining]");
+    if (completed) completed.textContent = t("dailyDay.completedOf", { complete: summary.complete, total: summary.total });
+    if (overall) overall.style.width = `${percent}%`;
+    if (done) done.textContent = `${summary.complete} ${t("dailyDay.items")}`;
+    if (remaining) remaining.textContent = `${summary.remaining} ${t("dailyDay.items")}`;
+
+    const calendarDay = root.querySelector(`[data-dd-calendar-date="${view.date}"]`);
+    if (calendarDay) {
+      const progress = calendarDay.querySelector(".dd-calendar-progress i");
+      if (progress) progress.style.width = `${percent}%`;
+      calendarDay.classList.toggle("complete", percent === 100);
+      const label = `${formatDate(view.date, { weekday: "long", day: "numeric", month: "long", year: "numeric" })} — ${t("dailyDay.completedOf", { complete: summary.complete, total: summary.total })}`;
+      calendarDay.setAttribute("aria-label", label);
+      calendarDay.title = label;
+    }
+  }
+
   function renderMain() {
     ensureMarkup(); const root = document.querySelector("[data-dd-main]"); const templateId = resolvedTemplate(view.date); const dayBlocks = blocks(templateId); const summary = stats(view.date, templateId); const percent = summary.total ? Math.round(summary.complete / summary.total * 100) : 0; const monday = weekStart(view.date);
     const week = Array.from({ length: 7 }, (_, i) => { const day = addDays(monday, i); return `<button type="button" class="${day === view.date ? "active" : ""}" data-dd-date="${day}">${esc(formatDate(day, { weekday: "short" }))}</button>`; }).join("");
     const options = TEMPLATE_IDS.map((id) => `<option value="${id}" ${id === templateId ? "selected" : ""}>${esc(t(templateKey(id)))}</option>`).join("");
-    const rows = dayBlocks.map((block, bi) => { const done = block[2].reduce((sum, _, ii) => sum + Number(checked(view.date, itemId(templateId, bi, ii))), 0); return `<article class="dd-block" style="animation-delay:${Math.min(bi * 45, 280)}ms"><time class="dd-time">${esc(block[0])}</time><div class="dd-body"><div class="dd-blockhead"><strong>${esc(t(block[1]))}</strong><small>${done}/${block[2].length}</small><span class="dd-track"><i style="width:${block[2].length ? Math.round(done / block[2].length * 100) : 0}%"></i></span></div><div class="dd-items">${block[2].map((item, ii) => { const id = itemId(templateId, bi, ii); return `<label class="dd-check"><input type="checkbox" data-dd-check="${id}" ${checked(view.date, id) ? "checked" : ""}><span>${esc(t(item))}</span></label>`; }).join("")}</div></div></article>`; }).join("");
+    const rows = dayBlocks.map((block, bi) => { const done = block[2].reduce((sum, _, ii) => sum + Number(checked(view.date, itemId(templateId, bi, ii))), 0); return `<article class="dd-block" data-dd-block-index="${bi}" style="animation-delay:${Math.min(bi * 45, 280)}ms"><time class="dd-time">${esc(block[0])}</time><div class="dd-body"><div class="dd-blockhead"><strong>${esc(t(block[1]))}</strong><small data-dd-block-count>${done}/${block[2].length}</small><span class="dd-track"><i data-dd-block-progress style="width:${block[2].length ? Math.round(done / block[2].length * 100) : 0}%"></i></span></div><div class="dd-items">${block[2].map((item, ii) => { const id = itemId(templateId, bi, ii); return `<label class="dd-check"><input type="checkbox" data-dd-check="${id}" ${checked(view.date, id) ? "checked" : ""}><span>${esc(t(item))}</span></label>`; }).join("")}</div></div></article>`; }).join("");
     const streaks = [[t("dailyDay.streak.one"), 0, 14], [t("dailyDay.streak.two"), 0, 14], [t("dailyDay.streak.three"), 0, 100]];
-    root.innerHTML = `<header class="dd-head"><div><h2 class="dd-title" id="dd-title">${esc(t("dailyDay.title"))}</h2><p class="dd-sub">${esc(formatDate(view.date, { weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" }))}</p></div><div class="dd-head-side"><div class="dd-progress"><strong>${esc(t("dailyDay.completedOf", { complete: summary.complete, total: summary.total }))}</strong><div class="dd-track"><i style="width:${percent}%"></i></div></div><button class="dd-icon" type="button" data-dd-close aria-label="${esc(t("common.close"))}">×</button></div></header>
+    root.innerHTML = `<header class="dd-head"><div><h2 class="dd-title" id="dd-title">${esc(t("dailyDay.title"))}</h2><p class="dd-sub">${esc(formatDate(view.date, { weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" }))}</p></div><div class="dd-head-side"><div class="dd-progress"><strong data-dd-completed>${esc(t("dailyDay.completedOf", { complete: summary.complete, total: summary.total }))}</strong><div class="dd-track"><i data-dd-overall-progress style="width:${percent}%"></i></div></div><button class="dd-icon" type="button" data-dd-close aria-label="${esc(t("common.close"))}">×</button></div></header>
       <div class="dd-toolbar dd-toolbar-compact"><div class="dd-week" aria-label="${esc(t("dailyDay.weekNavigation"))}">${week}</div><select class="dd-select dd-template-select" data-dd-select aria-label="${esc(t("dailyDay.defaultDay"))}">${options}</select><button class="dd-button dd-toolbar-icon dd-calendar-icon ${view.calendarOpen ? "active" : ""}" type="button" data-dd-calendar aria-expanded="${view.calendarOpen ? "true" : "false"}" aria-haspopup="dialog" aria-label="${esc(formatDate(view.date, { month: "long", year: "numeric" }))}" title="${esc(formatDate(view.date, { month: "long", year: "numeric" }))}"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M8 3v4M16 3v4M4 10h16"></path><path d="M8 14h3M13 14h3M8 17h3"></path></svg></button><button class="dd-button dd-toolbar-icon dd-edit-icon" type="button" aria-label="${esc(t("dailyDay.editDefaultDay"))}" title="${esc(t("dailyDay.editDefaultDay"))}" data-dd-library><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l11-11a2.1 2.1 0 0 0-4-4L4 16v4Z"></path><path d="m13.5 6.5 4 4"></path></svg></button>${view.calendarOpen ? renderCalendarPopover() : ""}</div>
       <div class="dd-content"><section class="dd-card dd-pad"><h3 class="dd-section">${esc(t("dailyDay.todaySchedule"))}</h3><div class="dd-list">${rows}</div></section><aside class="dd-side">
-        <section class="dd-card dd-pad"><h3 class="dd-section">${esc(t("dailyDay.todayOverview"))}</h3><div class="dd-summary"><div class="dd-stat"><span>${esc(t("dailyDay.done"))}</span><strong>${summary.complete} ${esc(t("dailyDay.items"))}</strong></div><div class="dd-stat"><span>${esc(t("dailyDay.remaining"))}</span><strong>${summary.remaining} ${esc(t("dailyDay.items"))}</strong></div><div class="dd-stat"><span>${esc(t("dailyDay.templateUsing"))}</span><strong>${esc(t(templateKey(templateId)))}</strong></div></div></section>
+        <section class="dd-card dd-pad"><h3 class="dd-section">${esc(t("dailyDay.todayOverview"))}</h3><div class="dd-summary"><div class="dd-stat"><span>${esc(t("dailyDay.done"))}</span><strong data-dd-done>${summary.complete} ${esc(t("dailyDay.items"))}</strong></div><div class="dd-stat"><span>${esc(t("dailyDay.remaining"))}</span><strong data-dd-remaining>${summary.remaining} ${esc(t("dailyDay.items"))}</strong></div><div class="dd-stat"><span>${esc(t("dailyDay.templateUsing"))}</span><strong>${esc(t(templateKey(templateId)))}</strong></div></div></section>
         <section class="dd-card dd-pad"><h3 class="dd-section">${esc(t("dailyDay.streakTitle"))}</h3>${streaks.map(([label, current, target]) => `<div class="dd-streak"><strong>${esc(label)}</strong><small>${current}/${target}</small><span class="dd-track"><i style="width:${Math.round(current / target * 100)}%"></i></span></div>`).join("")}</section>
         <section class="dd-card dd-pad dd-note-card"><h3 class="dd-section">${esc(t("dailyDay.notes"))}</h3><ul class="dd-notes"><li>${esc(t("dailyDay.noteFuture"))}</li><li>${esc(t("dailyDay.noteHistory"))}</li></ul></section></aside></div>
       <footer class="dd-footer"><button class="dd-button" type="button" data-dd-today>${esc(t("dailyDay.today"))}</button><button class="dd-button primary" type="button" data-dd-save>${esc(t("dailyDay.saveChanges"))}</button></footer>`;
@@ -194,7 +231,7 @@
     if (event.target.closest?.("[data-dd-use]")) { setTemplate(view.date, view.libraryTemplate); closeLibrary(); renderMain(); toast("dailyDay.templateApplied"); }
   });
   document.addEventListener("change", (event) => {
-    const checkbox = event.target.closest?.("[data-dd-check]"); if (checkbox) { setCheck(view.date, checkbox.dataset.ddCheck, checkbox.checked); renderMain(); return; }
+    const checkbox = event.target.closest?.("[data-dd-check]"); if (checkbox) { setCheck(view.date, checkbox.dataset.ddCheck, checkbox.checked); refreshCheckProgress(checkbox); return; }
     const select = event.target.closest?.("[data-dd-select]"); if (select) { view.calendarOpen = false; setTemplate(view.date, select.value); renderMain(); toast("dailyDay.templateApplied"); }
   });
   document.addEventListener("input", (event) => { if (!event.target.matches?.("[data-dd-search]")) return; const caret = event.target.selectionStart; view.search = event.target.value; renderLibrary(); const input = document.querySelector("[data-dd-search]"); input?.focus(); if (Number.isInteger(caret)) input?.setSelectionRange(caret, caret); });
