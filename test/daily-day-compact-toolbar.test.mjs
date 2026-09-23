@@ -35,6 +35,7 @@ test("Daily Day main popup uses the approved compact single-row toolbar", async 
   assert.doesNotMatch(build, /#daily-day-modal \.dd-templatebar \{/);
 
   assert.match(compactStage, /compact single-row toolbar/);
-  assert.doesNotMatch(compactStage, /data-dd-tomorrow>Tomorrow<\/button>/);
+  assert.doesNotMatch(compactStage, /const tomorrowHandler\s*=/);
+  assert.doesNotMatch(compactStage, /const templateBarReplacement\s*=/);
   assert.match(footerStage, /preserved compact toolbar/);
 });
