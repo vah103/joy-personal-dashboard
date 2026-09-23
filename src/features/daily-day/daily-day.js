@@ -152,15 +152,17 @@
     const root = document.querySelector("[data-dd-main]");
     if (!root) return;
 
-    const block = checkbox?.closest?.(".dd-block");
-    if (block) {
+    const blocksToRefresh = checkbox?.closest?.(".dd-block")
+      ? [checkbox.closest(".dd-block")]
+      : [...root.querySelectorAll(".dd-block")];
+    blocksToRefresh.forEach((block) => {
       const boxes = [...block.querySelectorAll('input[data-dd-check]')];
       const done = boxes.reduce((sum, input) => sum + Number(input.checked), 0);
       const count = block.querySelector("[data-dd-block-count]");
       const track = block.querySelector("[data-dd-block-progress]");
       if (count) count.textContent = `${done}/${boxes.length}`;
       if (track) track.style.width = `${boxes.length ? Math.round(done / boxes.length * 100) : 0}%`;
-    }
+    });
 
     const templateId = resolvedTemplate(view.date);
     const summary = stats(view.date, templateId);
@@ -237,6 +239,29 @@
   document.addEventListener("input", (event) => { if (!event.target.matches?.("[data-dd-search]")) return; const caret = event.target.selectionStart; view.search = event.target.value; renderLibrary(); const input = document.querySelector("[data-dd-search]"); input?.focus(); if (Number.isInteger(caret)) input?.setSelectionRange(caret, caret); });
   document.addEventListener("mousedown", (event) => { if (view.calendarOpen && !event.target.closest?.(".dd-calendar-popover,[data-dd-calendar]")) { view.calendarOpen = false; document.querySelector("#daily-day-modal .dd-calendar-popover")?.remove(); document.querySelector("#daily-day-modal [data-dd-calendar]")?.setAttribute("aria-expanded", "false"); } if (event.target.id === MODAL_ID) closeMain(); if (event.target.id === LIBRARY_ID) closeLibrary(); });
   document.addEventListener("keydown", (event) => { if (event.key !== "Escape") return; if (view.calendarOpen) { view.calendarOpen = false; renderMain(); return; } const library = document.querySelector(`#${LIBRARY_ID}`); if (library && !library.hidden) closeLibrary(); else if (!document.querySelector(`#${MODAL_ID}`)?.hidden) closeMain(); });
+  window.addEventListener("joy:daily-day-cloud-applied", (event) => {
+    const modal = document.querySelector(`#${MODAL_ID}`);
+    if (!modal || modal.hidden) return;
+    const detail = event.detail && typeof event.detail === "object" ? event.detail : {};
+    const structuralChange = Boolean(
+      detail.overridesChanged
+      || detail.coreWorkoutsChanged
+      || detail.templateVersionsChanged
+      || detail.workoutValuesChanged
+    );
+    if (structuralChange) {
+      renderMain();
+      return;
+    }
+    if (detail.checksChanged) {
+      const boxes = [...modal.querySelectorAll('input[data-dd-check]')];
+      boxes.forEach((checkbox) => {
+        checkbox.checked = checked(view.date, checkbox.dataset.ddCheck);
+      });
+      refreshCheckProgress(null);
+    }
+  });
+
   ["joy:i18n-ready", "joy:locale-changed"].forEach((name) => window.addEventListener(name, () => { bindTitle(); const title = document.querySelector("#todo-title"); if (title) title.title = t("dailyDay.open"); if (!document.querySelector(`#${MODAL_ID}`)?.hidden) renderMain(); if (!document.querySelector(`#${LIBRARY_ID}`)?.hidden) renderLibrary(); }));
   installStyles(); bindTitle();
 })();
