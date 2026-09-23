@@ -62,6 +62,7 @@ export default Object.freeze({
 
   "dailyDay.template.morning": "Tập sáng",
   "dailyDay.template.afternoon": "Tập chiều",
+  "dailyDay.template.no_workout": "Không tập",
   "dailyDay.template.monday": "Monday",
   "dailyDay.template.tuesday": "Tuesday",
   "dailyDay.template.wednesday": "Wednesday",
