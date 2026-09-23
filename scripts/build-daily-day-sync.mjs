@@ -117,6 +117,10 @@ const syncScript = String.raw`
         const seeded = await request("PUT", { data: localState(), merge: true });
         applyState(seeded.data);
       }
+      const migratedThreeTemplates = await request("PATCH", {
+        mutation: { type: "three-template-migration", date: "2026-09-16" },
+      });
+      if (migratedThreeTemplates?.data) applyState(migratedThreeTemplates.data);
       lastPullAt = Date.now();
     } catch (error) {
       if (error.status !== 401) console.warn("Daily Day initial sync failed", error);
