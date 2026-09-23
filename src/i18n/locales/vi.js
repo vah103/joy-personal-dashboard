@@ -23,6 +23,8 @@ export default Object.freeze({
   "dailyDay.title": "Daily Day",
   "dailyDay.open": "Mở Daily Day",
   "dailyDay.weekNavigation": "Điều hướng các ngày trong tuần của Daily Day",
+  "dailyDay.previousMonth": "Tháng trước",
+  "dailyDay.nextMonth": "Tháng sau",
   "dailyDay.defaultDay": "Default day",
   "dailyDay.changeTemplate": "Đổi mẫu cho ngày này",
   "dailyDay.editDefaultDay": "Chỉnh sửa default day",
