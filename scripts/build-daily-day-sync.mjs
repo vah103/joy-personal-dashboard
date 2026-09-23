@@ -15,6 +15,8 @@ const syncScript = String.raw`
   let initialized = false;
   let pulling = false;
   let mutationQueue = Promise.resolve();
+  let pendingMutations = 0;
+  let latestConfirmedState = null;
   let lastPullAt = 0;
 
   const parse = (key) => {
@@ -89,13 +91,16 @@ const syncScript = String.raw`
   };
 
   const pull = async ({ force = false } = {}) => {
-    if (pulling || !initialized) return;
+    if (pulling || !initialized || pendingMutations > 0) return;
     if (!force && Date.now() - lastPullAt < 2500) return;
     if (document.querySelector("#daily-day-modal .dd-exercise-line.editing")) return;
     pulling = true;
     try {
       const cloud = await request("GET");
       lastPullAt = Date.now();
+      // A local mutation may have started while this GET was in flight. Never
+      // let an older cloud snapshot overwrite optimistic local state.
+      if (pendingMutations > 0) return;
       if (cloud.exists) applyState(cloud.data);
     } catch (error) {
       if (error.status !== 401) console.warn("Daily Day pull failed", error);
@@ -143,21 +148,31 @@ const syncScript = String.raw`
   };
 
   const patch = (mutation) => {
+    pendingMutations += 1;
     mutationQueue = mutationQueue
       .catch(() => {})
       .then(async () => {
         try {
-          await request("PATCH", { mutation });
+          let result = await request("PATCH", { mutation });
+          if (result?.data) latestConfirmedState = result.data;
         } catch (error) {
           if (error.status === 409) {
             await new Promise((resolve) => setTimeout(resolve, 120));
-            await request("PATCH", { mutation });
+            const result = await request("PATCH", { mutation });
+            if (result?.data) latestConfirmedState = result.data;
           } else if (error.status !== 401) {
             throw error;
           }
         }
       })
-      .catch((error) => console.warn("Daily Day change sync failed", error));
+      .catch((error) => console.warn("Daily Day change sync failed", error))
+      .finally(() => {
+        pendingMutations = Math.max(0, pendingMutations - 1);
+        if (pendingMutations !== 0) return;
+        const confirmed = latestConfirmedState;
+        latestConfirmedState = null;
+        if (confirmed) applyState(confirmed);
+      });
     return mutationQueue;
   };
 
@@ -234,9 +249,9 @@ const syncScript = String.raw`
     if (WATCHED_KEYS.has(event.key)) pull({ force: true });
   });
 
-  // Poll silently while the modal is visible. Semantic equality avoids
-  // key-order-only rewrites, and cloud events reconcile visible state without
-  // simulating a date click or replaying the full Daily Day animation.
+  // Poll silently while the modal is visible. Polls are also suppressed while
+  // local mutations are pending, so an older GET snapshot cannot undo a fresh
+  // optimistic checkbox/template/workout/streak change.
   window.setInterval(() => {
     if (document.visibilityState !== "visible") return;
     const modal = document.querySelector("#daily-day-modal");
