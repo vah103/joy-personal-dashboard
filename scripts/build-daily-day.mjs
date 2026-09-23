@@ -445,24 +445,33 @@ await appendFile(styleTarget, `
 }
 
 #daily-day-modal .dd-toolbar {
-  margin-top: 16px;
-  gap: 10px;
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(190px, 260px) 38px 38px;
+  gap: 8px;
+  align-items: center;
 }
 
 #daily-day-modal .dd-week {
-  gap: 8px;
+  min-width: 0;
+  gap: 7px;
 }
 
 #daily-day-modal .dd-week button,
 #daily-day-modal .dd-button,
 #daily-day-modal .dd-select {
-  min-height: 38px;
+  min-height: 34px;
   border-color: #d8dfdc;
-  border-radius: 11px;
+  border-radius: 10px;
   background: #fbfcfa;
   color: #566b74;
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 800;
+}
+
+#daily-day-modal .dd-week button {
+  min-width: 0;
+  padding: 0 6px;
 }
 
 #daily-day-modal .dd-week button.active,
@@ -472,20 +481,36 @@ await appendFile(styleTarget, `
   color: #ffffff;
 }
 
-#daily-day-modal .dd-templatebar {
-  margin-top: 11px;
-  padding: 9px 11px;
-  grid-template-columns: auto minmax(190px, 1fr) auto auto;
-  gap: 9px;
-  border-color: #dce2de;
-  border-radius: 13px;
-  background: #fcfbf8;
+#daily-day-modal .dd-template-select {
+  min-width: 0;
+  width: 100%;
+  padding-inline: 11px 30px;
 }
 
-#daily-day-modal .dd-templatebar label {
-  color: #314954;
-  font-size: 10.5px;
-  font-weight: 800;
+#daily-day-modal .dd-toolbar-icon {
+  width: 38px;
+  min-width: 38px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+
+#daily-day-modal .dd-toolbar-icon svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#daily-day-modal .dd-toolbar-icon:hover {
+  border-color: #bdd0cc;
+  background: #eef4f2;
+  color: #3e676b;
 }
 
 #daily-day-modal .dd-content {
@@ -821,14 +846,20 @@ await appendFile(styleTarget, `
     padding: 16px;
   }
 
-  #daily-day-modal .dd-toolbar,
-  #daily-day-modal .dd-templatebar,
-  #daily-day-modal .dd-side {
-    grid-template-columns: 1fr;
+  #daily-day-modal .dd-toolbar {
+    grid-template-columns: minmax(0, 1fr) 38px 38px;
   }
 
-  #daily-day-modal .dd-templatebar {
-    display: grid;
+  #daily-day-modal .dd-week {
+    grid-column: 1 / -1;
+  }
+
+  #daily-day-modal .dd-template-select {
+    grid-column: 1;
+  }
+
+  #daily-day-modal .dd-side {
+    grid-template-columns: 1fr;
   }
 
   #daily-day-modal .dd-block {
