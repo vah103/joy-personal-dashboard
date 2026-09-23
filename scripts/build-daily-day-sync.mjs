@@ -32,19 +32,43 @@ const syncScript = String.raw`
     streak: parse(STREAK_KEY),
   });
 
+  const stableValue = (value) => {
+    if (Array.isArray(value)) return value.map(stableValue);
+    if (!value || typeof value !== "object") return value;
+    return Object.keys(value).sort().reduce((result, key) => {
+      result[key] = stableValue(value[key]);
+      return result;
+    }, {});
+  };
+  const stableJson = (value) => JSON.stringify(stableValue(value));
+
   const applyState = (data) => {
     const source = data && typeof data === "object" ? data : {};
-    const nextCore = JSON.stringify(source.core && typeof source.core === "object" ? source.core : {});
-    const nextWorkout = JSON.stringify(source.workoutValues && typeof source.workoutValues === "object" ? source.workoutValues : {});
-    const nextStreak = JSON.stringify(source.streak && typeof source.streak === "object" ? source.streak : {});
-    const changed = localStorage.getItem(CORE_KEY) !== nextCore
-      || localStorage.getItem(WORKOUT_KEY) !== nextWorkout
-      || localStorage.getItem(STREAK_KEY) !== nextStreak;
-    if (!changed) return false;
-    localStorage.setItem(CORE_KEY, nextCore);
-    localStorage.setItem(WORKOUT_KEY, nextWorkout);
-    localStorage.setItem(STREAK_KEY, nextStreak);
-    window.dispatchEvent(new CustomEvent("joy:daily-day-cloud-applied"));
+    const previousCore = parse(CORE_KEY);
+    const previousWorkout = parse(WORKOUT_KEY);
+    const previousStreak = parse(STREAK_KEY);
+    const nextCoreObject = source.core && typeof source.core === "object" ? source.core : {};
+    const nextWorkoutObject = source.workoutValues && typeof source.workoutValues === "object" ? source.workoutValues : {};
+    const nextStreakObject = source.streak && typeof source.streak === "object" ? source.streak : {};
+
+    const coreChanged = stableJson(previousCore) !== stableJson(nextCoreObject);
+    const workoutValuesChanged = stableJson(previousWorkout) !== stableJson(nextWorkoutObject);
+    const streakChanged = stableJson(previousStreak) !== stableJson(nextStreakObject);
+    if (!coreChanged && !workoutValuesChanged && !streakChanged) return false;
+
+    const detail = {
+      checksChanged: stableJson(previousCore.checks || {}) !== stableJson(nextCoreObject.checks || {}),
+      overridesChanged: stableJson(previousCore.overrides || {}) !== stableJson(nextCoreObject.overrides || {}),
+      coreWorkoutsChanged: stableJson(previousCore.workouts || {}) !== stableJson(nextCoreObject.workouts || {}),
+      templateVersionsChanged: stableJson(previousCore.templateVersions || {}) !== stableJson(nextCoreObject.templateVersions || {}),
+      workoutValuesChanged,
+      streakChanged,
+    };
+
+    if (coreChanged) localStorage.setItem(CORE_KEY, JSON.stringify(nextCoreObject));
+    if (workoutValuesChanged) localStorage.setItem(WORKOUT_KEY, JSON.stringify(nextWorkoutObject));
+    if (streakChanged) localStorage.setItem(STREAK_KEY, JSON.stringify(nextStreakObject));
+    window.dispatchEvent(new CustomEvent("joy:daily-day-cloud-applied", { detail }));
     return true;
   };
 
@@ -63,17 +87,6 @@ const syncScript = String.raw`
     }
     return payload;
   };
-
-  const refreshVisibleUi = () => {
-    const modal = document.querySelector("#daily-day-modal");
-    if (!modal || modal.hidden) return;
-    const activeDate = modal.querySelector(".dd-week button.active[data-dd-date]");
-    if (activeDate) activeDate.click();
-  };
-
-  window.addEventListener("joy:daily-day-cloud-applied", () => {
-    requestAnimationFrame(refreshVisibleUi);
-  });
 
   const pull = async ({ force = false } = {}) => {
     if (pulling || !initialized) return;
@@ -221,8 +234,9 @@ const syncScript = String.raw`
     if (WATCHED_KEYS.has(event.key)) pull({ force: true });
   });
 
-  // Poll silently while the modal is visible. Unchanged cloud data no longer
-  // rewrites localStorage or rerenders the modal, so background sync is invisible.
+  // Poll silently while the modal is visible. Semantic equality avoids
+  // key-order-only rewrites, and cloud events reconcile visible state without
+  // simulating a date click or replaying the full Daily Day animation.
   window.setInterval(() => {
     if (document.visibilityState !== "visible") return;
     const modal = document.querySelector("#daily-day-modal");
