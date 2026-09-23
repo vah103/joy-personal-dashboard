@@ -94,6 +94,10 @@ const streakScript = String.raw`
     }
   });
 
+  window.addEventListener("joy:daily-day-cloud-applied", (event) => {
+    if (event.detail?.streakChanged) requestAnimationFrame(enhance);
+  });
+
   const observer = new MutationObserver(() => requestAnimationFrame(enhance));
   observer.observe(document.documentElement, { childList: true, subtree: true });
   requestAnimationFrame(enhance);
