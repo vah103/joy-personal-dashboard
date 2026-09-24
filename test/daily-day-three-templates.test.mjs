@@ -18,7 +18,9 @@ test("Daily Day uses only the three Default day templates from 16 Sep onward", a
 
   assert.match(dailyDay, /const TEMPLATE_IDS = \["morning", "afternoon", "no_workout"\]/);
   assert.match(dailyDay, /const THREE_TEMPLATE_START = "2026-09-16"/);
-  assert.match(dailyDay, /const DEFAULT_TEMPLATE_ID = "morning"/);\n  assert.match(dailyDay, /const DEFAULT_TEMPLATE_START = "2026-09-24"/);\n  assert.match(dailyDay, /if \(dateKey >= DEFAULT_TEMPLATE_START\) return DEFAULT_TEMPLATE_ID/);
+  assert.match(dailyDay, /const DEFAULT_TEMPLATE_ID = "morning"/);
+  assert.match(dailyDay, /const DEFAULT_TEMPLATE_START = "2026-09-24"/);
+  assert.match(dailyDay, /if \(dateKey >= DEFAULT_TEMPLATE_START\) return DEFAULT_TEMPLATE_ID/);
   assert.doesNotMatch(dailyDay, /const WEEKDAY_TEMPLATE/);
 
   assert.match(build, /no_workout: \[/);
