@@ -73,6 +73,31 @@ const helperSource = `  const templateEditEffectiveDate = (requestedDate) => req
     syncTemplateVersion(templateId, effectiveFrom, nextBlocks);
     return effectiveFrom;
   };
+  const clearWorkoutOverridesForTemplateEdit = ({ dateKey, templateId, blockIndex, itemIndex, structural }) => {
+    if (dateKey !== todayKey()) return;
+    const storageKey = "joy-daily-day-workout-values-v1";
+    let values = {};
+    try {
+      values = JSON.parse(localStorage.getItem(storageKey) || "{}");
+      if (!values || typeof values !== "object" || Array.isArray(values)) values = {};
+    } catch {
+      values = {};
+    }
+    const dayValues = values[dateKey];
+    if (!dayValues || typeof dayValues !== "object" || Array.isArray(dayValues)) return;
+    const prefix = String(templateId) + ":" + blockIndex + ":";
+    const keys = structural
+      ? Object.keys(dayValues).filter((key) => key.startsWith(prefix))
+      : [itemId(templateId, blockIndex, itemIndex)].filter((key) => Object.hasOwn(dayValues, key));
+    if (!keys.length) return;
+    const sharedSync = window.JoyDailyDaySync;
+    keys.forEach((key) => {
+      delete dayValues[key];
+      sharedSync?.patch?.({ type: "workout-value", date: dateKey, itemId: key, value: null });
+    });
+    if (!Object.keys(dayValues).length) delete values[dateKey];
+    localStorage.setItem(storageKey, JSON.stringify(values));
+  };
   const mutateTemplateItem = ({ templateId, requestedDate, blockIndex, itemIndex, value, workoutVariant, add }) => {
     const effectiveFrom = templateEditEffectiveDate(requestedDate);
     const nextBlocks = effectiveTemplateBlocks(templateId, effectiveFrom);
@@ -80,6 +105,8 @@ const helperSource = `  const templateEditEffectiveDate = (requestedDate) => req
     if (!block || !Array.isArray(block[2])) return;
     const items = block[2];
     const text = String(value || "").trim();
+    const workoutEdit = Boolean(workoutVariant && WORKOUT_LABELS[workoutVariant]);
+    const structuralWorkoutEdit = Boolean(workoutEdit && (add || !text));
     if (add) {
       if (!text) return;
       let insertAt = items.length;
@@ -98,6 +125,15 @@ const helperSource = `  const templateEditEffectiveDate = (requestedDate) => req
       else items.splice(itemIndex, 1);
     }
     persistTemplateVersion(templateId, effectiveFrom, nextBlocks);
+    if (workoutEdit) {
+      clearWorkoutOverridesForTemplateEdit({
+        dateKey: effectiveFrom,
+        templateId,
+        blockIndex,
+        itemIndex,
+        structural: structuralWorkoutEdit,
+      });
+    }
     if (view.date < effectiveFrom) view.date = effectiveFrom;
     renderMain();
     renderLibrary();
@@ -206,9 +242,9 @@ await appendFile(styleTarget, `
 
 let app = await readFile(appTarget, "utf8");
 const oldLoader = 'import("/daily-day.js?v=joy-daily-day-v30").catch(() => {});';
-const newLoader = 'import("/daily-day.js?v=joy-daily-day-v34").catch(() => {});';
+const newLoader = 'import("/daily-day.js?v=joy-daily-day-v36").catch(() => {});';
 if (!app.includes(oldLoader)) throw new Error("Daily Day template editor: v30 loader anchor missing");
 app = app.replace(oldLoader, newLoader);
 await writeFile(appTarget, app);
 
-console.log("Daily Day template cells use shared sync from their effective date forward; cache bumped to v34");
+console.log("Daily Day template cells use shared sync from their effective date forward; cache bumped to v36");
