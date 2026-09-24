@@ -206,9 +206,9 @@ await appendFile(styleTarget, `
 
 let app = await readFile(appTarget, "utf8");
 const oldLoader = 'import("/daily-day.js?v=joy-daily-day-v30").catch(() => {});';
-const newLoader = 'import("/daily-day.js?v=joy-daily-day-v32").catch(() => {});';
+const newLoader = 'import("/daily-day.js?v=joy-daily-day-v34").catch(() => {});';
 if (!app.includes(oldLoader)) throw new Error("Daily Day template editor: v30 loader anchor missing");
 app = app.replace(oldLoader, newLoader);
 await writeFile(appTarget, app);
 
-console.log("Daily Day template cells use shared sync from their effective date forward; cache bumped to v32");
+console.log("Daily Day template cells use shared sync from their effective date forward; cache bumped to v34");
