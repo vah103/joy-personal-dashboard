@@ -5,6 +5,8 @@
   const LIBRARY_ID = "daily-day-templates-modal";
   const TEMPLATE_IDS = ["morning", "afternoon", "no_workout"];
   const THREE_TEMPLATE_START = "2026-09-16";
+  const DEFAULT_TEMPLATE_ID = "morning";
+  const DEFAULT_TEMPLATE_START = "2026-09-24";
   // Keep committed blueprints neutral: private Daily day details belong in protected runtime storage, not this public repo.
   const weekdayBlocks = [
     ["07:00", "dailyDay.block.morningRoutine", ["dailyDay.item.hygiene", "dailyDay.item.breakfast", "dailyDay.item.prepareDay"]],
@@ -70,7 +72,7 @@
     } catch { return { overrides: {}, checks: {} }; }
   }
   function save(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
-  function resolvedTemplate(dateKey) { const id = String(load().overrides[dateKey] || ""); if (TEMPLATE_IDS.includes(id)) return id; return dateKey >= THREE_TEMPLATE_START ? "no_workout" : "no_workout"; }
+  function resolvedTemplate(dateKey) { const id = String(load().overrides[dateKey] || ""); if (TEMPLATE_IDS.includes(id)) return id; if (dateKey >= DEFAULT_TEMPLATE_START) return DEFAULT_TEMPLATE_ID; return "no_workout"; }
   function checked(dateKey, id) { return Boolean(load().checks[dateKey]?.[id]); }
   function setCheck(dateKey, id, done) { const data = load(); data.checks[dateKey] ||= {}; data.checks[dateKey][id] = Boolean(done); save(data); }
   function setTemplate(dateKey, templateId) { if (!TEMPLATE_IDS.includes(templateId)) return; const data = load(); data.overrides[dateKey] = templateId; save(data); }
