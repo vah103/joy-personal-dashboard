@@ -18,5 +18,5 @@ test("Default day edits share the Daily Day mutation queue and apply from today 
   assert.doesNotMatch(editor, /fetch\("\/api\/daily-day"/);
   assert.match(editor, /save\(data\);\s*syncTemplateVersion\(templateId, effectiveFrom, nextBlocks\)/);
   assert.match(editor, /renderMain\(\);\s*renderLibrary\(\);/);
-  assert.match(editor, /joy-daily-day-v32/);
+  assert.match(editor, /joy-daily-day-v34/);
 });
