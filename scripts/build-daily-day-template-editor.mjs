@@ -85,7 +85,7 @@ const helperSource = `  const templateEditEffectiveDate = (requestedDate) => req
     }
     const dayValues = values[dateKey];
     if (!dayValues || typeof dayValues !== "object" || Array.isArray(dayValues)) return;
-    const prefix = `${templateId}:${blockIndex}:`;
+    const prefix = String(templateId) + ":" + blockIndex + ":";
     const keys = structural
       ? Object.keys(dayValues).filter((key) => key.startsWith(prefix))
       : [itemId(templateId, blockIndex, itemIndex)].filter((key) => Object.hasOwn(dayValues, key));
