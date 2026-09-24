@@ -11,7 +11,7 @@ test("editing today workout template clears stale per-day workout values", async
   assert.match(editor, /const clearWorkoutOverridesForTemplateEdit =/);
   assert.match(editor, /if \(dateKey !== todayKey\(\)\) return/);
   assert.match(editor, /const storageKey = "joy-daily-day-workout-values-v1"/);
-  assert.match(editor, /const prefix = `\$\{templateId\}:\$\{blockIndex\}:`/);
+  assert.match(editor, /const prefix = String\(templateId\) \+ ":" \+ blockIndex \+ ":"/);
   assert.match(editor, /sharedSync\?\.patch\?\.\(\{ type: "workout-value", date: dateKey, itemId: key, value: null \}\)/);
   assert.match(editor, /const structuralWorkoutEdit = Boolean\(workoutEdit && \(add \|\| !text\)\)/);
   assert.match(editor, /clearWorkoutOverridesForTemplateEdit\(\{/);
