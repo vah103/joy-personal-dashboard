@@ -51,23 +51,14 @@ script = `${script.slice(0, timelineStart)}${newTimeline}${script.slice(timeline
 
 const helperAnchor = '  function openMain() {';
 const helperSource = `  const templateEditEffectiveDate = (requestedDate) => requestedDate < todayKey() ? todayKey() : requestedDate;
-  const syncTemplateVersion = async (templateId, effectiveFrom, nextBlocks) => {
+  const syncTemplateVersion = (templateId, effectiveFrom, nextBlocks) => {
     const mutation = { type: "template-version", date: effectiveFrom, templateId, blocks: nextBlocks };
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      try {
-        const response = await fetch("/api/daily-day", {
-          method: "PATCH",
-          credentials: "same-origin",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mutation }),
-        });
-        if (response.ok || response.status === 401) return;
-        if (response.status !== 409) throw new Error("Template sync failed: " + response.status);
-        await new Promise((resolve) => setTimeout(resolve, 120));
-      } catch (error) {
-        if (attempt === 1) console.warn("Daily Day template sync failed", error);
-      }
+    const sharedSync = window.JoyDailyDaySync;
+    if (!sharedSync?.patch) {
+      console.warn("Daily Day template sync unavailable");
+      return Promise.resolve();
     }
+    return sharedSync.patch(mutation);
   };
   const persistTemplateVersion = (templateId, requestedDate, nextBlocks) => {
     const effectiveFrom = templateEditEffectiveDate(requestedDate);
@@ -196,6 +187,7 @@ for (const required of [
   "data-dd-template-cell",
   "beginTemplateInlineEdit",
   'type: "template-version"',
+  "window.JoyDailyDaySync",
 ]) {
   if (!script.includes(required)) throw new Error(`Daily Day template editor transform missing: ${required}`);
 }
@@ -214,9 +206,9 @@ await appendFile(styleTarget, `
 
 let app = await readFile(appTarget, "utf8");
 const oldLoader = 'import("/daily-day.js?v=joy-daily-day-v30").catch(() => {});';
-const newLoader = 'import("/daily-day.js?v=joy-daily-day-v31").catch(() => {});';
+const newLoader = 'import("/daily-day.js?v=joy-daily-day-v32").catch(() => {});';
 if (!app.includes(oldLoader)) throw new Error("Daily Day template editor: v30 loader anchor missing");
 app = app.replace(oldLoader, newLoader);
 await writeFile(appTarget, app);
 
-console.log("Daily Day template cells are editable from their effective date forward; cache bumped to v31");
+console.log("Daily Day template cells use shared sync from their effective date forward; cache bumped to v32");

@@ -22,9 +22,9 @@ await appendFile(scriptTarget, `
 execFileSync(process.execPath, ["--check", scriptTarget], { stdio: "inherit" });
 
 let app = await readFile(appTarget, "utf8");
-const oldLoader = 'import("/daily-day.js?v=joy-daily-day-v31").catch(() => {});';
+const oldLoader = 'import("/daily-day.js?v=joy-daily-day-v32").catch(() => {});';
 const newLoader = 'import("/daily-day.js?v=joy-daily-day-v33").catch(() => {});';
-if (!app.includes(oldLoader)) throw new Error("Daily Day streak font: v31 loader anchor missing");
+if (!app.includes(oldLoader)) throw new Error("Daily Day streak font: v32 loader anchor missing");
 app = app.replace(oldLoader, newLoader);
 await writeFile(appTarget, app);
 

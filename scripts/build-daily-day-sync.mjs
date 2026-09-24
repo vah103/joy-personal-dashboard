@@ -176,6 +176,8 @@ const syncScript = String.raw`
     return mutationQueue;
   };
 
+  window.JoyDailyDaySync = Object.freeze({ patch });
+
   const selectedDate = () =>
     document.querySelector("#daily-day-modal .dd-week button.active[data-dd-date]")?.dataset.ddDate || "";
 
