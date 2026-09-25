@@ -139,6 +139,10 @@ const syncScript = String.raw`
         mutation: { type: "three-template-migration", date: "2026-09-16" },
       });
       if (migratedThreeTemplates?.data) applyState(migratedThreeTemplates.data);
+      const migratedStreaks = await request("PATCH", {
+        mutation: { type: "streak-v2-migrate", date: "2026-09-25" },
+      });
+      if (migratedStreaks?.data) applyState(migratedStreaks.data);
       lastPullAt = Date.now();
     } catch (error) {
       if (error.status !== 401) console.warn("Daily Day initial sync failed", error);
@@ -186,11 +190,6 @@ const syncScript = String.raw`
     return data?.[date]?.[itemId] || null;
   };
 
-  const streakValue = (date, streakId) => {
-    const data = parse(STREAK_KEY);
-    return Boolean(data?.days?.[date]?.[streakId]);
-  };
-
   // Daily Day rerenders its markup synchronously after a local interaction.
   // Observe interactions during capture so the sync layer sees the original
   // input/button before that node is detached from #daily-day-modal.
@@ -224,16 +223,6 @@ const syncScript = String.raw`
       const itemId = line?.querySelector("input[data-dd-check]")?.dataset.ddCheck || "";
       if (date && itemId) {
         setTimeout(() => patch({ type: "workout-value", date, itemId, value: workoutValue(date, itemId) }), 0);
-      }
-      return;
-    }
-
-    const streak = event.target.closest?.("#daily-day-modal [data-dd-streak-check]");
-    if (streak) {
-      const date = selectedDate();
-      const streakId = streak.dataset.ddStreakCheck;
-      if (date && streakId) {
-        setTimeout(() => patch({ type: "streak", date, streakId, value: streakValue(date, streakId) }), 0);
       }
       return;
     }
