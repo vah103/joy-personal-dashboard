@@ -148,6 +148,8 @@ const syncScript = String.raw`
       if (error.status !== 401) console.warn("Daily Day initial sync failed", error);
     } finally {
       initialized = true;
+      window.__JOY_DAILY_DAY_SYNC_READY__ = true;
+      window.dispatchEvent(new CustomEvent("joy:daily-day-sync-ready"));
     }
   };
 
