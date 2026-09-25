@@ -127,6 +127,21 @@ const streakScript = String.raw`
     return "";
   };
 
+  const runLastDate = (run) =>
+    run?.status === "completed"
+      ? String(run.completedDate || "")
+      : run?.status === "ended"
+        ? String(run.endDate || "")
+        : "";
+
+  const runVisibleOnDate = (run, dateKey) => {
+    const startDate = String(run?.startDate || "");
+    if (!startDate || dateKey < startDate) return false;
+    if (run?.status === "active") return true;
+    const lastDate = runLastDate(run);
+    return Boolean(lastDate && dateKey <= lastDate);
+  };
+
   const ensureStyles = () => {
     if (document.querySelector("#joy-daily-day-streak-styles-v2")) return;
     const style = document.createElement("style");
@@ -140,6 +155,14 @@ const streakScript = String.raw`
       "#daily-day-modal .dd-streak-more{width:28px;height:28px;padding:0}",
       "#daily-day-modal .dd-streak-list{display:grid;gap:8px}",
       "#daily-day-modal .dd-streak-run{display:grid;grid-template-columns:22px minmax(0,1fr) auto 62px 28px;gap:8px;align-items:center}",
+      "#daily-day-modal .dd-streak-run.archived .dd-streak-check:disabled{opacity:1;cursor:default}",
+      "#daily-day-modal .dd-streak-run.end-day{padding:7px 8px;border:1px solid #d8dcda;border-radius:10px;background:#eef0ee;color:#7c8585}",
+      "#daily-day-modal .dd-streak-run.end-day .dd-streak-run-main em{color:#919999}",
+      "#daily-day-modal .dd-streak-run.end-day .dd-streak-check.checked{border-color:#969e9d;background:#969e9d}",
+      "#daily-day-modal .dd-streak-run.end-day .dd-track i{background:#9ba3a2}",
+      "#daily-day-modal .dd-streak-ended-note{margin:-2px 0 2px 30px;padding:6px 8px;border-left:2px solid #b8bfbd;color:#7d8585;font-size:10.5px;line-height:1.35}",
+      "#daily-day-modal .dd-streak-ended-note strong{font-size:10.5px;color:#6f7777}",
+      "#daily-day-modal .dd-streak-completed-note{margin:-2px 0 2px 30px;padding:6px 8px;border-left:2px solid #86a29f;color:#657a79;font-size:10.5px;line-height:1.35}",
       "#daily-day-modal .dd-streak-run-main{min-width:0;display:grid;gap:2px}",
       "#daily-day-modal .dd-streak-run-main strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px}",
       "#daily-day-modal .dd-streak-run-main em{font-style:normal;color:#778589;font-size:10.5px}",
@@ -300,11 +323,9 @@ const streakScript = String.raw`
     const data = read();
     decorateCalendar(data);
 
-    const activeRuns = Object.values(data.runs || {})
-      .filter((run) => run.status === "active" && String(run.startDate || "") <= dateKey)
+    const visibleRuns = Object.values(data.runs || {})
+      .filter((run) => runVisibleOnDate(run, dateKey))
       .sort((a, b) => String(a.startDate).localeCompare(String(b.startDate)));
-    const finishedToday = Object.values(data.runs || {})
-      .filter((run) => (run.status === "completed" || run.status === "ended") && String(run.endDate || run.completedDate || "") === dateKey);
     const suggestions = Object.values(data.suggestions || {})
       .filter((suggestion) => String(suggestion.startDate || "") <= dateKey)
       .sort((a, b) => String(a.startDate).localeCompare(String(b.startDate)));
@@ -312,27 +333,41 @@ const streakScript = String.raw`
     const signature = JSON.stringify({
       dateKey,
       now,
-      runs: activeRuns.map((run) => [run.id, run.name, run.targetDays, run.status, runProgress(run, dateKey), isChecked(run, dateKey), pendingGap(run, dateKey)]),
-      finished: finishedToday.map((run) => [run.id, run.status, run.endDate, run.completedDate]),
+      runs: visibleRuns.map((run) => [run.id, run.name, run.targetDays, run.status, run.endDate, run.completedDate, runProgress(run, dateKey), isChecked(run, dateKey), pendingGap(run, dateKey)]),
       suggestions: suggestions.map((item) => [item.id, item.name, item.targetDays, item.startDate, item.kind]),
     });
     if (card.dataset.ddStreakV2Signature === signature) return;
     card.dataset.ddStreakV2Signature = signature;
 
-    const rows = activeRuns.map((run) => {
+    const rows = visibleRuns.map((run) => {
       const current = runProgress(run, dateKey);
       const target = Number(run.targetDays || 1);
       const percent = Math.min(100, Math.round(current / target * 100));
       const checked = isChecked(run, dateKey);
-      const canCheck = dateKey >= String(run.startDate || "") && dateKey <= now;
+      const archived = run.status !== "active";
+      const isEndDay = run.status === "ended" && String(run.endDate || "") === dateKey;
+      const isCompletedDay = run.status === "completed" && String(run.completedDate || "") === dateKey;
+      const canCheck = !archived && dateKey >= String(run.startDate || "") && dateKey <= now;
       const gap = pendingGap(run, dateKey);
-      return '<div class="dd-streak-run" data-dd-streak-run="' + esc(run.id) + '">' +
+      const rowClass = "dd-streak-run" + (archived ? " archived" : "") + (isEndDay ? " end-day" : "") + (isCompletedDay ? " completed-day" : "");
+      const action = archived
+        ? ""
+        : '<button type="button" class="dd-streak-more" data-dd-streak-more="' + esc(run.id) + '" aria-label="' + esc(t("dailyDay.streak.more")) + '">•••</button>';
+      const endNote = isEndDay
+        ? '<div class="dd-streak-ended-note"><strong>' + esc(t("dailyDay.streak.ended")) + " · " + current + "/" + target + '</strong>' + (run.endReason ? '<div>' + esc(run.endReason) + '</div>' : '') + '</div>'
+        : "";
+      const completedNote = isCompletedDay
+        ? '<div class="dd-streak-completed-note"><strong>🏆 ' + esc(t("dailyDay.streak.completed")) + " · " + current + "/" + target + '</strong></div>'
+        : "";
+      return '<div class="' + rowClass + '" data-dd-streak-run="' + esc(run.id) + '">' +
         '<button type="button" class="dd-streak-check ' + (checked ? "checked" : "") + '" data-dd-streak-check="' + esc(run.id) + '" aria-pressed="' + checked + '" ' + (canCheck ? "" : "disabled") + ' aria-label="' + esc((checked ? t("dailyDay.streak.uncheck") : t("dailyDay.streak.check")) + " " + run.name) + '">' + (checked ? "✓" : "") + '</button>' +
         '<div class="dd-streak-run-main"><strong>' + esc(run.name) + '</strong><em>' + esc(formatDate(run.startDate)) + '</em></div>' +
         '<small>' + current + '/' + target + '</small>' +
         '<span class="dd-track"><i style="width:' + percent + '%"></i></span>' +
-        '<button type="button" class="dd-streak-more" data-dd-streak-more="' + esc(run.id) + '" aria-label="' + esc(t("dailyDay.streak.more")) + '">•••</button>' +
+        action +
       '</div>' +
+      endNote +
+      completedNote +
       (gap ? '<div class="dd-streak-gap"><strong>' + esc(t("dailyDay.streak.gapTitle")) + '</strong><span>' + esc(t("dailyDay.streak.gapCopy", { date: formatDate(gap) })) + '</span><div class="dd-streak-actions"><button type="button" data-dd-streak-fill-gap="' + esc(run.id) + '" data-date="' + esc(gap) + '">' + esc(t("dailyDay.streak.markComplete")) + '</button><button type="button" data-dd-streak-end="' + esc(run.id) + '">' + esc(t("dailyDay.streak.end")) + '</button></div></div>' : '');
     }).join("");
 
@@ -340,17 +375,10 @@ const streakScript = String.raw`
       '<div class="dd-streak-suggestion"><strong>' + esc(suggestion.kind === "restart" ? t("dailyDay.streak.restartTitle") : t("dailyDay.streak.continueTitle")) + '</strong><span>' + esc(suggestion.name + " · " + suggestion.targetDays + " " + t("dailyDay.streak.days")) + '</span><div class="dd-streak-actions"><button type="button" data-dd-streak-suggestion-start="' + esc(suggestion.id) + '">' + esc(t("dailyDay.streak.start")) + '</button><button type="button" data-dd-streak-suggestion-edit="' + esc(suggestion.id) + '">' + esc(t("dailyDay.streak.edit")) + '</button><button type="button" data-dd-streak-suggestion-dismiss="' + esc(suggestion.id) + '">' + esc(t("dailyDay.streak.dismiss")) + '</button></div></div>'
     ).join("");
 
-    const finishHtml = finishedToday.map((run) => {
-      const completed = run.status === "completed";
-      const result = runProgress(run, dateKey);
-      return '<div class="dd-streak-finish"><strong>' + esc((completed ? "🏆 " : "") + run.name) + '</strong><span>' + esc((completed ? t("dailyDay.streak.completed") : t("dailyDay.streak.ended")) + " · " + result + "/" + run.targetDays) + '</span>' + (run.endReason ? '<div>' + esc(run.endReason) + '</div>' : '') + '</div>';
-    }).join("");
-
     card.innerHTML =
       '<div class="dd-streak-head"><h3 class="dd-section">' + esc(t("dailyDay.streakTitle")) + '</h3><div><button type="button" class="dd-streak-add" data-dd-streak-history>' + esc(t("dailyDay.streak.history")) + '</button> <button type="button" class="dd-streak-add" data-dd-streak-new>＋ ' + esc(t("dailyDay.streak.new")) + '</button></div></div>' +
       '<div class="dd-streak-list">' +
-        (rows || (!suggestionsHtml && !finishHtml ? '<div class="dd-streak-empty">' + esc(t("dailyDay.streak.empty")) + '</div>' : '')) +
-        finishHtml +
+        (rows || (!suggestionsHtml ? '<div class="dd-streak-empty">' + esc(t("dailyDay.streak.empty")) + '</div>' : '')) +
         suggestionsHtml +
       '</div>';
   };
