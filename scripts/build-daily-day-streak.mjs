@@ -51,7 +51,7 @@ const streakScript = String.raw`
     const runs = {};
     LEGACY.forEach((legacy) => {
       const checkedDates = Object.entries(days)
-        .filter(([dateKey, day]) => /^\\d{4}-\\d{2}-\\d{2}$/.test(dateKey) && Boolean(day && day[legacy.id]))
+        .filter(([dateKey, day]) => /^\d{4}-\d{2}-\d{2}$/.test(dateKey) && Boolean(day && day[legacy.id]))
         .map(([dateKey]) => dateKey)
         .sort();
       const checkins = Object.fromEntries(checkedDates.map((dateKey) => [dateKey, true]));
@@ -553,7 +553,7 @@ const streakScript = String.raw`
       const name = String(data.get("name") || "").trim().slice(0, 120);
       const targetDays = Number.parseInt(data.get("targetDays"), 10);
       const startDate = String(data.get("startDate") || "");
-      if (!name || !Number.isInteger(targetDays) || targetDays < 1 || targetDays > 10000 || !/^\\d{4}-\\d{2}-\\d{2}$/.test(startDate)) return;
+      if (!name || !Number.isInteger(targetDays) || targetDays < 1 || targetDays > 10000 || !/^\d{4}-\d{2}-\d{2}$/.test(startDate)) return;
       const mode = form.dataset.mode;
       if (mode === "edit") applyUpdate({ runId: form.dataset.runId, name, targetDays, startDate });
       else if (mode === "suggestion") applySuggestionAccept({ suggestionId: form.dataset.suggestionId, name, targetDays, startDate });
