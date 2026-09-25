@@ -11,5 +11,5 @@ test("completed streaks are pinned to the Daily Day calendar", async () => {
   assert.match(streak, /run\.status !== "completed"/);
   assert.match(streak, /completedByDate\[run\.completedDate\]/);
   assert.match(streak, /badge\.textContent = runs\.length > 1 \? "🏆" \+ runs\.length : "🏆"/);
-  assert.match(streak, /completedDate: status === "completed" \? dateKey : null/);
+  assert.match(streak, /run\.completedDate = status === "completed" \? dateKey : null/);
 });
