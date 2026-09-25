@@ -98,6 +98,29 @@ const helperSource = `  const templateEditEffectiveDate = (requestedDate) => req
     if (!Object.keys(dayValues).length) delete values[dateKey];
     localStorage.setItem(storageKey, JSON.stringify(values));
   };
+  const SHARED_WORKOUT_TEMPLATE_IDS = Object.freeze(["morning", "afternoon"]);
+  const sharedWorkoutPeer = (templateId) => {
+    if (!SHARED_WORKOUT_TEMPLATE_IDS.includes(templateId)) return "";
+    return templateId === "morning" ? "afternoon" : "morning";
+  };
+  const workoutBlockIndexFor = (templateId, blocks) =>
+    blocks.findIndex((candidate) => isWorkoutBlock(templateId, candidate));
+  const syncSharedWorkoutTemplate = ({ templateId, effectiveFrom, items, itemIndex, structural }) => {
+    const peerId = sharedWorkoutPeer(templateId);
+    if (!peerId) return;
+    const peerBlocks = effectiveTemplateBlocks(peerId, effectiveFrom);
+    const peerBlockIndex = workoutBlockIndexFor(peerId, peerBlocks);
+    if (peerBlockIndex < 0) return;
+    peerBlocks[peerBlockIndex][2] = items.map((item) => String(item));
+    persistTemplateVersion(peerId, effectiveFrom, peerBlocks);
+    clearWorkoutOverridesForTemplateEdit({
+      dateKey: effectiveFrom,
+      templateId: peerId,
+      blockIndex: peerBlockIndex,
+      itemIndex,
+      structural,
+    });
+  };
   const mutateTemplateItem = ({ templateId, requestedDate, blockIndex, itemIndex, value, workoutVariant, add }) => {
     const effectiveFrom = templateEditEffectiveDate(requestedDate);
     const nextBlocks = effectiveTemplateBlocks(templateId, effectiveFrom);
@@ -130,6 +153,13 @@ const helperSource = `  const templateEditEffectiveDate = (requestedDate) => req
         dateKey: effectiveFrom,
         templateId,
         blockIndex,
+        itemIndex,
+        structural: structuralWorkoutEdit,
+      });
+      syncSharedWorkoutTemplate({
+        templateId,
+        effectiveFrom,
+        items,
         itemIndex,
         structural: structuralWorkoutEdit,
       });
