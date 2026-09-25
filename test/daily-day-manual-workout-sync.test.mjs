@@ -8,7 +8,7 @@ const source = (path) => readFile(new URL(path, root), "utf8");
 test("one-time repair copies today's morning workout into afternoon", async () => {
   const editor = await source("scripts/build-daily-day-template-editor.mjs");
 
-  assert.match(editor, /MANUAL_WORKOUT_SYNC_KEY = "joy-daily-day-manual-workout-sync-20260925-v1"/);
+  assert.match(editor, /MANUAL_WORKOUT_SYNC_KEY = "joy-daily-day-manual-workout-sync-20260925-v2"/);
   assert.match(editor, /const morningBlocks = effectiveTemplateBlocks\("morning", effectiveFrom\)/);
   assert.match(editor, /const afternoonBlocks = effectiveTemplateBlocks\("afternoon", effectiveFrom\)/);
   assert.match(editor, /afternoonBlocks\[afternoonWorkoutIndex\]\[2\] = morningItems\.map\(\(item\) => String\(item\)\)/);
@@ -16,5 +16,7 @@ test("one-time repair copies today's morning workout into afternoon", async () =
   assert.match(editor, /templateId: "afternoon"/);
   assert.match(editor, /structural: true/);
   assert.match(editor, /localStorage\.setItem\(MANUAL_WORKOUT_SYNC_KEY, "1"\)/);
-  assert.match(editor, /setTimeout\(syncAfternoonWorkoutFromMorningOnce, 1500\)/);
+  assert.match(editor, /window\.addEventListener\("joy:daily-day-sync-ready", syncAfternoonWorkoutFromMorningOnce, \{ once: true \}\)/);
+  assert.match(editor, /if \(window\.__JOY_DAILY_DAY_SYNC_READY__\) syncAfternoonWorkoutFromMorningOnce\(\)/);
+  assert.doesNotMatch(editor, /setTimeout\(syncAfternoonWorkoutFromMorningOnce, 1500\)/);
 });
