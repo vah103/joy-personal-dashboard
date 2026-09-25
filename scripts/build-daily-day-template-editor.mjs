@@ -14,7 +14,7 @@ const blocksReplacement = `  const cloneTemplateBlocks = (value) => Array.isArra
     ? value.map((block) => [String(block?.[0] ?? ""), String(block?.[1] ?? ""), Array.isArray(block?.[2]) ? block[2].map((item) => String(item)) : []])
     : [];
   const baseBlocks = (id) => templates[id] || templates.no_workout || [];
-  const effectiveTemplateBlocks = (id, dateKey = view.date) => {
+  const rawEffectiveTemplateBlocks = (id, dateKey = view.date) => {
     const versions = Array.isArray(load().templateVersions?.[id]) ? load().templateVersions[id] : [];
     let selectedVersion = null;
     versions.forEach((version) => {
@@ -24,6 +24,17 @@ const blocksReplacement = `  const cloneTemplateBlocks = (value) => Array.isArra
       }
     });
     return cloneTemplateBlocks(selectedVersion?.blocks || baseBlocks(id));
+  };
+  const effectiveTemplateBlocks = (id, dateKey = view.date) => {
+    const ownBlocks = rawEffectiveTemplateBlocks(id, dateKey);
+    if (id !== "afternoon") return ownBlocks;
+    const morningBlocks = rawEffectiveTemplateBlocks("morning", dateKey);
+    const morningWorkoutIndex = morningBlocks.findIndex((block) => isWorkoutBlock("morning", block));
+    const afternoonWorkoutIndex = ownBlocks.findIndex((block) => isWorkoutBlock("afternoon", block));
+    if (morningWorkoutIndex >= 0 && afternoonWorkoutIndex >= 0) {
+      ownBlocks[afternoonWorkoutIndex][2] = morningBlocks[morningWorkoutIndex][2].map((item) => String(item));
+    }
+    return ownBlocks;
   };
   const blocks = (id) => effectiveTemplateBlocks(id, view.date);`;
 if (!script.includes(blocksAnchor)) throw new Error("Daily Day template editor: blocks anchor missing");
