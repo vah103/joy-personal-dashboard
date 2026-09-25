@@ -121,6 +121,29 @@ const helperSource = `  const templateEditEffectiveDate = (requestedDate) => req
       structural,
     });
   };
+
+  const MANUAL_WORKOUT_SYNC_KEY = "joy-daily-day-manual-workout-sync-20260925-v1";
+  const syncAfternoonWorkoutFromMorningOnce = () => {
+    if (localStorage.getItem(MANUAL_WORKOUT_SYNC_KEY) === "1") return;
+    const effectiveFrom = todayKey();
+    const morningBlocks = effectiveTemplateBlocks("morning", effectiveFrom);
+    const afternoonBlocks = effectiveTemplateBlocks("afternoon", effectiveFrom);
+    const morningWorkoutIndex = workoutBlockIndexFor("morning", morningBlocks);
+    const afternoonWorkoutIndex = workoutBlockIndexFor("afternoon", afternoonBlocks);
+    if (morningWorkoutIndex < 0 || afternoonWorkoutIndex < 0) return;
+    const morningItems = morningBlocks[morningWorkoutIndex]?.[2];
+    if (!Array.isArray(morningItems) || !morningItems.some((item) => Boolean(WORKOUT_MARKERS[item]))) return;
+    afternoonBlocks[afternoonWorkoutIndex][2] = morningItems.map((item) => String(item));
+    persistTemplateVersion("afternoon", effectiveFrom, afternoonBlocks);
+    clearWorkoutOverridesForTemplateEdit({
+      dateKey: effectiveFrom,
+      templateId: "afternoon",
+      blockIndex: afternoonWorkoutIndex,
+      itemIndex: 0,
+      structural: true,
+    });
+    localStorage.setItem(MANUAL_WORKOUT_SYNC_KEY, "1");
+  };
   const mutateTemplateItem = ({ templateId, requestedDate, blockIndex, itemIndex, value, workoutVariant, add }) => {
     const effectiveFrom = templateEditEffectiveDate(requestedDate);
     const nextBlocks = effectiveTemplateBlocks(templateId, effectiveFrom);
@@ -237,12 +260,14 @@ script = script.replace(
 script += `
 ;(() => {
   window.addEventListener("joy:daily-day-cloud-applied", (event) => {
+    syncAfternoonWorkoutFromMorningOnce();
     if (!event.detail?.templateVersionsChanged) return;
     const library = document.querySelector("#daily-day-templates-modal");
     if (library && !library.hidden && !library.querySelector(".dd-template-inline")) {
       library.querySelector(".dd-template-row.active[data-dd-template]")?.click();
     }
   });
+  setTimeout(syncAfternoonWorkoutFromMorningOnce, 1500);
 })();
 `;
 
