@@ -23,9 +23,9 @@ execFileSync(process.execPath, ["--check", scriptTarget], { stdio: "inherit" });
 
 let app = await readFile(appTarget, "utf8");
 const oldLoader = 'import("/daily-day.js?v=joy-daily-day-v36").catch(() => {});';
-const newLoader = 'import("/daily-day.js?v=joy-daily-day-v44").catch(() => {});';
+const newLoader = 'import("/daily-day.js?v=joy-daily-day-v45").catch(() => {});';
 if (!app.includes(oldLoader)) throw new Error("Daily Day streak font: v36 loader anchor missing");
 app = app.replace(oldLoader, newLoader);
 await writeFile(appTarget, app);
 
-console.log("Daily Day streak labels/counts corrected from 12.5px to 13.5px; cache bumped to v44");
+console.log("Daily Day streak labels/counts corrected from 12.5px to 13.5px; cache bumped to v45");
