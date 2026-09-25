@@ -9,7 +9,11 @@ const TEMPLATE_IDS = new Set(["morning", "afternoon", "no_workout"]);
 const THREE_TEMPLATE_START = "2026-09-16";
 const THREE_TEMPLATE_MIGRATION_ID = "daily-day-three-template-20260916-v1";
 const WORKOUT_VARIANTS = new Set(["chest", "back", "leg"]);
-const STREAK_IDS = new Set(["no-snacks", "no-masturbate", "finasteride"]);
+const LEGACY_STREAKS = Object.freeze([
+  { id: "no-snacks", name: "No snacks", targetDays: 14, baseCarry: 0 },
+  { id: "no-masturbate", name: "No Masturbate", targetDays: 14, baseCarry: 0 },
+  { id: "finasteride", name: "Finasteride", targetDays: 100, baseCarry: 2 },
+]);
 
 export function isDailyDaySyncRoute(pathname) {
   return pathname === DAILY_DAY_PATH;
@@ -79,6 +83,101 @@ function normalizeTemplateBlocks(value) {
     blocks.push([time, title, items]);
   }
   return blocks;
+}
+
+
+function normalizeTargetDays(value) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isInteger(parsed) && parsed >= 1 && parsed <= 10_000 ? parsed : null;
+}
+
+function cleanStreakText(value, max) {
+  const text = String(value ?? "").trim();
+  return text ? text.slice(0, max) : "";
+}
+
+function addDateDays(dateKey, amount) {
+  const value = new Date(`${dateKey}T12:00:00Z`);
+  value.setUTCDate(value.getUTCDate() + amount);
+  return value.toISOString().slice(0, 10);
+}
+
+function streakProgress(run, throughDate = "9999-12-31") {
+  const startDate = String(run?.startDate || "");
+  const checks = plainObject(run?.checkins);
+  const completed = Object.entries(checks).reduce(
+    (sum, [dateKey, value]) => sum + Number(
+      Boolean(value)
+      && validDateKey(dateKey)
+      && (!startDate || dateKey >= startDate)
+      && dateKey <= throughDate
+    ),
+    0,
+  );
+  return Number(run?.baseCarry || 0) + completed;
+}
+
+function ensureStreakV2(next, migrationDate) {
+  if (Number(next.streak?.schemaVersion) === 2) {
+    next.streak.runs = plainObject(next.streak.runs);
+    next.streak.suggestions = plainObject(next.streak.suggestions);
+    return next.streak;
+  }
+
+  const legacyDays = plainObject(next.streak?.days);
+  const runs = {};
+  for (const legacy of LEGACY_STREAKS) {
+    const checkedDates = Object.entries(legacyDays)
+      .filter(([dateKey, day]) => validDateKey(dateKey) && Boolean(plainObject(day)[legacy.id]))
+      .map(([dateKey]) => dateKey)
+      .sort();
+    const checkins = Object.fromEntries(checkedDates.map((dateKey) => [dateKey, true]));
+    runs[`legacy-${legacy.id}`] = {
+      id: `legacy-${legacy.id}`,
+      name: legacy.name,
+      targetDays: legacy.targetDays,
+      startDate: checkedDates[0] || migrationDate,
+      enforceFrom: migrationDate,
+      status: "active",
+      checkins,
+      endDate: null,
+      endReason: "",
+      completedDate: null,
+      sourceRunId: null,
+      legacyImported: true,
+      baseCarry: legacy.baseCarry,
+    };
+  }
+
+  next.streak = {
+    schemaVersion: 2,
+    runs,
+    suggestions: {},
+    legacyDays,
+    migratedAt: migrationDate,
+  };
+  return next.streak;
+}
+
+function addStreakSuggestion(streak, run, date, kind) {
+  const suggestionId = `suggest-${run.id}-${date}`.slice(0, 180);
+  streak.suggestions = plainObject(streak.suggestions);
+  streak.suggestions[suggestionId] = {
+    id: suggestionId,
+    sourceRunId: run.id,
+    name: run.name,
+    targetDays: run.targetDays,
+    startDate: addDateDays(date, 1),
+    kind,
+  };
+}
+
+function finishStreakRun(streak, run, date, status, reason = "") {
+  run.status = status;
+  run.endDate = date;
+  run.endReason = status === "ended" ? cleanStreakText(reason, 500) : "";
+  run.completedDate = status === "completed" ? date : null;
+  addStreakSuggestion(streak, run, date, status === "completed" ? "continue" : "restart");
 }
 
 function applyMutation(state, mutation) {
@@ -165,13 +264,114 @@ function applyMutation(state, mutation) {
     return next;
   }
 
-  if (type === "streak") {
-    const streakId = String(mutation.streakId || "");
-    if (!STREAK_IDS.has(streakId)) return null;
-    next.streak.days = plainObject(next.streak.days);
-    next.streak.days[date] = plainObject(next.streak.days[date]);
-    next.streak.days[date][streakId] = Boolean(mutation.value);
+  if (type === "streak-v2-migrate") {
+    ensureStreakV2(next, date);
     return next;
+  }
+
+  if (type.startsWith("streak-")) {
+    const streak = ensureStreakV2(next, date);
+    streak.runs = plainObject(streak.runs);
+    streak.suggestions = plainObject(streak.suggestions);
+
+    if (type === "streak-create") {
+      const runId = String(mutation.runId || "");
+      const name = cleanStreakText(mutation.name, 120);
+      const targetDays = normalizeTargetDays(mutation.targetDays);
+      const startDate = String(mutation.startDate || date);
+      if (!validKey(runId, 120) || streak.runs[runId] || !name || !targetDays || !validDateKey(startDate)) return null;
+      streak.runs[runId] = {
+        id: runId,
+        name,
+        targetDays,
+        startDate,
+        enforceFrom: startDate,
+        status: "active",
+        checkins: {},
+        endDate: null,
+        endReason: "",
+        completedDate: null,
+        sourceRunId: validKey(mutation.sourceRunId, 120) ? String(mutation.sourceRunId) : null,
+        legacyImported: false,
+        baseCarry: 0,
+      };
+      return next;
+    }
+
+    if (type === "streak-update") {
+      const runId = String(mutation.runId || "");
+      const run = plainObject(streak.runs[runId]);
+      if (!runId || run.status !== "active") return null;
+      const name = cleanStreakText(mutation.name, 120);
+      const targetDays = normalizeTargetDays(mutation.targetDays);
+      const startDate = String(mutation.startDate || run.startDate || date);
+      if (!name || !targetDays || !validDateKey(startDate)) return null;
+      run.name = name;
+      run.targetDays = targetDays;
+      run.startDate = startDate;
+      if (!validDateKey(run.enforceFrom) || run.enforceFrom < startDate) run.enforceFrom = startDate;
+      streak.runs[runId] = run;
+      if (streakProgress(run, date) >= targetDays) finishStreakRun(streak, run, date, "completed");
+      return next;
+    }
+
+    if (type === "streak-check") {
+      const runId = String(mutation.runId || "");
+      const run = plainObject(streak.runs[runId]);
+      if (!runId || run.status !== "active" || date < String(run.startDate || "")) return null;
+      run.checkins = plainObject(run.checkins);
+      if (Boolean(mutation.value)) run.checkins[date] = true;
+      else delete run.checkins[date];
+      streak.runs[runId] = run;
+      const targetDays = normalizeTargetDays(run.targetDays);
+      if (targetDays && Boolean(mutation.value) && streakProgress(run, date) >= targetDays) {
+        finishStreakRun(streak, run, date, "completed");
+      }
+      return next;
+    }
+
+    if (type === "streak-end") {
+      const runId = String(mutation.runId || "");
+      const run = plainObject(streak.runs[runId]);
+      if (!runId || run.status !== "active" || date < String(run.startDate || "")) return null;
+      finishStreakRun(streak, run, date, "ended", mutation.reason);
+      streak.runs[runId] = run;
+      return next;
+    }
+
+    if (type === "streak-suggestion-dismiss") {
+      const suggestionId = String(mutation.suggestionId || "");
+      if (!validKey(suggestionId, 180) || !streak.suggestions[suggestionId]) return null;
+      delete streak.suggestions[suggestionId];
+      return next;
+    }
+
+    if (type === "streak-suggestion-accept") {
+      const suggestionId = String(mutation.suggestionId || "");
+      const suggestion = plainObject(streak.suggestions[suggestionId]);
+      const runId = String(mutation.runId || "");
+      const name = cleanStreakText(mutation.name || suggestion.name, 120);
+      const targetDays = normalizeTargetDays(mutation.targetDays ?? suggestion.targetDays);
+      const startDate = String(mutation.startDate || suggestion.startDate || date);
+      if (!suggestion.id || !validKey(runId, 120) || streak.runs[runId] || !name || !targetDays || !validDateKey(startDate)) return null;
+      streak.runs[runId] = {
+        id: runId,
+        name,
+        targetDays,
+        startDate,
+        enforceFrom: startDate,
+        status: "active",
+        checkins: {},
+        endDate: null,
+        endReason: "",
+        completedDate: null,
+        sourceRunId: validKey(suggestion.sourceRunId, 120) ? String(suggestion.sourceRunId) : null,
+        legacyImported: false,
+        baseCarry: 0,
+      };
+      delete streak.suggestions[suggestionId];
+      return next;
+    }
   }
 
   return null;
