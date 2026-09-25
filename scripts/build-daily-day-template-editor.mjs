@@ -122,7 +122,7 @@ const helperSource = `  const templateEditEffectiveDate = (requestedDate) => req
     });
   };
 
-  const MANUAL_WORKOUT_SYNC_KEY = "joy-daily-day-manual-workout-sync-20260925-v1";
+  const MANUAL_WORKOUT_SYNC_KEY = "joy-daily-day-manual-workout-sync-20260925-v2";
   const syncAfternoonWorkoutFromMorningOnce = () => {
     if (localStorage.getItem(MANUAL_WORKOUT_SYNC_KEY) === "1") return;
     const effectiveFrom = todayKey();
@@ -260,14 +260,14 @@ script = script.replace(
 script += `
 ;(() => {
   window.addEventListener("joy:daily-day-cloud-applied", (event) => {
-    syncAfternoonWorkoutFromMorningOnce();
     if (!event.detail?.templateVersionsChanged) return;
     const library = document.querySelector("#daily-day-templates-modal");
     if (library && !library.hidden && !library.querySelector(".dd-template-inline")) {
       library.querySelector(".dd-template-row.active[data-dd-template]")?.click();
     }
   });
-  setTimeout(syncAfternoonWorkoutFromMorningOnce, 1500);
+  window.addEventListener("joy:daily-day-sync-ready", syncAfternoonWorkoutFromMorningOnce, { once: true });
+  if (window.__JOY_DAILY_DAY_SYNC_READY__) syncAfternoonWorkoutFromMorningOnce();
 })();
 `;
 
