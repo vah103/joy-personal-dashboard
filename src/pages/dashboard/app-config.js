@@ -58,6 +58,11 @@ if (typeof document?.createElement === "function") {
   void import("/notes-launcher.js?v=joy-notes-launcher-v1");
 }
 
+// Company Live Board is a read-only operator view backed by the authenticated Worker API.
+if (typeof document?.createElement === "function") {
+  void import("/company-live-board.js?v=joy-company-live-board-v1");
+}
+
 window.JoyDashboardConfig = Object.freeze({
   profileName: "Vanh",
   timeZone: "Asia/Ho_Chi_Minh",

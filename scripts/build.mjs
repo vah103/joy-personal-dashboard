@@ -234,6 +234,8 @@ const copies = [
   [resolve(features, "tasks", "task-reminders.css"), "task-reminders.css"],
   [resolve(features, "auth", "auth-ui.js"), "auth-ui.js"],
   [resolve(features, "auth", "auth-ui.css"), "auth-ui.css"],
+  [resolve(features, "company-live-board", "company-live-board.js"), "company-live-board.js"],
+  [resolve(features, "company-live-board", "company-live-board.css"), "company-live-board.css"],
   [resolve(features, "notifications", "push-notifications.js"), "push-notifications.js"],
   [resolve(features, "notifications", "mobile-notifications.css"), "mobile-notifications.css"],
   [resolve(features, "notifications", "weather-status-ui.js"), "weather-status-ui.js"],
