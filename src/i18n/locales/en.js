@@ -134,7 +134,7 @@ export default Object.freeze({
   "dailyDay.item.englishReview": "English review",
   "dailyDay.item.planTomorrow": "Plan tomorrow",
   "dailyDay.item.prepareTomorrow": "Prepare tomorrow",
-  "dailyDay.item.relax": "Relax"
+  "dailyDay.item.relax": "Relax",
   "companyBoard.open": "Open Company Live Board",
   "companyBoard.launcher": "Company",
   "companyBoard.kicker": "Company operations",
