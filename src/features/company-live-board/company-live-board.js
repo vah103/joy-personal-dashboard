@@ -180,7 +180,13 @@ function renderSummary(summary, t) {
     ["doneRecently", "companyBoard.summary.doneRecent"],
   ];
   return `<section class="company-board-summary" aria-label="${escapeHtml(t("companyBoard.summary.title"))}">
-    ${cards.map(([key, label]) => `<article><strong>${escapeHtml(summary[key] ?? 0)}</strong><span>${escapeHtml(t(label))}</span></article>`).join("")}
+    ${cards.map(([key, label]) => {
+      const value = summary[key];
+      const displayValue = value === null || value === undefined
+        ? t("companyBoard.summary.unavailable")
+        : value;
+      return `<article><strong>${escapeHtml(displayValue)}</strong><span>${escapeHtml(t(label))}</span></article>`;
+    }).join("")}
   </section>`;
 }
 
@@ -198,6 +204,7 @@ function renderRoleCards(roles, taskMap, t) {
         <div><dt>${escapeHtml(t("companyBoard.role.seat"))}</dt><dd>${raw(role.seatStatus)}</dd></div>
         <div><dt>${escapeHtml(t("companyBoard.role.assignee"))}</dt><dd>${raw(role.currentAssignee)}</dd></div>
         <div><dt>${escapeHtml(t("companyBoard.role.actionable"))}</dt><dd>${raw(role.actionableTasks.join(", "))}</dd></div>
+        <div><dt>${escapeHtml(t("companyBoard.role.reviewing"))}</dt><dd>${raw(role.reviewingTasks.join(", "))}</dd></div>
         <div><dt>${escapeHtml(t("companyBoard.role.waiting"))}</dt><dd>${raw(role.waitingOwnedTasks.join(", "))}</dd></div>
         <div><dt>${escapeHtml(t("companyBoard.role.incoming"))}</dt><dd>${raw(role.incomingHandoffs.join(", "))}</dd></div>
         <div><dt>${escapeHtml(t("companyBoard.role.blocker"))}</dt><dd>${blockedDetails || raw("")}</dd></div>
@@ -218,7 +225,7 @@ function renderBlockers(blockers, t) {
 
 function renderHandoffs(handoffs, t) {
   if (!handoffs.length) return `<p class="company-board-empty">${escapeHtml(t("companyBoard.empty.handoffs"))}</p>`;
-  return `<div class="company-compact-list">${handoffs.map((item) => `<article>
+  return `<div class="company-compact-list">${handoffs.map((item) => `<article class="${item.pickupState === "SUPERSEDED" ? "company-handoff-secondary" : ""}">
     <div><strong>${raw(item.id)}</strong><span class="company-chip">${raw(item.pickupState)}</span></div>
     <p>${raw(item.senderRole)} <span aria-hidden="true">→</span> ${raw(item.receiverPosition)}</p>
     <small>${raw(item.taskId || item.task)} · ${escapeHtml(t("companyBoard.published"))} ${raw(item.publishedAt)}</small>
