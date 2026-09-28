@@ -512,3 +512,9 @@ body.company-board-open {
     grid-template-columns: 1fr;
   }
 }
+
+
+.company-compact-list article.company-handoff-secondary {
+  opacity: 0.68;
+  border-style: dashed;
+}
