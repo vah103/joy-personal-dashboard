@@ -130,7 +130,7 @@ export default Object.freeze({
   "dailyDay.item.englishReview": "Ôn tiếng Anh",
   "dailyDay.item.planTomorrow": "Soạn lịch ngày mai",
   "dailyDay.item.prepareTomorrow": "Chuẩn bị ngày mai",
-  "dailyDay.item.relax": "Giải trí"
+  "dailyDay.item.relax": "Giải trí",
   "companyBoard.open": "Mở Company Live Board",
   "companyBoard.launcher": "Company",
   "companyBoard.kicker": "Vận hành Company",
