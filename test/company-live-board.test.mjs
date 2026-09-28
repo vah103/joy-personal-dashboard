@@ -227,3 +227,68 @@ test("Worker route is read-only and registered under the Company API path", () =
   assert.match(source, /COMPANY_HUB_GITHUB_TOKEN/);
   assert.doesNotMatch(source, /COMPANY_HUB_GITHUB_TOKEN\s*=\s*["'][^"']+["']/);
 });
+
+
+test("superseded handoff history remains available and current handoffs stay prioritized", () => {
+  const board = buildCompanyLiveBoard({
+    tasksMarkdown: [TASK_HEADER, taskRow()].join("\n"),
+    handoffsMarkdown: HANDOFFS,
+    staffMarkdown: STAFF,
+    heartbeat: null,
+    heartbeatSourceAvailable: false,
+  });
+
+  assert.deepEqual(
+    board.handoffs.map((handoff) => handoff.pickupState),
+    ["PENDING_PICKUP", "ACKNOWLEDGED", "SUPERSEDED"],
+  );
+
+  const historyMarkup = renderBoardMarkup(board, {
+    filters: { handoff: "SUPERSEDED" },
+    translate: (key, values = {}) => values.count === undefined ? key : `${key}:${values.count}`,
+  });
+  assert.match(historyMarkup, /HO-OLD/);
+  assert.match(historyMarkup, /company-handoff-secondary/);
+});
+
+test("reviewing role card visibly identifies the review task", () => {
+  const board = buildCompanyLiveBoard({
+    tasksMarkdown: [
+      TASK_HEADER,
+      taskRow({ id: "C009", status: "PENDING_REVIEW", action: "Independent Research QA" }),
+    ].join("\n"),
+    handoffsMarkdown: "# Handoffs",
+    staffMarkdown: STAFF,
+    heartbeat: null,
+    heartbeatSourceAvailable: false,
+  });
+
+  const qa = board.roles.find((role) => role.position === "Independent Research QA");
+  assert.equal(qa.workload, "REVIEWING");
+  assert.deepEqual(qa.reviewingTasks, ["C009"]);
+
+  const markup = renderBoardMarkup(board, {
+    filters: { role: "Independent Research QA" },
+    translate: (key, values = {}) => values.count === undefined ? key : `${key}:${values.count}`,
+  });
+  assert.match(markup, /companyBoard\.role\.reviewing<\/dt><dd><span data-i18n-skip>C009<\/span>/);
+});
+
+test("done recently is unavailable when no authorized completion timestamp exists", () => {
+  const board = buildCompanyLiveBoard({
+    tasksMarkdown: [
+      TASK_HEADER,
+      taskRow({ id: "C008", status: "DONE", action: "—" }),
+    ].join("\n"),
+    handoffsMarkdown: "# Handoffs",
+    staffMarkdown: STAFF,
+    heartbeat: null,
+    heartbeatSourceAvailable: false,
+  });
+
+  assert.equal(board.summary.doneRecently, null);
+  const markup = renderBoardMarkup(board, {
+    translate: (key, values = {}) => values.count === undefined ? key : `${key}:${values.count}`,
+  });
+  assert.match(markup, /<strong>companyBoard\.summary\.unavailable<\/strong><span>companyBoard\.summary\.doneRecent<\/span>/);
+});
