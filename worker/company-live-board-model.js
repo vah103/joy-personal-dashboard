@@ -181,6 +181,7 @@ export function parseHandoffs(markdown) {
       nextGate: handoffValue(fields, "Next gate"),
       criticality: handoffValue(fields, "Criticality"),
       canonicalImpact: handoffValue(fields, "Canonical impact"),
+      taskPrimaryOwner: handoffValue(fields, "Task primary owner"),
     });
     current = null;
   };
@@ -415,9 +416,17 @@ export function buildCompanyLiveBoard({
       warnings.push({ code: "UNKNOWN_HANDOFF_RECEIVER", handoffId: handoff.id, value: handoff.receiverPosition });
     }
     const linkedTask = handoff.taskId ? tasksById.get(handoff.taskId) : null;
-    if (linkedTask && handoffValue(new Map([["task primary owner", linkedTask.primaryOwner]]), "Task primary owner")) {
-      const handoffOwner = String(handoff.task || "").trim();
-      void handoffOwner;
+    if (
+      linkedTask
+      && handoff.taskPrimaryOwner
+      && linkedTask.primaryOwner !== handoff.taskPrimaryOwner
+    ) {
+      warnings.push({
+        code: "HANDOFF_PRIMARY_OWNER_MISMATCH",
+        handoffId: handoff.id,
+        taskId: linkedTask.id,
+        value: handoff.taskPrimaryOwner,
+      });
     }
   }
 
@@ -490,11 +499,16 @@ export function buildCompanyLiveBoard({
   });
 
   const summary = {
-    actionableNow: roles.filter((role) => role.workload === "ACTION_NOW").length,
+    actionableNow: tasksWithView.filter((task) => (
+      ACTIONABLE_STATUSES.has(task.status)
+      && task.unresolvedDependencies.length === 0
+      && !isBlank(task.currentActionOwner)
+    )).length,
     waiting: roles.filter((role) => role.workload === "WAITING").length,
-    review: roles.filter((role) => role.workload === "REVIEWING").length,
-    blockedGated: roles.filter((role) => role.workload === "BLOCKED").length,
+    review: tasksWithView.filter((task) => REVIEW_STATUSES.has(task.status)).length,
+    blockedGated: blockers.length,
     freeForNewWork: roles.filter((role) => role.workload === "FREE_FOR_NEW_WORK").length,
+    // TASKS is a snapshot and has no transition timestamp. Do not invent recency.
     doneRecently: 0,
   };
 
