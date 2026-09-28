@@ -431,6 +431,10 @@ export function buildCompanyLiveBoard({
   }
 
   const currentHandoffs = handoffs.filter((handoff) => CURRENT_HANDOFF_STATES.has(handoff.pickupState));
+  const presentationHandoffs = [
+    ...currentHandoffs,
+    ...handoffs.filter((handoff) => !CURRENT_HANDOFF_STATES.has(handoff.pickupState)),
+  ];
   const blockers = tasksWithView
     .filter((task) => task.gate)
     .map((task) => ({
@@ -509,7 +513,7 @@ export function buildCompanyLiveBoard({
     blockedGated: blockers.length,
     freeForNewWork: roles.filter((role) => role.workload === "FREE_FOR_NEW_WORK").length,
     // TASKS is a snapshot and has no transition timestamp. Do not invent recency.
-    doneRecently: 0,
+    doneRecently: null,
   };
 
   const runtimePresence = heartbeatSourceAvailable
@@ -523,7 +527,7 @@ export function buildCompanyLiveBoard({
     summary,
     roles,
     tasks: tasksWithView,
-    handoffs: currentHandoffs,
+    handoffs: presentationHandoffs,
     blockers,
     relationships,
     timeline: handoffTimeline(handoffs),
