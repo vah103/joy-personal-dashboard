@@ -3,6 +3,27 @@
 Company Live Board is a read-only operator view inside Joy. It renders governed
 Company work state without turning Joy into a second source of truth.
 
+## C011 map-only presentation
+
+The USER-approved C011 redesign changes only the main presentation. The accepted C009 data model, source priority, read-only API and presence semantics remain unchanged.
+
+The main screen is now one Company Map:
+- Research Director / USER is the central anchor;
+- Research Secretary stays close to USER;
+- Research Core is visually dominant while Company / Operations stays quieter;
+- every current STAFF role is an icon-based node;
+- only short current task IDs are shown;
+- only current durable role-to-role TASKS/HANDOFFS evidence may create edges.
+
+Exactly three work-state presentation buckets are shown:
+- green ACTIVE: underlying workload is ACTION_NOW or REVIEWING;
+- yellow WAITING: underlying workload is WAITING, BLOCKED, or an unbound seat with a pending incoming handoff;
+- gray FREE: no current governed work evidence is assigned to that role.
+
+These colors are work state, not online presence. Runtime or role presence is not rendered on the main map and is never used to derive the three colors.
+
+Counters, filters, task tables, raw statuses, handoff IDs, source paths, SHAs and provenance are intentionally omitted from the main map. The governed source data remains unchanged.
+
 ## Private source adapter
 
 The Joy repository is public while the Company Hub repository is private.
