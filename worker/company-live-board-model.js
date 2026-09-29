@@ -99,22 +99,21 @@ function isSeparatorRow(cells) {
 
 function parseTable(markdown, expectedHeaders) {
   const lines = String(markdown || "").split(/\r?\n/);
+  const rows = [];
   for (let index = 0; index < lines.length - 1; index += 1) {
     const headers = splitMarkdownRow(lines[index]);
     if (headers.length !== expectedHeaders.length) continue;
     if (!expectedHeaders.every((header, position) => headers[position] === header)) continue;
     if (!isSeparatorRow(splitMarkdownRow(lines[index + 1]))) continue;
 
-    const rows = [];
     for (let cursor = index + 2; cursor < lines.length; cursor += 1) {
       if (!lines[cursor].trim().startsWith("|")) break;
       const cells = splitMarkdownRow(lines[cursor]);
       if (cells.length !== headers.length) continue;
       rows.push(Object.fromEntries(headers.map((header, position) => [header, cells[position]])));
     }
-    return rows;
   }
-  return [];
+  return rows;
 }
 
 export function parseTasks(markdown) {
@@ -340,11 +339,11 @@ function deriveWorkload(position, assignee, tasks, handoffs) {
   ));
 
   let workload = "FREE_FOR_NEW_WORK";
-  if (isBlank(assignee)) workload = "UNBOUND";
-  else if (reviewing.length) workload = "REVIEWING";
+  if (reviewing.length) workload = "REVIEWING";
   else if (blocked.length) workload = "BLOCKED";
   else if (actionable.length || incoming.length) workload = "ACTION_NOW";
   else if (waitingOwned.length) workload = "WAITING";
+  else if (isBlank(assignee)) workload = "UNBOUND";
 
   return {
     workload,
@@ -430,7 +429,12 @@ export function buildCompanyLiveBoard({
     }
   }
 
-  const currentHandoffs = handoffs.filter((handoff) => CURRENT_HANDOFF_STATES.has(handoff.pickupState));
+  const currentHandoffs = handoffs.filter((handoff) => {
+    if (!CURRENT_HANDOFF_STATES.has(handoff.pickupState)) return false;
+    if (!handoff.taskId) return true;
+    const linkedTask = tasksById.get(handoff.taskId);
+    return !linkedTask || !["DONE", "CANCELLED"].includes(linkedTask.status);
+  });
   const presentationHandoffs = [
     ...currentHandoffs,
     ...handoffs.filter((handoff) => !CURRENT_HANDOFF_STATES.has(handoff.pickupState)),
@@ -448,7 +452,7 @@ export function buildCompanyLiveBoard({
     }));
 
   const relationships = [];
-  for (const handoff of handoffs.filter((item) => item.pickupState === "PENDING_PICKUP")) {
+  for (const handoff of currentHandoffs.filter((item) => item.pickupState === "PENDING_PICKUP")) {
     relationships.push({
       type: "PENDING_HANDOFF",
       from: handoff.senderRole,
