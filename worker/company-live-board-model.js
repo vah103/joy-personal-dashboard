@@ -117,21 +117,42 @@ function parseTable(markdown, expectedHeaders) {
 }
 
 export function parseTasks(markdown) {
-  return parseTable(markdown, TASK_HEADERS).map((row) => ({
-    id: row.ID,
-    project: row.Project,
-    title: row.Task,
-    primaryOwner: row["Primary owner position"],
-    currentActionOwner: row["Current action owner"],
-    executionSurface: row["Execution surface"],
-    usageMode: row["Usage mode"],
-    criticality: row.Criticality,
-    status: row.Status,
-    dependsOn: row["Depends on"],
-    review: row.Review,
-    canonical: row.Canonical,
-    nextAction: row["Next action"],
-  }));
+  const lines = String(markdown || "").split(/\r?\n/);
+  const hasTaskSchema = lines.some((line, index) => {
+    const headers = splitMarkdownRow(line);
+    return (
+      headers.length === TASK_HEADERS.length
+      && TASK_HEADERS.every((header, position) => headers[position] === header)
+      && isSeparatorRow(splitMarkdownRow(lines[index + 1]))
+    );
+  });
+  if (!hasTaskSchema) return [];
+
+  return lines
+    .map((line) => splitMarkdownRow(line))
+    .filter((cells) => (
+      cells.length === TASK_HEADERS.length
+      && /^[A-Z]{1,5}\d{3}$/.test(cells[0] || "")
+      && KNOWN_TASK_STATUSES.includes(cells[8] || "")
+    ))
+    .map((cells) => Object.fromEntries(
+      TASK_HEADERS.map((header, position) => [header, cells[position]]),
+    ))
+    .map((row) => ({
+      id: row.ID,
+      project: row.Project,
+      title: row.Task,
+      primaryOwner: row["Primary owner position"],
+      currentActionOwner: row["Current action owner"],
+      executionSurface: row["Execution surface"],
+      usageMode: row["Usage mode"],
+      criticality: row.Criticality,
+      status: row.Status,
+      dependsOn: row["Depends on"],
+      review: row.Review,
+      canonical: row.Canonical,
+      nextAction: row["Next action"],
+    }));
 }
 
 export function parseStaff(markdown) {
