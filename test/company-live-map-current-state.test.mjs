@@ -16,7 +16,7 @@ const TASKS = `${HEADER}
 ${HEADER}
 | C012 | company | Governance review | Policy & Governance Manager | Independent Research QA | separate Chat | N/A | HIGH | PENDING_REVIEW | — | Independent Research QA | — | Review |
 | MX016 | mapex | Hospital replay | Research Software / Experiment Engineer | Independent Research QA | separate Chat | N/A | HIGH | PENDING_REVIEW | — | Independent Research QA | — | Review |
-| MX019 | mapex | Hospital sensitivity | Data & Evidence Analyst | Independent Research QA | separate Chat | N/A | HIGH | PENDING_REVIEW | — | Independent Research QA | — | Review |`;
+| MX019 | mapex | Hospital sensitivity | Data & Evidence Analyst | — | — | N/A | HIGH | DONE | — | ACCEPT | — | Closed |\n| C099 | company | Cancelled analyst task | Data & Evidence Analyst | — | — | N/A | MEDIUM | CANCELLED | — | — | — | Closed |`;
 
 const STAFF = `# Staff
 | Position | Seat status | Default surface | Secondary / support | Current assignee |
@@ -65,7 +65,7 @@ const HANDOFFS = `# Handoffs
 `;
 
 test("C013 parses every canonical TASKS table in the document", () => {
-  assert.deepEqual(parseTasks(TASKS).map((task) => task.id), ["C006", "C012", "MX016", "MX019"]);
+  assert.deepEqual(parseTasks(TASKS).map((task) => task.id), ["C006", "C012", "MX016", "MX019", "C099"]);
 });
 
 test("C013 current snapshot colors reflect open task ownership instead of seat binding or stale handoffs", () => {
@@ -81,7 +81,7 @@ test("C013 current snapshot colors reflect open task ownership instead of seat b
   assert.equal(stateForRole(byRole.get("Independent Research QA")), "ACTIVE");
   assert.equal(stateForRole(byRole.get("Policy & Governance Manager")), "WAITING");
   assert.equal(stateForRole(byRole.get("Research Software / Experiment Engineer")), "WAITING");
-  assert.equal(stateForRole(byRole.get("Data & Evidence Analyst")), "WAITING");
+  assert.equal(stateForRole(byRole.get("Data & Evidence Analyst")), "FREE");
   assert.equal(stateForRole(byRole.get("Research Project Manager")), "FREE");
   assert.equal(stateForRole(byRole.get("Research Director")), "FREE");
 
@@ -102,7 +102,23 @@ test("C013 map edges contain only open-task relationships", () => {
   const edges = buildMapEdges(board);
   assert.deepEqual(
     new Set(edges.map((edge) => edge.taskId)),
-    new Set(["C012", "MX016", "MX019"]),
+    new Set(["C012", "MX016"]),
   );
   assert.equal(edges.some((edge) => edge.to === "Research Project Manager"), false);
+});
+
+
+test("C013 CANCELLED owned work is closed and cannot make a role wait", () => {
+  const cancelledOnly = `${HEADER}
+| C099 | company | Cancelled analyst task | Data & Evidence Analyst | — | — | N/A | MEDIUM | CANCELLED | — | — | — | Closed |`;
+  const board = buildCompanyLiveBoard({
+    tasksMarkdown: cancelledOnly,
+    handoffsMarkdown: "# Handoffs",
+    staffMarkdown: STAFF,
+    heartbeat: null,
+    heartbeatSourceAvailable: false,
+  });
+  const analyst = board.roles.find((role) => role.position === "Data & Evidence Analyst");
+  assert.equal(analyst.waitingOwnedTasks.length, 0);
+  assert.equal(stateForRole(analyst), "FREE");
 });
