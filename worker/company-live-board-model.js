@@ -330,7 +330,7 @@ function deriveWorkload(position, assignee, tasks, handoffs) {
   const blocked = action.filter((task) => BLOCKED_STATUSES.has(task.status));
   const actionable = action.filter((task) => ACTIONABLE_STATUSES.has(task.status));
   const waitingOwned = owned.filter((task) => (
-    task.status !== "DONE"
+    !["DONE", "CANCELLED"].includes(task.status)
     && (
       !actorMatchesPosition(task.currentActionOwner, position)
       || REVIEW_STATUSES.has(task.status)
