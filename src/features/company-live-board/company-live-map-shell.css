@@ -1,0 +1,165 @@
+.company-board-launcher {
+  min-height: 40px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--border-strong, #c8ced6);
+  border-radius: 12px;
+  background: rgba(255,255,255,.62);
+  color: var(--accent-dark, #405c76);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.company-board-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  padding: clamp(10px,2vw,24px);
+  overflow: auto;
+  background: rgba(40,48,55,.42);
+  backdrop-filter: blur(8px);
+  overscroll-behavior: contain;
+}
+.company-board-backdrop[hidden] { display: none; }
+body.company-board-open { overflow: hidden; }
+
+.company-board-dialog {
+  --map-text: #22272e;
+  --map-line: #8092a3;
+  --map-line-soft: #b7c1ca;
+  --state-active: #27a676;
+  --state-waiting: #dfa116;
+  --state-free: #9aa6b2;
+  width: min(1460px,100%);
+  min-height: calc(100vh - clamp(20px,4vw,48px));
+  margin: 0 auto;
+  padding: clamp(18px,2.2vw,30px);
+  border: 1px solid #d7dce2;
+  border-radius: 28px;
+  background: #f8fafb;
+  color: var(--map-text);
+  box-shadow: 0 28px 80px rgba(31,38,47,.17);
+  font-family: "Nunito","Instrument Sans","Segoe UI",sans-serif;
+}
+
+.company-board-state {
+  min-height: 240px;
+  display: grid;
+  place-content: center;
+  gap: 14px;
+  text-align: center;
+}
+.company-board-state p { margin: 0; color: #6f7782; }
+.company-board-state > div { display: flex; justify-content: center; gap: 8px; }
+.company-board-state button,
+.company-map-actions button {
+  border: 1px solid #cfd5dc;
+  background: rgba(255,255,255,.88);
+  color: #40505e;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.company-board-state button {
+  min-height: 38px;
+  padding: 0 13px;
+  border-radius: 11px;
+}
+
+.company-map-header {
+  min-height: 66px;
+  display: grid;
+  grid-template-columns: minmax(260px,1fr) auto auto;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 14px;
+}
+.company-map-heading h2 {
+  margin: 2px 0 0;
+  font-family: "OpenAI Sans","Instrument Sans","Segoe UI",sans-serif;
+  font-size: clamp(25px,2.6vw,36px);
+  font-weight: 800;
+  letter-spacing: -.04em;
+  line-height: 1.05;
+}
+.company-board-kicker {
+  margin: 0;
+  color: #6f7c86;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.company-map-legend {
+  min-height: 40px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid #dfe4e8;
+  border-radius: 999px;
+  background: rgba(255,255,255,.72);
+  color: #62707d;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.company-map-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.company-map-legend i,
+.company-map-state i {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 999px;
+}
+.company-map-legend .is-active,
+.company-map-node--active .company-map-state i { background: var(--state-active); }
+.company-map-legend .is-waiting,
+.company-map-node--waiting .company-map-state i { background: var(--state-waiting); }
+.company-map-legend .is-free,
+.company-map-node--free .company-map-state i { background: var(--state-free); }
+
+.company-map-actions { display: flex; gap: 8px; }
+.company-map-actions button {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  font-size: 18px;
+}
+
+@media (max-width: 1180px) {
+  .company-board-dialog { padding: 16px; border-radius: 22px; }
+  .company-map-header {
+    grid-template-columns: minmax(230px,1fr) auto auto;
+    gap: 10px;
+  }
+  .company-map-legend { gap: 10px; padding-inline: 11px; font-size: 10px; }
+}
+@media (max-width: 760px) {
+  .company-board-backdrop { padding: 0; }
+  .company-board-dialog {
+    min-height: 100vh;
+    border: 0;
+    border-radius: 0;
+    padding: 12px;
+  }
+  .company-map-header { grid-template-columns: 1fr auto; }
+  .company-map-legend {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: fit-content;
+  }
+  .company-map-heading h2 { font-size: 24px; }
+  .company-board-launcher span:last-child { display: none; }
+}
