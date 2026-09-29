@@ -13,8 +13,19 @@ export function buildMapEdges(data) {
     edges.push({ from, to, taskId: String(relation.taskId || ""), emphasis: "current" });
   }
 
+  const openTaskIds = new Set(
+    (data?.tasks || [])
+      .filter((task) => !["DONE", "CANCELLED"].includes(String(task.status || "")))
+      .map((task) => task.id),
+  );
   const handoffs = [...(data?.handoffs || [])]
-    .filter((item) => item?.publishedAt && !Number.isNaN(Date.parse(item.publishedAt)))
+    .filter((item) => (
+      item?.publishedAt
+      && !Number.isNaN(Date.parse(item.publishedAt))
+      && item.taskId
+      && openTaskIds.has(item.taskId)
+      && ["PENDING_PICKUP", "ACKNOWLEDGED"].includes(item.pickupState)
+    ))
     .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
 
   for (const item of handoffs) {
@@ -27,7 +38,7 @@ export function buildMapEdges(data) {
       from,
       to,
       taskId: String(item.taskId || ""),
-      emphasis: item.pickupState === "SUPERSEDED" ? "previous" : "current",
+      emphasis: "current",
     });
   }
   return edges;
