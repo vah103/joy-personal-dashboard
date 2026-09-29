@@ -60,7 +60,7 @@ if (typeof document?.createElement === "function") {
 
 // Company Live Board is a read-only operator view backed by the authenticated Worker API.
 if (typeof document?.createElement === "function") {
-  void import("/company-live-board.js?v=joy-company-live-board-v1");
+  void import("/company-live-map.js?v=joy-company-live-map-v2");
 }
 
 window.JoyDashboardConfig = Object.freeze({
