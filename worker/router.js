@@ -13,10 +13,6 @@ import {
   isDashboardDataRoute,
 } from "./dashboard-data.js";
 import {
-  handleCompanyLiveBoardRequest,
-  isCompanyLiveBoardRoute,
-} from "./company-live-board.js";
-import {
   handleFinanceGoldPriceRequest,
   isFinanceGoldPriceRoute,
 } from "./finance-gold-price.js";
@@ -187,9 +183,6 @@ export default {
       }
       if (isDashboardDataRoute(pathname)) {
         return handleDashboardDataRequest(request, env);
-      }
-      if (isCompanyLiveBoardRoute(pathname)) {
-        return handleCompanyLiveBoardRequest(request, env);
       }
       if (isFinanceGoldPriceRoute(pathname)) {
         return handleFinanceGoldPriceRequest(request, env);
