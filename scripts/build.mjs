@@ -232,6 +232,8 @@ const copies = [
   [resolve(features, "tasks", "task-reminders.js"), "task-reminders.js"],
   [resolve(features, "tasks", "task-natural-input.js"), "task-natural-input.js"],
   [resolve(features, "tasks", "task-reminders.css"), "task-reminders.css"],
+  [resolve(features, "time-tracker", "time-tracker.js"), "time-tracker.js"],
+  [resolve(features, "time-tracker", "time-tracker.css"), "time-tracker.css"],
   [resolve(features, "auth", "auth-ui.js"), "auth-ui.js"],
   [resolve(features, "auth", "auth-ui.css"), "auth-ui.css"],
   [resolve(features, "notifications", "push-notifications.js"), "push-notifications.js"],

@@ -25,6 +25,7 @@
     <link rel="stylesheet" href="daily-brief.css?v=joy-daily-brief-v5">
     <link rel="stylesheet" href="dashboard-entry.css?v=joy-entry-motion-v1">
     <link rel="stylesheet" href="task-reminders.css?v=joy-tasks-v1">
+    <link rel="stylesheet" href="time-tracker.css?v=joy-time-tracker-v1">
     <link rel="stylesheet" href="room-summary.css?v=joy-room-summary-v1">
     <link rel="stylesheet" href="sales-assistant.css?v=joy-dashboard-sales-assistant-v6">
     <link rel="stylesheet" href="sale-history-row-edit.css?v=joy-sale-history-row-edit-v1">
@@ -118,6 +119,17 @@
               <form class="quick-add" id="quick-add-form"><label class="sr-only" for="quick-task">Add a task</label><input id="quick-task" name="task" type="text" placeholder="What do you need to do?" autocomplete="off"><button type="submit" aria-label="Add task">+</button></form>
               <div class="task-list" id="task-list" aria-live="polite"></div>
             </section>
+            <section class="panel time-tracker-panel" aria-labelledby="time-tracker-title">
+              <div class="panel-heading">
+                <div><h2 id="time-tracker-title" data-i18n="timeTracker.title">Daily Time Tracker</h2></div>
+                <button class="quiet-link" type="button" data-tt-open data-i18n="timeTracker.open">Open timer</button>
+              </div>
+              <div class="time-tracker-teaser">
+                <div class="tt-teaser-line"><span data-i18n="timeTracker.todayTotal">Recorded today</span><strong data-tt-teaser-total>00:00:00</strong></div>
+                <div class="tt-track"><span data-tt-teaser-progress></span></div>
+                <p data-tt-teaser-status data-i18n="timeTracker.loading">Loading timer…</p>
+              </div>
+            </section>
             <section class="panel sales-panel" id="sales" aria-labelledby="sales-title">
               <div class="panel-heading"><button class="panel-title-button" type="button" data-action="open-sale-manager"><h2 id="sales-title">Sales</h2></button><button class="quiet-link" type="button" data-action="open-sale-manager">Manage 2026 ↗</button></div>
               <div class="sales-body"><div class="sales-summary"><p class="subheading">Upcoming viewings</p><span class="count-pill" id="sales-count">Loading</span></div><div id="sales-content" aria-live="polite"></div></div>
@@ -140,6 +152,32 @@
       </div>
       <div class="modal-backdrop" id="sales-modal" role="presentation" hidden><section class="modal sales-modal" role="dialog" aria-modal="true" aria-labelledby="sales-modal-title"><div class="modal-heading"><div><p class="section-kicker">Sale phòng | GPTs</p><h2 id="sales-modal-title">Upcoming viewings</h2></div><button type="button" aria-label="Close sales details" data-action="close-sales">×</button></div><div id="sales-modal-content"></div></section></div>
       <div class="modal-backdrop" id="task-history-modal" role="presentation" hidden><section class="modal task-history-modal" role="dialog" aria-modal="true" aria-labelledby="task-history-title"><div class="modal-heading"><div><p class="section-kicker">To-do list</p><h2 id="task-history-title">Task history</h2></div><button type="button" aria-label="Close task history" data-action="close-task-history">×</button></div><p class="task-history-summary" id="task-history-summary"></p><div class="task-history-content" id="task-history-content"></div></section></div>
+      <div class="modal-backdrop time-tracker-backdrop" id="time-tracker-modal" role="presentation" hidden>
+        <section class="modal time-tracker-modal" role="dialog" aria-modal="true" aria-labelledby="time-tracker-modal-title" tabindex="-1">
+          <div class="modal-heading">
+            <div><p class="section-kicker" data-i18n="timeTracker.todayPlan">Your 24-hour plan</p><h2 id="time-tracker-modal-title" data-i18n="timeTracker.title">Daily Time Tracker</h2></div>
+            <button type="button" data-tt-close data-i18n-aria-label="common.close" aria-label="Close">×</button>
+          </div>
+          <p class="tt-status" data-tt-status role="status" aria-live="polite"></p>
+          <div class="tt-overview">
+            <div><span data-i18n="timeTracker.todayTotal">Recorded today</span><strong data-tt-today>00:00:00</strong></div>
+            <div><span data-i18n="timeTracker.unrecorded">Budget not recorded</span><strong data-tt-unrecorded>24:00:00</strong></div>
+          </div>
+          <div class="tt-track tt-overview-track"><span data-tt-overview-progress></span></div>
+          <p class="tt-hint" data-i18n="timeTracker.hint">Tap an activity to start. Switching automatically stops the previous timer.</p>
+          <div class="tt-main-grid" data-tt-main></div>
+          <section class="tt-study-section" aria-labelledby="tt-study-title">
+            <div class="tt-study-heading"><div><h3 id="tt-study-title" data-i18n="timeTracker.study">Study</h3><small data-i18n="timeTracker.studyHint">Thesis is the priority; three other timers have separate totals.</small></div><strong data-tt-study-total>00:00:00 / 08:00:00</strong></div>
+            <div class="tt-track tt-study-track"><span data-tt-study-progress></span></div>
+            <div class="tt-thesis" data-tt-thesis></div>
+            <div class="tt-study-minis" data-tt-minis></div>
+          </section>
+          <section class="tt-history-section" aria-labelledby="tt-history-title">
+            <h3 id="tt-history-title" data-i18n="timeTracker.history">Recent sessions today</h3>
+            <div data-tt-history></div>
+          </section>
+        </section>
+      </div>
       <div class="modal-backdrop" id="project-delete-modal" role="presentation" hidden>
         <section class="modal project-delete-modal" role="dialog" aria-modal="true" aria-labelledby="project-delete-title">
           <div class="modal-heading"><div><p class="section-kicker">Active Projects</p><h2 id="project-delete-title">Delete project?</h2></div><button type="button" aria-label="Close delete confirmation" data-action="cancel-delete-project">×</button></div>
@@ -171,6 +209,7 @@
     <script src="task-reminders-events.js?v=joy-task-checkbox-v2" defer></script>
     <script src="task-reminders.js?v=joy-tasks-v1" defer></script>
     <script src="task-natural-input.js?v=joy-natural-reminders-v2" defer></script>
+    <script src="time-tracker.js?v=joy-time-tracker-v1" defer></script>
     <script type="module" src="sales-assistant.js?v=joy-dashboard-sales-assistant-v5"></script>
     <script type="module" src="sale-history-row-edit.js?v=joy-sale-history-row-edit-v1"></script>
     <script src="project-data/finance/finance-p1008-shopping-v1.js?v=joy-finance-p1008-shopping-v1" defer></script>

@@ -12,6 +12,11 @@ A Cloudflare-powered personal dashboard for Vanh, covering Gmail, Google Sheets 
 - `test/` — automated regression tests.
 - `docs/` — deployment, structure, and archived project notes.
 
+The dashboard also includes **Daily Time Tracker**, an exclusive stopwatch for
+the 24-hour daily allocation with three separately tracked study sub-timers.
+It persists authenticated sessions in D1, independent of Daily Day. See
+[`docs/DAILY_TIME_TRACKER.md`](docs/DAILY_TIME_TRACKER.md) for the behavior and API.
+
 The repository is Cloudflare-first. `npm run build` generates the deployable frontend in `dist/`, which is intentionally ignored by Git. GitHub Pages is no longer used as a fallback.
 
 Feature source belongs under `src/features/`. Stable public data and project assets belong under `project-data/`. Generated browser bundles are written only to `dist/`.

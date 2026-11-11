@@ -98,6 +98,7 @@ import {
   handleTaskImportRequest,
   isTaskImportRoute,
 } from "./task-sync.js";
+import { handleTimeTrackerRequest, isTimeTrackerRoute } from "./time-tracker.js";
 import {
   handleTaskReminderRequest,
   isTaskReminderRoute,
@@ -180,6 +181,9 @@ export default {
       }
       if (isDailyDaySyncRoute(pathname)) {
         return handleDailyDaySyncRequest(request, env);
+      }
+      if (isTimeTrackerRoute(pathname)) {
+        return handleTimeTrackerRequest(request, env);
       }
       if (isDashboardDataRoute(pathname)) {
         return handleDashboardDataRequest(request, env);
